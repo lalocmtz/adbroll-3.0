@@ -65,13 +65,26 @@ const Admin = () => {
 
     setIsUploading(true);
     try {
-      toast({
-        title: "Función en desarrollo",
-        description: "El procesamiento de Excel se implementará en Fase 3.",
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const { data, error } = await supabase.functions.invoke("process-kalodata", {
+        body: formData,
       });
+
+      if (error) throw error;
+
+      toast({
+        title: "¡Archivo procesado!",
+        description: `${data.processed} de ${data.total} videos actualizados exitosamente.`,
+      });
+
+      setTimeout(() => {
+        window.location.href = "/app";
+      }, 2000);
     } catch (error: any) {
       toast({
-        title: "Error al subir archivo",
+        title: "Error al procesar archivo",
         description: error.message,
         variant: "destructive",
       });
@@ -140,7 +153,7 @@ const Admin = () => {
                 className="w-full"
               >
                 <Database className="h-4 w-4 mr-2" />
-                {isUploading ? "Procesando..." : "Procesar y Actualizar Feed (Próximamente)"}
+                {isUploading ? "Procesando..." : "Procesar y Actualizar Feed"}
               </Button>
             </CardContent>
           </Card>
