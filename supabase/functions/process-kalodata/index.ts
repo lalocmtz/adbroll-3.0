@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
+import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -116,9 +116,12 @@ serve(async (req) => {
         const guionIA = `[Guión IA pendiente] Este video generó ${row["Ventas"]} ventas con un ROAS de ${row["ROAS - Retorno de la inversión publicitaria"]}x. Descripción: ${row["Descripción del vídeo"]}`;
 
         // Parse ratio_ads percentage
-        let ratioAds = row["Ratio de visualizaciones de Ads"];
-        if (typeof ratioAds === "string" && ratioAds.includes("%")) {
-          ratioAds = parseFloat(ratioAds.replace("%", ""));
+        let ratioAds: number | null = null;
+        const ratioValue = row["Ratio de visualizaciones de Ads"] as string | number;
+        if (typeof ratioValue === "string" && (ratioValue as string).includes("%")) {
+          ratioAds = parseFloat((ratioValue as string).replace("%", ""));
+        } else if (typeof ratioValue === "number") {
+          ratioAds = ratioValue;
         }
 
         // Insert into database

@@ -1,1 +1,4 @@
 project_id = "gcntnilurlulejwwtpaa"
+
+[functions.process-kalodata]
+verify_jwt = true
