@@ -1,15 +1,58 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, Database, ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const Admin = () => {
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isFounder, setIsFounder] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    checkFounderRole();
+  }, []);
+
+  const checkFounderRole = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "founder")
+        .maybeSingle();
+
+      if (error || !data) {
+        toast({
+          title: "Acceso denegado",
+          description: "Solo el fundador puede acceder a este panel.",
+          variant: "destructive",
+        });
+        navigate("/app");
+        return;
+      }
+
+      setIsFounder(true);
+    } catch (error) {
+      console.error("Error checking founder role:", error);
+      navigate("/app");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -21,16 +64,32 @@ const Admin = () => {
     if (!file) return;
 
     setIsUploading(true);
-    // Aquí irá la lógica de procesamiento del archivo
-    console.log("Uploading file:", file.name);
-    
-    // Simular procesamiento
-    setTimeout(() => {
+    try {
+      toast({
+        title: "Función en desarrollo",
+        description: "El procesamiento de Excel se implementará en Fase 3.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error al subir archivo",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
       setIsUploading(false);
       setFile(null);
-      alert("Archivo procesado exitosamente. Los datos se han actualizado.");
-    }, 2000);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Verificando permisos...</p>
+      </div>
+    );
+  }
+
+  if (!isFounder) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,7 +140,7 @@ const Admin = () => {
                 className="w-full"
               >
                 <Database className="h-4 w-4 mr-2" />
-                {isUploading ? "Procesando..." : "Procesar y Actualizar Feed"}
+                {isUploading ? "Procesando..." : "Procesar y Actualizar Feed (Próximamente)"}
               </Button>
             </CardContent>
           </Card>
