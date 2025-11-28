@@ -74,13 +74,18 @@ const Admin = () => {
 
       if (error) throw error;
 
+      const successCount = data.processed || 0;
+      const totalCount = data.total || 0;
+      const failedCount = data.failed || 0;
+
       toast({
-        title: "¡Archivo procesado!",
-        description: `${data.processed} de ${data.total} videos actualizados exitosamente.`,
+        title: "¡Archivo procesado exitosamente!",
+        description: `${successCount} de ${totalCount} videos actualizados. ${failedCount > 0 ? `${failedCount} videos fallaron.` : ''}`,
       });
 
+      // Wait a bit before redirecting to show the success message
       setTimeout(() => {
-        window.location.href = "/app";
+        navigate("/app");
       }, 2000);
     } catch (error: any) {
       toast({

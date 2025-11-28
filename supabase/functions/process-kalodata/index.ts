@@ -66,6 +66,12 @@ serve(async (req) => {
 
     console.log("Rol de fundador verificado");
 
+    // Create service role client for database operations (bypasses RLS)
+    const supabaseServiceClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
     // Parse Excel file
     const formData = await req.formData();
     const file = formData.get("file") as File;
@@ -90,8 +96,8 @@ serve(async (req) => {
 
     console.log(`Top 20 seleccionados, limpiando datos anteriores...`);
 
-    // Delete existing data
-    const { error: deleteError } = await supabaseClient
+    // Delete existing data using service role
+    const { error: deleteError } = await supabaseServiceClient
       .from("daily_feed")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
@@ -124,8 +130,8 @@ serve(async (req) => {
           ratioAds = ratioValue;
         }
 
-        // Insert into database
-        const { error: insertError } = await supabaseClient
+        // Insert into database using service role
+        const { error: insertError } = await supabaseServiceClient
           .from("daily_feed")
           .insert({
             rango_fechas: row["Rango de fechas"],
