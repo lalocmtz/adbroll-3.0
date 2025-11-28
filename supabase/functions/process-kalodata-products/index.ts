@@ -103,18 +103,65 @@ serve(async (req) => {
 
     console.log("Datos anteriores eliminados, insertando nuevos productos...");
 
-    // Map and validate rows
-    const validRows = topProducts.map((row) => ({
-      producto_nombre: row["Nombre del producto"],
-      producto_url: row["URL del producto"] || null,
-      categoria: row["Categoría"] || null,
-      precio_mxn: row["Precio (M$)"] || null,
-      descripcion: row["Descripción"] || null,
-      imagen_url: row["Imagen URL"] || null,
-      total_ventas: row["Total Ventas"] || 0,
-      total_ingresos_mxn: row["Total Ingresos (M$)"] || 0,
-      promedio_roas: row["Promedio ROAS"] || null,
-    }));
+    // Map and validate rows with price parsing
+    const validRows = topProducts.map((row) => {
+      // Parse price - handle ranges like "267.12-289.48"
+      let parsedPrice: number | null = null;
+      const precioValue = row["Precio (M$)"];
+      
+      if (precioValue !== null && precioValue !== undefined) {
+        const precioStr = String(precioValue);
+        if (precioStr.includes("-")) {
+          // It's a range, take the average
+          const parts = precioStr.split("-");
+          const num1 = parseFloat(parts[0]);
+          const num2 = parseFloat(parts[1]);
+          if (!isNaN(num1) && !isNaN(num2)) {
+            parsedPrice = (num1 + num2) / 2;
+          }
+        } else {
+          const num = parseFloat(precioStr);
+          if (!isNaN(num)) {
+            parsedPrice = num;
+          }
+        }
+      }
+
+      // Parse ROAS - handle percentages and ranges
+      let parsedRoas: number | null = null;
+      const roasValue = row["Promedio ROAS"];
+      
+      if (roasValue !== null && roasValue !== undefined) {
+        const roasStr = String(roasValue);
+        // Remove % if present and handle ranges
+        let cleanValue = roasStr.replace("%", "").trim();
+        if (cleanValue.includes("-")) {
+          const parts = cleanValue.split("-");
+          const num1 = parseFloat(parts[0]);
+          const num2 = parseFloat(parts[1]);
+          if (!isNaN(num1) && !isNaN(num2)) {
+            parsedRoas = (num1 + num2) / 2;
+          }
+        } else {
+          const num = parseFloat(cleanValue);
+          if (!isNaN(num)) {
+            parsedRoas = num;
+          }
+        }
+      }
+
+      return {
+        producto_nombre: row["Nombre del producto"],
+        producto_url: row["URL del producto"] || null,
+        categoria: row["Categoría"] || null,
+        precio_mxn: parsedPrice,
+        descripcion: row["Descripción"] || null,
+        imagen_url: row["Imagen URL"] || null,
+        total_ventas: row["Total Ventas"] || 0,
+        total_ingresos_mxn: row["Total Ingresos (M$)"] || 0,
+        promedio_roas: parsedRoas,
+      };
+    });
 
     console.log(`Insertando ${validRows.length} productos...`);
 
