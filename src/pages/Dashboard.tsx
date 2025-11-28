@@ -1,9 +1,82 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import VideoCard from "@/components/VideoCard";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data para demostración visual
+interface DailyFeedVideo {
+  id: string;
+  rango_fechas: string;
+  descripcion_video: string;
+  duracion: string;
+  creador: string;
+  fecha_publicacion: string;
+  ingresos_mxn: number;
+  ventas: number;
+  visualizaciones: number;
+  gpm_mxn: number | null;
+  cpa_mxn: number;
+  ratio_ads: number | null;
+  coste_publicitario_mxn: number;
+  roas: number;
+  tiktok_url: string;
+  transcripcion_original: string | null;
+  guion_ia: string | null;
+  created_at: string;
+}
+
+const Dashboard = () => {
+  const [videos, setVideos] = useState<DailyFeedVideo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchVideos();
+  }, []);
+
+  const fetchVideos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("daily_feed")
+        .select("*")
+        .order("ingresos_mxn", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      setVideos(data || []);
+      
+      if (data && data.length > 0) {
+        setLastUpdate(new Date(data[0].created_at));
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error al cargar videos",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Cargando videos...</p>
+      </div>
+    );
+  }
+
 const mockVideos = [
   {
     id: "1",
@@ -49,14 +122,6 @@ const mockVideos = [
   },
 ];
 
-const Dashboard = () => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    // Aquí irá la lógica de logout
-    navigate("/");
-  };
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -76,30 +141,33 @@ const Dashboard = () => {
           <h2 className="text-3xl font-bold text-foreground mb-2">
             Top 20 Videos del Día
           </h2>
-          <p className="text-muted-foreground">
-            Última actualización: {new Date().toLocaleDateString("es-MX", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
+          {lastUpdate && (
+            <p className="text-muted-foreground">
+              Última actualización:{" "}
+              {lastUpdate.toLocaleDateString("es-MX", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          )}
         </div>
 
-        {/* Video Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {mockVideos.map((video) => (
-            <VideoCard key={video.id} video={video} />
-          ))}
-          {/* Placeholder cards para mostrar estructura completa */}
-          {Array.from({ length: 17 }).map((_, i) => (
-            <div
-              key={`placeholder-${i}`}
-              className="aspect-[9/16] bg-muted rounded-lg flex items-center justify-center"
-            >
-              <p className="text-muted-foreground">Video #{i + 4}</p>
-            </div>
-          ))}
-        </div>
+        {videos.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">
+              No hay videos disponibles. El fundador subirá datos pronto.
+            </p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {videos.map((video, index) => (
+              <VideoCard key={video.id} video={video} ranking={index + 1} />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

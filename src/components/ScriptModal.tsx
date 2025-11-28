@@ -1,114 +1,184 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Save, History } from "lucide-react";
 
 interface ScriptModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
   video: {
+    id: string;
+    transcripcion_original: string | null;
+    guion_ia: string | null;
     descripcion_video: string;
-    creador: string;
   };
 }
 
-const ScriptModal = ({ open, onOpenChange, video }: ScriptModalProps) => {
+interface CustomScript {
+  id: string;
+  contenido: string;
+  version_number: number;
+  created_at: string;
+}
+
+const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
   const [customScript, setCustomScript] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedVersions, setSavedVersions] = useState<CustomScript[]>([]);
+  const { toast } = useToast();
 
-  // Mock scripts - en producción vendrán de la base de datos
-  const originalScript = `Hola amigos, hoy les voy a mostrar este producto increíble que he estado usando...
+  useEffect(() => {
+    if (isOpen) {
+      fetchSavedVersions();
+    }
+  }, [isOpen, video.id]);
 
-[Esto es una transcripción generada automáticamente con Whisper API]
+  const fetchSavedVersions = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-Pueden ver que los resultados son impresionantes y lo mejor de todo es que está en oferta.
+      const { data, error } = await supabase
+        .from("guiones_personalizados")
+        .select("*")
+        .eq("video_id", video.id)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-No se pierdan esta oportunidad única.`;
+      if (error) throw error;
+      setSavedVersions(data || []);
+    } catch (error: any) {
+      console.error("Error fetching saved versions:", error);
+    }
+  };
 
-  const aiScript = `¿Cansado de [problema]? Te presento la solución perfecta.
+  const handleSave = async () => {
+    if (!customScript.trim()) {
+      toast({
+        title: "Campo vacío",
+        description: "Escribe tu guión personalizado antes de guardar.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-Este producto cambió completamente mi rutina y hoy quiero compartirlo contigo.
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No autenticado");
 
-Mira estos resultados increíbles [mostrar producto].
+      const nextVersion = savedVersions.length + 1;
 
-Está en oferta especial solo por tiempo limitado. ¡No te quedes sin el tuyo!
+      const { error } = await supabase
+        .from("guiones_personalizados")
+        .insert({
+          video_id: video.id,
+          user_id: user.id,
+          contenido: customScript,
+          version_number: nextVersion,
+        });
 
-Link en mi bio o búscalo en TikTok Shop.`;
+      if (error) throw error;
 
-  const handleSave = () => {
-    // Aquí se guardará en la base de datos
-    console.log("Saving custom script:", customScript);
-    onOpenChange(false);
+      toast({
+        title: "¡Guión guardado!",
+        description: `Versión ${nextVersion} guardada exitosamente.`,
+      });
+
+      setCustomScript("");
+      fetchSavedVersions();
+    } catch (error: any) {
+      toast({
+        title: "Error al guardar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Guiones del video</DialogTitle>
-          <DialogDescription>
-            {video.descripcion_video} • {video.creador}
-          </DialogDescription>
+          <DialogTitle>{video.descripcion_video}</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="ai" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="original">Original</TabsTrigger>
-            <TabsTrigger value="ai">IA Optimizado</TabsTrigger>
-            <TabsTrigger value="custom">Mi Versión</TabsTrigger>
+        <Tabs defaultValue="original" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="original">📝 Original</TabsTrigger>
+            <TabsTrigger value="ia">✨ IA</TabsTrigger>
+            <TabsTrigger value="personalizado">✍️ Tuyo</TabsTrigger>
+            <TabsTrigger value="historial">
+              <History className="h-4 w-4 mr-1" />
+              Historial
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="original" className="space-y-4">
             <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-semibold mb-2 text-foreground">
-                Transcripción Original
-              </h4>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap font-mono">
-                {originalScript}
-              </p>
+              <pre className="whitespace-pre-wrap font-mono text-sm">
+                {video.transcripcion_original || "No disponible"}
+              </pre>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Transcrito automáticamente con Whisper API
-            </p>
           </TabsContent>
 
-          <TabsContent value="ai" className="space-y-4">
-            <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-              <h4 className="font-semibold mb-2 text-foreground">
-                Guión Reescrito por IA
-              </h4>
-              <p className="text-sm text-foreground whitespace-pre-wrap">
-                {aiScript}
-              </p>
+          <TabsContent value="ia" className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <pre className="whitespace-pre-wrap font-mono text-sm">
+                {video.guion_ia || "No disponible"}
+              </pre>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Optimizado con GPT-4 Turbo para máxima conversión
-            </p>
           </TabsContent>
 
-          <TabsContent value="custom" className="space-y-4">
-            <div>
-              <h4 className="font-semibold mb-2 text-foreground">
-                Tu Versión Personalizada
-              </h4>
-              <Textarea
-                placeholder="Escribe aquí tu adaptación del guión..."
-                value={customScript}
-                onChange={(e) => setCustomScript(e.target.value)}
-                className="min-h-[300px] font-mono"
-              />
-            </div>
-            <Button onClick={handleSave} className="w-full">
+          <TabsContent value="personalizado" className="space-y-4">
+            <Textarea
+              placeholder="Adapta el guión a tu producto..."
+              value={customScript}
+              onChange={(e) => setCustomScript(e.target.value)}
+              className="min-h-[300px] font-mono"
+            />
+            <Button onClick={handleSave} disabled={isSaving} className="w-full">
               <Save className="h-4 w-4 mr-2" />
-              Guardar mi versión
+              {isSaving ? "Guardando..." : "Guardar Nueva Versión"}
             </Button>
+          </TabsContent>
+
+          <TabsContent value="historial" className="space-y-4">
+            {savedVersions.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                Aún no tienes versiones guardadas
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {savedVersions.map((version) => (
+                  <div key={version.id} className="bg-muted p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-semibold">
+                        Versión {version.version_number}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(version.created_at).toLocaleDateString("es-MX", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    <pre className="whitespace-pre-wrap font-mono text-sm">
+                      {version.contenido}
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

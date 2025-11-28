@@ -8,7 +8,6 @@ import ScriptModal from "./ScriptModal";
 interface VideoCardProps {
   video: {
     id: string;
-    ranking: number;
     tiktok_url: string;
     descripcion_video: string;
     creador: string;
@@ -19,10 +18,13 @@ interface VideoCardProps {
     roas: number;
     duracion: string;
     fecha_publicacion: string;
+    transcripcion_original: string | null;
+    guion_ia: string | null;
   };
+  ranking: number;
 }
 
-const VideoCard = ({ video }: VideoCardProps) => {
+const VideoCard = ({ video, ranking }: VideoCardProps) => {
   const [showScript, setShowScript] = useState(false);
 
   const formatNumber = (num: number) => {
@@ -41,21 +43,18 @@ const VideoCard = ({ video }: VideoCardProps) => {
     <>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
         <div className="relative aspect-[9/16] bg-muted">
-          {/* Ranking Badge */}
           <div className="absolute top-2 left-2 z-10">
             <Badge className="bg-primary text-primary-foreground font-bold text-lg px-3 py-1">
-              #{video.ranking}
+              #{ranking}
             </Badge>
           </div>
 
-          {/* TikTok Embed Placeholder */}
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
             <p className="text-muted-foreground text-sm">Video de TikTok</p>
           </div>
         </div>
 
         <CardContent className="p-4 space-y-3">
-          {/* Description */}
           <div>
             <p className="text-sm font-medium text-foreground line-clamp-2">
               {video.descripcion_video}
@@ -65,11 +64,10 @@ const VideoCard = ({ video }: VideoCardProps) => {
             </p>
           </div>
 
-          {/* Metrics */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Ingresos</span>
-              <span className="text-sm font-bold text-success">
+              <span className="text-sm font-bold text-positive">
                 {formatCurrency(video.ingresos_mxn)}
               </span>
             </div>
@@ -88,17 +86,17 @@ const VideoCard = ({ video }: VideoCardProps) => {
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">ROAS</span>
               <span className="text-sm font-semibold text-foreground flex items-center">
-                <TrendingUp className="h-3 w-3 mr-1 text-success" />
+                <TrendingUp className="h-3 w-3 mr-1 text-positive" />
                 {video.roas}x
               </span>
             </div>
           </div>
 
-          {/* CTA Button */}
           <Button 
             className="w-full" 
             variant="outline"
             onClick={() => setShowScript(true)}
+            disabled={!video.transcripcion_original && !video.guion_ia}
           >
             <FileText className="h-4 w-4 mr-2" />
             Ver guión AI
@@ -107,8 +105,8 @@ const VideoCard = ({ video }: VideoCardProps) => {
       </Card>
 
       <ScriptModal
-        open={showScript}
-        onOpenChange={setShowScript}
+        isOpen={showScript}
+        onClose={() => setShowScript(false)}
         video={video}
       />
     </>
