@@ -103,18 +103,43 @@ serve(async (req) => {
 
     console.log("Datos anteriores eliminados, insertando nuevos creadores...");
 
-    // Map and validate rows
-    const validRows = topCreators.map((row) => ({
-      usuario_creador: row["Usuario del creador"],
-      nombre_completo: row["Nombre completo"] || null,
-      seguidores: row["Seguidores"] || null,
-      total_videos: row["Total Videos"] || 0,
-      total_ventas: row["Total Ventas"] || 0,
-      total_ingresos_mxn: row["Total Ingresos (M$)"] || 0,
-      promedio_visualizaciones: row["Promedio Visualizaciones"] || null,
-      promedio_roas: row["Promedio ROAS"] || null,
-      mejor_video_url: row["Mejor Video URL"] || null,
-    }));
+    // Map and validate rows with ROAS parsing
+    const validRows = topCreators.map((row) => {
+      // Parse ROAS - handle percentages and ranges
+      let parsedRoas: number | null = null;
+      const roasValue = row["Promedio ROAS"];
+      
+      if (roasValue !== null && roasValue !== undefined) {
+        const roasStr = String(roasValue);
+        // Remove % if present and handle ranges
+        let cleanValue = roasStr.replace("%", "").trim();
+        if (cleanValue.includes("-")) {
+          const parts = cleanValue.split("-");
+          const num1 = parseFloat(parts[0]);
+          const num2 = parseFloat(parts[1]);
+          if (!isNaN(num1) && !isNaN(num2)) {
+            parsedRoas = (num1 + num2) / 2;
+          }
+        } else {
+          const num = parseFloat(cleanValue);
+          if (!isNaN(num)) {
+            parsedRoas = num;
+          }
+        }
+      }
+
+      return {
+        usuario_creador: row["Usuario del creador"],
+        nombre_completo: row["Nombre completo"] || null,
+        seguidores: row["Seguidores"] || null,
+        total_videos: row["Total Videos"] || 0,
+        total_ventas: row["Total Ventas"] || 0,
+        total_ingresos_mxn: row["Total Ingresos (M$)"] || 0,
+        promedio_visualizaciones: row["Promedio Visualizaciones"] || null,
+        promedio_roas: parsedRoas,
+        mejor_video_url: row["Mejor Video URL"] || null,
+      };
+    });
 
     console.log(`Insertando ${validRows.length} creadores...`);
 
