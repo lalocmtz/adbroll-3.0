@@ -27,6 +27,8 @@ export type Database = {
           guion_ia: string | null
           id: string
           ingresos_mxn: number
+          producto_nombre: string | null
+          producto_url: string | null
           rango_fechas: string
           ratio_ads: number | null
           roas: number
@@ -47,6 +49,8 @@ export type Database = {
           guion_ia?: string | null
           id?: string
           ingresos_mxn: number
+          producto_nombre?: string | null
+          producto_url?: string | null
           rango_fechas: string
           ratio_ads?: number | null
           roas: number
@@ -67,6 +71,8 @@ export type Database = {
           guion_ia?: string | null
           id?: string
           ingresos_mxn?: number
+          producto_nombre?: string | null
+          producto_url?: string | null
           rango_fechas?: string
           ratio_ads?: number | null
           roas?: number
