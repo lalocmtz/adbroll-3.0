@@ -20,6 +20,8 @@ interface VideoCardProps {
     fecha_publicacion: string;
     transcripcion_original: string | null;
     guion_ia: string | null;
+    producto_nombre: string | null;
+    producto_url: string | null;
   };
   ranking: number;
 }
@@ -46,11 +48,12 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     }).format(num);
   };
 
-  // Extract TikTok video ID from URL for embed
+  // Extract TikTok video ID from URL for embed with better params
   const getTikTokEmbedUrl = (url: string) => {
     const videoIdMatch = url.match(/video\/(\d+)/);
     if (videoIdMatch) {
-      return `https://www.tiktok.com/embed/v2/${videoIdMatch[1]}`;
+      // Use embed with minimal UI for better control visibility
+      return `https://www.tiktok.com/embed/v2/${videoIdMatch[1]}?lang=es-ES`;
     }
     return null;
   };
@@ -84,14 +87,19 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
           </div>
 
           {embedUrl ? (
-            <div className="relative w-full h-full">
+            <div className="relative w-full h-full overflow-hidden">
               <iframe
                 src={embedUrl}
-                className="w-full h-full pointer-events-auto"
+                className="w-full h-full border-0"
                 allowFullScreen
                 scrolling="no"
-                allow="encrypted-media;"
-                style={{ pointerEvents: 'auto' }}
+                allow="encrypted-media; autoplay;"
+                sandbox="allow-scripts allow-same-origin allow-presentation"
+                loading="lazy"
+                style={{ 
+                  border: 'none',
+                  overflow: 'hidden'
+                }}
                 onError={(e) => {
                   // Si el iframe falla al cargar, mostrar fallback
                   const target = e.target as HTMLIFrameElement;
@@ -135,6 +143,31 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
               {video.creador} • {video.duracion}
             </p>
           </div>
+
+          {/* Product Info - If Available */}
+          {(video.producto_nombre || video.producto_url) && (
+            <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+              <p className="text-xs font-semibold text-primary mb-1">Producto</p>
+              {video.producto_nombre && (
+                <p className="text-sm font-medium text-foreground mb-1">
+                  {video.producto_nombre}
+                </p>
+              )}
+              {video.producto_url && (
+                <a
+                  href={video.producto_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  Ver producto
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          )}
 
           {/* Metrics Grid */}
           <div className="space-y-2 text-sm">

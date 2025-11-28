@@ -24,6 +24,8 @@ interface DailyFeedVideo {
   tiktok_url: string;
   transcripcion_original: string | null;
   guion_ia: string | null;
+  producto_nombre: string | null;
+  producto_url: string | null;
   created_at: string;
 }
 
