@@ -3,6 +3,12 @@ project_id = "gcntnilurlulejwwtpaa"
 [functions.process-kalodata]
 verify_jwt = true
 
+[functions.process-kalodata-products]
+verify_jwt = true
+
+[functions.process-kalodata-creators]
+verify_jwt = true
+
 [functions.transcribe-video]
 verify_jwt = false
 
