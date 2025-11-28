@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      creators: {
+        Row: {
+          created_at: string | null
+          id: string
+          mejor_video_url: string | null
+          nombre_completo: string | null
+          promedio_roas: number | null
+          promedio_visualizaciones: number | null
+          seguidores: number | null
+          total_ingresos_mxn: number | null
+          total_ventas: number | null
+          total_videos: number | null
+          updated_at: string | null
+          usuario_creador: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          mejor_video_url?: string | null
+          nombre_completo?: string | null
+          promedio_roas?: number | null
+          promedio_visualizaciones?: number | null
+          seguidores?: number | null
+          total_ingresos_mxn?: number | null
+          total_ventas?: number | null
+          total_videos?: number | null
+          updated_at?: string | null
+          usuario_creador: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          mejor_video_url?: string | null
+          nombre_completo?: string | null
+          promedio_roas?: number | null
+          promedio_visualizaciones?: number | null
+          seguidores?: number | null
+          total_ingresos_mxn?: number | null
+          total_ventas?: number | null
+          total_videos?: number | null
+          updated_at?: string | null
+          usuario_creador?: string
+        }
+        Relationships: []
+      }
       daily_feed: {
         Row: {
           coste_publicitario_mxn: number
@@ -117,6 +162,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      products: {
+        Row: {
+          categoria: string | null
+          created_at: string | null
+          descripcion: string | null
+          id: string
+          imagen_url: string | null
+          precio_mxn: number | null
+          producto_nombre: string
+          producto_url: string | null
+          promedio_roas: number | null
+          total_ingresos_mxn: number | null
+          total_ventas: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          imagen_url?: string | null
+          precio_mxn?: number | null
+          producto_nombre: string
+          producto_url?: string | null
+          promedio_roas?: number | null
+          total_ingresos_mxn?: number | null
+          total_ventas?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          imagen_url?: string | null
+          precio_mxn?: number | null
+          producto_nombre?: string
+          producto_url?: string | null
+          promedio_roas?: number | null
+          total_ingresos_mxn?: number | null
+          total_ventas?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
