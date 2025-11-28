@@ -136,13 +136,14 @@ const mockVideos = [
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-6 md:py-8">
+        <div className="mb-6 md:mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
             Top 20 Videos del Día
           </h2>
           {lastUpdate && (
-            <p className="text-muted-foreground">
+            <p className="text-sm md:text-base text-muted-foreground">
               Última actualización:{" "}
               {lastUpdate.toLocaleDateString("es-MX", {
                 day: "numeric",
@@ -162,7 +163,7 @@ const mockVideos = [
             </p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {videos.map((video, index) => (
               <VideoCard key={video.id} video={video} ranking={index + 1} />
             ))}
