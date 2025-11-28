@@ -76,11 +76,12 @@ const Admin = () => {
 
       const successCount = data.processed || 0;
       const totalCount = data.total || 0;
-      const failedCount = data.failed || 0;
+      const aiProcessed = data.ai_processed || 0;
+      const aiFailed = data.ai_failed || 0;
 
       toast({
         title: "¡Archivo procesado exitosamente!",
-        description: `${successCount} de ${totalCount} videos actualizados. ${failedCount > 0 ? `${failedCount} videos fallaron.` : ''}`,
+        description: `${successCount} videos cargados. IA: ${aiProcessed} procesados, ${aiFailed > 0 ? `${aiFailed} fallaron.` : 'todos exitosos.'}`,
       });
 
       // Wait a bit before redirecting to show the success message
@@ -173,9 +174,10 @@ const Admin = () => {
                 <li>Se leen y validan las columnas del archivo</li>
                 <li>Se ordenan por ingresos descendente</li>
                 <li>Se seleccionan los Top 20 videos</li>
-                <li>Se transcribe el audio con Whisper API</li>
-                <li>Se reescribe el guión con GPT-4 Turbo</li>
-                <li>Se guardan todos los datos en la base de datos</li>
+                <li>Se guardan los datos iniciales en la base de datos</li>
+                <li>Se transcribe el contenido con IA (Lovable AI)</li>
+                <li>Se reescribe el guión con IA para ventas (Gemini 2.5 Flash)</li>
+                <li>Se actualizan los videos con los scripts generados</li>
               </ol>
             </CardContent>
           </Card>
