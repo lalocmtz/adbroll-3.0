@@ -5,6 +5,7 @@ import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import VideoCard from "@/components/VideoCard";
 import { useToast } from "@/hooks/use-toast";
+import DashboardNav from "@/components/DashboardNav";
 
 interface DailyFeedVideo {
   id: string;
@@ -136,6 +137,9 @@ const mockVideos = [
           </Button>
         </div>
       </header>
+
+      {/* Navigation */}
+      <DashboardNav />
 
       {/* Main Content */}
       {/* Main Content */}
