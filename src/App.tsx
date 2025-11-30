@@ -16,6 +16,7 @@ import Favorites from "./pages/Favorites";
 import Creators from "./pages/Creators";
 import Affiliates from "./pages/Affiliates";
 import Admin from "./pages/Admin";
+import RelatedVideos from "./pages/RelatedVideos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -121,6 +122,22 @@ const App = () => {
               element={
                 <ProtectedRoute session={session}>
                   <Admin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/videos/product/:productId"
+              element={
+                <ProtectedRoute session={session}>
+                  <RelatedVideos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/videos/creator/:creatorId"
+              element={
+                <ProtectedRoute session={session}>
+                  <RelatedVideos />
                 </ProtectedRoute>
               }
             />

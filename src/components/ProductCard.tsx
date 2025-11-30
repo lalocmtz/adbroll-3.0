@@ -32,7 +32,7 @@ const ProductCard = ({ product, showRelatedVideos = false }: ProductCardProps) =
   };
 
   const handleViewRelatedVideos = () => {
-    navigate(`/app?productName=${encodeURIComponent(product.producto_nombre)}`);
+    navigate(`/videos/product/${product.id}`);
   };
 
   return (
