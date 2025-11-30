@@ -38,10 +38,11 @@ const Dashboard = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const productFilter = searchParams.get("productName");
+  const creatorFilter = searchParams.get("creator");
 
   useEffect(() => {
     fetchVideos();
-  }, [productFilter]);
+  }, [productFilter, creatorFilter]);
 
   const fetchVideos = async () => {
     try {
@@ -62,6 +63,13 @@ const Dashboard = () => {
         filteredData = filteredData.filter((video) =>
           video.descripcion_video.toLowerCase().includes(productFilter.toLowerCase()) ||
           (video.producto_nombre && video.producto_nombre.toLowerCase().includes(productFilter.toLowerCase()))
+        );
+      }
+
+      // Filter by creator if provided
+      if (creatorFilter) {
+        filteredData = filteredData.filter((video) =>
+          video.creador.toLowerCase().includes(creatorFilter.toLowerCase())
         );
       }
 
@@ -159,7 +167,11 @@ const mockVideos = [
       <main className="container mx-auto px-4 py-6 md:py-8">
         <div className="mb-6 md:mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-            {productFilter ? `Videos de: ${productFilter}` : "Top 20 Videos del Día"}
+            {productFilter 
+              ? `Videos de: ${productFilter}` 
+              : creatorFilter 
+              ? `Videos de @${creatorFilter}`
+              : "Top 20 Videos del Día"}
           </h2>
           {lastUpdate && (
             <p className="text-sm md:text-base text-muted-foreground">
@@ -173,7 +185,7 @@ const mockVideos = [
               })}
             </p>
           )}
-          {productFilter && (
+          {(productFilter || creatorFilter) && (
             <Button
               variant="outline"
               size="sm"
@@ -190,6 +202,8 @@ const mockVideos = [
             <p className="text-muted-foreground text-lg">
               {productFilter
                 ? `No se encontraron videos relacionados con "${productFilter}"`
+                : creatorFilter
+                ? `No se encontraron videos de @${creatorFilter}`
                 : "No hay videos disponibles. El fundador subirá datos pronto."}
             </p>
           </div>
