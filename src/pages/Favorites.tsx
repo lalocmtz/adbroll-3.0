@@ -1,62 +1,38 @@
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Heart, Video, Package } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import DashboardNav from "@/components/DashboardNav";
 import { useToast } from "@/hooks/use-toast";
-import VideoCard from "@/components/VideoCard";
-import ProductCard from "@/components/ProductCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Trash2, ExternalLink, Copy, Heart } from "lucide-react";
+import DashboardNav from "@/components/DashboardNav";
+import { useNavigate } from "react-router-dom";
 
-interface Favorite {
+interface FavoriteVideo {
   id: string;
-  item_type: "video" | "product";
-  item_id: string;
+  video_data: any;
   created_at: string;
 }
 
-interface DailyFeedVideo {
+interface FavoriteProduct {
   id: string;
-  rango_fechas: string;
-  descripcion_video: string;
-  duracion: string;
-  creador: string;
-  fecha_publicacion: string;
-  ingresos_mxn: number;
-  ventas: number;
-  visualizaciones: number;
-  gpm_mxn: number | null;
-  cpa_mxn: number;
-  ratio_ads: number | null;
-  coste_publicitario_mxn: number;
-  roas: number;
-  tiktok_url: string;
-  transcripcion_original: string | null;
-  guion_ia: string | null;
-  producto_nombre: string | null;
-  producto_url: string | null;
+  product_data: any;
   created_at: string;
 }
 
-interface Product {
+interface FavoriteScript {
   id: string;
-  producto_nombre: string;
-  total_ingresos_mxn: number | null;
-  total_ventas: number | null;
-  precio_mxn: number | null;
-  promedio_roas: number | null;
-  categoria: string | null;
-  producto_url: string | null;
+  script_data: any;
+  created_at: string;
 }
 
 const Favorites = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [videos, setVideos] = useState<FavoriteVideo[]>([]);
+  const [products, setProducts] = useState<FavoriteProduct[]>([]);
+  const [scripts, setScripts] = useState<FavoriteScript[]>([]);
   const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
-  const [videos, setVideos] = useState<DailyFeedVideo[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchFavorites();
@@ -65,56 +41,29 @@ const Favorites = () => {
   const fetchFavorites = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
         navigate("/login");
         return;
       }
 
-      // Fetch user's favorites
-      const { data: favData, error: favError } = await supabase
-        .from("favorites")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      const [videosRes, productsRes, scriptsRes] = await Promise.all([
+        supabase.from("favorites_videos").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("favorites_products").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("favorites_scripts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      ]);
 
-      if (favError) throw favError;
+      if (videosRes.error) throw videosRes.error;
+      if (productsRes.error) throw productsRes.error;
+      if (scriptsRes.error) throw scriptsRes.error;
 
-      setFavorites((favData || []) as Favorite[]);
-
-      // Fetch video details
-      const videoIds = (favData || [])
-        .filter((f) => f.item_type === "video")
-        .map((f) => f.item_id);
-
-      if (videoIds.length > 0) {
-        const { data: videoData, error: videoError } = await supabase
-          .from("daily_feed")
-          .select("*")
-          .in("id", videoIds);
-
-        if (videoError) throw videoError;
-        setVideos(videoData || []);
-      }
-
-      // Fetch product details
-      const productIds = (favData || [])
-        .filter((f) => f.item_type === "product")
-        .map((f) => f.item_id);
-
-      if (productIds.length > 0) {
-        const { data: productData, error: productError } = await supabase
-          .from("products")
-          .select("*")
-          .in("id", productIds);
-
-        if (productError) throw productError;
-        setProducts(productData || []);
-      }
+      setVideos(videosRes.data || []);
+      setProducts(productsRes.data || []);
+      setScripts(scriptsRes.data || []);
     } catch (error: any) {
+      console.error("Error fetching favorites:", error);
       toast({
-        title: "Error al cargar favoritos",
-        description: error.message,
+        title: "Error",
+        description: "No se pudieron cargar los favoritos",
         variant: "destructive",
       });
     } finally {
@@ -122,97 +71,245 @@ const Favorites = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+  const handleDeleteVideo = async (id: string) => {
+    try {
+      const { error } = await supabase.from("favorites_videos").delete().eq("id", id);
+      if (error) throw error;
+
+      setVideos(videos.filter((v) => v.id !== id));
+      toast({
+        title: "✓ Eliminado de favoritos",
+        description: "Video eliminado correctamente",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      const { error } = await supabase.from("favorites_products").delete().eq("id", id);
+      if (error) throw error;
+
+      setProducts(products.filter((p) => p.id !== id));
+      toast({
+        title: "✓ Eliminado de favoritos",
+        description: "Producto eliminado correctamente",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteScript = async (id: string) => {
+    try {
+      const { error } = await supabase.from("favorites_scripts").delete().eq("id", id);
+      if (error) throw error;
+
+      setScripts(scripts.filter((s) => s.id !== id));
+      toast({
+        title: "✓ Eliminado de favoritos",
+        description: "Guión eliminado correctamente",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "✓ Copiado",
+        description: "Copiado al portapapeles",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo copiar",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Cargando favoritos...</p>
+      <div className="min-h-screen bg-background">
+        <DashboardNav />
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-center">Cargando favoritos...</p>
+        </div>
       </div>
     );
   }
 
+  const totalFavorites = videos.length + products.length + scripts.length;
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border sticky top-0 bg-background z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">adbroll</h1>
-          <Button variant="ghost" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Cerrar sesión
-          </Button>
-        </div>
-      </header>
-
-      {/* Navigation */}
       <DashboardNav />
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-foreground mb-2 flex items-center gap-2">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             <Heart className="h-8 w-8 text-red-500 fill-current" />
             Mis Favoritos
-          </h2>
+          </h1>
           <p className="text-muted-foreground">
-            Videos y productos que has guardado
+            {totalFavorites === 0
+              ? "No tienes favoritos guardados aún"
+              : `${totalFavorites} elemento(s) guardado(s)`}
           </p>
         </div>
 
-        {favorites.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Heart className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-lg mb-2">
-                No tienes favoritos guardados
-              </p>
-              <p className="text-sm text-muted-foreground text-center max-w-md">
-                Explora videos y productos, y guarda tus favoritos haciendo clic en el botón de corazón
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-8">
-            {/* Videos Section */}
-            {videos.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Video className="h-5 w-5 text-primary" />
-                  <h3 className="text-xl font-bold text-foreground">
-                    Videos Guardados ({videos.length})
-                  </h3>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {videos.map((video, index) => (
-                    <VideoCard key={video.id} video={video} ranking={index + 1} />
-                  ))}
-                </div>
-              </div>
-            )}
+        <Tabs defaultValue="videos" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="videos">Videos ({videos.length})</TabsTrigger>
+            <TabsTrigger value="productos">Productos ({products.length})</TabsTrigger>
+            <TabsTrigger value="guiones">Guiones ({scripts.length})</TabsTrigger>
+          </TabsList>
 
-            {/* Products Section */}
-            {products.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Package className="h-5 w-5 text-primary" />
-                  <h3 className="text-xl font-bold text-foreground">
-                    Productos Guardados ({products.length})
-                  </h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {products.map((product) => (
-                    <ProductCard key={product.id} product={product} showRelatedVideos />
-                  ))}
-                </div>
+          <TabsContent value="videos" className="space-y-4 mt-6">
+            {videos.length === 0 ? (
+              <p className="text-center text-muted-foreground py-12">No tienes videos guardados</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {videos.map((fav) => (
+                  <Card key={fav.id} className="p-4">
+                    <h3 className="font-semibold mb-2 line-clamp-2">{fav.video_data.descripcion_video}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Creador: {fav.video_data.creador}
+                    </p>
+                    <p className="text-sm mb-2">
+                      Ingresos: ${fav.video_data.ingresos_mxn?.toLocaleString("es-MX")} MXN
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      {new Date(fav.created_at).toLocaleDateString("es-MX")}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => window.open(fav.video_data.tiktok_url, "_blank")}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Ver
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteVideo(fav.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
               </div>
             )}
-          </div>
-        )}
-      </main>
+          </TabsContent>
+
+          <TabsContent value="productos" className="space-y-4 mt-6">
+            {products.length === 0 ? (
+              <p className="text-center text-muted-foreground py-12">No tienes productos guardados</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {products.map((fav) => (
+                  <Card key={fav.id} className="p-4">
+                    <h3 className="font-semibold mb-2 line-clamp-2">{fav.product_data.producto_nombre}</h3>
+                    <p className="text-sm mb-2">
+                      Ventas totales: {fav.product_data.total_ventas?.toLocaleString("es-MX")}
+                    </p>
+                    <p className="text-sm mb-2">
+                      Ingresos: ${fav.product_data.total_ingresos_mxn?.toLocaleString("es-MX")} MXN
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      {new Date(fav.created_at).toLocaleDateString("es-MX")}
+                    </p>
+                    <div className="flex gap-2">
+                      {fav.product_data.producto_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => window.open(fav.product_data.producto_url, "_blank")}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Ver
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteProduct(fav.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="guiones" className="space-y-4 mt-6">
+            {scripts.length === 0 ? (
+              <p className="text-center text-muted-foreground py-12">No tienes guiones guardados</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {scripts.map((fav) => (
+                  <Card key={fav.id} className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-semibold">Versión #{fav.script_data.version_number}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(fav.created_at).toLocaleDateString("es-MX", {
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCopy(fav.script_data.contenido)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteScript(fav.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <pre className="bg-muted p-3 rounded text-sm whitespace-pre-wrap font-mono">
+                      {fav.script_data.contenido}
+                    </pre>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
