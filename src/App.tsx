@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Opportunities from "./pages/Opportunities";
 import Favorites from "./pages/Favorites";
+import Creators from "./pages/Creators";
 import Affiliates from "./pages/Affiliates";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -96,6 +97,14 @@ const App = () => {
               element={
                 <ProtectedRoute session={session}>
                   <Favorites />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/creadores"
+              element={
+                <ProtectedRoute session={session}>
+                  <Creators />
                 </ProtectedRoute>
               }
             />
