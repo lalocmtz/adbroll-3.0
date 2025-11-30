@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import VideoCard from "@/components/VideoCard";
 import { useToast } from "@/hooks/use-toast";
 import DashboardNav from "@/components/DashboardNav";
@@ -36,22 +36,36 @@ const Dashboard = () => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const productFilter = searchParams.get("productName");
 
   useEffect(() => {
     fetchVideos();
-  }, []);
+  }, [productFilter]);
 
   const fetchVideos = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("daily_feed")
         .select("*")
         .order("ingresos_mxn", { ascending: false })
         .limit(20);
 
+      const { data, error } = await query;
+
       if (error) throw error;
 
-      setVideos(data || []);
+      let filteredData = data || [];
+
+      // Filter by product name if provided
+      if (productFilter) {
+        filteredData = filteredData.filter((video) =>
+          video.descripcion_video.toLowerCase().includes(productFilter.toLowerCase()) ||
+          (video.producto_nombre && video.producto_nombre.toLowerCase().includes(productFilter.toLowerCase()))
+        );
+      }
+
+      setVideos(filteredData);
       
       if (data && data.length > 0) {
         setLastUpdate(new Date(data[0].created_at));
@@ -142,11 +156,10 @@ const mockVideos = [
       <DashboardNav />
 
       {/* Main Content */}
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-6 md:py-8">
         <div className="mb-6 md:mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-            Top 20 Videos del Día
+            {productFilter ? `Videos de: ${productFilter}` : "Top 20 Videos del Día"}
           </h2>
           {lastUpdate && (
             <p className="text-sm md:text-base text-muted-foreground">
@@ -160,12 +173,24 @@ const mockVideos = [
               })}
             </p>
           )}
+          {productFilter && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => navigate("/app")}
+            >
+              Ver todos los videos
+            </Button>
+          )}
         </div>
 
         {videos.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">
-              No hay videos disponibles. El fundador subirá datos pronto.
+              {productFilter
+                ? `No se encontraron videos relacionados con "${productFilter}"`
+                : "No hay videos disponibles. El fundador subirá datos pronto."}
             </p>
           </div>
         ) : (
