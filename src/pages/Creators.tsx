@@ -63,8 +63,8 @@ const Creators = () => {
     navigate("/");
   };
 
-  const handleViewCreatorVideos = (creatorUsername: string) => {
-    navigate(`/app?creator=${encodeURIComponent(creatorUsername)}`);
+  const handleViewCreatorVideos = (creatorId: string) => {
+    navigate(`/videos/creator/${creatorId}`);
   };
 
   const formatCurrency = (amount: number | null) => {
@@ -222,7 +222,7 @@ const Creators = () => {
                       <Button 
                         variant="default" 
                         className="flex-1"
-                        onClick={() => handleViewCreatorVideos(creator.usuario_creador)}
+                        onClick={() => handleViewCreatorVideos(creator.id)}
                       >
                         Ver videos de este creador
                       </Button>
