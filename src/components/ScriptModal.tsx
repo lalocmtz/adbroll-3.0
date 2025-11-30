@@ -2,10 +2,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Save, History } from "lucide-react";
+import { Save, History, Sparkles, Copy } from "lucide-react";
 
 interface ScriptModalProps {
   isOpen: boolean;
@@ -29,6 +30,8 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
   const [customScript, setCustomScript] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [savedVersions, setSavedVersions] = useState<CustomScript[]>([]);
+  const [aiVariants, setAiVariants] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -53,6 +56,78 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
       setSavedVersions(data || []);
     } catch (error: any) {
       console.error("Error fetching saved versions:", error);
+    }
+  };
+
+  const handleGenerateVariants = async (numVariants: number) => {
+    setIsGenerating(true);
+    try {
+      const originalScript = video.transcripcion_original || video.guion_ia;
+      if (!originalScript) {
+        toast({
+          title: "No hay guión disponible",
+          description: "No se puede generar variantes sin un guión original.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('generate-script-variants', {
+        body: {
+          originalScript,
+          videoTitle: video.descripcion_video,
+          numVariants
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setAiVariants(data.variants);
+      
+      // Save to database
+      const { error: updateError } = await supabase
+        .from("daily_feed")
+        .update({
+          ai_variants: data.variants,
+          generated_at: data.generated_at
+        })
+        .eq("id", video.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "¡Variantes generadas!",
+        description: `Se generaron ${data.variants.length} variante(s) con IA.`,
+      });
+    } catch (error: any) {
+      console.error("Error generating variants:", error);
+      toast({
+        title: "Error al generar variantes",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "¡Copiado!",
+        description: "Guión copiado al portapapeles.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error al copiar",
+        description: "No se pudo copiar al portapapeles.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -110,9 +185,13 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
         </DialogHeader>
 
         <Tabs defaultValue="original" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="original">📝 Original</TabsTrigger>
-            <TabsTrigger value="ia">✨ IA</TabsTrigger>
+            <TabsTrigger value="ia">✨ IA Base</TabsTrigger>
+            <TabsTrigger value="variantes">
+              <Sparkles className="h-4 w-4 mr-1" />
+              Variantes IA
+            </TabsTrigger>
             <TabsTrigger value="personalizado">✍️ Tuyo</TabsTrigger>
             <TabsTrigger value="historial">
               <History className="h-4 w-4 mr-1" />
@@ -134,6 +213,69 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
                 {video.guion_ia || "No disponible"}
               </pre>
             </div>
+            {video.guion_ia && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleCopyToClipboard(video.guion_ia!)}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copiar
+              </Button>
+            )}
+          </TabsContent>
+
+          <TabsContent value="variantes" className="space-y-4">
+            <div className="flex gap-2 mb-4">
+              <Button 
+                onClick={() => handleGenerateVariants(1)}
+                disabled={isGenerating}
+                variant="default"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {isGenerating ? "Generando..." : "Generar 1 Variante"}
+              </Button>
+              <Button 
+                onClick={() => handleGenerateVariants(3)}
+                disabled={isGenerating}
+                variant="secondary"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                {isGenerating ? "Generando..." : "Generar 3 Variantes"}
+              </Button>
+            </div>
+
+            {aiVariants.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>Haz clic en el botón de arriba para generar variantes con IA</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {aiVariants.map((variant, index) => (
+                  <div key={index} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <Badge variant="secondary">
+                        Variante {index + 1}
+                      </Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleCopyToClipboard(variant)}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copiar
+                      </Button>
+                    </div>
+                    <div className="bg-muted p-4 rounded-lg">
+                      <pre className="whitespace-pre-wrap font-mono text-sm">
+                        {variant}
+                      </pre>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="personalizado" className="space-y-4">

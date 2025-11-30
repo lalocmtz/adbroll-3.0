@@ -61,6 +61,7 @@ export type Database = {
       }
       daily_feed: {
         Row: {
+          ai_variants: Json | null
           coste_publicitario_mxn: number
           cpa_mxn: number
           creador: string
@@ -68,6 +69,7 @@ export type Database = {
           descripcion_video: string
           duracion: string
           fecha_publicacion: string
+          generated_at: string | null
           gpm_mxn: number | null
           guion_ia: string | null
           id: string
@@ -83,6 +85,7 @@ export type Database = {
           visualizaciones: number
         }
         Insert: {
+          ai_variants?: Json | null
           coste_publicitario_mxn: number
           cpa_mxn: number
           creador: string
@@ -90,6 +93,7 @@ export type Database = {
           descripcion_video: string
           duracion: string
           fecha_publicacion: string
+          generated_at?: string | null
           gpm_mxn?: number | null
           guion_ia?: string | null
           id?: string
@@ -105,6 +109,7 @@ export type Database = {
           visualizaciones: number
         }
         Update: {
+          ai_variants?: Json | null
           coste_publicitario_mxn?: number
           cpa_mxn?: number
           creador?: string
@@ -112,6 +117,7 @@ export type Database = {
           descripcion_video?: string
           duracion?: string
           fecha_publicacion?: string
+          generated_at?: string | null
           gpm_mxn?: number | null
           guion_ia?: string | null
           id?: string
