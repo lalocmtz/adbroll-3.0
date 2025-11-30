@@ -49,6 +49,7 @@ const Dashboard = () => {
       let query = supabase
         .from("daily_feed")
         .select("*")
+        .eq("featured_today", true)
         .order("ingresos_mxn", { ascending: false })
         .limit(20);
 

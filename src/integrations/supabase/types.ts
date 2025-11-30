@@ -68,6 +68,7 @@ export type Database = {
           created_at: string | null
           descripcion_video: string
           duracion: string
+          featured_today: boolean | null
           fecha_publicacion: string
           generated_at: string | null
           gpm_mxn: number | null
@@ -92,6 +93,7 @@ export type Database = {
           created_at?: string | null
           descripcion_video: string
           duracion: string
+          featured_today?: boolean | null
           fecha_publicacion: string
           generated_at?: string | null
           gpm_mxn?: number | null
@@ -116,6 +118,7 @@ export type Database = {
           created_at?: string | null
           descripcion_video?: string
           duracion?: string
+          featured_today?: boolean | null
           fecha_publicacion?: string
           generated_at?: string | null
           gpm_mxn?: number | null
@@ -228,31 +231,23 @@ export type Database = {
           id: string
           user_id: string
           video_data: Json
-          video_id: string
+          video_url: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           user_id: string
           video_data: Json
-          video_id: string
+          video_url: string
         }
         Update: {
           created_at?: string | null
           id?: string
           user_id?: string
           video_data?: Json
-          video_id?: string
+          video_url?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "favorites_videos_video_id_fkey"
-            columns: ["video_id"]
-            isOneToOne: false
-            referencedRelation: "daily_feed"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       guiones_personalizados: {
         Row: {

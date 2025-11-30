@@ -215,8 +215,8 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
 
           {/* CTA Button */}
           <div className="flex gap-2">
-            <FavoriteButton itemId={video.id} itemType="video" variant="outline" />
-            <Button 
+            <FavoriteButton itemId={video.id} itemType="video" videoUrl={video.tiktok_url} variant="outline" />
+            <Button
               className="flex-1" 
               variant="outline"
               onClick={() => setShowScript(true)}

@@ -94,19 +94,19 @@ serve(async (req) => {
       .sort((a, b) => b["Ingresos (M$)"] - a["Ingresos (M$)"])
       .slice(0, 20);
 
-    console.log(`Top 20 seleccionados, limpiando datos anteriores...`);
+    console.log(`Top 20 seleccionados, actualizando featured_today...`);
 
-    // Delete existing data using service role
-    const { error: deleteError } = await supabaseServiceClient
+    // Mark all existing videos as not featured
+    const { error: unfeaturedError } = await supabaseServiceClient
       .from("daily_feed")
-      .delete()
+      .update({ featured_today: false })
       .neq("id", "00000000-0000-0000-0000-000000000000");
 
-    if (deleteError) {
-      throw new Error(`Error al limpiar datos: ${deleteError.message}`);
+    if (unfeaturedError) {
+      throw new Error(`Error al actualizar featured_today: ${unfeaturedError.message}`);
     }
 
-    console.log("Datos anteriores eliminados, insertando nuevos videos...");
+    console.log("Videos marcados como no destacados, procesando top 20...");
 
     // Map and validate rows
     const validRows = top20.map((row) => {
@@ -133,32 +133,36 @@ serve(async (req) => {
         coste_publicitario_mxn: row["Coste publicitario (M$)"],
         roas: row["ROAS - Retorno de la inversión publicitaria"],
         tiktok_url: row["Enlace de TikTok"],
+        featured_today: true,
         transcripcion_original: null,
         guion_ia: null,
       };
     });
 
-    console.log(`Processing ${validRows.length} videos...`);
+    console.log(`Processing ${validRows.length} videos with upsert...`);
 
-    // Insert new records first
-    const { data: insertedData, error: insertError } = await supabaseServiceClient
+    // Upsert records (insert new or update existing based on tiktok_url)
+    const { data: upsertedData, error: upsertError } = await supabaseServiceClient
       .from("daily_feed")
-      .insert(validRows)
+      .upsert(validRows, {
+        onConflict: 'tiktok_url',
+        ignoreDuplicates: false
+      })
       .select();
 
-    if (insertError) {
-      console.error("Error inserting data:", insertError);
-      throw insertError;
+    if (upsertError) {
+      console.error("Error upserting data:", upsertError);
+      throw upsertError;
     }
 
-    console.log(`Successfully inserted ${insertedData?.length || 0} records`);
+    console.log(`Successfully upserted ${upsertedData?.length || 0} records`);
 
     // Process AI for each video asynchronously
-    const processedCount = insertedData?.length || 0;
+    const processedCount = upsertedData?.length || 0;
     let aiProcessedCount = 0;
     let aiFailedCount = 0;
 
-    if (insertedData && insertedData.length > 0) {
+    if (upsertedData && upsertedData.length > 0) {
       console.log('Starting AI processing for videos...');
       
       // Process videos in parallel but with rate limiting
@@ -230,11 +234,11 @@ serve(async (req) => {
 
       // Process videos in batches of 3 to avoid rate limiting
       const batchSize = 3;
-      for (let i = 0; i < insertedData.length; i += batchSize) {
-        const batch = insertedData.slice(i, i + batchSize);
+      for (let i = 0; i < upsertedData.length; i += batchSize) {
+        const batch = upsertedData.slice(i, i + batchSize);
         await Promise.all(batch.map(processVideo));
         // Small delay between batches
-        if (i + batchSize < insertedData.length) {
+        if (i + batchSize < upsertedData.length) {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
