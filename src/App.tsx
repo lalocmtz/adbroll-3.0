@@ -10,6 +10,10 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import Products from "./pages/Products";
+import Opportunities from "./pages/Opportunities";
+import Favorites from "./pages/Favorites";
+import Affiliates from "./pages/Affiliates";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -68,6 +72,38 @@ const App = () => {
               element={
                 <ProtectedRoute session={session}>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/products"
+              element={
+                <ProtectedRoute session={session}>
+                  <Products />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/opportunities"
+              element={
+                <ProtectedRoute session={session}>
+                  <Opportunities />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/favorites"
+              element={
+                <ProtectedRoute session={session}>
+                  <Favorites />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/affiliates"
+              element={
+                <ProtectedRoute session={session}>
+                  <Affiliates />
                 </ProtectedRoute>
               }
             />
