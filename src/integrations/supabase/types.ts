@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliates: {
+        Row: {
+          active_referrals_count: number
+          created_at: string | null
+          id: string
+          ref_code: string
+          usd_available: number
+          usd_earned: number
+          usd_withdrawn: number
+          user_id: string
+        }
+        Insert: {
+          active_referrals_count?: number
+          created_at?: string | null
+          id?: string
+          ref_code: string
+          usd_available?: number
+          usd_earned?: number
+          usd_withdrawn?: number
+          user_id: string
+        }
+        Update: {
+          active_referrals_count?: number
+          created_at?: string | null
+          id?: string
+          ref_code?: string
+          usd_available?: number
+          usd_earned?: number
+          usd_withdrawn?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       creators: {
         Row: {
           created_at: string | null
@@ -356,6 +389,77 @@ export type Database = {
         }
         Relationships: []
       }
+      referrals: {
+        Row: {
+          affiliate_id: string
+          created_at: string | null
+          date: string | null
+          earned_usd: number
+          id: string
+          referred_user_id: string
+          status: string
+        }
+        Insert: {
+          affiliate_id: string
+          created_at?: string | null
+          date?: string | null
+          earned_usd?: number
+          id?: string
+          referred_user_id: string
+          status: string
+        }
+        Update: {
+          affiliate_id?: string
+          created_at?: string | null
+          date?: string | null
+          earned_usd?: number
+          id?: string
+          referred_user_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          id: string
+          price_usd: number
+          renew_at: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          price_usd?: number
+          renew_at?: string | null
+          status: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          price_usd?: number
+          renew_at?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -382,6 +486,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_ref_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
