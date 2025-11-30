@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, TrendingUp, Eye, DollarSign, ShoppingCart } from "lucide-react";
+import { FileText, TrendingUp, Eye, DollarSign, ShoppingCart, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import ScriptModal from "./ScriptModal";
 import FavoriteButton from "./FavoriteButton";
@@ -29,6 +29,7 @@ interface VideoCardProps {
 
 const VideoCard = ({ video, ranking }: VideoCardProps) => {
   const [showScript, setShowScript] = useState(false);
+  const [videoError, setVideoError] = useState(false);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
@@ -49,86 +50,54 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     }).format(num);
   };
 
-  // Extract TikTok video ID from URL for embed with better params
-  const getTikTokEmbedUrl = (url: string) => {
-    const videoIdMatch = url.match(/video\/(\d+)/);
-    if (videoIdMatch) {
-      // Use embed with minimal UI for better control visibility
-      return `https://www.tiktok.com/embed/v2/${videoIdMatch[1]}?lang=es-ES`;
-    }
-    return null;
-  };
-
-  const embedUrl = getTikTokEmbedUrl(video.tiktok_url);
-
   return (
     <>
       <Card className="card-premium overflow-hidden group">
-        {/* TikTok Video Embed */}
-        {/* TikTok Video Embed */}
-        <div className="relative aspect-[9/16] bg-muted group">
-          <div className="absolute top-3 left-3 z-10">
+        {/* Video Player */}
+        <div className="relative aspect-[9/16] bg-muted overflow-hidden">
+          {/* Ranking Badge */}
+          <div className="absolute top-3 left-3 z-20">
             <Badge className="bg-primary text-primary-foreground font-bold text-base px-3 py-1 shadow-lg">
               #{ranking}
             </Badge>
           </div>
 
-          {/* Botón Ver en TikTok - Siempre visible */}
-          <div className="absolute top-3 right-3 z-10">
+          {/* Ver en TikTok Button - Small and Discrete */}
+          <div className="absolute bottom-3 right-3 z-20">
             <Button
               size="sm"
-              variant="secondary"
-              className="shadow-lg backdrop-blur-sm bg-background/90 hover:bg-background"
+              variant="ghost"
+              className="h-8 px-2 text-xs shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
               onClick={() => window.open(video.tiktok_url, '_blank')}
             >
-              <svg className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-              </svg>
-              Ver en TikTok
+              <ExternalLink className="h-3 w-3 mr-1" />
+              TikTok
             </Button>
           </div>
 
-          {embedUrl ? (
-            <div className="relative w-full h-full overflow-hidden">
-              <iframe
-                src={embedUrl}
-                className="w-full h-full border-0"
-                allowFullScreen
-                scrolling="no"
-                allow="encrypted-media; autoplay;"
-                sandbox="allow-scripts allow-same-origin allow-presentation"
-                loading="lazy"
-                style={{ 
-                  border: 'none',
-                  overflow: 'hidden'
-                }}
-                onError={(e) => {
-                  // Si el iframe falla al cargar, mostrar fallback
-                  const target = e.target as HTMLIFrameElement;
-                  if (target.parentElement) {
-                    target.parentElement.innerHTML = `
-                      <div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 p-4">
-                        <svg class="h-12 w-12 text-muted-foreground mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                        </svg>
-                        <p class="text-sm text-muted-foreground text-center mb-2">Video no disponible para previsualización</p>
-                        <p class="text-xs text-muted-foreground text-center">${video.descripcion_video}</p>
-                      </div>
-                    `;
-                  }
-                }}
-              />
-            </div>
+          {/* Native HTML5 Video Player */}
+          {!videoError ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              src={video.tiktok_url}
+              className="w-full h-full object-cover rounded-t-xl"
+              onError={() => setVideoError(true)}
+            />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 p-4">
-              <svg className="h-12 w-12 text-muted-foreground mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-              </svg>
-              <p className="text-sm text-muted-foreground text-center mb-2">
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-muted to-muted/50 p-6">
+              <div className="rounded-full bg-background/50 p-4 mb-4">
+                <svg className="h-10 w-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-foreground text-center mb-1">
                 Video no disponible
               </p>
-              <p className="text-xs text-muted-foreground text-center">
-                {video.descripcion_video}
+              <p className="text-xs text-muted-foreground text-center max-w-[200px]">
+                El video no pudo ser cargado
               </p>
             </div>
           )}
@@ -214,18 +183,18 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             </div>
           </div>
 
-          {/* CTA Button */}
+          {/* Action Buttons */}
           <div className="flex gap-2">
-            <FavoriteButton itemId={video.id} itemType="video" videoUrl={video.tiktok_url} variant="outline" />
             <Button
               className="flex-1" 
-              variant="outline"
+              variant="default"
               onClick={() => setShowScript(true)}
               disabled={!video.transcripcion_original && !video.guion_ia}
             >
               <FileText className="h-4 w-4 mr-2" />
               Ver guión AI
             </Button>
+            <FavoriteButton itemId={video.id} itemType="video" videoUrl={video.tiktok_url} />
           </div>
         </CardContent>
       </Card>
