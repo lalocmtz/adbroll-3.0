@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Copy, Check, DollarSign, Users, TrendingUp } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Copy, DollarSign, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardNav from "@/components/DashboardNav";
+import GlobalHeader from "@/components/GlobalHeader";
 import { useAffiliate } from "@/hooks/useAffiliate";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -41,13 +43,18 @@ const Affiliates = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border sticky top-0 bg-background z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">adbroll</h1>
-          <Button variant="ghost" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Cerrar sesión
+      <GlobalHeader />
+      <DashboardNav />
+      
+      <main className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
+            Programa de Afiliados
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            Gana comisiones por cada referido
+          </p>
+        </div>
           </Button>
         </div>
       </header>

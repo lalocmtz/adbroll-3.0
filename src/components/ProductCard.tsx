@@ -36,60 +36,67 @@ const ProductCard = ({ product, showRelatedVideos = false }: ProductCardProps) =
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader>
-        <CardTitle className="text-lg line-clamp-2">
-          {product.producto_nombre}
-        </CardTitle>
-        {product.categoria && (
-          <Badge variant="outline" className="w-fit mt-2">
-            {product.categoria}
-          </Badge>
-        )}
+    <Card className="card-premium">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-lg md:text-xl line-clamp-2 mb-2">
+              {product.producto_nombre}
+            </CardTitle>
+            {product.categoria && (
+              <Badge variant="outline" className="w-fit">
+                {product.categoria}
+              </Badge>
+            )}
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Ingresos</p>
-              <p className="font-semibold text-foreground">
-                {formatCurrency(product.total_ingresos_mxn)}
-              </p>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="h-4 w-4 text-primary" />
+              <span className="text-xs text-muted-foreground">Ingresos</span>
             </div>
+            <p className="text-base font-bold text-success">
+              {formatCurrency(product.total_ingresos_mxn)}
+            </p>
           </div>
           
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Ventas</p>
-              <p className="font-semibold text-foreground">
-                {product.total_ventas ?? "N/A"}
-              </p>
+          <div className="p-3 rounded-lg bg-muted">
+            <div className="flex items-center gap-2 mb-1">
+              <ShoppingCart className="h-4 w-4 text-foreground" />
+              <span className="text-xs text-muted-foreground">Ventas</span>
             </div>
+            <p className="text-base font-bold text-foreground">
+              {product.total_ventas ?? "N/A"}
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Precio</p>
-              <p className="font-semibold text-foreground">
-                {formatCurrency(product.precio_mxn)}
-              </p>
+          <div className="p-3 rounded-lg bg-muted">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="h-4 w-4 text-foreground" />
+              <span className="text-xs text-muted-foreground">Precio</span>
             </div>
+            <p className="text-base font-bold text-foreground">
+              {formatCurrency(product.precio_mxn)}
+            </p>
           </div>
 
           {product.promedio_roas !== null && (
-            <div className="pt-2 border-t">
-              <p className="text-xs text-muted-foreground">ROAS Promedio</p>
-              <p className="font-bold text-lg text-foreground">
+            <div className="p-3 rounded-lg bg-accent/5 border border-accent/10">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="h-4 w-4 text-accent" />
+                <span className="text-xs text-muted-foreground">ROAS</span>
+              </div>
+              <p className="text-base font-bold text-foreground">
                 {product.promedio_roas.toFixed(2)}x
               </p>
             </div>
           )}
         </div>
 
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2 pt-2">
           <FavoriteButton itemId={product.id} itemType="product" variant="outline" />
           {showRelatedVideos && (
             <Button 

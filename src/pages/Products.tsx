@@ -5,6 +5,7 @@ import { LogOut, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardNav from "@/components/DashboardNav";
+import GlobalHeader from "@/components/GlobalHeader";
 import { useToast } from "@/hooks/use-toast";
 import ProductCard from "@/components/ProductCard";
 
@@ -71,26 +72,18 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border sticky top-0 bg-background z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">adbroll</h1>
-          <Button variant="ghost" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Cerrar sesión
-          </Button>
-        </div>
-      </header>
-
-      {/* Navigation */}
+      <GlobalHeader />
       <DashboardNav />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
+      <main className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
             Productos TikTok Shop México
-          </h2>
+          </h1>
+          <p className="text-muted-foreground mb-4">
+            Descubre los productos más rentables del mercado
+          </p>
           {lastUpdate && (
             <p className="text-sm text-muted-foreground">
               Última actualización:{" "}
@@ -106,16 +99,14 @@ const Products = () => {
         </div>
 
         {products.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Package className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-lg">
-                No hay productos disponibles. Sube un archivo desde el panel de administración.
-              </p>
-            </CardContent>
+          <Card className="p-12 text-center">
+            <Package className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
+            <p className="text-muted-foreground text-lg">
+              No hay productos disponibles. Sube un archivo desde el panel de administración.
+            </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} showRelatedVideos />
             ))}
