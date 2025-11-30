@@ -191,23 +191,23 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{video.descripcion_video}</DialogTitle>
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="text-xl font-bold pr-8">{video.descripcion_video}</DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="transcripcion" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="transcripcion">Transcripción</TabsTrigger>
-            <TabsTrigger value="ia-base">IA Base</TabsTrigger>
-            <TabsTrigger value="variantes">Variantes</TabsTrigger>
-            <TabsTrigger value="guardar">Guardar</TabsTrigger>
-            <TabsTrigger value="guardados">Guardados</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsTrigger value="transcripcion" className="text-sm">Transcripción</TabsTrigger>
+            <TabsTrigger value="ia-base" className="text-sm">IA Base</TabsTrigger>
+            <TabsTrigger value="variantes" className="text-sm">Variantes</TabsTrigger>
+            <TabsTrigger value="guardar" className="text-sm">Guardar</TabsTrigger>
+            <TabsTrigger value="guardados" className="text-sm">Guardados</TabsTrigger>
           </TabsList>
 
           {/* TRANSCRIPCIÓN */}
-          <TabsContent value="transcripcion" className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg">
+          <TabsContent value="transcripcion" className="space-y-4 mt-6">
+            <div className="bg-muted p-6 rounded-xl">
               <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
                 {video.transcripcion_original 
                   ? formatTranscript(video.transcripcion_original)
@@ -217,7 +217,6 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
             {video.transcripcion_original && (
               <Button 
                 variant="outline" 
-                size="sm"
                 onClick={() => handleCopyToClipboard(formatTranscript(video.transcripcion_original!))}
               >
                 <Copy className="h-4 w-4 mr-2" />
@@ -227,8 +226,8 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
           </TabsContent>
 
           {/* IA BASE */}
-          <TabsContent value="ia-base" className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg">
+          <TabsContent value="ia-base" className="space-y-4 mt-6">
+            <div className="bg-muted p-6 rounded-xl">
               <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
                 {video.guion_ia || "Guión IA no disponible"}
               </pre>
@@ -238,7 +237,6 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
                 <>
                   <Button 
                     variant="outline" 
-                    size="sm"
                     onClick={() => handleCopyToClipboard(video.guion_ia!)}
                   >
                     <Copy className="h-4 w-4 mr-2" />
@@ -246,7 +244,6 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
                   </Button>
                   <Button 
                     variant="default" 
-                    size="sm"
                     onClick={() => handleSaveScript(video.guion_ia!)}
                   >
                     <Save className="h-4 w-4 mr-2" />

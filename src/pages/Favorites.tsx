@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, ExternalLink, Copy, Heart } from "lucide-react";
 import DashboardNav from "@/components/DashboardNav";
+import GlobalHeader from "@/components/GlobalHeader";
 import { useNavigate } from "react-router-dom";
 
 interface FavoriteVideo {
@@ -159,14 +160,15 @@ const Favorites = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <GlobalHeader />
       <DashboardNav />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2 flex items-center gap-3">
             <Heart className="h-8 w-8 text-red-500 fill-current" />
             Mis Favoritos
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-lg text-muted-foreground">
             {totalFavorites === 0
               ? "No tienes favoritos guardados aún"
               : `${totalFavorites} elemento(s) guardado(s)`}
@@ -174,7 +176,7 @@ const Favorites = () => {
         </div>
 
         <Tabs defaultValue="videos" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="videos">Videos ({videos.length})</TabsTrigger>
             <TabsTrigger value="productos">Productos ({products.length})</TabsTrigger>
             <TabsTrigger value="guiones">Guiones ({scripts.length})</TabsTrigger>
@@ -182,17 +184,19 @@ const Favorites = () => {
 
           <TabsContent value="videos" className="space-y-4 mt-6">
             {videos.length === 0 ? (
-              <p className="text-center text-muted-foreground py-12">No tienes videos guardados</p>
+              <Card className="p-12 text-center">
+                <p className="text-muted-foreground">No tienes videos guardados</p>
+              </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {videos.map((fav) => (
-                  <Card key={fav.id} className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2">{fav.video_data.descripcion_video}</h3>
+                  <Card key={fav.id} className="card-premium p-6">
+                    <h3 className="font-bold text-lg mb-3 line-clamp-2">{fav.video_data.descripcion_video}</h3>
                     <p className="text-sm text-muted-foreground mb-2">
                       Creador: {fav.video_data.creador}
                     </p>
-                    <p className="text-sm mb-2">
-                      Ingresos: ${fav.video_data.ingresos_mxn?.toLocaleString("es-MX")} MXN
+                    <p className="text-base font-semibold mb-2 text-success">
+                      ${fav.video_data.ingresos_mxn?.toLocaleString("es-MX")} MXN
                     </p>
                     <p className="text-xs text-muted-foreground mb-4">
                       {new Date(fav.created_at).toLocaleDateString("es-MX")}
@@ -200,7 +204,7 @@ const Favorites = () => {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="default"
                         className="flex-1"
                         onClick={() => window.open(fav.video_data.tiktok_url, "_blank")}
                       >
@@ -223,17 +227,20 @@ const Favorites = () => {
 
           <TabsContent value="productos" className="space-y-4 mt-6">
             {products.length === 0 ? (
-              <p className="text-center text-muted-foreground py-12">No tienes productos guardados</p>
+              <Card className="p-12 text-center">
+                <p className="text-muted-foreground">No tienes productos guardados</p>
+              </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map((fav) => (
-                  <Card key={fav.id} className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2">{fav.product_data.producto_nombre}</h3>
+                  <Card key={fav.id} className="card-premium p-6">
+                    <h3 className="font-bold text-lg mb-3 line-clamp-2">{fav.product_data.producto_nombre}</h3>
                     <p className="text-sm mb-2">
-                      Ventas totales: {fav.product_data.total_ventas?.toLocaleString("es-MX")}
+                      <span className="text-muted-foreground">Ventas:</span>{" "}
+                      <span className="font-semibold">{fav.product_data.total_ventas?.toLocaleString("es-MX")}</span>
                     </p>
-                    <p className="text-sm mb-2">
-                      Ingresos: ${fav.product_data.total_ingresos_mxn?.toLocaleString("es-MX")} MXN
+                    <p className="text-base font-semibold mb-2 text-success">
+                      ${fav.product_data.total_ingresos_mxn?.toLocaleString("es-MX")} MXN
                     </p>
                     <p className="text-xs text-muted-foreground mb-4">
                       {new Date(fav.created_at).toLocaleDateString("es-MX")}
@@ -242,7 +249,7 @@ const Favorites = () => {
                       {fav.product_data.producto_url && (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="default"
                           className="flex-1"
                           onClick={() => window.open(fav.product_data.producto_url, "_blank")}
                         >
@@ -266,15 +273,17 @@ const Favorites = () => {
 
           <TabsContent value="guiones" className="space-y-4 mt-6">
             {scripts.length === 0 ? (
-              <p className="text-center text-muted-foreground py-12">No tienes guiones guardados</p>
+              <Card className="p-12 text-center">
+                <p className="text-muted-foreground">No tienes guiones guardados</p>
+              </Card>
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {scripts.map((fav) => (
-                  <Card key={fav.id} className="p-4">
-                    <div className="flex justify-between items-start mb-3">
+                  <Card key={fav.id} className="card-premium p-6">
+                    <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="font-semibold">Versión #{fav.script_data.version_number}</h3>
-                        <p className="text-xs text-muted-foreground">
+                        <h3 className="font-bold text-lg">Versión #{fav.script_data.version_number}</h3>
+                        <p className="text-sm text-muted-foreground">
                           {new Date(fav.created_at).toLocaleDateString("es-MX", {
                             day: "numeric",
                             month: "short",
@@ -286,10 +295,11 @@ const Favorites = () => {
                       <div className="flex gap-2">
                         <Button
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => handleCopy(fav.script_data.contenido)}
                         >
-                          <Copy className="h-4 w-4" />
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copiar
                         </Button>
                         <Button
                           size="sm"
@@ -300,7 +310,7 @@ const Favorites = () => {
                         </Button>
                       </div>
                     </div>
-                    <pre className="bg-muted p-3 rounded text-sm whitespace-pre-wrap font-mono">
+                    <pre className="bg-muted p-4 rounded-lg text-sm whitespace-pre-wrap font-mono">
                       {fav.script_data.contenido}
                     </pre>
                   </Card>

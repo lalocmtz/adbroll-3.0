@@ -63,7 +63,8 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-lg transition-all duration-200 border-border/50">
+      <Card className="card-premium overflow-hidden group">
+        {/* TikTok Video Embed */}
         {/* TikTok Video Embed */}
         <div className="relative aspect-[9/16] bg-muted group">
           <div className="absolute top-3 left-3 z-10">
@@ -134,13 +135,13 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
         </div>
 
         {/* Video Info */}
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-5 space-y-4">
           {/* Title and Creator */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-tight mb-1">
+            <h3 className="text-base font-bold text-foreground line-clamp-2 leading-snug mb-2">
               {video.descripcion_video}
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {video.creador} • {video.duracion}
             </p>
           </div>
@@ -171,45 +172,45 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
           )}
 
           {/* Metrics Grid */}
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <DollarSign className="h-3.5 w-3.5" />
-                Ingresos
-              </span>
-              <span className="font-bold text-positive">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="h-4 w-4 text-primary" />
+                <span className="text-xs text-muted-foreground">Ingresos</span>
+              </div>
+              <p className="text-base font-bold text-success">
                 {formatCurrency(video.ingresos_mxn)}
-              </span>
+              </p>
             </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <ShoppingCart className="h-3.5 w-3.5" />
-                Ventas
-              </span>
-              <span className="font-semibold text-foreground">
+
+            <div className="p-3 rounded-lg bg-muted">
+              <div className="flex items-center gap-2 mb-1">
+                <ShoppingCart className="h-4 w-4 text-foreground" />
+                <span className="text-xs text-muted-foreground">Ventas</span>
+              </div>
+              <p className="text-base font-bold text-foreground">
                 {formatNumber(video.ventas)}
-              </span>
+              </p>
             </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <Eye className="h-3.5 w-3.5" />
-                Vistas
-              </span>
-              <span className="font-semibold text-foreground">
+
+            <div className="p-3 rounded-lg bg-muted">
+              <div className="flex items-center gap-2 mb-1">
+                <Eye className="h-4 w-4 text-foreground" />
+                <span className="text-xs text-muted-foreground">Vistas</span>
+              </div>
+              <p className="text-base font-bold text-foreground">
                 {formatNumber(video.visualizaciones)}
-              </span>
+              </p>
             </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <TrendingUp className="h-3.5 w-3.5" />
-                ROAS
-              </span>
-              <span className="font-semibold text-foreground">
-                ↗ {video.roas.toFixed(1)}x
-              </span>
+
+            <div className="p-3 rounded-lg bg-accent/5 border border-accent/10">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="h-4 w-4 text-accent" />
+                <span className="text-xs text-muted-foreground">ROAS</span>
+              </div>
+              <p className="text-base font-bold text-foreground">
+                {video.roas.toFixed(1)}x
+              </p>
             </div>
           </div>
 

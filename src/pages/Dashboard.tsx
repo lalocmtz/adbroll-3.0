@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import VideoCard from "@/components/VideoCard";
 import { useToast } from "@/hooks/use-toast";
 import DashboardNav from "@/components/DashboardNav";
+import GlobalHeader from "@/components/GlobalHeader";
+import FilterBar from "@/components/FilterBar";
 
 interface DailyFeedVideo {
   id: string;
@@ -150,56 +152,49 @@ const mockVideos = [
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border sticky top-0 bg-background z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">adbroll</h1>
-          <Button variant="ghost" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Cerrar sesión
-          </Button>
-        </div>
-      </header>
-
-      {/* Navigation */}
+      <GlobalHeader />
       <DashboardNav />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 md:py-8">
-        <div className="mb-6 md:mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+      <main className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-3">
             {productFilter 
               ? `Videos de: ${productFilter}` 
               : creatorFilter 
               ? `Videos de @${creatorFilter}`
               : "Top 20 Videos del Día"}
-          </h2>
-          {lastUpdate && (
-            <p className="text-sm md:text-base text-muted-foreground">
-              Última actualización:{" "}
-              {lastUpdate.toLocaleDateString("es-MX", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          )}
-          {(productFilter || creatorFilter) && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => navigate("/app")}
-            >
-              Ver todos los videos
-            </Button>
-          )}
+          </h1>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              {lastUpdate && (
+                <p className="text-sm text-muted-foreground">
+                  Última actualización:{" "}
+                  {lastUpdate.toLocaleDateString("es-MX", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              )}
+            </div>
+            {(productFilter || creatorFilter) && (
+              <Button
+                variant="outline"
+                onClick={() => navigate("/app")}
+              >
+                Ver todos los videos
+              </Button>
+            )}
+          </div>
         </div>
 
+        <FilterBar />
+
         {videos.length === 0 ? (
-          <div className="text-center py-12">
+          <Card className="p-12 text-center mt-8">
             <p className="text-muted-foreground text-lg">
               {productFilter
                 ? `No se encontraron videos relacionados con "${productFilter}"`
@@ -207,9 +202,9 @@ const mockVideos = [
                 ? `No se encontraron videos de @${creatorFilter}`
                 : "No hay videos disponibles. El fundador subirá datos pronto."}
             </p>
-          </div>
+          </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             {videos.map((video, index) => (
               <VideoCard key={video.id} video={video} ranking={index + 1} />
             ))}
