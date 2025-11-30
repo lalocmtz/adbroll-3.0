@@ -27,20 +27,20 @@ interface CustomScript {
 }
 
 const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
-  const [customScript, setCustomScript] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [savedVersions, setSavedVersions] = useState<CustomScript[]>([]);
-  const [aiVariants, setAiVariants] = useState<string[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [savedScripts, setSavedScripts] = useState<CustomScript[]>([]);
+  const [variantUrgencia, setVariantUrgencia] = useState("");
+  const [variantEmocional, setVariantEmocional] = useState("");
+  const [variantComercial, setVariantComercial] = useState("");
+  const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
-      fetchSavedVersions();
+      fetchSavedScripts();
     }
   }, [isOpen, video.id]);
 
-  const fetchSavedVersions = async () => {
+  const fetchSavedScripts = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -53,14 +53,14 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setSavedVersions(data || []);
+      setSavedScripts(data || []);
     } catch (error: any) {
-      console.error("Error fetching saved versions:", error);
+      console.error("Error fetching saved scripts:", error);
     }
   };
 
-  const handleGenerateVariants = async (numVariants: number) => {
-    setIsGenerating(true);
+  const handleGenerateVariant = async (variantType: 'urgencia' | 'emocional' | 'comercial') => {
+    setIsGenerating(variantType);
     try {
       const originalScript = video.transcripcion_original || video.guion_ia;
       if (!originalScript) {
@@ -76,42 +76,31 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
         body: {
           originalScript,
           videoTitle: video.descripcion_video,
-          numVariants
+          variantType
         }
       });
 
       if (error) throw error;
+      if (data.error) throw new Error(data.error);
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setAiVariants(data.variants);
-      
-      // Save to database
-      const { error: updateError } = await supabase
-        .from("daily_feed")
-        .update({
-          ai_variants: data.variants,
-          generated_at: data.generated_at
-        })
-        .eq("id", video.id);
-
-      if (updateError) throw updateError;
+      // Set the variant based on type
+      if (variantType === 'urgencia') setVariantUrgencia(data.variant);
+      if (variantType === 'emocional') setVariantEmocional(data.variant);
+      if (variantType === 'comercial') setVariantComercial(data.variant);
 
       toast({
-        title: "¡Variantes generadas!",
-        description: `Se generaron ${data.variants.length} variante(s) con IA.`,
+        title: "¡Variante generada!",
+        description: `Variante ${variantType} creada con éxito.`,
       });
     } catch (error: any) {
-      console.error("Error generating variants:", error);
+      console.error("Error generating variant:", error);
       toast({
-        title: "Error al generar variantes",
+        title: "Error al generar variante",
         description: error.message,
         variant: "destructive",
       });
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(null);
     }
   };
 
@@ -131,50 +120,58 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
     }
   };
 
-  const handleSave = async () => {
-    if (!customScript.trim()) {
+  const handleSaveScript = async (content: string) => {
+    if (!content.trim()) {
       toast({
-        title: "Campo vacío",
-        description: "Escribe tu guión personalizado antes de guardar.",
+        title: "No hay contenido",
+        description: "Selecciona un guión para guardar.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No autenticado");
 
-      const nextVersion = savedVersions.length + 1;
+      const nextVersion = savedScripts.length + 1;
 
       const { error } = await supabase
         .from("guiones_personalizados")
         .insert({
           video_id: video.id,
           user_id: user.id,
-          contenido: customScript,
+          contenido: content,
           version_number: nextVersion,
         });
 
       if (error) throw error;
 
       toast({
-        title: "¡Guión guardado!",
-        description: `Versión ${nextVersion} guardada exitosamente.`,
+        title: "✓ Guardado en tus guiones",
+        description: "El guión se agregó a tu colección.",
       });
 
-      setCustomScript("");
-      fetchSavedVersions();
+      fetchSavedScripts();
     } catch (error: any) {
       toast({
         title: "Error al guardar",
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setIsSaving(false);
     }
+  };
+
+  const formatTranscript = (text: string) => {
+    // Simple timestamp formatting - in real app, you'd get this from video metadata
+    const lines = text.split('\n').filter(line => line.trim());
+    return lines.map((line, index) => {
+      const seconds = index * 3; // Mock: 3 seconds per line
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      const timestamp = `[${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}]`;
+      return `${timestamp} ${line}`;
+    }).join('\n');
   };
 
   return (
@@ -184,40 +181,29 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
           <DialogTitle>{video.descripcion_video}</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="original" className="w-full">
+        <Tabs defaultValue="transcripcion" className="w-full">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="original">📝 Original</TabsTrigger>
-            <TabsTrigger value="ia">✨ IA Base</TabsTrigger>
-            <TabsTrigger value="variantes">
-              <Sparkles className="h-4 w-4 mr-1" />
-              Variantes IA
-            </TabsTrigger>
-            <TabsTrigger value="personalizado">✍️ Tuyo</TabsTrigger>
-            <TabsTrigger value="historial">
-              <History className="h-4 w-4 mr-1" />
-              Historial
-            </TabsTrigger>
+            <TabsTrigger value="transcripcion">Transcripción</TabsTrigger>
+            <TabsTrigger value="ia-base">IA Base</TabsTrigger>
+            <TabsTrigger value="variantes">Variantes</TabsTrigger>
+            <TabsTrigger value="guardar">Guardar</TabsTrigger>
+            <TabsTrigger value="guardados">Guardados</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="original" className="space-y-4">
+          {/* TRANSCRIPCIÓN */}
+          <TabsContent value="transcripcion" className="space-y-4">
             <div className="bg-muted p-4 rounded-lg">
-              <pre className="whitespace-pre-wrap font-mono text-sm">
-                {video.transcripcion_original || "No disponible"}
+              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                {video.transcripcion_original 
+                  ? formatTranscript(video.transcripcion_original)
+                  : "Transcripción no disponible"}
               </pre>
             </div>
-          </TabsContent>
-
-          <TabsContent value="ia" className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg">
-              <pre className="whitespace-pre-wrap font-mono text-sm">
-                {video.guion_ia || "No disponible"}
-              </pre>
-            </div>
-            {video.guion_ia && (
+            {video.transcripcion_original && (
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => handleCopyToClipboard(video.guion_ia!)}
+                onClick={() => handleCopyToClipboard(formatTranscript(video.transcripcion_original!))}
               >
                 <Copy className="h-4 w-4 mr-2" />
                 Copiar
@@ -225,98 +211,219 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
             )}
           </TabsContent>
 
+          {/* IA BASE */}
+          <TabsContent value="ia-base" className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                {video.guion_ia || "Guión IA no disponible"}
+              </pre>
+            </div>
+            <div className="flex gap-2">
+              {video.guion_ia && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCopyToClipboard(video.guion_ia!)}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copiar
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => handleSaveScript(video.guion_ia!)}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar
+                  </Button>
+                </>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* VARIANTES IA */}
           <TabsContent value="variantes" className="space-y-4">
-            <div className="flex gap-2 mb-4">
+            <div className="grid grid-cols-3 gap-2 mb-4">
               <Button 
-                onClick={() => handleGenerateVariants(1)}
-                disabled={isGenerating}
-                variant="default"
+                onClick={() => handleGenerateVariant('urgencia')}
+                disabled={isGenerating !== null}
+                variant={variantUrgencia ? "secondary" : "default"}
+                size="sm"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                {isGenerating ? "Generando..." : "Generar 1 Variante"}
+                {isGenerating === 'urgencia' ? "Generando..." : "Variante Urgencia"}
               </Button>
               <Button 
-                onClick={() => handleGenerateVariants(3)}
-                disabled={isGenerating}
-                variant="secondary"
+                onClick={() => handleGenerateVariant('emocional')}
+                disabled={isGenerating !== null}
+                variant={variantEmocional ? "secondary" : "default"}
+                size="sm"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                {isGenerating ? "Generando..." : "Generar 3 Variantes"}
+                {isGenerating === 'emocional' ? "Generando..." : "Variante Emocional"}
+              </Button>
+              <Button 
+                onClick={() => handleGenerateVariant('comercial')}
+                disabled={isGenerating !== null}
+                variant={variantComercial ? "secondary" : "default"}
+                size="sm"
+              >
+                {isGenerating === 'comercial' ? "Generando..." : "Variante Comercial"}
               </Button>
             </div>
 
-            {aiVariants.length === 0 ? (
+            {!variantUrgencia && !variantEmocional && !variantComercial ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Haz clic en el botón de arriba para generar variantes con IA</p>
+                <p>Genera variantes optimizadas con IA</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {aiVariants.map((variant, index) => (
-                  <div key={index} className="border rounded-lg p-4">
+                {variantUrgencia && (
+                  <div className="border rounded-lg p-4">
                     <div className="flex justify-between items-center mb-3">
-                      <Badge variant="secondary">
-                        Variante {index + 1}
-                      </Badge>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleCopyToClipboard(variant)}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copiar
-                      </Button>
+                      <Badge variant="destructive">Urgencia</Badge>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleCopyToClipboard(variantUrgencia)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copiar
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleSaveScript(variantUrgencia)}
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          Guardar
+                        </Button>
+                      </div>
                     </div>
                     <div className="bg-muted p-4 rounded-lg">
-                      <pre className="whitespace-pre-wrap font-mono text-sm">
-                        {variant}
+                      <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                        {variantUrgencia}
                       </pre>
                     </div>
                   </div>
-                ))}
+                )}
+
+                {variantEmocional && (
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <Badge variant="secondary">Emocional</Badge>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleCopyToClipboard(variantEmocional)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copiar
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleSaveScript(variantEmocional)}
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          Guardar
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="bg-muted p-4 rounded-lg">
+                      <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                        {variantEmocional}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {variantComercial && (
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <Badge>Comercial</Badge>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleCopyToClipboard(variantComercial)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copiar
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleSaveScript(variantComercial)}
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          Guardar
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="bg-muted p-4 rounded-lg">
+                      <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                        {variantComercial}
+                      </pre>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="personalizado" className="space-y-4">
-            <Textarea
-              placeholder="Adapta el guión a tu producto..."
-              value={customScript}
-              onChange={(e) => setCustomScript(e.target.value)}
-              className="min-h-[300px] font-mono"
-            />
-            <Button onClick={handleSave} disabled={isSaving} className="w-full">
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? "Guardando..." : "Guardar Nueva Versión"}
-            </Button>
+          {/* GUARDAR (Quick save section) */}
+          <TabsContent value="guardar" className="space-y-4">
+            <div className="text-center py-8">
+              <Save className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-muted-foreground mb-4">
+                Usa los botones "Guardar" en las otras pestañas para guardar guiones
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Tus guiones guardados aparecerán en la pestaña "Guardados"
+              </p>
+            </div>
           </TabsContent>
 
-          <TabsContent value="historial" className="space-y-4">
-            {savedVersions.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                Aún no tienes versiones guardadas
-              </p>
+          {/* GUARDADOS */}
+          <TabsContent value="guardados" className="space-y-4">
+            {savedScripts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No tienes guiones guardados aún</p>
+              </div>
             ) : (
               <div className="space-y-4">
-                {savedVersions.map((version) => (
-                  <div key={version.id} className="bg-muted p-4 rounded-lg">
+                {savedScripts.map((script) => (
+                  <div key={script.id} className="bg-muted p-4 rounded-lg">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="font-semibold">
-                        Versión {version.version_number}
+                      <span className="font-semibold text-sm">
+                        Guardado #{script.version_number}
                       </span>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(version.created_at).toLocaleDateString("es-MX", {
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(script.created_at).toLocaleDateString("es-MX", {
                           day: "numeric",
                           month: "short",
-                          year: "numeric",
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
                       </span>
                     </div>
-                    <pre className="whitespace-pre-wrap font-mono text-sm">
-                      {version.contenido}
+                    <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                      {script.contenido}
                     </pre>
+                    <div className="mt-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleCopyToClipboard(script.contenido)}
+                      >
+                        <Copy className="h-3 w-3 mr-2" />
+                        Copiar
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
