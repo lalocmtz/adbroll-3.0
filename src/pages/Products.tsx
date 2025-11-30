@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { LogOut, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardNav from "@/components/DashboardNav";
 import { useToast } from "@/hooks/use-toast";
+import ProductCard from "@/components/ProductCard";
 
 interface Product {
   id: string;
@@ -58,15 +59,6 @@ const Products = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
-  };
-
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null) return "N/A";
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-      minimumFractionDigits: 0,
-    }).format(amount);
   };
 
   if (loading) {
@@ -125,55 +117,7 @@ const Products = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map((product) => (
-              <Card key={product.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-lg line-clamp-2">
-                    {product.producto_nombre}
-                  </CardTitle>
-                  {product.categoria && (
-                    <p className="text-sm text-muted-foreground">{product.categoria}</p>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Ingresos:</span>
-                      <span className="font-semibold text-foreground">
-                        {formatCurrency(product.total_ingresos_mxn)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Ventas:</span>
-                      <span className="font-semibold text-foreground">
-                        {product.total_ventas ?? "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Precio:</span>
-                      <span className="font-semibold text-foreground">
-                        {formatCurrency(product.precio_mxn)}
-                      </span>
-                    </div>
-                    {product.promedio_roas !== null && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">ROAS:</span>
-                        <span className="font-semibold text-foreground">
-                          {product.promedio_roas.toFixed(2)}x
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {product.producto_url && (
-                    <Button 
-                      variant="outline" 
-                      className="w-full mt-4"
-                      onClick={() => window.open(product.producto_url!, "_blank")}
-                    >
-                      Ver Producto
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
+              <ProductCard key={product.id} product={product} showRelatedVideos />
             ))}
           </div>
         )}

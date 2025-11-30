@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, TrendingUp, Eye, DollarSign, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import ScriptModal from "./ScriptModal";
+import FavoriteButton from "./FavoriteButton";
 
 interface VideoCardProps {
   video: {
@@ -213,15 +214,18 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
           </div>
 
           {/* CTA Button */}
-          <Button 
-            className="w-full mt-2" 
-            variant="outline"
-            onClick={() => setShowScript(true)}
-            disabled={!video.transcripcion_original && !video.guion_ia}
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            Ver guión AI
-          </Button>
+          <div className="flex gap-2">
+            <FavoriteButton itemId={video.id} itemType="video" variant="outline" />
+            <Button 
+              className="flex-1" 
+              variant="outline"
+              onClick={() => setShowScript(true)}
+              disabled={!video.transcripcion_original && !video.guion_ia}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Ver guión AI
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
