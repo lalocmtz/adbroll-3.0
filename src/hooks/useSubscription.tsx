@@ -22,6 +22,14 @@ export const useSubscription = () => {
         return;
       }
 
+      // TEMPORARY DEV BYPASS: Full access for development account
+      if (user.email === "lalocmtz@gmail.com") {
+        setSubscription(null);
+        setHasActiveSubscription(true);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("subscriptions")
         .select("*")
