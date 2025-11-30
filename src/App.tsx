@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { SubscriptionGate } from "@/components/SubscriptionGate";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -29,7 +30,11 @@ const ProtectedRoute = ({
   session: Session | null;
 }) => {
   if (!session) return <Navigate to="/login" replace />;
-  return <>{children}</>;
+  return (
+    <SubscriptionGate>
+      {children}
+    </SubscriptionGate>
+  );
 };
 
 const App = () => {
@@ -110,7 +115,7 @@ const App = () => {
               }
             />
             <Route
-              path="/affiliates"
+              path="/afiliados"
               element={
                 <ProtectedRoute session={session}>
                   <Affiliates />
