@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Copy, DollarSign, Users } from "lucide-react";
+import { Copy, Check, DollarSign, Users, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardNav from "@/components/DashboardNav";
@@ -52,168 +52,131 @@ const Affiliates = () => {
             Programa de Afiliados
           </h1>
           <p className="text-lg text-muted-foreground">
-            Gana comisiones por cada referido
-          </p>
-        </div>
-          </Button>
-        </div>
-      </header>
-
-      {/* Navigation */}
-      <DashboardNav />
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2">
-            Programa de Afiliados
-          </h1>
-          <p className="text-muted-foreground">
-            Gana $10 USD por cada referido que se suscriba a adbroll Premium
+            Gana comisiones por cada referido que se suscriba
           </p>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
+          <div className="grid gap-6 md:grid-cols-3 mb-8">
+            <Card className="card-premium p-6">
+              <Skeleton className="h-8 w-32 mb-4" />
+              <Skeleton className="h-12 w-full" />
+            </Card>
+            <Card className="card-premium p-6">
+              <Skeleton className="h-8 w-32 mb-4" />
+              <Skeleton className="h-12 w-full" />
+            </Card>
+            <Card className="card-premium p-6">
+              <Skeleton className="h-8 w-32 mb-4" />
+              <Skeleton className="h-12 w-full" />
+            </Card>
           </div>
         ) : (
           <>
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Ganancias Acumuladas
-                  </CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(affiliate?.usd_earned || 0)}
+            <div className="grid gap-6 md:grid-cols-3 mb-8">
+              <Card className="card-premium p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-primary" />
                   </div>
-                </CardContent>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total ganado</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {formatCurrency(affiliate?.usd_earned || 0)}
+                    </p>
+                  </div>
+                </div>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Disponible para Retiro
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(affiliate?.usd_available || 0)}
+              <Card className="card-premium p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                    <DollarSign className="h-6 w-6 text-success" />
                   </div>
-                </CardContent>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Disponible</p>
+                    <p className="text-2xl font-bold text-success">
+                      {formatCurrency(affiliate?.usd_available || 0)}
+                    </p>
+                  </div>
+                </div>
               </Card>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Referidos Activos
-                  </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {affiliate?.active_referrals_count || 0}
+              <Card className="card-premium p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-accent" />
                   </div>
-                </CardContent>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Referidos activos</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {affiliate?.active_referrals_count || 0}
+                    </p>
+                  </div>
+                </div>
               </Card>
             </div>
 
-            {/* Ref Code Card */}
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>Tu Código de Referido</CardTitle>
-                <CardDescription>
-                  Comparte este código con otros creadores. Cuando se registren y suscriban usando tu código, ganarás una comisión.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 bg-muted rounded-lg p-4">
-                    <code className="text-2xl font-bold tracking-wider">
-                      {affiliate?.ref_code || "CARGANDO..."}
-                    </code>
-                  </div>
-                  <Button
-                    onClick={copyRefCode}
-                    variant="outline"
-                    size="lg"
-                    disabled={!affiliate?.ref_code}
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-5 w-5 mr-2" />
-                        Copiado
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-5 w-5 mr-2" />
-                        Copiar
-                      </>
-                    )}
-                  </Button>
+            <Card className="card-premium p-6 mb-8">
+              <h3 className="text-lg font-bold mb-4">Tu código de referido</h3>
+              <div className="flex gap-3">
+                <div className="flex-1 p-4 rounded-lg bg-primary/5 border-2 border-primary/20 font-mono text-lg font-bold text-center">
+                  {affiliate?.ref_code || "Cargando..."}
                 </div>
-              </CardContent>
+                <Button 
+                  size="lg"
+                  onClick={copyRefCode}
+                  disabled={!affiliate?.ref_code}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-5 w-5 mr-2" />
+                      Copiado
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-5 w-5 mr-2" />
+                      Copiar
+                    </>
+                  )}
+                </Button>
+              </div>
             </Card>
 
-            {/* Referrals History */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Historial de Referidos</CardTitle>
-                <CardDescription>
-                  Lista de todos tus referidos y sus estados
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {referrals.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Aún no tienes referidos. ¡Comparte tu código para empezar!
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {referrals.map((referral) => (
-                      <div
-                        key={referral.id}
-                        className="flex items-center justify-between p-4 border border-border rounded-lg"
-                      >
-                        <div>
-                          <p className="font-medium">
-                            Referido ID: {referral.referred_user_id.slice(0, 8)}...
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(referral.created_at).toLocaleDateString('es-ES', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-lg">
-                            {formatCurrency(referral.earned_usd)}
-                          </p>
-                          <p className={`text-sm ${
-                            referral.status === 'active' ? 'text-green-600' :
-                            referral.status === 'pending' ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
-                            {referral.status === 'active' ? 'Activo' :
-                             referral.status === 'pending' ? 'Pendiente' :
-                             'Cancelado'}
-                          </p>
-                        </div>
+            <Card className="card-premium p-6">
+              <h3 className="text-lg font-bold mb-6">Historial de Referidos</h3>
+              {referrals.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                  <p className="text-muted-foreground">
+                    Aún no tienes referidos. Comparte tu código para empezar a ganar comisiones.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {referrals.map((referral) => (
+                    <div
+                      key={referral.id}
+                      className="p-4 rounded-lg bg-muted flex items-center justify-between"
+                    >
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(referral.date || referral.created_at).toLocaleDateString("es-MX")}
+                        </p>
+                        <Badge
+                          variant={referral.status === "active" ? "default" : "secondary"}
+                          className="mt-1"
+                        >
+                          {referral.status === "active" ? "Activo" : "Pendiente"}
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
+                      <p className="text-lg font-bold text-success">
+                        +{formatCurrency(referral.earned_usd)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           </>
         )}
