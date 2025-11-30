@@ -158,6 +158,102 @@ export type Database = {
         }
         Relationships: []
       }
+      favorites_products: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_data: Json
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_data: Json
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_data?: Json
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites_scripts: {
+        Row: {
+          created_at: string | null
+          id: string
+          script_data: Json
+          script_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          script_data: Json
+          script_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          script_data?: Json
+          script_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_scripts_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "guiones_personalizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites_videos: {
+        Row: {
+          created_at: string | null
+          id: string
+          user_id: string
+          video_data: Json
+          video_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user_id: string
+          video_data: Json
+          video_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user_id?: string
+          video_data?: Json
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_videos_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "daily_feed"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guiones_personalizados: {
         Row: {
           contenido: string

@@ -136,16 +136,31 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
 
       const nextVersion = savedScripts.length + 1;
 
-      const { error } = await supabase
+      const { data: scriptData, error: scriptError } = await supabase
         .from("guiones_personalizados")
         .insert({
           video_id: video.id,
           user_id: user.id,
           contenido: content,
           version_number: nextVersion,
+        })
+        .select()
+        .single();
+
+      if (scriptError) throw scriptError;
+
+      // Also save to favorites_scripts
+      const { error: favError } = await supabase
+        .from("favorites_scripts")
+        .insert({
+          user_id: user.id,
+          script_id: scriptData.id,
+          script_data: scriptData,
         });
 
-      if (error) throw error;
+      if (favError && favError.code !== '23505') { // Ignore unique constraint errors
+        console.error("Error saving to favorites:", favError);
+      }
 
       toast({
         title: "✓ Guardado en tus guiones",
