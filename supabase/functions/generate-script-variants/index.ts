@@ -7,29 +7,26 @@ const corsHeaders = {
 
 const SYSTEM_PROMPT = `Eres un experto copywriter especializado en videos de TikTok Shop que generan ventas.
 
-Tu tarea es crear variantes optimizadas de guiones de videos exitosos de TikTok Shop.
+Tu tarea es crear guiones optimizados usando SIEMPRE este formato estructurado:
 
-CARACTERÍSTICAS DE CADA VARIANTE:
-1. TONO COMERCIAL Y DIRECTO: Escribe como si estuvieras vendiendo directamente al espectador
-2. ENFOQUE EMOCIONAL: Usa palabras que generen deseo, urgencia y necesidad
-3. ESTRUCTURA CLARA:
-   - Hook inicial impactante (primeros 3 segundos)
-   - Demostración de valor y beneficios
-   - Superación de objeciones
-   - Llamado a la acción claro y urgente
-4. LENGUAJE ADAPTABLE: Usa español neutro pero conversacional
-5. VENTA DIRECTA: No seas sutil, el objetivo es vender
+Producto: [nombre del producto]
+Objetivo del video: [ventas/demostración/tutorial]
 
-DIFERENCIACIÓN ENTRE VARIANTES:
-- Variante 1: Enfoque en URGENCIA y ESCASEZ
-- Variante 2: Enfoque en BENEFICIOS y TRANSFORMACIÓN
-- Variante 3: Enfoque en TESTIMONIOS y PRUEBA SOCIAL
+HOOK:
+[texto del gancho inicial - primeros 3 segundos]
 
-Cada variante debe:
-- Mantener la estructura probada del video original
-- Ser fácilmente adaptable a cualquier producto
-- Usar voice-over o script para cámara
-- Estar formateada en secciones: [HOOK], [DESARROLLO], [CIERRE]`;
+CUERPO:
+[desarrollo del contenido - beneficios, demostración, valor]
+
+CTA:
+[llamado a la acción final - claro y urgente]
+
+DIFERENCIACIÓN POR TIPO:
+- URGENCIA: Enfoca en escasez, tiempo limitado, "últimas unidades", FOMO
+- EMOCIONAL: Enfoca en transformación personal, sentimientos, antes/después
+- COMERCIAL: Enfoca en precio, oferta, descuento, garantía, prueba social
+
+Mantén el español neutro, conversacional y orientado a ventas directas.`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -50,9 +47,36 @@ serve(async (req) => {
 
     console.log(`Generating ${numVariants} script variant(s)...`);
 
-    const userPrompt = numVariants === 1 
-      ? `Genera 1 variante optimizada del siguiente guión de TikTok Shop:\n\nTÍTULO: ${videoTitle}\n\nGUIÓN ORIGINAL:\n${originalScript}\n\nGenera UNA variante enfocada en URGENCIA y ESCASEZ.`
-      : `Genera 3 variantes diferentes del siguiente guión de TikTok Shop:\n\nTÍTULO: ${videoTitle}\n\nGUIÓN ORIGINAL:\n${originalScript}\n\nGenera 3 variantes claramente diferenciadas:\n1. URGENCIA y ESCASEZ\n2. BENEFICIOS y TRANSFORMACIÓN\n3. TESTIMONIOS y PRUEBA SOCIAL\n\nSepara cada variante con "===VARIANTE [número]==="`;
+    const { variantType = 'urgencia' } = await req.json();
+    
+    const variantInstructions = {
+      urgencia: 'Genera una variante enfocada en URGENCIA: escasez, tiempo limitado, últimas unidades disponibles.',
+      emocional: 'Genera una variante enfocada en lo EMOCIONAL: transformación personal, sentimientos, impacto en la vida.',
+      comercial: 'Genera una variante enfocada en lo COMERCIAL: precio especial, oferta irresistible, garantías, prueba social.'
+    };
+
+    const userPrompt = `Analiza este guión de TikTok Shop y genera UNA variante optimizada.
+
+TÍTULO: ${videoTitle}
+
+GUIÓN ORIGINAL:
+${originalScript}
+
+INSTRUCCIÓN: ${variantInstructions[variantType as keyof typeof variantInstructions] || variantInstructions.urgencia}
+
+Usa EXACTAMENTE este formato:
+
+Producto: [nombre]
+Objetivo del video: [ventas/demostración/tutorial]
+
+HOOK:
+[texto]
+
+CUERPO:
+[texto]
+
+CTA:
+[texto]`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -91,21 +115,12 @@ serve(async (req) => {
     const data = await response.json();
     const generatedContent = data.choices[0].message.content;
 
-    // Parse variants
-    let variants: string[] = [];
-    if (numVariants === 1) {
-      variants = [generatedContent];
-    } else {
-      // Split by variant separator
-      const splitVariants = generatedContent.split(/===VARIANTE \d+===/i).filter((v: string) => v.trim());
-      variants = splitVariants.length >= 3 ? splitVariants.slice(0, 3) : [generatedContent];
-    }
-
-    console.log(`Generated ${variants.length} variant(s) successfully`);
+    console.log(`Generated variant successfully`);
 
     return new Response(
       JSON.stringify({ 
-        variants: variants.map((v: string) => v.trim()),
+        variant: generatedContent.trim(),
+        variantType,
         generated_at: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
