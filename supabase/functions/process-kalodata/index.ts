@@ -89,171 +89,62 @@ serve(async (req) => {
 
     console.log(`Procesando ${rows.length} filas del Excel`);
 
-    // Sort by revenue and take top 20
-    const top20 = rows
+    // Sort by revenue (no limit)
+    const sortedVideos = rows
       .sort((a, b) => b["Ingresos (M$)"] - a["Ingresos (M$)"])
-      .slice(0, 20);
+      .map((row) => {
+        return {
+          video_url: row["Enlace de TikTok"],
+          title: row["Descripción del vídeo"],
+          creator_name: row["Usuario del creador"],
+          creator_handle: row["Usuario del creador"],
+          sales: row["Ventas"],
+          revenue_mxn: row["Ingresos (M$)"],
+          views: row["Visualizaciones"],
+          roas: row["ROAS - Retorno de la inversión publicitaria"],
+          category: null,
+          country: null,
+          rank: null,
+          product_name: null,
+          product_id: null,
+        };
+      });
 
-    console.log(`Top 20 seleccionados, actualizando featured_today...`);
+    console.log(`Procesando ${sortedVideos.length} videos, eliminando videos existentes...`);
 
-    // Mark all existing videos as not featured
-    const { error: unfeaturedError } = await supabaseServiceClient
-      .from("daily_feed")
-      .update({ featured_today: false })
+    // Delete all existing videos
+    const { error: deleteError } = await supabaseServiceClient
+      .from("videos")
+      .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
 
-    if (unfeaturedError) {
-      throw new Error(`Error al actualizar featured_today: ${unfeaturedError.message}`);
+    if (deleteError) {
+      throw new Error(`Error al eliminar videos existentes: ${deleteError.message}`);
     }
 
-    console.log("Videos marcados como no destacados, procesando top 20...");
+    console.log("Videos eliminados, insertando nuevos...");
 
-    // Map and validate rows
-    const validRows = top20.map((row) => {
-      let ratioAds: number | null = null;
-      const ratioValue = row["Ratio de visualizaciones de Ads"] as string | number;
-      if (typeof ratioValue === "string" && (ratioValue as string).includes("%")) {
-        ratioAds = parseFloat((ratioValue as string).replace("%", ""));
-      } else if (typeof ratioValue === "number") {
-        ratioAds = ratioValue;
-      }
-
-      return {
-        rango_fechas: row["Rango de fechas"],
-        descripcion_video: row["Descripción del vídeo"],
-        duracion: row["Duración"],
-        creador: row["Usuario del creador"],
-        fecha_publicacion: row["Fecha de publicación"],
-        ingresos_mxn: row["Ingresos (M$)"],
-        ventas: row["Ventas"],
-        visualizaciones: row["Visualizaciones"],
-        gpm_mxn: row["GPM (M$) - Ingresos brutos por cada mil visualizaciones"],
-        cpa_mxn: row["CPA (M$) - Coste por acción"],
-        ratio_ads: ratioAds,
-        coste_publicitario_mxn: row["Coste publicitario (M$)"],
-        roas: row["ROAS - Retorno de la inversión publicitaria"],
-        tiktok_url: row["Enlace de TikTok"],
-        featured_today: true,
-        transcripcion_original: null,
-        guion_ia: null,
-      };
-    });
-
-    console.log(`Processing ${validRows.length} videos with upsert...`);
-
-    // Upsert records (insert new or update existing based on tiktok_url)
-    const { data: upsertedData, error: upsertError } = await supabaseServiceClient
-      .from("daily_feed")
-      .upsert(validRows, {
-        onConflict: 'tiktok_url',
-        ignoreDuplicates: false
-      })
+    // Insert all videos without limit
+    const { data: insertedData, error: insertError } = await supabaseServiceClient
+      .from("videos")
+      .insert(sortedVideos)
       .select();
 
-    if (upsertError) {
-      console.error("Error upserting data:", upsertError);
-      throw upsertError;
+    if (insertError) {
+      console.error("Error insertando videos:", insertError);
+      throw insertError;
     }
 
-    console.log(`Successfully upserted ${upsertedData?.length || 0} records`);
+    console.log(`Successfully inserted ${insertedData?.length || 0} videos`);
 
-    // Process AI for each video asynchronously
-    const processedCount = upsertedData?.length || 0;
-    let aiProcessedCount = 0;
-    let aiFailedCount = 0;
-
-    if (upsertedData && upsertedData.length > 0) {
-      console.log('Starting AI processing for videos...');
-      
-      // Process videos in parallel but with rate limiting
-      const processVideo = async (video: any) => {
-        try {
-          console.log(`Processing AI for video ${video.id}`);
-          
-          // Transcribe video
-          const transcribeResponse = await fetch(
-            `${Deno.env.get('SUPABASE_URL')}/functions/v1/transcribe-video`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ tiktokUrl: video.tiktok_url }),
-            }
-          );
-
-          if (!transcribeResponse.ok) {
-            throw new Error(`Transcription failed for video ${video.id}`);
-          }
-
-          const { transcription } = await transcribeResponse.json();
-          console.log(`Transcribed video ${video.id}`);
-
-          // Rewrite script
-          const rewriteResponse = await fetch(
-            `${Deno.env.get('SUPABASE_URL')}/functions/v1/rewrite-script`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ transcription }),
-            }
-          );
-
-          if (!rewriteResponse.ok) {
-            throw new Error(`Script rewriting failed for video ${video.id}`);
-          }
-
-          const { rewritten_script } = await rewriteResponse.json();
-          console.log(`Rewrote script for video ${video.id}`);
-
-          // Update video with AI results
-          const { error: updateError } = await supabaseServiceClient
-            .from('daily_feed')
-            .update({
-              transcripcion_original: transcription,
-              guion_ia: rewritten_script,
-            })
-            .eq('id', video.id);
-
-          if (updateError) {
-            console.error(`Failed to update video ${video.id}:`, updateError);
-            throw updateError;
-          }
-
-          aiProcessedCount++;
-          console.log(`Successfully processed video ${video.id} (${aiProcessedCount}/${processedCount})`);
-        } catch (error: any) {
-          console.error(`Error processing video ${video.id}:`, error.message);
-          aiFailedCount++;
-        }
-      };
-
-      // Process videos in batches of 3 to avoid rate limiting
-      const batchSize = 3;
-      for (let i = 0; i < upsertedData.length; i += batchSize) {
-        const batch = upsertedData.slice(i, i + batchSize);
-        await Promise.all(batch.map(processVideo));
-        // Small delay between batches
-        if (i + batchSize < upsertedData.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-
-      console.log(`AI processing complete. Success: ${aiProcessedCount}, Failed: ${aiFailedCount}`);
-    }
+    const processedCount = insertedData?.length || 0;
 
     return new Response(
       JSON.stringify({
         success: true,
         processed: processedCount,
-        total: validRows.length,
-        ai_processed: aiProcessedCount,
-        ai_failed: aiFailedCount,
-        message: `Successfully processed ${processedCount} videos. AI processing: ${aiProcessedCount} success, ${aiFailedCount} failed.`,
+        total: sortedVideos.length,
+        message: `Successfully processed ${processedCount} videos from ${rows.length} rows.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
