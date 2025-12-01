@@ -165,30 +165,16 @@ const mockVideos = [
               ? `Videos de @${creatorFilter}`
               : "Top 20 Videos del Día"}
           </h1>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              {lastUpdate && (
-                <p className="text-sm text-muted-foreground">
-                  Última actualización:{" "}
-                  {lastUpdate.toLocaleDateString("es-MX", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              )}
-            </div>
-            {(productFilter || creatorFilter) && (
+          {(productFilter || creatorFilter) && (
+            <div className="mt-4">
               <Button
                 variant="outline"
                 onClick={() => navigate("/app")}
               >
                 Ver todos los videos
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         <FilterBar />
