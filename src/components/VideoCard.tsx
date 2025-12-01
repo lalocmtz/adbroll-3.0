@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, TrendingUp, Eye, DollarSign, ShoppingCart, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import ScriptModal from "./ScriptModal";
 import FavoriteButton from "./FavoriteButton";
 
@@ -29,7 +29,31 @@ interface VideoCardProps {
 
 const VideoCard = ({ video, ranking }: VideoCardProps) => {
   const [showScript, setShowScript] = useState(false);
-  const [videoError, setVideoError] = useState(false);
+  const embedRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Load TikTok embed script
+    const script = document.createElement('script');
+    script.src = 'https://www.tiktok.com/embed.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      // Cleanup script on unmount
+      const existingScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
+    };
+  }, []);
+
+  // Extract video ID from TikTok URL
+  const getVideoId = (url: string) => {
+    const match = url.match(/\/video\/(\d+)/);
+    return match ? match[1] : null;
+  };
+
+  const videoId = getVideoId(video.tiktok_url);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
@@ -53,7 +77,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
   return (
     <>
       <Card className="card-premium overflow-hidden group">
-        {/* Video Player */}
+        {/* TikTok Embed Player */}
         <div className="relative aspect-[9/16] bg-muted overflow-hidden">
           {/* Ranking Badge */}
           <div className="absolute top-3 left-3 z-20">
@@ -75,30 +99,21 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             </Button>
           </div>
 
-          {/* Native HTML5 Video Player */}
-          {!videoError ? (
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              src={video.tiktok_url}
-              className="w-full h-full object-cover rounded-t-xl"
-              onError={() => setVideoError(true)}
-            />
+          {/* TikTok Official Embed */}
+          {videoId ? (
+            <div ref={embedRef} className="w-full h-full">
+              <blockquote
+                className="tiktok-embed"
+                cite={video.tiktok_url}
+                data-video-id={videoId}
+                style={{ maxWidth: '100%', minWidth: '100%' }}
+              >
+                <section></section>
+              </blockquote>
+            </div>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-muted to-muted/50 p-6">
-              <div className="rounded-full bg-background/50 p-4 mb-4">
-                <svg className="h-10 w-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-foreground text-center mb-1">
-                Video no disponible
-              </p>
-              <p className="text-xs text-muted-foreground text-center max-w-[200px]">
-                El video no pudo ser cargado
-              </p>
+            <div className="w-full h-full flex items-center justify-center bg-muted">
+              <p className="text-sm text-muted-foreground">Cargando video...</p>
             </div>
           )}
         </div>

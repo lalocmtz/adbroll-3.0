@@ -109,20 +109,8 @@ const Creators = () => {
             Creadores TikTok Shop México
           </h1>
           <p className="text-lg text-muted-foreground mb-4">
-            Top creadores rankeados por ingresos totales
+            Top creadores con mejores resultados
           </p>
-          {lastUpdate && (
-            <p className="text-sm text-muted-foreground">
-              Última actualización:{" "}
-              {lastUpdate.toLocaleDateString("es-MX", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          )}
           <Badge variant="secondary" className="mt-2">
             {creators.length} creadores encontrados
           </Badge>
@@ -162,69 +150,23 @@ const Creators = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg bg-muted">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Users className="h-4 w-4 text-foreground" />
-                        <span className="text-xs text-muted-foreground">Seguidores</span>
-                      </div>
-                      <p className="text-base font-bold text-foreground">
-                        {formatNumber(creator.seguidores)}
-                      </p>
+                  <div className="p-4 rounded-lg bg-muted text-center">
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <Users className="h-5 w-5 text-foreground" />
+                      <span className="text-sm text-muted-foreground">Seguidores</span>
                     </div>
-
-                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                      <div className="flex items-center gap-2 mb-1">
-                        <DollarSign className="h-4 w-4 text-primary" />
-                        <span className="text-xs text-muted-foreground">Ingresos</span>
-                      </div>
-                      <p className="text-base font-bold text-success">
-                        {formatCurrency(creator.total_ingresos_mxn)}
-                      </p>
-                    </div>
-
-                    <div className="p-3 rounded-lg bg-muted">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Video className="h-4 w-4 text-foreground" />
-                        <span className="text-xs text-muted-foreground">Ventas</span>
-                      </div>
-                      <p className="text-base font-bold text-foreground">
-                        {formatNumber(creator.total_ventas)}
-                      </p>
-                    </div>
-
-                    {creator.promedio_roas !== null && (
-                      <div className="p-3 rounded-lg bg-accent/5 border border-accent/10">
-                        <div className="flex items-center gap-2 mb-1">
-                          <TrendingUp className="h-4 w-4 text-accent" />
-                          <span className="text-xs text-muted-foreground">ROAS</span>
-                        </div>
-                        <p className="text-base font-bold text-foreground">
-                          {creator.promedio_roas.toFixed(2)}x
-                        </p>
-                      </div>
-                    )}
+                    <p className="text-2xl font-bold text-foreground">
+                      {formatNumber(creator.seguidores)}
+                    </p>
                   </div>
 
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      variant="default" 
-                      className="flex-1"
-                      onClick={() => handleViewCreatorVideos(creator.id)}
-                    >
-                      Ver videos
-                    </Button>
-                    {creator.mejor_video_url && (
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => window.open(creator.mejor_video_url!, "_blank")}
-                        title="Ver mejor video"
-                      >
-                        <Video className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                  <Button 
+                    variant="default" 
+                    className="w-full"
+                    onClick={() => handleViewCreatorVideos(creator.id)}
+                  >
+                    Ver videos
+                  </Button>
                 </CardContent>
               </Card>
             ))}
