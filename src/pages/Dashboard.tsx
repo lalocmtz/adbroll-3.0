@@ -58,6 +58,7 @@ const Dashboard = () => {
   const creatorFilter = searchParams.get("creator");
   
   const ITEMS_PER_PAGE = 20;
+  const MAX_VIDEOS = 100;
 
   useEffect(() => {
     fetchCategories();
@@ -141,7 +142,7 @@ const Dashboard = () => {
       if (error) throw error;
 
       setVideos(data || []);
-      setTotalCount(count || 0);
+      setTotalCount(Math.min(count || 0, MAX_VIDEOS));
     } catch (error: any) {
       toast({
         title: "Error al cargar videos",
@@ -186,8 +187,13 @@ const Dashboard = () => {
               ? `Videos de: ${productFilter}` 
               : creatorFilter 
               ? `Videos de @${creatorFilter}`
-              : "Top 20 Videos del Día"}
+              : "Top 100 Videos de TikTok Shop México"}
           </h1>
+          {!productFilter && !creatorFilter && (
+            <p className="text-muted-foreground">
+              Actualizado manualmente cada 3 días. Ordenado por ingresos generados.
+            </p>
+          )}
           {(productFilter || creatorFilter) && (
             <div className="mt-4">
               <Button
@@ -267,7 +273,7 @@ const Dashboard = () => {
           <>
             <div className="mb-6 mt-8">
               <p className="text-muted-foreground text-sm">
-                Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} de {totalCount} videos
+                Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} de {Math.min(totalCount, MAX_VIDEOS)} videos
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

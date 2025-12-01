@@ -151,41 +151,104 @@ serve(async (req) => {
       })
     );
 
-    console.log(`Procesando ${sortedVideos.length} videos, eliminando videos existentes...`);
+    console.log(`Procesando ${sortedVideos.length} videos con UPSERT...`);
 
-    // Delete all existing videos
-    const { error: deleteError } = await supabaseServiceClient
-      .from("videos")
-      .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000");
+    // Helper function to normalize product names
+    const normalizeProductName = (name: string): string => {
+      return name
+        .toLowerCase()
+        .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // Remove emojis
+        .replace(/\([^)]*\)/g, '') // Remove text in parentheses
+        .replace(/\[[^\]]*\]/g, '') // Remove text in brackets
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .trim();
+    };
 
-    if (deleteError) {
-      throw new Error(`Error al eliminar videos existentes: ${deleteError.message}`);
+    // UPSERT videos one by one (because we need product matching per video)
+    let upsertedCount = 0;
+    let updatedCount = 0;
+    let insertedCount = 0;
+
+    for (const video of sortedVideos) {
+      // Try to match product using normalized name
+      let matchedProduct = null;
+      if (video.product_name && products && products.length > 0) {
+        const normalizedVideoTitle = normalizeProductName(video.title || "");
+        const normalizedProductName = normalizeProductName(video.product_name);
+        
+        matchedProduct = products.find((p) => {
+          const pName = normalizeProductName(p.producto_nombre || "");
+          // Check if video title or product name contains the other
+          return normalizedVideoTitle.includes(pName) || 
+                 pName.includes(normalizedProductName) ||
+                 normalizedProductName.includes(pName);
+        });
+
+        if (matchedProduct) {
+          console.log(`Matched product "${matchedProduct.producto_nombre}" for video "${video.title}"`);
+          video.product_id = matchedProduct.id;
+          video.product_price = matchedProduct.price || null;
+          video.product_sales = matchedProduct.total_ventas || null;
+          video.product_revenue = matchedProduct.total_ingresos_mxn || null;
+        }
+      }
+
+      // Check if video exists by video_url
+      const { data: existing } = await supabaseServiceClient
+        .from("videos")
+        .select("id")
+        .eq("video_url", video.video_url)
+        .maybeSingle();
+
+      if (existing) {
+        // UPDATE: only update metrics and rank
+        const { error: updateError } = await supabaseServiceClient
+          .from("videos")
+          .update({
+            rank: video.rank,
+            revenue_mxn: video.revenue_mxn,
+            sales: video.sales,
+            views: video.views,
+            roas: video.roas,
+            product_id: video.product_id,
+            product_price: video.product_price,
+            product_sales: video.product_sales,
+            product_revenue: video.product_revenue,
+          })
+          .eq("id", existing.id);
+
+        if (updateError) {
+          console.error(`Error updating video ${video.video_url}:`, updateError);
+        } else {
+          updatedCount++;
+        }
+      } else {
+        // INSERT: new video
+        const { error: insertError } = await supabaseServiceClient
+          .from("videos")
+          .insert(video);
+
+        if (insertError) {
+          console.error(`Error inserting video ${video.video_url}:`, insertError);
+        } else {
+          insertedCount++;
+        }
+      }
+      
+      upsertedCount++;
     }
 
-    console.log("Videos eliminados, insertando nuevos...");
 
-    // Insert all videos without limit
-    const { data: insertedData, error: insertError } = await supabaseServiceClient
-      .from("videos")
-      .insert(sortedVideos)
-      .select();
-
-    if (insertError) {
-      console.error("Error insertando videos:", insertError);
-      throw insertError;
-    }
-
-    console.log(`Successfully inserted ${insertedData?.length || 0} videos`);
-
-    const processedCount = insertedData?.length || 0;
+    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        processed: processedCount,
+        inserted: insertedCount,
+        updated: updatedCount,
+        processed: upsertedCount,
         total: sortedVideos.length,
-        message: `Successfully processed ${processedCount} videos from ${rows.length} rows.`,
+        message: `Successfully processed ${upsertedCount} videos: ${insertedCount} new, ${updatedCount} updated.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
