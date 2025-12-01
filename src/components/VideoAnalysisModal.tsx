@@ -349,9 +349,8 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
   const script = transcription || video.transcripcion_original || video.guion_ia || "No hay guión disponible";
   
   const selectedProductData = productOptions.find(p => p.id === selectedProduct);
-  const commissionEstimated = selectedProductData?.commission 
-    ? video.ingresos_mxn * (selectedProductData.commission / 100)
-    : null;
+  const commissionRate = selectedProductData?.commission || 6; // Default 6% if not specified
+  const commissionEstimated = video.ingresos_mxn * (commissionRate / 100);
 
   const formatCurrency = (num: number) => {
     return new Intl.NumberFormat("es-MX", {
@@ -467,7 +466,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                     <span className="text-xs text-muted-foreground">Comisión</span>
                   </div>
                   <p className="text-sm font-bold text-accent">
-                    {commissionEstimated ? formatCurrency(commissionEstimated) : "--"}
+                    {formatCurrency(commissionEstimated)}
                   </p>
                 </div>
               </div>

@@ -1,5 +1,8 @@
 project_id = "gcntnilurlulejwwtpaa"
 
+[functions.auto-match-videos-products]
+verify_jwt = false
+
 [functions.process-kalodata]
 verify_jwt = true
 
@@ -16,4 +19,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.generate-script-variants]
+verify_jwt = false
+
+[functions.analyze-script-sections]
+verify_jwt = false
+
+[functions.analyze-script-insights]
 verify_jwt = false

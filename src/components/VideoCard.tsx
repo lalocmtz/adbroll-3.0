@@ -129,9 +129,8 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     }).format(num);
   };
 
-  const commissionEstimated = productData?.commission 
-    ? video.ingresos_mxn * (productData.commission / 100)
-    : null;
+  const commissionRate = productData?.commission || 6; // Default 6% if not specified
+  const commissionEstimated = video.ingresos_mxn * (commissionRate / 100);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -259,9 +258,20 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
               {video.descripcion_video}
             </h3>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              @{video.creador}
-            </p>
+            <div className="flex items-center justify-between mt-0.5">
+              <p className="text-[10px] text-muted-foreground">
+                @{video.creador}
+              </p>
+              {productData ? (
+                <p className="text-[9px] text-primary font-medium truncate max-w-[120px]">
+                  {productData.producto_nombre}
+                </p>
+              ) : (
+                <p className="text-[9px] text-muted-foreground italic">
+                  Sin producto
+                </p>
+              )}
+            </div>
           </div>
 
 
@@ -294,7 +304,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
                 <span className="text-[9px] text-muted-foreground">Comisión</span>
               </div>
               <p className="text-xs font-bold text-accent">
-                {commissionEstimated ? formatCurrency(commissionEstimated) : "--"}
+                {formatCurrency(commissionEstimated)}
               </p>
             </div>
 
