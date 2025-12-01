@@ -8,6 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardNav from "@/components/DashboardNav";
 import GlobalHeader from "@/components/GlobalHeader";
 import FilterBar from "@/components/FilterBar";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search } from "lucide-react";
 import { 
   Pagination, 
   PaginationContent, 
@@ -40,6 +44,10 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [searchText, setSearchText] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<"sales" | "revenue" | "roas">("sales");
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -49,13 +57,36 @@ const Dashboard = () => {
   const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
     setCurrentPage(1);
     fetchVideos(1);
-  }, [productFilter, creatorFilter]);
+  }, [productFilter, creatorFilter, searchText, selectedCategory, sortOrder]);
 
   useEffect(() => {
     fetchVideos(currentPage);
   }, [currentPage]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("videos")
+        .select("category")
+        .not("category", "is", null);
+
+      if (error) throw error;
+
+      const uniqueCategories = Array.from(
+        new Set(data?.map((item) => item.category).filter(Boolean))
+      ) as string[];
+
+      setCategories(uniqueCategories.sort());
+    } catch (error: any) {
+      console.error("Error loading categories:", error.message);
+    }
+  };
 
   const fetchVideos = async (page: number) => {
     try {
@@ -64,15 +95,37 @@ const Dashboard = () => {
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
+      // Determine sort order
+      let primarySort: "sales" | "revenue_mxn" | "roas" = "sales";
+      let secondarySort: "sales" | "revenue_mxn" | "roas" = "revenue_mxn";
+
+      if (sortOrder === "revenue") {
+        primarySort = "revenue_mxn";
+        secondarySort = "sales";
+      } else if (sortOrder === "roas") {
+        primarySort = "roas";
+        secondarySort = "revenue_mxn";
+      }
+
       let query = supabase
         .from("videos")
         .select("*", { count: "exact" })
-        .order("sales", { ascending: false })
-        .order("revenue_mxn", { ascending: false })
+        .order(primarySort, { ascending: false })
+        .order(secondarySort, { ascending: false })
         .range(from, to)
         .limit(100);
 
-      // Apply filters
+      // Apply search filter
+      if (searchText.trim()) {
+        query = query.or(`title.ilike.%${searchText}%,creator_handle.ilike.%${searchText}%`);
+      }
+
+      // Apply category filter
+      if (selectedCategory !== "all") {
+        query = query.eq("category", selectedCategory);
+      }
+
+      // Apply existing filters
       if (productFilter) {
         query = query.ilike("product_name", `%${productFilter}%`);
       }
@@ -146,6 +199,57 @@ const Dashboard = () => {
         </div>
 
         <FilterBar />
+
+        {/* New Filter Bar */}
+        <div className="mt-8 space-y-6">
+          {/* Search Input */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Buscar por título o creador..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Category Pills */}
+          <div className="flex flex-wrap gap-2">
+            <Badge
+              variant={selectedCategory === "all" ? "default" : "outline"}
+              className="cursor-pointer px-4 py-2 text-sm"
+              onClick={() => setSelectedCategory("all")}
+            >
+              All
+            </Badge>
+            {categories.map((category) => (
+              <Badge
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                className="cursor-pointer px-4 py-2 text-sm"
+                onClick={() => setSelectedCategory(category)}
+              >
+                {category}
+              </Badge>
+            ))}
+          </div>
+
+          {/* Sort Selector */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Ordenar por:</span>
+            <Select value={sortOrder} onValueChange={(value: "sales" | "revenue" | "roas") => setSortOrder(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sales">Más ventas</SelectItem>
+                <SelectItem value="revenue">Más ingresos</SelectItem>
+                <SelectItem value="roas">Mejor ROAS</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         {videos.length === 0 ? (
           <Card className="p-12 text-center mt-8">
