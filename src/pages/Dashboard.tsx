@@ -112,8 +112,7 @@ const Dashboard = () => {
         .select("*", { count: "exact" })
         .order(primarySort, { ascending: false })
         .order(secondarySort, { ascending: false })
-        .range(from, to)
-        .limit(100);
+        .range(from, to);
 
       // Apply search filter
       if (searchText.trim()) {
