@@ -559,6 +559,9 @@ export type Database = {
           imported_at: string | null
           product_id: string | null
           product_name: string | null
+          product_price: number | null
+          product_revenue: number | null
+          product_sales: number | null
           rank: number | null
           revenue_mxn: number | null
           roas: number | null
@@ -576,6 +579,9 @@ export type Database = {
           imported_at?: string | null
           product_id?: string | null
           product_name?: string | null
+          product_price?: number | null
+          product_revenue?: number | null
+          product_sales?: number | null
           rank?: number | null
           revenue_mxn?: number | null
           roas?: number | null
@@ -593,6 +599,9 @@ export type Database = {
           imported_at?: string | null
           product_id?: string | null
           product_name?: string | null
+          product_price?: number | null
+          product_revenue?: number | null
+          product_sales?: number | null
           rank?: number | null
           revenue_mxn?: number | null
           roas?: number | null

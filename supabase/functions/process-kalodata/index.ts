@@ -90,9 +90,46 @@ serve(async (req) => {
     console.log(`Procesando ${rows.length} filas del Excel`);
 
     // Sort by revenue (no limit)
-    const sortedVideos = rows
-      .sort((a, b) => b["Ingresos (M$)"] - a["Ingresos (M$)"])
-      .map((row) => {
+    const sortedRows = rows.sort((a, b) => b["Ingresos (M$)"] - a["Ingresos (M$)"]);
+
+    // Load all products to match against
+    const { data: products, error: productsError } = await supabaseServiceClient
+      .from("products")
+      .select("id, producto_nombre, producto_url, price, total_ventas, total_ingresos_mxn");
+
+    if (productsError) {
+      console.error("Error loading products:", productsError);
+    }
+
+    console.log(`Loaded ${products?.length || 0} products for matching`);
+
+    // Map videos and match with products
+    const sortedVideos = await Promise.all(
+      sortedRows.map(async (row) => {
+        let matchedProduct = null;
+
+        // Try to match product by name or URL
+        if (products && products.length > 0) {
+          const videoTitle = row["Descripción del vídeo"]?.toLowerCase() || "";
+          
+          matchedProduct = products.find((p) => {
+            const productName = p.producto_nombre?.toLowerCase() || "";
+            // Simple matching: if video title contains product name
+            return productName && videoTitle.includes(productName);
+          });
+        }
+
+        // Count total videos for this product
+        let totalVideosOfProduct = 1;
+        if (matchedProduct) {
+          const { count } = await supabaseServiceClient
+            .from("videos")
+            .select("*", { count: "exact", head: true })
+            .eq("product_id", matchedProduct.id);
+          
+          totalVideosOfProduct = (count || 0) + 1; // +1 for this new video
+        }
+
         return {
           video_url: row["Enlace de TikTok"],
           title: row["Descripción del vídeo"],
@@ -105,10 +142,14 @@ serve(async (req) => {
           category: null,
           country: null,
           rank: null,
-          product_name: null,
-          product_id: null,
+          product_name: matchedProduct?.producto_nombre || null,
+          product_id: matchedProduct?.id || null,
+          product_price: matchedProduct?.price || null,
+          product_sales: matchedProduct?.total_ventas || null,
+          product_revenue: matchedProduct?.total_ingresos_mxn || null,
         };
-      });
+      })
+    );
 
     console.log(`Procesando ${sortedVideos.length} videos, eliminando videos existentes...`);
 

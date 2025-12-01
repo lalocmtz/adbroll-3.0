@@ -24,6 +24,10 @@ interface VideoCardProps {
     guion_ia: string | null;
     producto_nombre: string | null;
     producto_url: string | null;
+    product_id?: string | null;
+    product_price?: number | null;
+    product_sales?: number | null;
+    product_revenue?: number | null;
   };
   ranking: number;
 }
@@ -222,6 +226,31 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
               )}
             </div>
           )}
+
+          {/* Product Revenue & Sales Estimation */}
+          {video.product_id && video.product_price && video.product_sales ? (
+            <div className="p-4 bg-accent/10 rounded-lg border border-accent/20 space-y-2">
+              <p className="text-xs font-semibold text-accent mb-2">Estimaciones del Producto</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Revenue Estimado</p>
+                  <p className="text-sm font-bold text-foreground">
+                    {formatCurrency(video.product_price * video.product_sales)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Ventas por Video</p>
+                  <p className="text-sm font-bold text-foreground">
+                    {formatNumber(Math.floor(video.product_sales / Math.max(1, video.product_sales / video.ventas)))}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : video.producto_nombre ? (
+            <div className="p-3 bg-muted/50 rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground">Sin datos de producto</p>
+            </div>
+          ) : null}
 
           {/* Metrics Grid */}
           <div className="grid grid-cols-2 gap-3">

@@ -37,6 +37,9 @@ interface Video {
   country: string | null;
   rank: number | null;
   imported_at: string | null;
+  product_price: number | null;
+  product_sales: number | null;
+  product_revenue: number | null;
 }
 
 const Dashboard = () => {
@@ -286,7 +289,11 @@ const Dashboard = () => {
                     duracion: "",
                     fecha_publicacion: video.imported_at || "",
                     transcripcion_original: null,
-                    guion_ia: null
+                    guion_ia: null,
+                    product_id: video.product_id,
+                    product_price: video.product_price,
+                    product_sales: video.product_sales,
+                    product_revenue: video.product_revenue,
                   }} 
                   ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} 
                 />
