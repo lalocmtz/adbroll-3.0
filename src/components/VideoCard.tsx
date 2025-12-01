@@ -1,11 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, Eye, DollarSign, ShoppingCart, ExternalLink, Percent, Video } from "lucide-react";
+import { Eye, DollarSign, ShoppingCart, Percent, Heart, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import ScriptModal from "./ScriptModal";
-import FavoriteButton from "./FavoriteButton";
+import VideoAnalysisModal from "./VideoAnalysisModal";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface VideoCardProps {
   video: {
@@ -43,9 +44,13 @@ interface ProductData {
 }
 
 const VideoCard = ({ video, ranking }: VideoCardProps) => {
-  const [showScript, setShowScript] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [productData, setProductData] = useState<ProductData | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [loading, setLoading] = useState(false);
   const embedRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Load TikTok embed script
@@ -64,8 +69,8 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
   }, []);
 
   useEffect(() => {
-    // Load product data if producto_nombre matches
-    const loadProductData = async () => {
+    const loadData = async () => {
+      // Load product data
       if (video.producto_nombre) {
         const { data } = await supabase
           .from("products")
@@ -77,10 +82,25 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
           setProductData(data);
         }
       }
+
+      // Check favorite status
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("favorites_videos")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("video_url", video.tiktok_url)
+          .maybeSingle();
+
+        if (data) {
+          setIsFavorite(true);
+        }
+      }
     };
 
-    loadProductData();
-  }, [video.producto_nombre]);
+    loadData();
+  }, [video.producto_nombre, video.tiktok_url]);
 
   // Extract video ID from TikTok URL
   const getVideoId = (url: string) => {
@@ -109,21 +129,107 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     }).format(num);
   };
 
-  // Calculate commission estimated
   const commissionEstimated = productData?.commission 
     ? video.ingresos_mxn * (productData.commission / 100)
     : null;
 
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast({
+        title: "Inicia sesión",
+        description: "Debes iniciar sesión para guardar favoritos",
+      });
+      navigate("/login");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (isFavorite) {
+        const { error } = await supabase
+          .from("favorites_videos")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("video_url", video.tiktok_url);
+
+        if (error) throw error;
+
+        setIsFavorite(false);
+        toast({
+          title: "✓ Eliminado de favoritos",
+        });
+      } else {
+        const { data: videoData, error: fetchError } = await supabase
+          .from("daily_feed")
+          .select("*")
+          .eq("tiktok_url", video.tiktok_url)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const { error } = await supabase
+          .from("favorites_videos")
+          .insert({
+            user_id: user.id,
+            video_url: video.tiktok_url,
+            video_data: videoData,
+          });
+
+        if (error) throw error;
+
+        setIsFavorite(true);
+        toast({
+          title: "✓ Guardado en favoritos",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error toggling favorite:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
-      <Card className="card-premium overflow-hidden group">
+      <Card className="overflow-hidden group hover:shadow-lg transition-shadow">
         {/* TikTok Embed Player */}
         <div className="relative aspect-[9/16] bg-muted overflow-hidden">
-          {/* Ranking Badge */}
-          <div className="absolute top-2 left-2 z-20">
-            <Badge className="bg-primary text-primary-foreground font-bold text-sm px-2 py-0.5 shadow-lg">
+          {/* Top Icons Bar */}
+          <div className="absolute top-2 left-2 right-2 z-20 flex items-center justify-between">
+            <Badge className="bg-primary text-primary-foreground font-bold text-xs px-2 py-0.5 shadow-lg">
               #{ranking} {ranking <= 5 && "🔥"}
             </Badge>
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                onClick={() => window.open(video.tiktok_url, '_blank')}
+              >
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                </svg>
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className={`h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90 ${isFavorite ? "text-red-500" : ""}`}
+                onClick={handleToggleFavorite}
+                disabled={loading}
+              >
+                <Heart className={`h-3 w-3 ${isFavorite ? "fill-current" : ""}`} />
+              </Button>
+            </div>
           </div>
 
 
@@ -147,122 +253,77 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
         </div>
 
         {/* Video Info */}
-        <CardContent className="p-3 space-y-2">
+        <CardContent className="p-2 space-y-2">
           {/* Title and Creator */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug mb-1">
+            <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
               {video.descripcion_video}
             </h3>
-            <p className="text-xs text-muted-foreground">
-              {video.creador} • {video.duracion}
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              @{video.creador}
             </p>
           </div>
 
-          {/* Product Info - Compact */}
-          {(video.producto_nombre || productData) && (
-            <div className="p-2 bg-primary/5 rounded-md border border-primary/10">
-              <div className="flex items-center gap-2">
-                {productData?.imagen_url && (
-                  <img
-                    src={productData.imagen_url}
-                    alt={productData.producto_nombre}
-                    className="h-10 w-10 rounded object-cover flex-shrink-0"
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-foreground line-clamp-1">
-                    {productData?.producto_nombre || video.producto_nombre}
-                  </p>
-                  {productData?.categoria && (
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1 mt-0.5">
-                      {productData.categoria}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
 
 
           {/* Metrics Grid - 2x2 Compact */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded-md bg-primary/5 border border-primary/10">
-              <div className="flex items-center gap-1 mb-0.5">
-                <DollarSign className="h-3 w-3 text-primary" />
-                <span className="text-[10px] text-muted-foreground">Ingresos</span>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div className="p-1.5 rounded bg-primary/5 border border-primary/10">
+              <div className="flex items-center gap-0.5 mb-0.5">
+                <DollarSign className="h-2.5 w-2.5 text-primary" />
+                <span className="text-[9px] text-muted-foreground">Ingresos</span>
               </div>
-              <p className="text-sm font-bold text-success">
+              <p className="text-xs font-bold text-success">
                 {formatCurrency(video.ingresos_mxn)}
               </p>
             </div>
 
-            <div className="p-2 rounded-md bg-muted">
-              <div className="flex items-center gap-1 mb-0.5">
-                <ShoppingCart className="h-3 w-3 text-foreground" />
-                <span className="text-[10px] text-muted-foreground">Ventas</span>
+            <div className="p-1.5 rounded bg-muted">
+              <div className="flex items-center gap-0.5 mb-0.5">
+                <ShoppingCart className="h-2.5 w-2.5 text-foreground" />
+                <span className="text-[9px] text-muted-foreground">Ventas</span>
               </div>
-              <p className="text-sm font-bold text-foreground">
+              <p className="text-xs font-bold text-foreground">
                 {formatNumber(video.ventas)}
               </p>
             </div>
 
-            <div className="p-2 rounded-md bg-accent/5 border border-accent/10">
-              <div className="flex items-center gap-1 mb-0.5">
-                <Percent className="h-3 w-3 text-accent" />
-                <span className="text-[10px] text-muted-foreground">Comisión Est.</span>
+            <div className="p-1.5 rounded bg-accent/5 border border-accent/10">
+              <div className="flex items-center gap-0.5 mb-0.5">
+                <Percent className="h-2.5 w-2.5 text-accent" />
+                <span className="text-[9px] text-muted-foreground">Comisión</span>
               </div>
-              <p className="text-sm font-bold text-accent">
+              <p className="text-xs font-bold text-accent">
                 {commissionEstimated ? formatCurrency(commissionEstimated) : "--"}
               </p>
             </div>
 
-            <div className="p-2 rounded-md bg-muted">
-              <div className="flex items-center gap-1 mb-0.5">
-                <Eye className="h-3 w-3 text-foreground" />
-                <span className="text-[10px] text-muted-foreground">Vistas</span>
+            <div className="p-1.5 rounded bg-muted">
+              <div className="flex items-center gap-0.5 mb-0.5">
+                <Eye className="h-2.5 w-2.5 text-foreground" />
+                <span className="text-[9px] text-muted-foreground">Vistas</span>
               </div>
-              <p className="text-sm font-bold text-foreground">
+              <p className="text-xs font-bold text-foreground">
                 {formatNumber(video.visualizaciones)}
               </p>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-1.5">
-            <Button
-              className="w-full h-8 text-xs" 
-              variant="default"
-              onClick={() => setShowScript(true)}
-            >
-              <FileText className="h-3 w-3 mr-1.5" />
-              Ver guion + variantes
-            </Button>
-            
-            <div className="flex gap-1.5">
-              <Button
-                className="flex-1 h-7 text-xs" 
-                variant="outline"
-                onClick={() => window.open(video.tiktok_url, '_blank')}
-              >
-                <ExternalLink className="h-3 w-3 mr-1" />
-                Ver en TikTok
-              </Button>
-              <Button
-                className="flex-1 h-7 text-xs" 
-                variant="outline"
-              >
-                <Video className="h-3 w-3 mr-1" />
-                Transcribir
-              </Button>
-              <FavoriteButton itemId={video.id} itemType="video" videoUrl={video.tiktok_url} />
-            </div>
-          </div>
+          {/* Single CTA Button */}
+          <Button
+            className="w-full h-8 text-xs font-semibold" 
+            variant="default"
+            onClick={() => setShowModal(true)}
+          >
+            <Sparkles className="h-3 w-3 mr-1.5" />
+            Analizar guion y replicar
+          </Button>
         </CardContent>
       </Card>
 
-      <ScriptModal
-        isOpen={showScript}
-        onClose={() => setShowScript(false)}
+      <VideoAnalysisModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
         video={video}
       />
     </>
