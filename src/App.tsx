@@ -17,6 +17,7 @@ import Favorites from "./pages/Favorites";
 import Creators from "./pages/Creators";
 import Affiliates from "./pages/Affiliates";
 import Admin from "./pages/Admin";
+import AdminImport from "./pages/AdminImport";
 import RelatedVideos from "./pages/RelatedVideos";
 import NotFound from "./pages/NotFound";
 
@@ -127,6 +128,14 @@ const App = () => {
               element={
                 <ProtectedRoute session={session}>
                   <Admin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/import"
+              element={
+                <ProtectedRoute session={session}>
+                  <AdminImport />
                 </ProtectedRoute>
               }
             />
