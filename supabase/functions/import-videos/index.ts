@@ -70,40 +70,39 @@ serve(async (req) => {
       throw new Error('Unsupported file format. Please upload .csv, .xls, or .xlsx');
     }
 
-    // Normalize column names to lowercase and replace spaces with underscores
+    // Normalize column names - aggressive normalization
+    const normalize = (str: string) =>
+      str.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+
     rows = rows.map(row => {
       const normalized: any = {};
       for (const key in row) {
-        normalized[key.toLowerCase().trim().replace(/\s+/g, '_')] = row[key];
+        normalized[normalize(key)] = row[key];
       }
       return normalized;
     });
 
-    // Validate required fields
-    const requiredFields = ['video_url', 'creator_name', 'revenue_mxn', 'sales', 'views'];
-    for (const field of requiredFields) {
-      const hasField = rows.some(row => row[field] !== undefined && row[field] !== null && row[field] !== '');
-      if (!hasField) {
-        throw new Error(`Missing required column: ${field}`);
-      }
-    }
-
-    // Sort by revenue_mxn (descending) and take top 20
-    rows.sort((a, b) => {
-      const revA = parseFloat(a.revenue_mxn || '0');
-      const revB = parseFloat(b.revenue_mxn || '0');
-      return revB - revA;
-    });
-    rows = rows.slice(0, 20);
+    // Alternative column names for video URL
+    const urlKeys = ['video_url', 'link', 'url', 'video_link', 'tiktok_url'];
 
     let processed = 0;
     let inserted = 0;
     let skipped = 0;
 
     for (const row of rows) {
-      const videoUrl = row.video_url;
+      // Resolve video URL from alternative column names
+      let videoUrl = null;
+      for (const key of urlKeys) {
+        if (row[key]) {
+          videoUrl = row[key];
+          break;
+        }
+      }
       
-      if (!videoUrl) continue;
+      if (!videoUrl) continue; // Skip row silently if no URL found
+
+      // Skip if missing critical data
+      if (!row.revenue_mxn && !row.sales && !row.views) continue;
 
       processed++;
 
@@ -121,17 +120,17 @@ serve(async (req) => {
       const { error: insertError } = await supabaseService
         .from('videos')
         .insert({
-          rank: parseInt(row.rank || '0'),
+          rank: parseInt(row.rank || row.ranking || '0'),
           video_url: videoUrl,
-          title: row.title || null,
-          creator_handle: row.creator_handle || null,
-          creator_name: row.creator_name || null,
-          product_name: row.product_name || null,
-          category: row.category || null,
-          country: row.country || null,
-          views: parseInt(row.views || '0'),
-          sales: parseInt(row.sales || '0'),
-          revenue_mxn: parseFloat(row.revenue_mxn || '0'),
+          title: row.title || row.video_title || null,
+          creator_handle: row.creator_handle || row.handle || null,
+          creator_name: row.creator_name || row.creator || row.author || null,
+          product_name: row.product_name || row.product || null,
+          category: row.category || row.categoria || null,
+          country: row.country || row.pais || null,
+          views: parseInt(row.views || row.visualizaciones || '0'),
+          sales: parseInt(row.sales || row.ventas || '0'),
+          revenue_mxn: parseFloat(row.revenue_mxn || row.ingresos_mxn || '0'),
           roas: parseFloat(row.roas || '0'),
         });
 
@@ -146,7 +145,7 @@ serve(async (req) => {
       videos_imported: inserted,
     });
 
-    const message = `✅ Success! Processed top 20 videos by revenue. Inserted: ${inserted}, Skipped: ${skipped}`;
+    const message = `✅ Success! Processed: ${processed}, Inserted: ${inserted}, Skipped: ${skipped}`;
 
     return new Response(JSON.stringify({ success: true, message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

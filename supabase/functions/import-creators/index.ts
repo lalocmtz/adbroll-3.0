@@ -70,11 +70,14 @@ serve(async (req) => {
       throw new Error('Unsupported file format. Please upload .csv, .xls, or .xlsx');
     }
 
-    // Normalize column names to lowercase and replace spaces with underscores
+    // Normalize column names - aggressive normalization
+    const normalize = (str: string) =>
+      str.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+
     rows = rows.map(row => {
       const normalized: any = {};
       for (const key in row) {
-        normalized[key.toLowerCase().trim().replace(/\s+/g, '_')] = row[key];
+        normalized[normalize(key)] = row[key];
       }
       return normalized;
     });
@@ -84,20 +87,20 @@ serve(async (req) => {
     let updated = 0;
 
     for (const row of rows) {
-      const creatorHandle = row.creator_handle;
+      const creatorHandle = row.creator_handle || row.handle || row.usuario_creador || row.username;
       
-      if (!creatorHandle) continue;
+      if (!creatorHandle) continue; // Skip silently if no handle
 
       processed++;
 
       const creatorData = {
         usuario_creador: creatorHandle,
         creator_handle: creatorHandle,
-        nombre_completo: row.creator_name || null,
-        seguidores: parseInt(row.followers || '0'),
-        total_ventas: parseInt(row.total_sales || '0'),
-        total_ingresos_mxn: parseFloat(row.total_revenue_mxn || '0'),
-        country: row.country || null,
+        nombre_completo: row.creator_name || row.nombre_completo || row.name || null,
+        seguidores: parseInt(row.followers || row.seguidores || '0'),
+        total_ventas: parseInt(row.total_sales || row.ventas || '0'),
+        total_ingresos_mxn: parseFloat(row.total_revenue_mxn || row.ingresos_mxn || row.revenue || '0'),
+        country: row.country || row.pais || null,
         last_import: new Date().toISOString(),
       };
 
