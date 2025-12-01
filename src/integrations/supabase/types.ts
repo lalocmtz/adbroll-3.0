@@ -49,8 +49,11 @@ export type Database = {
       }
       creators: {
         Row: {
+          country: string | null
           created_at: string | null
+          creator_handle: string | null
           id: string
+          last_import: string | null
           mejor_video_url: string | null
           nombre_completo: string | null
           promedio_roas: number | null
@@ -63,8 +66,11 @@ export type Database = {
           usuario_creador: string
         }
         Insert: {
+          country?: string | null
           created_at?: string | null
+          creator_handle?: string | null
           id?: string
+          last_import?: string | null
           mejor_video_url?: string | null
           nombre_completo?: string | null
           promedio_roas?: number | null
@@ -77,8 +83,11 @@ export type Database = {
           usuario_creador: string
         }
         Update: {
+          country?: string | null
           created_at?: string | null
+          creator_handle?: string | null
           id?: string
+          last_import?: string | null
           mejor_video_url?: string | null
           nombre_completo?: string | null
           promedio_roas?: number | null
@@ -317,17 +326,52 @@ export type Database = {
           },
         ]
       }
+      imports: {
+        Row: {
+          created_at: string | null
+          creators_imported: number | null
+          file_name: string | null
+          id: string
+          products_imported: number | null
+          total_rows: number | null
+          videos_imported: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          creators_imported?: number | null
+          file_name?: string | null
+          id?: string
+          products_imported?: number | null
+          total_rows?: number | null
+          videos_imported?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          creators_imported?: number | null
+          file_name?: string | null
+          id?: string
+          products_imported?: number | null
+          total_rows?: number | null
+          videos_imported?: number | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           categoria: string | null
           created_at: string | null
+          currency: string | null
           descripcion: string | null
           id: string
           imagen_url: string | null
+          is_opportunity: boolean | null
+          last_import: string | null
           precio_mxn: number | null
+          price: number | null
           producto_nombre: string
           producto_url: string | null
           promedio_roas: number | null
+          tiktok_product_id: string | null
           total_ingresos_mxn: number | null
           total_ventas: number | null
           updated_at: string | null
@@ -335,13 +379,18 @@ export type Database = {
         Insert: {
           categoria?: string | null
           created_at?: string | null
+          currency?: string | null
           descripcion?: string | null
           id?: string
           imagen_url?: string | null
+          is_opportunity?: boolean | null
+          last_import?: string | null
           precio_mxn?: number | null
+          price?: number | null
           producto_nombre: string
           producto_url?: string | null
           promedio_roas?: number | null
+          tiktok_product_id?: string | null
           total_ingresos_mxn?: number | null
           total_ventas?: number | null
           updated_at?: string | null
@@ -349,13 +398,18 @@ export type Database = {
         Update: {
           categoria?: string | null
           created_at?: string | null
+          currency?: string | null
           descripcion?: string | null
           id?: string
           imagen_url?: string | null
+          is_opportunity?: boolean | null
+          last_import?: string | null
           precio_mxn?: number | null
+          price?: number | null
           producto_nombre?: string
           producto_url?: string | null
           promedio_roas?: number | null
+          tiktok_product_id?: string | null
           total_ingresos_mxn?: number | null
           total_ventas?: number | null
           updated_at?: string | null
@@ -478,6 +532,57 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      videos: {
+        Row: {
+          category: string | null
+          country: string | null
+          creator_handle: string | null
+          creator_name: string | null
+          id: string
+          imported_at: string | null
+          product_name: string | null
+          rank: number | null
+          revenue_mxn: number | null
+          roas: number | null
+          sales: number | null
+          title: string | null
+          video_url: string
+          views: number | null
+        }
+        Insert: {
+          category?: string | null
+          country?: string | null
+          creator_handle?: string | null
+          creator_name?: string | null
+          id?: string
+          imported_at?: string | null
+          product_name?: string | null
+          rank?: number | null
+          revenue_mxn?: number | null
+          roas?: number | null
+          sales?: number | null
+          title?: string | null
+          video_url: string
+          views?: number | null
+        }
+        Update: {
+          category?: string | null
+          country?: string | null
+          creator_handle?: string | null
+          creator_name?: string | null
+          id?: string
+          imported_at?: string | null
+          product_name?: string | null
+          rank?: number | null
+          revenue_mxn?: number | null
+          roas?: number | null
+          sales?: number | null
+          title?: string | null
+          video_url?: string
+          views?: number | null
         }
         Relationships: []
       }

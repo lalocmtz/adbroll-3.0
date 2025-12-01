@@ -150,14 +150,36 @@ const Creators = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="p-4 rounded-lg bg-muted text-center">
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      <Users className="h-5 w-5 text-foreground" />
-                      <span className="text-sm text-muted-foreground">Seguidores</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                      <div className="flex items-center gap-2 mb-1">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                        <span className="text-xs text-muted-foreground">Revenue</span>
+                      </div>
+                      <p className="text-base font-bold text-success">
+                        {formatCurrency(creator.total_ingresos_mxn)}
+                      </p>
                     </div>
-                    <p className="text-2xl font-bold text-foreground">
-                      {formatNumber(creator.seguidores)}
-                    </p>
+
+                    <div className="p-3 rounded-lg bg-muted">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Users className="h-4 w-4 text-foreground" />
+                        <span className="text-xs text-muted-foreground">Seguidores</span>
+                      </div>
+                      <p className="text-base font-bold text-foreground">
+                        {formatNumber(creator.seguidores)}
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-muted col-span-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Video className="h-4 w-4 text-foreground" />
+                        <span className="text-xs text-muted-foreground">Videos</span>
+                      </div>
+                      <p className="text-base font-bold text-foreground">
+                        {creator.total_videos ?? "N/A"}
+                      </p>
+                    </div>
                   </div>
 
                   <Button 
