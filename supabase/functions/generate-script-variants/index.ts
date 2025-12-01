@@ -34,7 +34,7 @@ serve(async (req) => {
   }
 
   try {
-    const { originalScript, videoTitle, numVariants = 1 } = await req.json();
+    const { originalScript, videoTitle, productName, numVariants = 1, variantType = 'urgencia' } = await req.json();
     
     if (!originalScript) {
       throw new Error('Original script is required');
@@ -45,9 +45,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log(`Generating ${numVariants} script variant(s)...`);
-
-    const { variantType = 'urgencia' } = await req.json();
+    console.log(`Generating ${numVariants} script variant(s) for product: ${productName}...`);
     
     const variantInstructions = {
       urgencia: 'Genera una variante enfocada en URGENCIA: escasez, tiempo limitado, últimas unidades disponibles.',
@@ -58,6 +56,7 @@ serve(async (req) => {
     const userPrompt = `Analiza este guión de TikTok Shop y genera UNA variante optimizada.
 
 TÍTULO: ${videoTitle}
+PRODUCTO: ${productName || 'producto genérico'}
 
 GUIÓN ORIGINAL:
 ${originalScript}
@@ -66,7 +65,7 @@ INSTRUCCIÓN: ${variantInstructions[variantType as keyof typeof variantInstructi
 
 Usa EXACTAMENTE este formato:
 
-Producto: [nombre]
+Producto: ${productName || '[nombre del producto]'}
 Objetivo del video: [ventas/demostración/tutorial]
 
 HOOK:
