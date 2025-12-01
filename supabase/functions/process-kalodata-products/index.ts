@@ -208,6 +208,19 @@ serve(async (req) => {
 
     console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
 
+    // Trigger auto-matching after products import
+    console.log('Triggering auto-match videos to products...');
+    try {
+      const matchResponse = await supabaseServiceClient.functions.invoke('auto-match-videos-products');
+      if (matchResponse.error) {
+        console.error('Error invoking auto-match:', matchResponse.error);
+      } else {
+        console.log('Auto-match triggered successfully:', matchResponse.data);
+      }
+    } catch (matchError) {
+      console.error('Failed to trigger auto-match:', matchError);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -215,7 +228,7 @@ serve(async (req) => {
         updated: updatedCount,
         processed: insertedCount + updatedCount,
         total: validRows.length,
-        message: `Successfully processed ${insertedCount + updatedCount} products: ${insertedCount} new, ${updatedCount} updated.`,
+        message: `Successfully processed ${insertedCount + updatedCount} products: ${insertedCount} new, ${updatedCount} updated. Auto-matching triggered.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
