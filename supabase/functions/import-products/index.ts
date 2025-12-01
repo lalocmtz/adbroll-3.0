@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,31 +43,49 @@ serve(async (req) => {
     const file = formData.get('file') as File;
     if (!file) throw new Error('No file uploaded');
 
-    const csvText = await file.text();
-    const lines = csvText.split('\n').filter(l => l.trim());
-    if (lines.length < 2) throw new Error('CSV is empty');
+    let rows: any[] = [];
+    const fileName = file.name.toLowerCase();
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    
-    const requiredColumns = ['product_name', 'tiktok_product_id', 'category', 'price', 
-                              'currency', 'total_sales', 'total_revenue_mxn', 'is_opportunity'];
-    
-    for (const col of requiredColumns) {
-      if (!headers.includes(col)) {
-        throw new Error(`Missing required column: ${col}`);
-      }
+    // Parse based on file type
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(sheet);
+    } else if (fileName.endsWith('.csv')) {
+      const csvText = await file.text();
+      const lines = csvText.split('\n').filter(l => l.trim());
+      if (lines.length < 2) throw new Error('CSV is empty');
+      
+      const headers = lines[0].split(',').map(h => h.trim());
+      rows = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const row: any = {};
+        headers.forEach((header, i) => {
+          row[header] = values[i];
+        });
+        return row;
+      });
+    } else {
+      throw new Error('Unsupported file format. Please upload .csv, .xls, or .xlsx');
     }
 
-    const colIdx = (name: string) => headers.indexOf(name);
+    // Normalize column names to lowercase
+    rows = rows.map(row => {
+      const normalized: any = {};
+      for (const key in row) {
+        normalized[key.toLowerCase().trim()] = row[key];
+      }
+      return normalized;
+    });
     
     let processed = 0;
     let inserted = 0;
     let updated = 0;
 
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim());
-      const productName = cols[colIdx('product_name')];
-      const tiktokProductId = cols[colIdx('tiktok_product_id')];
+    for (const row of rows) {
+      const productName = row.product_name;
+      const tiktokProductId = row.tiktok_product_id;
       
       if (!productName) continue;
 
@@ -75,12 +94,12 @@ serve(async (req) => {
       const productData = {
         producto_nombre: productName,
         tiktok_product_id: tiktokProductId || null,
-        categoria: cols[colIdx('category')] || null,
-        price: parseFloat(cols[colIdx('price')] || '0'),
-        currency: cols[colIdx('currency')] || 'MXN',
-        total_ventas: parseInt(cols[colIdx('total_sales')] || '0'),
-        total_ingresos_mxn: parseFloat(cols[colIdx('total_revenue_mxn')] || '0'),
-        is_opportunity: cols[colIdx('is_opportunity')]?.toLowerCase() === 'true',
+        categoria: row.category || null,
+        price: parseFloat(row.price || '0'),
+        currency: row.currency || 'MXN',
+        total_ventas: parseInt(row.total_sales || '0'),
+        total_ingresos_mxn: parseFloat(row.total_revenue_mxn || '0'),
+        is_opportunity: row.is_opportunity === 'true' || row.is_opportunity === true || false,
         last_import: new Date().toISOString(),
       };
 
@@ -98,7 +117,6 @@ serve(async (req) => {
               price: productData.price,
               total_ventas: productData.total_ventas,
               total_ingresos_mxn: productData.total_ingresos_mxn,
-              is_opportunity: productData.is_opportunity,
               last_import: productData.last_import,
             })
             .eq('id', existing.id);
@@ -121,11 +139,11 @@ serve(async (req) => {
 
     await supabaseService.from('imports').insert({
       file_name: file.name,
-      total_rows: lines.length - 1,
+      total_rows: rows.length,
       products_imported: inserted + updated,
     });
 
-    const message = `Processed: ${processed}, Inserted: ${inserted}, Updated: ${updated}`;
+    const message = `✅ Success! Processed: ${processed}, Inserted: ${inserted}, Updated: ${updated}`;
 
     return new Response(JSON.stringify({ success: true, message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

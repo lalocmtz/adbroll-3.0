@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,30 +43,48 @@ serve(async (req) => {
     const file = formData.get('file') as File;
     if (!file) throw new Error('No file uploaded');
 
-    const csvText = await file.text();
-    const lines = csvText.split('\n').filter(l => l.trim());
-    if (lines.length < 2) throw new Error('CSV is empty');
+    let rows: any[] = [];
+    const fileName = file.name.toLowerCase();
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    
-    const requiredColumns = ['creator_handle', 'creator_name', 'followers', 
-                              'total_sales', 'total_revenue_mxn', 'country'];
-    
-    for (const col of requiredColumns) {
-      if (!headers.includes(col)) {
-        throw new Error(`Missing required column: ${col}`);
-      }
+    // Parse based on file type
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(sheet);
+    } else if (fileName.endsWith('.csv')) {
+      const csvText = await file.text();
+      const lines = csvText.split('\n').filter(l => l.trim());
+      if (lines.length < 2) throw new Error('CSV is empty');
+      
+      const headers = lines[0].split(',').map(h => h.trim());
+      rows = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const row: any = {};
+        headers.forEach((header, i) => {
+          row[header] = values[i];
+        });
+        return row;
+      });
+    } else {
+      throw new Error('Unsupported file format. Please upload .csv, .xls, or .xlsx');
     }
 
-    const colIdx = (name: string) => headers.indexOf(name);
+    // Normalize column names to lowercase
+    rows = rows.map(row => {
+      const normalized: any = {};
+      for (const key in row) {
+        normalized[key.toLowerCase().trim()] = row[key];
+      }
+      return normalized;
+    });
     
     let processed = 0;
     let inserted = 0;
     let updated = 0;
 
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim());
-      const creatorHandle = cols[colIdx('creator_handle')];
+    for (const row of rows) {
+      const creatorHandle = row.creator_handle;
       
       if (!creatorHandle) continue;
 
@@ -74,11 +93,11 @@ serve(async (req) => {
       const creatorData = {
         usuario_creador: creatorHandle,
         creator_handle: creatorHandle,
-        nombre_completo: cols[colIdx('creator_name')] || null,
-        seguidores: parseInt(cols[colIdx('followers')] || '0'),
-        total_ventas: parseInt(cols[colIdx('total_sales')] || '0'),
-        total_ingresos_mxn: parseFloat(cols[colIdx('total_revenue_mxn')] || '0'),
-        country: cols[colIdx('country')] || null,
+        nombre_completo: row.creator_name || null,
+        seguidores: parseInt(row.followers || '0'),
+        total_ventas: parseInt(row.total_sales || '0'),
+        total_ingresos_mxn: parseFloat(row.total_revenue_mxn || '0'),
+        country: row.country || null,
         last_import: new Date().toISOString(),
       };
 
@@ -116,11 +135,11 @@ serve(async (req) => {
 
     await supabaseService.from('imports').insert({
       file_name: file.name,
-      total_rows: lines.length - 1,
+      total_rows: rows.length,
       creators_imported: inserted + updated,
     });
 
-    const message = `Processed: ${processed}, Inserted: ${inserted}, Updated: ${updated}`;
+    const message = `✅ Success! Processed: ${processed}, Inserted: ${inserted}, Updated: ${updated}`;
 
     return new Response(JSON.stringify({ success: true, message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
