@@ -8,79 +8,85 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardNav from "@/components/DashboardNav";
 import GlobalHeader from "@/components/GlobalHeader";
 import FilterBar from "@/components/FilterBar";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
 
-interface DailyFeedVideo {
+interface Video {
   id: string;
-  rango_fechas: string;
-  descripcion_video: string;
-  duracion: string;
-  creador: string;
-  fecha_publicacion: string;
-  ingresos_mxn: number;
-  ventas: number;
-  visualizaciones: number;
-  gpm_mxn: number | null;
-  cpa_mxn: number;
-  ratio_ads: number | null;
-  coste_publicitario_mxn: number;
-  roas: number;
-  tiktok_url: string;
-  transcripcion_original: string | null;
-  guion_ia: string | null;
-  producto_nombre: string | null;
-  producto_url: string | null;
-  created_at: string;
+  video_url: string;
+  title: string | null;
+  creator_name: string | null;
+  creator_handle: string | null;
+  product_name: string | null;
+  product_id: string | null;
+  sales: number | null;
+  revenue_mxn: number | null;
+  views: number | null;
+  roas: number | null;
+  category: string | null;
+  country: string | null;
+  rank: number | null;
+  imported_at: string | null;
 }
 
 const Dashboard = () => {
-  const [videos, setVideos] = useState<DailyFeedVideo[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const productFilter = searchParams.get("productName");
   const creatorFilter = searchParams.get("creator");
+  
+  const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
-    fetchVideos();
+    setCurrentPage(1);
+    fetchVideos(1);
   }, [productFilter, creatorFilter]);
 
-  const fetchVideos = async () => {
-    try {
-      let query = supabase
-        .from("daily_feed")
-        .select("*")
-        .eq("featured_today", true)
-        .order("ingresos_mxn", { ascending: false })
-        .limit(20);
+  useEffect(() => {
+    fetchVideos(currentPage);
+  }, [currentPage]);
 
-      const { data, error } = await query;
+  const fetchVideos = async (page: number) => {
+    try {
+      setLoading(true);
+      
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+
+      let query = supabase
+        .from("videos")
+        .select("*", { count: "exact" })
+        .order("sales", { ascending: false })
+        .order("revenue_mxn", { ascending: false })
+        .range(from, to)
+        .limit(100);
+
+      // Apply filters
+      if (productFilter) {
+        query = query.ilike("product_name", `%${productFilter}%`);
+      }
+
+      if (creatorFilter) {
+        query = query.or(`creator_name.ilike.%${creatorFilter}%,creator_handle.ilike.%${creatorFilter}%`);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
 
-      let filteredData = data || [];
-
-      // Filter by product name if provided
-      if (productFilter) {
-        filteredData = filteredData.filter((video) =>
-          video.descripcion_video.toLowerCase().includes(productFilter.toLowerCase()) ||
-          (video.producto_nombre && video.producto_nombre.toLowerCase().includes(productFilter.toLowerCase()))
-        );
-      }
-
-      // Filter by creator if provided
-      if (creatorFilter) {
-        filteredData = filteredData.filter((video) =>
-          video.creador.toLowerCase().includes(creatorFilter.toLowerCase())
-        );
-      }
-
-      setVideos(filteredData);
-      
-      if (data && data.length > 0) {
-        setLastUpdate(new Date(data[0].created_at));
-      }
+      setVideos(data || []);
+      setTotalCount(count || 0);
     } catch (error: any) {
       toast({
         title: "Error al cargar videos",
@@ -105,50 +111,12 @@ const Dashboard = () => {
     );
   }
 
-const mockVideos = [
-  {
-    id: "1",
-    ranking: 1,
-    tiktok_url: "https://www.tiktok.com/@example/video/123",
-    descripcion_video: "Tutorial de maquillaje viral que generó altas ventas",
-    creador: "@beautyguru",
-    ingresos_mxn: 125000,
-    ventas: 450,
-    visualizaciones: 2500000,
-    cpa_mxn: 277.78,
-    roas: 4.5,
-    duracion: "0:45",
-    fecha_publicacion: "2025-01-15",
-  },
-  {
-    id: "2",
-    ranking: 2,
-    tiktok_url: "https://www.tiktok.com/@example/video/124",
-    descripcion_video: "Review de producto tech con llamado a la acción directo",
-    creador: "@techreview",
-    ingresos_mxn: 98500,
-    ventas: 320,
-    visualizaciones: 1800000,
-    cpa_mxn: 307.81,
-    roas: 3.8,
-    duracion: "1:20",
-    fecha_publicacion: "2025-01-14",
-  },
-  {
-    id: "3",
-    ranking: 3,
-    tiktok_url: "https://www.tiktok.com/@example/video/125",
-    descripcion_video: "Unboxing y prueba de producto fitness",
-    creador: "@fitlife",
-    ingresos_mxn: 87200,
-    ventas: 280,
-    visualizaciones: 1500000,
-    cpa_mxn: 311.43,
-    roas: 3.5,
-    duracion: "0:55",
-    fecha_publicacion: "2025-01-14",
-  },
-];
+  const totalPages = Math.min(Math.ceil(totalCount / ITEMS_PER_PAGE), 5);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -190,11 +158,67 @@ const mockVideos = [
             </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-            {videos.map((video, index) => (
-              <VideoCard key={video.id} video={video} ranking={index + 1} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+              {videos.map((video, index) => (
+                <VideoCard 
+                  key={video.id} 
+                  video={{
+                    id: video.id,
+                    tiktok_url: video.video_url,
+                    descripcion_video: video.title || "",
+                    creador: video.creator_name || video.creator_handle || "",
+                    ingresos_mxn: video.revenue_mxn || 0,
+                    ventas: video.sales || 0,
+                    visualizaciones: video.views || 0,
+                    roas: video.roas || 0,
+                    producto_nombre: video.product_name,
+                    producto_url: null,
+                    cpa_mxn: video.revenue_mxn && video.sales ? video.revenue_mxn / video.sales : 0,
+                    duracion: "",
+                    fecha_publicacion: video.imported_at || "",
+                    transcripcion_original: null,
+                    guion_ia: null
+                  }} 
+                  ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} 
+                />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-12 mb-8">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
