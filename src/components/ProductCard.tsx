@@ -69,6 +69,16 @@ const ProductCard = ({ product, showRelatedVideos = false }: ProductCardProps) =
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="h-4 w-4 text-primary" />
+              <span className="text-xs text-muted-foreground">Revenue</span>
+            </div>
+            <p className="text-base font-bold text-success">
+              {formatCurrency(product.total_ingresos_mxn)}
+            </p>
+          </div>
+
           <div className="p-3 rounded-lg bg-muted">
             <div className="flex items-center gap-2 mb-1">
               <ShoppingCart className="h-4 w-4 text-foreground" />
@@ -88,6 +98,18 @@ const ProductCard = ({ product, showRelatedVideos = false }: ProductCardProps) =
               {formatCurrency(product.precio_mxn)}
             </p>
           </div>
+
+          {product.promedio_roas !== null && (
+            <div className="p-3 rounded-lg bg-accent/5 border border-accent/10">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="h-4 w-4 text-accent" />
+                <span className="text-xs text-muted-foreground">ROAS</span>
+              </div>
+              <p className="text-base font-bold text-foreground">
+                {product.promedio_roas.toFixed(1)}x
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 pt-2">
