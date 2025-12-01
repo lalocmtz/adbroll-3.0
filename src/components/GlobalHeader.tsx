@@ -12,6 +12,7 @@ import { User, Settings, Globe, DollarSign, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { LanguageSelector } from "./LanguageSelector";
 
 interface GlobalHeaderProps {
   showMenu?: boolean;
@@ -54,7 +55,9 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
         </div>
 
         {showMenu && (
-          <DropdownMenu>
+          <div className="flex items-center gap-3">
+            <LanguageSelector />
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-10 w-10 border-2 border-primary/20">
@@ -100,6 +103,7 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         )}
 
         {!showMenu && (

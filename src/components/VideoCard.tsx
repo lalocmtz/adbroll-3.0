@@ -5,6 +5,7 @@ import { FileText, TrendingUp, Eye, DollarSign, ShoppingCart, ExternalLink } fro
 import { useState, useEffect, useRef } from "react";
 import ScriptModal from "./ScriptModal";
 import FavoriteButton from "./FavoriteButton";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VideoCardProps {
   video: {
@@ -27,8 +28,19 @@ interface VideoCardProps {
   ranking: number;
 }
 
+interface ProductData {
+  id: string;
+  producto_nombre: string;
+  imagen_url: string | null;
+  producto_url: string | null;
+  price: number | null;
+  commission: number | null;
+  categoria: string | null;
+}
+
 const VideoCard = ({ video, ranking }: VideoCardProps) => {
   const [showScript, setShowScript] = useState(false);
+  const [productData, setProductData] = useState<ProductData | null>(null);
   const embedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,6 +58,25 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    // Load product data if producto_nombre matches
+    const loadProductData = async () => {
+      if (video.producto_nombre) {
+        const { data } = await supabase
+          .from("products")
+          .select("id, producto_nombre, imagen_url, producto_url, price, commission, categoria")
+          .eq("producto_nombre", video.producto_nombre)
+          .maybeSingle();
+
+        if (data) {
+          setProductData(data);
+        }
+      }
+    };
+
+    loadProductData();
+  }, [video.producto_nombre]);
 
   // Extract video ID from TikTok URL
   const getVideoId = (url: string) => {
@@ -130,23 +161,60 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             </p>
           </div>
 
-          {/* Product Info - If Available */}
-          {(video.producto_nombre || video.producto_url) && (
-            <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
-              <p className="text-xs font-semibold text-primary mb-1">Producto</p>
-              {video.producto_nombre && (
-                <p className="text-sm font-medium text-foreground mb-1">
-                  {video.producto_nombre}
-                </p>
+          {/* Product Info - Enhanced with full product data */}
+          {(video.producto_nombre || productData) && (
+            <div className="p-4 bg-primary/5 rounded-lg border border-primary/10 space-y-3">
+              <div className="flex items-start gap-3">
+                {productData?.imagen_url && (
+                  <img
+                    src={productData.imagen_url}
+                    alt={productData.producto_nombre}
+                    className="h-16 w-16 rounded object-cover flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-primary mb-1">Producto</p>
+                  <p className="text-sm font-medium text-foreground mb-1 line-clamp-2">
+                    {productData?.producto_nombre || video.producto_nombre}
+                  </p>
+                  {productData?.categoria && (
+                    <Badge variant="secondary" className="text-xs">
+                      {productData.categoria}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Product Metrics */}
+              {(productData?.price || productData?.commission) && (
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-primary/10">
+                  {productData.price && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Precio</p>
+                      <p className="text-sm font-bold text-foreground">
+                        ${productData.price.toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                  {productData.commission && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Comisión</p>
+                      <p className="text-sm font-bold text-accent">
+                        {productData.commission}%
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
-              {video.producto_url && (
+
+              {(productData?.producto_url || video.producto_url) && (
                 <a
-                  href={video.producto_url}
+                  href={productData?.producto_url || video.producto_url || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                  className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
                 >
-                  Ver producto
+                  Ver producto en TikTok Shop
                   <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>

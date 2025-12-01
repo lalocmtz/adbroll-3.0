@@ -117,6 +117,7 @@ export type Database = {
           guion_ia: string | null
           id: string
           ingresos_mxn: number
+          product_id: string | null
           producto_nombre: string | null
           producto_url: string | null
           rango_fechas: string
@@ -142,6 +143,7 @@ export type Database = {
           guion_ia?: string | null
           id?: string
           ingresos_mxn: number
+          product_id?: string | null
           producto_nombre?: string | null
           producto_url?: string | null
           rango_fechas: string
@@ -167,6 +169,7 @@ export type Database = {
           guion_ia?: string | null
           id?: string
           ingresos_mxn?: number
+          product_id?: string | null
           producto_nombre?: string | null
           producto_url?: string | null
           rango_fechas?: string
@@ -177,7 +180,15 @@ export type Database = {
           ventas?: number
           visualizaciones?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "daily_feed_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       favorites: {
         Row: {
@@ -359,6 +370,7 @@ export type Database = {
       products: {
         Row: {
           categoria: string | null
+          commission: number | null
           created_at: string | null
           currency: string | null
           descripcion: string | null
@@ -378,6 +390,7 @@ export type Database = {
         }
         Insert: {
           categoria?: string | null
+          commission?: number | null
           created_at?: string | null
           currency?: string | null
           descripcion?: string | null
@@ -397,6 +410,7 @@ export type Database = {
         }
         Update: {
           categoria?: string | null
+          commission?: number | null
           created_at?: string | null
           currency?: string | null
           descripcion?: string | null
@@ -543,6 +557,7 @@ export type Database = {
           creator_name: string | null
           id: string
           imported_at: string | null
+          product_id: string | null
           product_name: string | null
           rank: number | null
           revenue_mxn: number | null
@@ -559,6 +574,7 @@ export type Database = {
           creator_name?: string | null
           id?: string
           imported_at?: string | null
+          product_id?: string | null
           product_name?: string | null
           rank?: number | null
           revenue_mxn?: number | null
@@ -575,6 +591,7 @@ export type Database = {
           creator_name?: string | null
           id?: string
           imported_at?: string | null
+          product_id?: string | null
           product_name?: string | null
           rank?: number | null
           revenue_mxn?: number | null
@@ -584,7 +601,15 @@ export type Database = {
           video_url?: string
           views?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "videos_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
