@@ -17,3 +17,12 @@ verify_jwt = false
 
 [functions.generate-script-variants]
 verify_jwt = false
+
+[functions.import-videos]
+verify_jwt = true
+
+[functions.import-products]
+verify_jwt = true
+
+[functions.import-creators]
+verify_jwt = true
