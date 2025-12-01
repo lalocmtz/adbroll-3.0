@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,31 +43,65 @@ serve(async (req) => {
     const file = formData.get('file') as File;
     if (!file) throw new Error('No file uploaded');
 
-    const csvText = await file.text();
-    const lines = csvText.split('\n').filter(l => l.trim());
-    if (lines.length < 2) throw new Error('CSV is empty');
+    let rows: any[] = [];
+    const fileName = file.name.toLowerCase();
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    
-    const requiredColumns = ['rank', 'video_url', 'title', 'creator_handle', 'creator_name', 
-                              'product_name', 'category', 'country', 'views', 'sales', 
-                              'revenue_mxn', 'roas'];
-    
-    for (const col of requiredColumns) {
-      if (!headers.includes(col)) {
-        throw new Error(`Missing required column: ${col}`);
+    // Parse based on file type
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(sheet);
+    } else if (fileName.endsWith('.csv')) {
+      const csvText = await file.text();
+      const lines = csvText.split('\n').filter(l => l.trim());
+      if (lines.length < 2) throw new Error('CSV is empty');
+      
+      const headers = lines[0].split(',').map(h => h.trim());
+      rows = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        const row: any = {};
+        headers.forEach((header, i) => {
+          row[header] = values[i];
+        });
+        return row;
+      });
+    } else {
+      throw new Error('Unsupported file format. Please upload .csv, .xls, or .xlsx');
+    }
+
+    // Normalize column names to lowercase
+    rows = rows.map(row => {
+      const normalized: any = {};
+      for (const key in row) {
+        normalized[key.toLowerCase().trim()] = row[key];
+      }
+      return normalized;
+    });
+
+    // Validate required fields
+    const requiredFields = ['video_url', 'creator_name', 'revenue_mxn', 'sales', 'views'];
+    for (const field of requiredFields) {
+      const hasField = rows.some(row => row[field] !== undefined && row[field] !== null && row[field] !== '');
+      if (!hasField) {
+        throw new Error(`Missing required column: ${field}`);
       }
     }
 
-    const colIdx = (name: string) => headers.indexOf(name);
-    
+    // Sort by revenue_mxn (descending) and take top 20
+    rows.sort((a, b) => {
+      const revA = parseFloat(a.revenue_mxn || '0');
+      const revB = parseFloat(b.revenue_mxn || '0');
+      return revB - revA;
+    });
+    rows = rows.slice(0, 20);
+
     let processed = 0;
     let inserted = 0;
     let skipped = 0;
 
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim());
-      const videoUrl = cols[colIdx('video_url')];
+    for (const row of rows) {
+      const videoUrl = row.video_url;
       
       if (!videoUrl) continue;
 
@@ -86,18 +121,18 @@ serve(async (req) => {
       const { error: insertError } = await supabaseService
         .from('videos')
         .insert({
-          rank: parseInt(cols[colIdx('rank')] || '0'),
+          rank: parseInt(row.rank || '0'),
           video_url: videoUrl,
-          title: cols[colIdx('title')] || null,
-          creator_handle: cols[colIdx('creator_handle')] || null,
-          creator_name: cols[colIdx('creator_name')] || null,
-          product_name: cols[colIdx('product_name')] || null,
-          category: cols[colIdx('category')] || null,
-          country: cols[colIdx('country')] || null,
-          views: parseInt(cols[colIdx('views')] || '0'),
-          sales: parseInt(cols[colIdx('sales')] || '0'),
-          revenue_mxn: parseFloat(cols[colIdx('revenue_mxn')] || '0'),
-          roas: parseFloat(cols[colIdx('roas')] || '0'),
+          title: row.title || null,
+          creator_handle: row.creator_handle || null,
+          creator_name: row.creator_name || null,
+          product_name: row.product_name || null,
+          category: row.category || null,
+          country: row.country || null,
+          views: parseInt(row.views || '0'),
+          sales: parseInt(row.sales || '0'),
+          revenue_mxn: parseFloat(row.revenue_mxn || '0'),
+          roas: parseFloat(row.roas || '0'),
         });
 
       if (!insertError) {
@@ -107,11 +142,11 @@ serve(async (req) => {
 
     await supabaseService.from('imports').insert({
       file_name: file.name,
-      total_rows: lines.length - 1,
+      total_rows: rows.length,
       videos_imported: inserted,
     });
 
-    const message = `Processed: ${processed}, Inserted: ${inserted}, Skipped: ${skipped}`;
+    const message = `✅ Success! Processed top 20 videos by revenue. Inserted: ${inserted}, Skipped: ${skipped}`;
 
     return new Response(JSON.stringify({ success: true, message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

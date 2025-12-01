@@ -199,7 +199,7 @@ const AdminImport = () => {
                 Import videos (videos.csv)
               </CardTitle>
               <CardDescription>
-                Upload CSV with video data. Existing videos (by video_url) will be skipped.
+                Upload CSV or XLSX with video data. Existing videos (by video_url) will be skipped.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -208,7 +208,7 @@ const AdminImport = () => {
                 <Input
                   id="video-file"
                   type="file"
-                  accept=".csv"
+                  accept=".csv,.xls,.xlsx"
                   onChange={(e) => e.target.files && setVideoFile(e.target.files[0])}
                 />
               </div>
@@ -241,7 +241,7 @@ const AdminImport = () => {
                 Import products (products.csv)
               </CardTitle>
               <CardDescription>
-                Upload CSV with product data. Existing products (by tiktok_product_id) will be updated.
+                Upload CSV or XLSX with product data. Existing products (by tiktok_product_id) will be updated.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -250,7 +250,7 @@ const AdminImport = () => {
                 <Input
                   id="product-file"
                   type="file"
-                  accept=".csv"
+                  accept=".csv,.xls,.xlsx"
                   onChange={(e) => e.target.files && setProductFile(e.target.files[0])}
                 />
               </div>
@@ -283,7 +283,7 @@ const AdminImport = () => {
                 Import creators (creators.csv)
               </CardTitle>
               <CardDescription>
-                Upload CSV with creator data. Existing creators (by creator_handle) will be updated.
+                Upload CSV or XLSX with creator data. Existing creators (by creator_handle) will be updated.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -292,7 +292,7 @@ const AdminImport = () => {
                 <Input
                   id="creator-file"
                   type="file"
-                  accept=".csv"
+                  accept=".csv,.xls,.xlsx"
                   onChange={(e) => e.target.files && setCreatorFile(e.target.files[0])}
                 />
               </div>
