@@ -101,9 +101,6 @@ serve(async (req) => {
       
       if (!videoUrl) continue; // Skip row silently if no URL found
 
-      // Skip if missing critical data
-      if (!row.revenue_mxn && !row.sales && !row.views) continue;
-
       processed++;
 
       const { data: existing } = await supabaseService
