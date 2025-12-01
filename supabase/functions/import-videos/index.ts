@@ -70,11 +70,11 @@ serve(async (req) => {
       throw new Error('Unsupported file format. Please upload .csv, .xls, or .xlsx');
     }
 
-    // Normalize column names to lowercase
+    // Normalize column names to lowercase and replace spaces with underscores
     rows = rows.map(row => {
       const normalized: any = {};
       for (const key in row) {
-        normalized[key.toLowerCase().trim()] = row[key];
+        normalized[key.toLowerCase().trim().replace(/\s+/g, '_')] = row[key];
       }
       return normalized;
     });
