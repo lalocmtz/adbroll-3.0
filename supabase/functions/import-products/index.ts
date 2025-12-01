@@ -70,11 +70,14 @@ serve(async (req) => {
       throw new Error('Unsupported file format. Please upload .csv, .xls, or .xlsx');
     }
 
-    // Normalize column names to lowercase and replace spaces with underscores
+    // Normalize column names - aggressive normalization
+    const normalize = (str: string) =>
+      str.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+
     rows = rows.map(row => {
       const normalized: any = {};
       for (const key in row) {
-        normalized[key.toLowerCase().trim().replace(/\s+/g, '_')] = row[key];
+        normalized[normalize(key)] = row[key];
       }
       return normalized;
     });
@@ -84,22 +87,22 @@ serve(async (req) => {
     let updated = 0;
 
     for (const row of rows) {
-      const productName = row.product_name;
-      const tiktokProductId = row.tiktok_product_id;
+      const productName = row.product_name || row.producto_nombre || row.product || row.nombre;
+      const tiktokProductId = row.tiktok_product_id || row.product_id || row.id;
       
-      if (!productName) continue;
+      if (!productName) continue; // Skip silently if no product name
 
       processed++;
 
       const productData = {
         producto_nombre: productName,
         tiktok_product_id: tiktokProductId || null,
-        categoria: row.category || null,
-        price: parseFloat(row.price || '0'),
-        currency: row.currency || 'MXN',
-        total_ventas: parseInt(row.total_sales || '0'),
-        total_ingresos_mxn: parseFloat(row.total_revenue_mxn || '0'),
-        is_opportunity: row.is_opportunity === 'true' || row.is_opportunity === true || false,
+        categoria: row.category || row.categoria || null,
+        price: parseFloat(row.price || row.precio || '0'),
+        currency: row.currency || row.moneda || 'MXN',
+        total_ventas: parseInt(row.total_sales || row.ventas || '0'),
+        total_ingresos_mxn: parseFloat(row.total_revenue_mxn || row.ingresos_mxn || row.revenue || '0'),
+        is_opportunity: row.is_opportunity === 'true' || row.is_opportunity === true || row.oportunidad === 'true' || false,
         last_import: new Date().toISOString(),
       };
 
