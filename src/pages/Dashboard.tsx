@@ -211,9 +211,9 @@ const Dashboard = () => {
       <DashboardNav />
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 md:px-6 py-4 max-w-7xl">
+      <main className="container mx-auto px-4 md:px-6 py-2 max-w-7xl">
         {/* Compact Header - Single Row */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
           <h1 className="text-2xl md:text-3xl font-bold">
             {productFilter 
               ? `Videos de: ${productFilter}` 
@@ -304,7 +304,6 @@ const Dashboard = () => {
                     ingresos_mxn: video.revenue_mxn || 0,
                     ventas: video.sales || 0,
                     visualizaciones: video.views || 0,
-                    roas: video.roas || 0,
                     producto_nombre: video.product_name,
                     producto_url: null,
                     cpa_mxn: video.revenue_mxn && video.sales ? video.revenue_mxn / video.sales : 0,
