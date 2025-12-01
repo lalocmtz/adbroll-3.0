@@ -1,10 +1,12 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Save, ExternalLink, Eye, DollarSign, ShoppingCart, Percent } from "lucide-react";
+import { Sparkles, Heart, Copy, Play, Pause, Volume2, VolumeX, X, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface VideoAnalysisModalProps {
   isOpen: boolean;
@@ -26,35 +28,62 @@ interface VideoAnalysisModalProps {
   };
 }
 
-interface ProductData {
-  id: string;
-  producto_nombre: string;
-  imagen_url: string | null;
-  producto_url: string | null;
-  price: number | null;
-  commission: number | null;
-  categoria: string | null;
+interface ScriptSection {
+  type: 'hook' | 'problema' | 'beneficio' | 'demostracion' | 'cta';
+  content: string;
+  label: string;
+}
+
+interface ScriptAnalysis {
+  sections: ScriptSection[];
+  insights: {
+    funcionamiento: string;
+    angulos: string[];
+    ctaLocation: string;
+    estructura: string;
+    fortalezas: string[];
+    debilidades: string[];
+  } | null;
 }
 
 const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps) => {
-  const [productData, setProductData] = useState<ProductData | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedVariants, setGeneratedVariants] = useState<string[]>([]);
+  const [scriptAnalysis, setScriptAnalysis] = useState<ScriptAnalysis>({ sections: [], insights: null });
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingVariant, setIsGeneratingVariant] = useState(false);
+  const [generatedVariant, setGeneratedVariant] = useState<string>("");
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const embedRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (isOpen && video.producto_nombre) {
-      loadProductData();
-    }
-  }, [isOpen, video.producto_nombre]);
+    const checkFavorite = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("favorites_videos")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("video_url", video.tiktok_url)
+          .maybeSingle();
+        setIsFavorite(!!data);
+      }
+    };
 
-  useEffect(() => {
     if (isOpen) {
+      checkFavorite();
+      // Load TikTok embed script
       const script = document.createElement('script');
       script.src = 'https://www.tiktok.com/embed.js';
       script.async = true;
       document.body.appendChild(script);
+      
+      // Auto-analyze script sections when modal opens
+      if (video.transcripcion_original || video.guion_ia) {
+        analyzeScriptSections();
+      }
 
       return () => {
         const existingScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
@@ -63,102 +92,80 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
         }
       };
     }
-  }, [isOpen]);
+  }, [isOpen, video.tiktok_url]);
 
-  const loadProductData = async () => {
+  const analyzeScriptSections = async () => {
+    const script = video.transcripcion_original || video.guion_ia;
+    if (!script) return;
+
+    setIsAnalyzing(true);
     try {
-      const { data } = await supabase
-        .from("products")
-        .select("id, producto_nombre, imagen_url, producto_url, price, commission, categoria")
-        .eq("producto_nombre", video.producto_nombre)
-        .maybeSingle();
-
-      if (data) {
-        setProductData(data);
-      }
-    } catch (error) {
-      console.error("Error loading product data:", error);
-    }
-  };
-
-  const getVideoId = (url: string) => {
-    const match = url.match(/\/video\/(\d+)/);
-    return match ? match[1] : null;
-  };
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + "M";
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + "k";
-    }
-    return new Intl.NumberFormat("es-MX").format(num);
-  };
-
-  const formatCurrency = (num: number) => {
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
-  };
-
-  const commissionEstimated = productData?.commission 
-    ? video.ingresos_mxn * (productData.commission / 100)
-    : null;
-
-  const handleAnalyzeScript = async () => {
-    setIsGenerating(true);
-    try {
-      const originalScript = video.transcripcion_original || video.guion_ia;
-      if (!originalScript) {
-        toast({
-          title: "No hay guión disponible",
-          description: "No se puede analizar sin un guión.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Analizando...",
-        description: "El análisis con IA puede tomar unos segundos.",
+      const { data, error } = await supabase.functions.invoke('analyze-script-sections', {
+        body: { script, videoTitle: video.descripcion_video }
       });
 
-      // Mock analysis - in production, call edge function
-      setTimeout(() => {
-        toast({
-          title: "✓ Análisis completado",
-          description: "El guión ha sido analizado con éxito.",
-        });
-        setIsGenerating(false);
-      }, 2000);
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setScriptAnalysis(prev => ({ ...prev, sections: data.sections }));
     } catch (error: any) {
-      console.error("Error analyzing script:", error);
+      console.error("Error analyzing script sections:", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleAnalyzeInsights = async () => {
+    const script = video.transcripcion_original || video.guion_ia;
+    if (!script) {
+      toast({
+        title: "No hay guión disponible",
+        description: "No se puede analizar sin un guión.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-script-insights', {
+        body: { script, videoTitle: video.descripcion_video }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setScriptAnalysis(prev => ({ ...prev, insights: data.insights }));
+      
+      toast({
+        title: "✓ Análisis completado",
+        description: "Los insights del guión están listos.",
+      });
+    } catch (error: any) {
+      console.error("Error analyzing insights:", error);
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
-      setIsGenerating(false);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
-  const handleGenerateVariants = async () => {
-    setIsGenerating(true);
-    try {
-      const originalScript = video.transcripcion_original || video.guion_ia;
-      if (!originalScript) {
-        toast({
-          title: "No hay guión disponible",
-          description: "No se puede generar variantes sin un guión.",
-          variant: "destructive",
-        });
-        return;
-      }
+  const handleGenerateVariant = async () => {
+    const originalScript = video.transcripcion_original || video.guion_ia;
+    if (!originalScript) {
+      toast({
+        title: "No hay guión disponible",
+        description: "No se puede generar variantes sin un guión.",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    setIsGeneratingVariant(true);
+    try {
       const { data, error } = await supabase.functions.invoke('generate-script-variants', {
         body: {
           originalScript,
@@ -170,63 +177,63 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      setGeneratedVariants([data.variant]);
+      setGeneratedVariant(data.variant);
       toast({
-        title: "✓ Variantes generadas",
-        description: "Las variantes del guión están listas.",
+        title: "✓ Variante generada",
+        description: "La variante del guión está lista.",
       });
     } catch (error: any) {
-      console.error("Error generating variants:", error);
+      console.error("Error generating variant:", error);
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingVariant(false);
     }
   };
 
-  const handleSaveScript = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No autenticado");
-
-      const content = video.guion_ia || video.transcripcion_original;
-      if (!content) {
-        toast({
-          title: "No hay contenido",
-          description: "No hay guión para guardar.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data: scriptData, error: scriptError } = await supabase
-        .from("guiones_personalizados")
-        .insert({
-          video_id: video.id,
-          user_id: user.id,
-          contenido: content,
-          version_number: 1,
-        })
-        .select()
-        .single();
-
-      if (scriptError) throw scriptError;
-
-      await supabase
-        .from("favorites_scripts")
-        .insert({
-          user_id: user.id,
-          script_id: scriptData.id,
-          script_data: scriptData,
-        });
-
+  const handleToggleFavorite = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
       toast({
-        title: "✓ Guardado",
-        description: "El guión se agregó a tu colección.",
+        title: "Inicia sesión",
+        description: "Debes iniciar sesión para guardar favoritos",
       });
+      navigate("/login");
+      return;
+    }
+
+    try {
+      if (isFavorite) {
+        await supabase
+          .from("favorites_videos")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("video_url", video.tiktok_url);
+
+        setIsFavorite(false);
+        toast({ title: "✓ Eliminado de favoritos" });
+      } else {
+        const { data: videoData } = await supabase
+          .from("daily_feed")
+          .select("*")
+          .eq("tiktok_url", video.tiktok_url)
+          .single();
+
+        await supabase
+          .from("favorites_videos")
+          .insert({
+            user_id: user.id,
+            video_url: video.tiktok_url,
+            video_data: videoData,
+          });
+
+        setIsFavorite(true);
+        toast({ title: "✓ Guardado en favoritos" });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -236,181 +243,270 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
     }
   };
 
+  const handleCopyScript = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "✓ Copiado",
+        description: "El guión se copió al portapapeles.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo copiar al portapapeles.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getSectionBadgeColor = (type: string) => {
+    switch (type) {
+      case 'hook': return 'bg-red-500 text-white';
+      case 'problema': return 'bg-orange-500 text-white';
+      case 'beneficio': return 'bg-green-500 text-white';
+      case 'demostracion': return 'bg-blue-500 text-white';
+      case 'cta': return 'bg-purple-500 text-white';
+      default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const getVideoId = (url: string) => {
+    const match = url.match(/\/video\/(\d+)/);
+    return match ? match[1] : null;
+  };
+
   const videoId = getVideoId(video.tiktok_url);
+  const script = video.transcripcion_original || video.guion_ia || "No hay guión disponible";
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-full sm:w-[600px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="text-lg font-bold pr-8">{video.descripcion_video}</SheetTitle>
-        </SheetHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-7xl max-h-[90vh] p-0 overflow-hidden bg-background/95 backdrop-blur-xl">
+        {/* Close Button & Top Actions */}
+        <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={handleToggleFavorite}
+            className={`h-8 w-8 ${isFavorite ? "text-red-500" : ""}`}
+          >
+            <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => window.open(video.tiktok_url, '_blank')}
+            className="h-8 w-8"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onClose}
+            className="h-8 w-8"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
-        <div className="mt-6 space-y-6">
-          {/* Video Preview */}
-          <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden max-w-[300px] mx-auto">
-            {videoId ? (
-              <div ref={embedRef} className="w-full h-full">
-                <blockquote
-                  className="tiktok-embed"
-                  cite={video.tiktok_url}
-                  data-video-id={videoId}
-                  style={{ maxWidth: '100%', minWidth: '100%' }}
-                >
-                  <section></section>
-                </blockquote>
-              </div>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">Cargando video...</p>
-              </div>
-            )}
-          </div>
-
-          {/* Metrics Section */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-muted-foreground">Métricas del Video</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="p-3 rounded-md bg-primary/5 border border-primary/10">
-                <div className="flex items-center gap-1 mb-1">
-                  <DollarSign className="h-3 w-3 text-primary" />
-                  <span className="text-xs text-muted-foreground">Ingresos</span>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 h-full">
+          {/* Left Side - Video */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold pr-24">{video.descripcion_video}</h2>
+            <p className="text-sm text-muted-foreground">@{video.creador}</p>
+            
+            {/* Video Player */}
+            <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden max-w-sm mx-auto">
+              {videoId ? (
+                <div ref={embedRef} className="w-full h-full">
+                  <blockquote
+                    className="tiktok-embed"
+                    cite={video.tiktok_url}
+                    data-video-id={videoId}
+                    style={{ maxWidth: '100%', minWidth: '100%' }}
+                  >
+                    <section></section>
+                  </blockquote>
                 </div>
-                <p className="text-sm font-bold text-success">
-                  {formatCurrency(video.ingresos_mxn)}
-                </p>
-              </div>
-
-              <div className="p-3 rounded-md bg-muted">
-                <div className="flex items-center gap-1 mb-1">
-                  <ShoppingCart className="h-3 w-3 text-foreground" />
-                  <span className="text-xs text-muted-foreground">Ventas</span>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">Cargando video...</p>
                 </div>
-                <p className="text-sm font-bold text-foreground">
-                  {formatNumber(video.ventas)}
-                </p>
-              </div>
-
-              <div className="p-3 rounded-md bg-accent/5 border border-accent/10">
-                <div className="flex items-center gap-1 mb-1">
-                  <Percent className="h-3 w-3 text-accent" />
-                  <span className="text-xs text-muted-foreground">Comisión Est.</span>
-                </div>
-                <p className="text-sm font-bold text-accent">
-                  {commissionEstimated ? formatCurrency(commissionEstimated) : "--"}
-                </p>
-              </div>
-
-              <div className="p-3 rounded-md bg-muted">
-                <div className="flex items-center gap-1 mb-1">
-                  <Eye className="h-3 w-3 text-foreground" />
-                  <span className="text-xs text-muted-foreground">Vistas</span>
-                </div>
-                <p className="text-sm font-bold text-foreground">
-                  {formatNumber(video.visualizaciones)}
-                </p>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Product Section */}
-          {(video.producto_nombre || productData) && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-muted-foreground">Producto Asociado</h3>
-              <div className="p-3 bg-primary/5 rounded-md border border-primary/10">
-                <div className="flex items-center gap-3">
-                  {productData?.imagen_url && (
-                    <img
-                      src={productData.imagen_url}
-                      alt={productData.producto_nombre}
-                      className="h-16 w-16 rounded object-cover flex-shrink-0"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground line-clamp-2">
-                      {productData?.producto_nombre || video.producto_nombre}
-                    </p>
-                    {productData?.categoria && (
-                      <Badge variant="secondary" className="text-xs mt-1">
-                        {productData.categoria}
-                      </Badge>
-                    )}
-                    {productData?.price && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Precio: ${productData.price.toFixed(2)}
-                      </p>
-                    )}
+          {/* Right Side - Tabs */}
+          <div className="flex flex-col h-full overflow-hidden">
+            <Tabs defaultValue="script" className="flex-1 flex flex-col">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="script">Script</TabsTrigger>
+                <TabsTrigger value="analizar">Analizar</TabsTrigger>
+                <TabsTrigger value="variante">Variante IA</TabsTrigger>
+              </TabsList>
+
+              {/* Script Tab */}
+              <TabsContent value="script" className="flex-1 overflow-y-auto space-y-4 mt-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-semibold">Transcripción del Guion</h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCopyScript(script)}
+                  >
+                    <Copy className="h-3 w-3 mr-2" />
+                    Copiar
+                  </Button>
+                </div>
+
+                {isAnalyzing ? (
+                  <div className="text-center py-8">
+                    <Sparkles className="h-8 w-8 mx-auto mb-2 animate-pulse text-primary" />
+                    <p className="text-sm text-muted-foreground">Analizando secciones...</p>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
+                ) : scriptAnalysis.sections.length > 0 ? (
+                  <div className="space-y-3">
+                    {scriptAnalysis.sections.map((section, index) => (
+                      <div key={index} className="border rounded-lg p-3">
+                        <Badge className={`${getSectionBadgeColor(section.type)} mb-2`}>
+                          {section.label}
+                        </Badge>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                          {section.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-muted p-4 rounded-lg">
+                    <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                      {script}
+                    </pre>
+                  </div>
+                )}
+              </TabsContent>
 
-          {/* Script Section */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-muted-foreground">Transcripción del Guión</h3>
-            <div className="bg-muted p-4 rounded-lg max-h-[300px] overflow-y-auto">
-              <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
-                {video.transcripcion_original || video.guion_ia || "Guión no disponible"}
-              </pre>
-            </div>
-          </div>
+              {/* Analizar Tab */}
+              <TabsContent value="analizar" className="flex-1 overflow-y-auto space-y-4 mt-4">
+                {!scriptAnalysis.insights ? (
+                  <div className="text-center py-8">
+                    <Sparkles className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Analiza el guion para obtener insights
+                    </p>
+                    <Button
+                      onClick={handleAnalyzeInsights}
+                      disabled={isAnalyzing}
+                    >
+                      {isAnalyzing ? "Analizando..." : "Analizar Guion"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold mb-2 text-sm">¿Qué hace que funcione?</h4>
+                      <p className="text-sm text-muted-foreground">{scriptAnalysis.insights.funcionamiento}</p>
+                    </div>
 
-          {/* Generated Variants */}
-          {generatedVariants.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-muted-foreground">Variantes Generadas</h3>
-              {generatedVariants.map((variant, index) => (
-                <div key={index} className="bg-accent/5 border border-accent/10 p-4 rounded-lg">
-                  <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
-                    {variant}
-                  </pre>
-                </div>
-              ))}
-            </div>
-          )}
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold mb-2 text-sm">Ángulos usados</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {scriptAnalysis.insights.angulos.map((angulo, i) => (
+                          <li key={i} className="text-sm text-muted-foreground">{angulo}</li>
+                        ))}
+                      </ul>
+                    </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-2 pt-4 border-t">
-            <Button 
-              className="w-full" 
-              onClick={handleAnalyzeScript}
-              disabled={isGenerating}
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              {isGenerating ? "Analizando..." : "Analizar guion con IA"}
-            </Button>
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold mb-2 text-sm">Ubicación del CTA</h4>
+                      <p className="text-sm text-muted-foreground">{scriptAnalysis.insights.ctaLocation}</p>
+                    </div>
 
-            <Button 
-              className="w-full" 
-              variant="outline"
-              onClick={handleGenerateVariants}
-              disabled={isGenerating}
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Generar variantes
-            </Button>
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold mb-2 text-sm">Estructura</h4>
+                      <p className="text-sm text-muted-foreground">{scriptAnalysis.insights.estructura}</p>
+                    </div>
 
-            <Button 
-              className="w-full" 
-              variant="outline"
-              onClick={handleSaveScript}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Guardar
-            </Button>
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold mb-2 text-sm text-green-600">Fortalezas</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {scriptAnalysis.insights.fortalezas.map((f, i) => (
+                          <li key={i} className="text-sm text-muted-foreground">{f}</li>
+                        ))}
+                      </ul>
+                    </div>
 
-            <Button 
-              className="w-full" 
-              variant="outline"
-              onClick={() => window.open(video.tiktok_url, '_blank')}
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Ver en TikTok
-            </Button>
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold mb-2 text-sm text-orange-600">Debilidades</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {scriptAnalysis.insights.debilidades.map((d, i) => (
+                          <li key={i} className="text-sm text-muted-foreground">{d}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Variante IA Tab */}
+              <TabsContent value="variante" className="flex-1 overflow-y-auto space-y-4 mt-4">
+                {!generatedVariant ? (
+                  <div className="text-center py-8">
+                    <Sparkles className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Genera una variante del guion manteniendo el estilo original
+                    </p>
+                    <Button
+                      onClick={handleGenerateVariant}
+                      disabled={isGeneratingVariant}
+                      size="lg"
+                    >
+                      {isGeneratingVariant ? "Generando..." : "Generar Variante"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <Badge variant="secondary">Variante Generada</Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopyScript(generatedVariant)}
+                      >
+                        <Copy className="h-3 w-3 mr-2" />
+                        Copiar
+                      </Button>
+                    </div>
+                    <div className="bg-accent/5 border border-accent/10 p-4 rounded-lg">
+                      <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                        {generatedVariant}
+                      </pre>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={handleGenerateVariant}
+                      disabled={isGeneratingVariant}
+                      className="w-full"
+                    >
+                      Generar otra variante
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+
+        {/* Bottom Button */}
+        <div className="border-t p-4">
+          <Button className="w-full" size="lg">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Replicar guion
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
