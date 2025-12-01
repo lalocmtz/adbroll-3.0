@@ -2,10 +2,13 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Heart, Copy, Play, Pause, Volume2, VolumeX, X, ExternalLink } from "lucide-react";
+import { Sparkles, Heart, Copy, X, ExternalLink, DollarSign, ShoppingCart, Eye, Percent, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface VideoAnalysisModalProps {
@@ -46,20 +49,32 @@ interface ScriptAnalysis {
   } | null;
 }
 
+interface ProductOption {
+  id: string;
+  producto_nombre: string;
+  imagen_url: string | null;
+  precio_mxn: number | null;
+  commission: number | null;
+}
+
 const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps) => {
   const [scriptAnalysis, setScriptAnalysis] = useState<ScriptAnalysis>({ sections: [], insights: null });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [isGeneratingVariant, setIsGeneratingVariant] = useState(false);
   const [generatedVariant, setGeneratedVariant] = useState<string>("");
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [transcription, setTranscription] = useState<string>(video.transcripcion_original || "");
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<string>("");
+  const [customProduct, setCustomProduct] = useState<string>("");
   const embedRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkFavorite = async () => {
+    const initModal = async () => {
+      // Check favorite status
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase
@@ -70,18 +85,36 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
           .maybeSingle();
         setIsFavorite(!!data);
       }
+
+      // Load product options
+      const { data: products } = await supabase
+        .from("products")
+        .select("id, producto_nombre, imagen_url, precio_mxn, commission")
+        .order("producto_nombre");
+      
+      if (products) {
+        setProductOptions(products);
+        // Pre-select current product if available
+        if (video.product_id) {
+          setSelectedProduct(video.product_id);
+        }
+      }
     };
 
     if (isOpen) {
-      checkFavorite();
+      initModal();
+      
       // Load TikTok embed script
       const script = document.createElement('script');
       script.src = 'https://www.tiktok.com/embed.js';
       script.async = true;
       document.body.appendChild(script);
       
-      // Auto-analyze script sections when modal opens
-      if (video.transcripcion_original || video.guion_ia) {
+      // Auto-transcribe if no transcription exists
+      if (!video.transcripcion_original && !video.guion_ia) {
+        handleTranscribe();
+      } else {
+        // Auto-analyze script sections when modal opens
         analyzeScriptSections();
       }
 
@@ -94,8 +127,39 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
     }
   }, [isOpen, video.tiktok_url]);
 
-  const analyzeScriptSections = async () => {
-    const script = video.transcripcion_original || video.guion_ia;
+  const handleTranscribe = async () => {
+    setIsTranscribing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('transcribe-video', {
+        body: { tiktokUrl: video.tiktok_url }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setTranscription(data.transcription);
+      
+      // Auto-analyze after transcription
+      setTimeout(() => analyzeScriptSections(data.transcription), 500);
+      
+      toast({
+        title: "✓ Video transcrito",
+        description: "La transcripción está lista.",
+      });
+    } catch (error: any) {
+      console.error("Error transcribing video:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  const analyzeScriptSections = async (scriptOverride?: string) => {
+    const script = scriptOverride || transcription || video.transcripcion_original || video.guion_ia;
     if (!script) return;
 
     setIsAnalyzing(true);
@@ -154,7 +218,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
   };
 
   const handleGenerateVariant = async () => {
-    const originalScript = video.transcripcion_original || video.guion_ia;
+    const originalScript = transcription || video.transcripcion_original || video.guion_ia;
     if (!originalScript) {
       toast({
         title: "No hay guión disponible",
@@ -164,12 +228,18 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
       return;
     }
 
+    const productName = customProduct || 
+      productOptions.find(p => p.id === selectedProduct)?.producto_nombre || 
+      video.producto_nombre || 
+      "producto";
+
     setIsGeneratingVariant(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-script-variants', {
         body: {
           originalScript,
           videoTitle: video.descripcion_video,
+          productName,
           variantType: 'comercial'
         }
       });
@@ -276,7 +346,27 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
   };
 
   const videoId = getVideoId(video.tiktok_url);
-  const script = video.transcripcion_original || video.guion_ia || "No hay guión disponible";
+  const script = transcription || video.transcripcion_original || video.guion_ia || "No hay guión disponible";
+  
+  const selectedProductData = productOptions.find(p => p.id === selectedProduct);
+  const commissionEstimated = selectedProductData?.commission 
+    ? video.ingresos_mxn * (selectedProductData.commission / 100)
+    : null;
+
+  const formatCurrency = (num: number) => {
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "k";
+    return new Intl.NumberFormat("es-MX").format(num);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -310,31 +400,96 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 h-full">
-          {/* Left Side - Video */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 h-full overflow-y-auto">
+          {/* Left Side - Video & Metrics */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold pr-24">{video.descripcion_video}</h2>
             <p className="text-sm text-muted-foreground">@{video.creador}</p>
             
-            {/* Video Player */}
-            <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden max-w-sm mx-auto">
-              {videoId ? (
-                <div ref={embedRef} className="w-full h-full">
-                  <blockquote
-                    className="tiktok-embed"
-                    cite={video.tiktok_url}
-                    data-video-id={videoId}
-                    style={{ maxWidth: '100%', minWidth: '100%' }}
-                  >
-                    <section></section>
-                  </blockquote>
-                </div>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Cargando video...</p>
-                </div>
-              )}
+            {/* Video Player - Optimized aspect ratio */}
+            <div className="relative w-full max-w-[320px] mx-auto">
+              <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden">
+                {videoId ? (
+                  <div ref={embedRef} className="w-full h-full">
+                    <blockquote
+                      className="tiktok-embed"
+                      cite={video.tiktok_url}
+                      data-video-id={videoId}
+                      style={{ maxWidth: '100%', minWidth: '100%', margin: 0 }}
+                    >
+                      <section></section>
+                    </blockquote>
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <p className="text-sm text-muted-foreground">Cargando video...</p>
+                  </div>
+                )}
+              </div>
             </div>
+
+            {/* Metrics Section */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold">Métricas del Video</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                  <div className="flex items-center gap-2 mb-1">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    <span className="text-xs text-muted-foreground">Ingresos</span>
+                  </div>
+                  <p className="text-sm font-bold text-success">
+                    {formatCurrency(video.ingresos_mxn)}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-muted">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ShoppingCart className="h-4 w-4 text-foreground" />
+                    <span className="text-xs text-muted-foreground">Ventas</span>
+                  </div>
+                  <p className="text-sm font-bold text-foreground">
+                    {formatNumber(video.ventas)}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-muted">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Eye className="h-4 w-4 text-foreground" />
+                    <span className="text-xs text-muted-foreground">Vistas</span>
+                  </div>
+                  <p className="text-sm font-bold text-foreground">
+                    {formatNumber(video.visualizaciones)}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-accent/5 border border-accent/10">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Percent className="h-4 w-4 text-accent" />
+                    <span className="text-xs text-muted-foreground">Comisión</span>
+                  </div>
+                  <p className="text-sm font-bold text-accent">
+                    {commissionEstimated ? formatCurrency(commissionEstimated) : "--"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Product Section */}
+            {(video.producto_nombre || selectedProductData) && (
+              <div className="border rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Package className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold">Producto</h3>
+                </div>
+                <p className="text-xs text-foreground font-medium">
+                  {selectedProductData?.producto_nombre || video.producto_nombre}
+                </p>
+                {selectedProductData?.precio_mxn && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Precio: {formatCurrency(selectedProductData.precio_mxn)}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right Side - Tabs */}
@@ -350,17 +505,34 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
               <TabsContent value="script" className="flex-1 overflow-y-auto space-y-4 mt-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-sm font-semibold">Transcripción del Guion</h3>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleCopyScript(script)}
-                  >
-                    <Copy className="h-3 w-3 mr-2" />
-                    Copiar
-                  </Button>
+                  <div className="flex gap-2">
+                    {!transcription && !video.transcripcion_original && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleTranscribe}
+                        disabled={isTranscribing}
+                      >
+                        {isTranscribing ? "Transcribiendo..." : "Transcribir"}
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCopyScript(script)}
+                    >
+                      <Copy className="h-3 w-3 mr-2" />
+                      Copiar
+                    </Button>
+                  </div>
                 </div>
 
-                {isAnalyzing ? (
+                {isTranscribing ? (
+                  <div className="text-center py-8">
+                    <Sparkles className="h-8 w-8 mx-auto mb-2 animate-pulse text-primary" />
+                    <p className="text-sm text-muted-foreground">Transcribiendo video...</p>
+                  </div>
+                ) : isAnalyzing ? (
                   <div className="text-center py-8">
                     <Sparkles className="h-8 w-8 mx-auto mb-2 animate-pulse text-primary" />
                     <p className="text-sm text-muted-foreground">Analizando secciones...</p>
@@ -378,11 +550,23 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                       </div>
                     ))}
                   </div>
-                ) : (
+                ) : script && script !== "No hay guión disponible" ? (
                   <div className="bg-muted p-4 rounded-lg">
                     <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
                       {script}
                     </pre>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      No hay transcripción disponible
+                    </p>
+                    <Button
+                      onClick={handleTranscribe}
+                      disabled={isTranscribing}
+                    >
+                      {isTranscribing ? "Transcribiendo..." : "Transcribir Video"}
+                    </Button>
                   </div>
                 )}
               </TabsContent>
@@ -452,18 +636,58 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
               {/* Variante IA Tab */}
               <TabsContent value="variante" className="flex-1 overflow-y-auto space-y-4 mt-4">
                 {!generatedVariant ? (
-                  <div className="text-center py-8">
-                    <Sparkles className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Genera una variante del guion manteniendo el estilo original
-                    </p>
-                    <Button
-                      onClick={handleGenerateVariant}
-                      disabled={isGeneratingVariant}
-                      size="lg"
-                    >
-                      {isGeneratingVariant ? "Generando..." : "Generar Variante"}
-                    </Button>
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <Label>Seleccionar Producto</Label>
+                      <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Elegir de la lista" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {productOptions.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.producto_nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-background px-2 text-muted-foreground">
+                            O ingresar manualmente
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="custom-product">Nombre del Producto</Label>
+                        <Input
+                          id="custom-product"
+                          placeholder="Ej: Crema facial antiedad"
+                          value={customProduct}
+                          onChange={(e) => setCustomProduct(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-center pt-4">
+                      <Sparkles className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Genera una variante del guion manteniendo el estilo original
+                      </p>
+                      <Button
+                        onClick={handleGenerateVariant}
+                        disabled={isGeneratingVariant || (!selectedProduct && !customProduct)}
+                        size="lg"
+                        className="w-full"
+                      >
+                        {isGeneratingVariant ? "Generando..." : "Generar Variante"}
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
