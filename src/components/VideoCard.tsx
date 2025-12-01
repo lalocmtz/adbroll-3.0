@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileText, TrendingUp, Eye, DollarSign, ShoppingCart, ExternalLink } from "lucide-react";
+import { FileText, Eye, DollarSign, ShoppingCart, ExternalLink, Percent, Video } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import ScriptModal from "./ScriptModal";
 import FavoriteButton from "./FavoriteButton";
@@ -17,7 +17,7 @@ interface VideoCardProps {
     ventas: number;
     visualizaciones: number;
     cpa_mxn: number;
-    roas: number;
+    
     duracion: string;
     fecha_publicacion: string;
     transcripcion_original: string | null;
@@ -109,30 +109,23 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     }).format(num);
   };
 
+  // Calculate commission estimated
+  const commissionEstimated = productData?.commission 
+    ? video.ingresos_mxn * (productData.commission / 100)
+    : null;
+
   return (
     <>
       <Card className="card-premium overflow-hidden group">
         {/* TikTok Embed Player */}
         <div className="relative aspect-[9/16] bg-muted overflow-hidden">
           {/* Ranking Badge */}
-          <div className="absolute top-3 left-3 z-20">
-            <Badge className="bg-primary text-primary-foreground font-bold text-base px-3 py-1 shadow-lg">
-              #{ranking}
+          <div className="absolute top-2 left-2 z-20">
+            <Badge className="bg-primary text-primary-foreground font-bold text-sm px-2 py-0.5 shadow-lg">
+              #{ranking} {ranking <= 5 && "🔥"}
             </Badge>
           </div>
 
-          {/* Ver en TikTok Button - Small and Discrete */}
-          <div className="absolute bottom-3 right-3 z-20">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 px-2 text-xs shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
-              onClick={() => window.open(video.tiktok_url, '_blank')}
-            >
-              <ExternalLink className="h-3 w-3 mr-1" />
-              TikTok
-            </Button>
-          </div>
 
           {/* TikTok Official Embed */}
           {videoId ? (
@@ -154,172 +147,115 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
         </div>
 
         {/* Video Info */}
-        <CardContent className="p-5 space-y-4">
+        <CardContent className="p-3 space-y-2">
           {/* Title and Creator */}
           <div>
-            <h3 className="text-base font-bold text-foreground line-clamp-2 leading-snug mb-2">
+            <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-snug mb-1">
               {video.descripcion_video}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {video.creador} • {video.duracion}
             </p>
           </div>
 
-          {/* Product Info - Enhanced with full product data */}
+          {/* Product Info - Compact */}
           {(video.producto_nombre || productData) && (
-            <div className="p-4 bg-primary/5 rounded-lg border border-primary/10 space-y-3">
-              <div className="flex items-start gap-3">
+            <div className="p-2 bg-primary/5 rounded-md border border-primary/10">
+              <div className="flex items-center gap-2">
                 {productData?.imagen_url && (
                   <img
                     src={productData.imagen_url}
                     alt={productData.producto_nombre}
-                    className="h-16 w-16 rounded object-cover flex-shrink-0"
+                    className="h-10 w-10 rounded object-cover flex-shrink-0"
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-primary mb-1">Producto</p>
-                  <p className="text-sm font-medium text-foreground mb-1 line-clamp-2">
+                  <p className="text-xs font-medium text-foreground line-clamp-1">
                     {productData?.producto_nombre || video.producto_nombre}
                   </p>
                   {productData?.categoria && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 mt-0.5">
                       {productData.categoria}
                     </Badge>
                   )}
                 </div>
               </div>
-
-              {/* Product Metrics */}
-              {(productData?.price || productData?.commission) && (
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-primary/10">
-                  {productData.price && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Precio</p>
-                      <p className="text-sm font-bold text-foreground">
-                        ${productData.price.toFixed(2)}
-                      </p>
-                    </div>
-                  )}
-                  {productData.commission && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Comisión</p>
-                      <p className="text-sm font-bold text-accent">
-                        {productData.commission}%
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {(productData?.producto_url || video.producto_url) && (
-                <a
-                  href={productData?.producto_url || video.producto_url || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
-                >
-                  Ver producto en TikTok Shop
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              )}
             </div>
           )}
 
-          {/* Product Revenue & Sales Estimation + Creator Earnings */}
-          {video.product_id && video.product_price && video.product_sales ? (
-            <div className="p-4 bg-accent/10 rounded-lg border border-accent/20 space-y-3">
-              <p className="text-xs font-semibold text-accent mb-2">Estimaciones del Producto</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">Revenue del Producto</p>
-                  <p className="text-sm font-bold text-success">
-                    {formatCurrency(video.product_price * video.product_sales)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Ventas Totales</p>
-                  <p className="text-sm font-bold text-foreground">
-                    {formatNumber(video.product_sales)}
-                  </p>
-                </div>
-              </div>
 
-              {/* Creator Earnings if commission available */}
-              {productData?.commission && (
-                <div className="pt-3 border-t border-accent/20">
-                  <p className="text-xs text-muted-foreground mb-1">Ganancia Estimada del Creador</p>
-                  <p className="text-base font-bold text-accent">
-                    {formatCurrency(video.ingresos_mxn * (productData.commission / 100))}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Comisión: {productData.commission}%
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : video.producto_nombre ? (
-            <div className="p-3 bg-muted/50 rounded-lg border border-border">
-              <p className="text-xs text-muted-foreground">Sin datos de producto</p>
-            </div>
-          ) : null}
-
-          {/* Metrics Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-              <div className="flex items-center gap-2 mb-1">
-                <DollarSign className="h-4 w-4 text-primary" />
-                <span className="text-xs text-muted-foreground">Ingresos</span>
+          {/* Metrics Grid - 2x2 Compact */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-2 rounded-md bg-primary/5 border border-primary/10">
+              <div className="flex items-center gap-1 mb-0.5">
+                <DollarSign className="h-3 w-3 text-primary" />
+                <span className="text-[10px] text-muted-foreground">Ingresos</span>
               </div>
-              <p className="text-base font-bold text-success">
+              <p className="text-sm font-bold text-success">
                 {formatCurrency(video.ingresos_mxn)}
               </p>
             </div>
 
-            <div className="p-3 rounded-lg bg-muted">
-              <div className="flex items-center gap-2 mb-1">
-                <ShoppingCart className="h-4 w-4 text-foreground" />
-                <span className="text-xs text-muted-foreground">Ventas</span>
+            <div className="p-2 rounded-md bg-muted">
+              <div className="flex items-center gap-1 mb-0.5">
+                <ShoppingCart className="h-3 w-3 text-foreground" />
+                <span className="text-[10px] text-muted-foreground">Ventas</span>
               </div>
-              <p className="text-base font-bold text-foreground">
+              <p className="text-sm font-bold text-foreground">
                 {formatNumber(video.ventas)}
               </p>
             </div>
 
-            <div className="p-3 rounded-lg bg-muted">
-              <div className="flex items-center gap-2 mb-1">
-                <Eye className="h-4 w-4 text-foreground" />
-                <span className="text-xs text-muted-foreground">Vistas</span>
+            <div className="p-2 rounded-md bg-accent/5 border border-accent/10">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Percent className="h-3 w-3 text-accent" />
+                <span className="text-[10px] text-muted-foreground">Comisión Est.</span>
               </div>
-              <p className="text-base font-bold text-foreground">
-                {formatNumber(video.visualizaciones)}
+              <p className="text-sm font-bold text-accent">
+                {commissionEstimated ? formatCurrency(commissionEstimated) : "--"}
               </p>
             </div>
 
-            <div className="p-3 rounded-lg bg-accent/5 border border-accent/10">
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="h-4 w-4 text-accent" />
-                <span className="text-xs text-muted-foreground">ROAS</span>
+            <div className="p-2 rounded-md bg-muted">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Eye className="h-3 w-3 text-foreground" />
+                <span className="text-[10px] text-muted-foreground">Vistas</span>
               </div>
-              <p className="text-base font-bold text-foreground">
-                {video.roas.toFixed(1)}x
+              <p className="text-sm font-bold text-foreground">
+                {formatNumber(video.visualizaciones)}
               </p>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2">
+          <div className="space-y-1.5">
             <Button
-              className="flex-1" 
+              className="w-full h-8 text-xs" 
               variant="default"
               onClick={() => setShowScript(true)}
-              disabled={!video.transcripcion_original && !video.guion_ia}
             >
-              <FileText className="h-4 w-4 mr-2" />
-              Ver guión AI
+              <FileText className="h-3 w-3 mr-1.5" />
+              Ver guion + variantes
             </Button>
-            <FavoriteButton itemId={video.id} itemType="video" videoUrl={video.tiktok_url} />
+            
+            <div className="flex gap-1.5">
+              <Button
+                className="flex-1 h-7 text-xs" 
+                variant="outline"
+                onClick={() => window.open(video.tiktok_url, '_blank')}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Ver en TikTok
+              </Button>
+              <Button
+                className="flex-1 h-7 text-xs" 
+                variant="outline"
+              >
+                <Video className="h-3 w-3 mr-1" />
+                Transcribir
+              </Button>
+              <FavoriteButton itemId={video.id} itemType="video" videoUrl={video.tiktok_url} />
+            </div>
           </div>
         </CardContent>
       </Card>
