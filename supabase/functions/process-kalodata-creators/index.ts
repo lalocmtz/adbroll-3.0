@@ -89,19 +89,7 @@ serve(async (req) => {
       .sort((a, b) => b["Total Ingresos (M$)"] - a["Total Ingresos (M$)"])
       .slice(0, 100); // Top 100 creadores
 
-    console.log(`Top ${topCreators.length} creadores seleccionados, limpiando datos anteriores...`);
-
-    // Delete existing data using service role
-    const { error: deleteError } = await supabaseServiceClient
-      .from("creators")
-      .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000");
-
-    if (deleteError) {
-      throw new Error(`Error al limpiar datos: ${deleteError.message}`);
-    }
-
-    console.log("Datos anteriores eliminados, insertando nuevos creadores...");
+    console.log(`Top ${topCreators.length} creadores seleccionados, iniciando UPSERT...`);
 
     // Map and validate rows with ROAS parsing
     const validRows = topCreators.map((row) => {
@@ -141,27 +129,64 @@ serve(async (req) => {
       };
     });
 
-    console.log(`Insertando ${validRows.length} creadores...`);
+    console.log(`Procesando ${validRows.length} creadores con UPSERT...`);
 
-    // Insert new records
-    const { data: insertedData, error: insertError } = await supabaseServiceClient
-      .from("creators")
-      .insert(validRows)
-      .select();
+    // UPSERT creators one by one based on creator_handle
+    let insertedCount = 0;
+    let updatedCount = 0;
 
-    if (insertError) {
-      console.error("Error insertando datos:", insertError);
-      throw insertError;
+    for (const creator of validRows) {
+      // Check if creator exists by usuario_creador (handle)
+      const { data: existing } = await supabaseServiceClient
+        .from("creators")
+        .select("id")
+        .eq("usuario_creador", creator.usuario_creador)
+        .maybeSingle();
+
+      if (existing) {
+        // UPDATE: update metrics only
+        const { error: updateError } = await supabaseServiceClient
+          .from("creators")
+          .update({
+            seguidores: creator.seguidores,
+            total_ingresos_mxn: creator.total_ingresos_mxn,
+            total_ventas: creator.total_ventas,
+            total_videos: creator.total_videos,
+            promedio_visualizaciones: creator.promedio_visualizaciones,
+            promedio_roas: creator.promedio_roas,
+            mejor_video_url: creator.mejor_video_url,
+          })
+          .eq("id", existing.id);
+
+        if (updateError) {
+          console.error(`Error updating creator ${creator.usuario_creador}:`, updateError);
+        } else {
+          updatedCount++;
+        }
+      } else {
+        // INSERT: new creator
+        const { error: insertError } = await supabaseServiceClient
+          .from("creators")
+          .insert(creator);
+
+        if (insertError) {
+          console.error(`Error inserting creator ${creator.usuario_creador}:`, insertError);
+        } else {
+          insertedCount++;
+        }
+      }
     }
 
-    console.log(`Creadores insertados exitosamente: ${insertedData?.length || 0}`);
+    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        processed: insertedData?.length || 0,
+        inserted: insertedCount,
+        updated: updatedCount,
+        processed: insertedCount + updatedCount,
         total: validRows.length,
-        message: `Successfully processed ${insertedData?.length || 0} creators.`,
+        message: `Successfully processed ${insertedCount + updatedCount} creators: ${insertedCount} new, ${updatedCount} updated.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

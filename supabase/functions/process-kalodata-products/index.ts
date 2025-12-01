@@ -89,19 +89,7 @@ serve(async (req) => {
       .sort((a, b) => b["Total Ingresos (M$)"] - a["Total Ingresos (M$)"])
       .slice(0, 50); // Top 50 productos
 
-    console.log(`Top ${topProducts.length} productos seleccionados, limpiando datos anteriores...`);
-
-    // Delete existing data using service role
-    const { error: deleteError } = await supabaseServiceClient
-      .from("products")
-      .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000");
-
-    if (deleteError) {
-      throw new Error(`Error al limpiar datos: ${deleteError.message}`);
-    }
-
-    console.log("Datos anteriores eliminados, insertando nuevos productos...");
+    console.log(`Top ${topProducts.length} productos seleccionados, iniciando UPSERT...`);
 
     // Map and validate rows with price parsing
     const validRows = topProducts.map((row) => {
@@ -163,27 +151,71 @@ serve(async (req) => {
       };
     });
 
-    console.log(`Insertando ${validRows.length} productos...`);
+    console.log(`Procesando ${validRows.length} productos con UPSERT...`);
 
-    // Insert new records
-    const { data: insertedData, error: insertError } = await supabaseServiceClient
-      .from("products")
-      .insert(validRows)
-      .select();
+    // UPSERT products one by one based on product_name + product_url
+    let insertedCount = 0;
+    let updatedCount = 0;
 
-    if (insertError) {
-      console.error("Error insertando datos:", insertError);
-      throw insertError;
+    for (const product of validRows) {
+      // Check if product exists by name AND url
+      const { data: existing } = await supabaseServiceClient
+        .from("products")
+        .select("id")
+        .eq("producto_nombre", product.producto_nombre)
+        .eq("producto_url", product.producto_url || "")
+        .maybeSingle();
+
+      if (existing) {
+        // UPDATE: update metrics only
+        const { error: updateError } = await supabaseServiceClient
+          .from("products")
+          .update({
+            precio_mxn: product.precio_mxn,
+            price: product.precio_mxn,
+            total_ingresos_mxn: product.total_ingresos_mxn,
+            total_ventas: product.total_ventas,
+            promedio_roas: product.promedio_roas,
+            categoria: product.categoria,
+            descripcion: product.descripcion,
+            imagen_url: product.imagen_url,
+          })
+          .eq("id", existing.id);
+
+        if (updateError) {
+          console.error(`Error updating product ${product.producto_nombre}:`, updateError);
+        } else {
+          updatedCount++;
+        }
+      } else {
+        // INSERT: new product
+        const insertData = {
+          ...product,
+          price: product.precio_mxn, // Also set price field
+        };
+        
+        const { error: insertError } = await supabaseServiceClient
+          .from("products")
+          .insert(insertData);
+
+        if (insertError) {
+          console.error(`Error inserting product ${product.producto_nombre}:`, insertError);
+        } else {
+          insertedCount++;
+        }
+      }
     }
 
-    console.log(`Productos insertados exitosamente: ${insertedData?.length || 0}`);
+    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        processed: insertedData?.length || 0,
+        inserted: insertedCount,
+        updated: updatedCount,
+        processed: insertedCount + updatedCount,
         total: validRows.length,
-        message: `Successfully processed ${insertedData?.length || 0} products.`,
+        message: `Successfully processed ${insertedCount + updatedCount} products: ${insertedCount} new, ${updatedCount} updated.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
