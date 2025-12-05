@@ -32,6 +32,8 @@ interface Video {
     commission: number | null;
     price: number | null;
     precio_mxn: number | null;
+    revenue_30d: number | null;
+    producto_url: string | null;
   } | null;
 }
 
