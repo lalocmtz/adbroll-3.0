@@ -56,6 +56,15 @@
 - [x] **Sistema de Tarjetas** - Cards globales para video/producto/creador
 - [x] **Sidebar Rediseñado** - Linear/TikTok inspired, 240px width, active states
 
+### 8. JERARQUÍA VISUAL - UX Improvements (Diciembre 2024)
+- [x] **DataSubtitle Minimalizado** - Reducido a texto sutil de 11px sin emoji
+- [x] **Creadores Cards** - Padding aumentado (p-5), botones con gap-3, tooltips en títulos
+- [x] **Productos Cards** - Padding y spacing mejorado, títulos con truncate + tooltip
+- [x] **Oportunidades Simplificado** - Header "Oportunidades" con subtítulo descriptivo
+- [x] **IO Badge Tooltip** - Hover explica fórmula del Índice de Oportunidad
+- [x] **Plan Card Rediseñado** - Sidebar muestra "Plan actual: Starter" con botón "Ver planes"
+- [x] **Títulos con Tooltip** - Truncado con cursor-help y title attribute
+
 ---
 
 ## 🔄 PENDIENTE
