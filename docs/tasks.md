@@ -72,6 +72,8 @@
 - [x] VideoAnalysisModal - Columna de negocio con producto vinculado ✅
 - [x] VideoAnalysisModal - Panel de controles Variantes IA (FASE 2) ✅
 - [x] VideoAnalysisModal - Integración IA real para variantes (FASE 3) ✅
+- [x] VideoAnalysisModal - Rediseño premium completo (FASE 4) ✅
+- [x] VideoAnalysisModal - Guardar variantes a favoritos ✅
 - [ ] Stripe webhook para comisión de afiliados
 - [ ] Deep links a TikTok Shop
 

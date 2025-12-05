@@ -5,7 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, DollarSign, ShoppingCart, Percent, Eye, FlaskConical } from 'lucide-react';
+import { 
+  Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, 
+  DollarSign, ShoppingCart, Percent, Eye, FlaskConical, X, Sparkles,
+  TrendingUp, Save, Play, Volume2, Maximize2
+} from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,7 +38,6 @@ interface Video {
   analysis_json?: any;
   variants_json?: any;
   processing_status?: string | null;
-  // Product data
   product?: {
     producto_nombre?: string | null;
     commission?: number | null;
@@ -77,6 +80,7 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
   const [variants, setVariants] = useState<any>(video.variants_json || null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isSavingVariant, setIsSavingVariant] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   
@@ -120,7 +124,6 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
     setIsProcessing(true);
     
     try {
-      // Step 1: Check if already processed
       if (video.transcript && video.analysis_json) {
         setTranscript(video.transcript);
         setAnalysis(video.analysis_json);
@@ -129,7 +132,6 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
         return;
       }
 
-      // Step 2: Download video if needed
       if (!video.video_mp4_url) {
         setStatusMessage('Descargando video...');
         const { data: downloadData, error: downloadError } = await supabase.functions.invoke('download-tiktok-video', {
@@ -140,7 +142,6 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
         console.log('Download result:', downloadData);
       }
 
-      // Step 3: Transcribe and analyze
       setStatusMessage('Transcribiendo audio con IA...');
       const { data: analyzeData, error: analyzeError } = await supabase.functions.invoke('transcribe-and-analyze', {
         body: { videoId: video.id }
@@ -223,17 +224,23 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
     toast({ title: '✓ Copiado al portapapeles' });
   };
 
-  const CopyButton = ({ text, field }: { text: string; field: string }) => (
+  const CopyButton = ({ text, field, variant = 'ghost' as 'ghost' | 'outline' }: { text: string; field: string; variant?: 'ghost' | 'outline' }) => (
     <Button
-      size="icon"
-      variant="ghost"
-      className="h-8 w-8"
+      size="sm"
+      variant={variant}
+      className="h-8 gap-1.5 text-xs"
       onClick={() => handleCopy(text, field)}
     >
       {copiedField === field ? (
-        <Check className="h-4 w-4 text-green-500" />
+        <>
+          <Check className="h-3.5 w-3.5 text-success" />
+          <span className="hidden sm:inline">Copiado</span>
+        </>
       ) : (
-        <Copy className="h-4 w-4" />
+        <>
+          <Copy className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Copiar</span>
+        </>
       )}
     </Button>
   );
@@ -303,236 +310,380 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
     handleCopy(fullText, `full-variant-${index}`);
   };
 
+  // Save variant to favorites
+  const saveVariantToFavorites = async (variant: GeneratedVariant, index: number) => {
+    setIsSavingVariant(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Inicia sesión",
+          description: "Debes iniciar sesión para guardar guiones",
+        });
+        return;
+      }
+
+      // First insert into guiones_personalizados
+      const fullScript = `Hook:\n${variant.hook}\n\nCuerpo:\n${variant.body}\n\nCTA:\n${variant.cta}`;
+      
+      const { data: scriptData, error: scriptError } = await supabase
+        .from('guiones_personalizados')
+        .insert({
+          user_id: user.id,
+          video_id: video.id,
+          contenido: fullScript,
+        })
+        .select()
+        .single();
+
+      if (scriptError) throw scriptError;
+
+      // Then save to favorites_scripts
+      const { error: favError } = await supabase
+        .from('favorites_scripts')
+        .insert({
+          user_id: user.id,
+          script_id: scriptData.id,
+          script_data: {
+            hook: variant.hook,
+            body: variant.body,
+            cta: variant.cta,
+            strategy_note: variant.strategy_note,
+            video_title: video.title,
+            created_from: 'variant_generator',
+            change_level: changeLevel,
+          }
+        });
+
+      if (favError) throw favError;
+
+      toast({ 
+        title: '✅ Guión guardado',
+        description: 'Puedes verlo en la sección de Favoritos'
+      });
+    } catch (error: any) {
+      console.error('Error saving variant:', error);
+      toast({
+        title: 'Error al guardar',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSavingVariant(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0">
-        <div className="flex flex-col md:flex-row h-full">
+      <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden p-0 gap-0 animate-scale-in">
+        {/* Custom Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 z-50 rounded-full p-2 bg-background/80 backdrop-blur-sm border border-border hover:bg-muted transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="flex flex-col lg:flex-row h-full max-h-[92vh]">
           {/* Left: Video Player + Metrics */}
-          <div className="w-full md:w-[380px] bg-black flex-shrink-0 flex flex-col">
-            <div className="relative aspect-[9/16] max-h-[55vh] md:max-h-[60vh]">
-              {video.video_mp4_url ? (
-                <video
-                  ref={videoRef}
-                  src={video.video_mp4_url}
-                  className="w-full h-full object-contain"
-                  controls
-                  autoPlay
-                  loop
-                  playsInline
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-muted">
-                  <p className="text-muted-foreground">Video no disponible</p>
-                </div>
-              )}
-            </div>
-
-            {/* Metrics Below Video */}
-            <div className="p-3 bg-background border-t space-y-3 overflow-y-auto max-h-[35vh]">
-              {/* Card 1: Video Metrics */}
-              <div className="p-3 rounded-lg bg-muted/50 border space-y-2">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Métricas del Video
-                </h4>
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Ventas del video</span>
+          <div className="w-full lg:w-[420px] bg-muted/30 flex-shrink-0 flex flex-col border-r border-border">
+            {/* Video Card Container */}
+            <div className="p-4 pb-2">
+              <div className="card-premium overflow-hidden">
+                <div className="relative aspect-[9/16] max-h-[45vh] lg:max-h-[55vh] bg-black rounded-xl overflow-hidden">
+                  {video.video_mp4_url ? (
+                    <video
+                      ref={videoRef}
+                      src={video.video_mp4_url}
+                      className="w-full h-full object-contain"
+                      controls
+                      autoPlay
+                      loop
+                      playsInline
+                      poster={video.thumbnail_url || undefined}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted gap-3">
+                      <Play className="h-12 w-12 text-muted-foreground/40" />
+                      <p className="text-muted-foreground text-sm">Video no disponible</p>
                     </div>
-                    <span className="text-sm font-semibold">{formatNumber(video.sales)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Vistas del video</span>
-                    </div>
-                    <span className="text-sm font-semibold">{formatNumber(video.views)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
-                      <span className="text-xs text-muted-foreground">Comisiones generadas</span>
-                    </div>
-                    <span className="text-sm font-bold text-emerald-600">
-                      {formatCurrency((video.sales || 0) * earningPerSale)}
-                    </span>
-                  </div>
+                  )}
                 </div>
               </div>
-
-              {/* Card 2: Product Data */}
-              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 space-y-2">
-                <h4 className="text-xs font-semibold text-primary uppercase tracking-wide">
-                  Datos del Producto
-                </h4>
-                {video.product ? (
-                  <div className="space-y-1.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="text-xs text-muted-foreground">Nombre</span>
-                      <span className="text-xs font-medium text-right max-w-[180px] truncate" title={video.product.producto_nombre || ''}>
-                        {video.product.producto_nombre || video.product_name || 'Sin nombre'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Percent className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Comisión</span>
-                      </div>
-                      <span className="text-sm font-semibold">{video.product.commission || 0}%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Ganancia por venta</span>
-                      </div>
-                      <span className="text-sm font-bold text-emerald-600">
-                        {formatCurrency(earningPerSale)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Ingresos 30 días</span>
-                      </div>
-                      <span className="text-sm font-semibold">{formatCurrency(video.product.revenue_30d)}</span>
-                    </div>
-                    
-                    {/* TikTok Shop Button */}
-                    {video.product.producto_url && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="w-full mt-2 gap-2"
-                        onClick={() => window.open(video.product?.producto_url || '', '_blank')}
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        Ver en TikTok Shop
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">Sin producto asignado</p>
-                )}
-              </div>
             </div>
+
+            {/* Metrics Cards Container */}
+            <ScrollArea className="flex-1 px-4 pb-4">
+              <div className="space-y-3">
+                {/* Video Metrics Card */}
+                <div className="card-premium p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                    </div>
+                    <h4 className="text-sm font-semibold text-foreground">Métricas del Video</h4>
+                  </div>
+                  
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between py-2 border-b border-border/50">
+                      <div className="flex items-center gap-2.5">
+                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Ventas</span>
+                      </div>
+                      <span className="text-sm font-semibold tabular-nums">{formatNumber(video.sales)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-border/50">
+                      <div className="flex items-center gap-2.5">
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Vistas</span>
+                      </div>
+                      <span className="text-sm font-semibold tabular-nums">{formatNumber(video.views)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2.5">
+                        <DollarSign className="h-4 w-4 text-success" />
+                        <span className="text-sm text-muted-foreground">Comisiones generadas</span>
+                      </div>
+                      <span className="text-sm font-bold text-success tabular-nums">
+                        {formatCurrency((video.sales || 0) * earningPerSale)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Product Data Card */}
+                <div className="card-premium p-4 space-y-3 border-primary/20 bg-gradient-to-br from-primary/[0.02] to-transparent">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <ShoppingCart className="h-4 w-4 text-primary" />
+                    </div>
+                    <h4 className="text-sm font-semibold text-foreground">Datos del Producto</h4>
+                  </div>
+                  
+                  {video.product ? (
+                    <div className="space-y-2.5">
+                      <div className="flex items-start justify-between py-2 border-b border-border/50 gap-2">
+                        <span className="text-sm text-muted-foreground flex-shrink-0">Producto</span>
+                        <span 
+                          className="text-sm font-medium text-right truncate max-w-[180px]" 
+                          title={video.product.producto_nombre || ''}
+                        >
+                          {video.product.producto_nombre || video.product_name || 'Sin nombre'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-b border-border/50">
+                        <div className="flex items-center gap-2.5">
+                          <Percent className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Comisión</span>
+                        </div>
+                        <span className="text-sm font-semibold tabular-nums">{video.product.commission || 0}%</span>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-b border-border/50">
+                        <div className="flex items-center gap-2.5">
+                          <DollarSign className="h-4 w-4 text-success" />
+                          <span className="text-sm text-muted-foreground">Ganancia/venta</span>
+                        </div>
+                        <span className="text-sm font-bold text-success tabular-nums">
+                          {formatCurrency(earningPerSale)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-2.5">
+                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">GMV 30 días</span>
+                        </div>
+                        <span className="text-sm font-semibold tabular-nums">{formatCurrency(video.product.revenue_30d)}</span>
+                      </div>
+                      
+                      {/* TikTok Shop Button */}
+                      {video.product.producto_url && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="w-full mt-3 gap-2 h-10 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
+                          onClick={() => window.open(video.product?.producto_url || '', '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Ver en TikTok Shop
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center">
+                      <p className="text-sm text-muted-foreground italic">Sin producto asignado</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </ScrollArea>
           </div>
 
           {/* Right: Analysis Content */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden bg-background">
             {/* Header */}
-            <div className="p-4 border-b flex items-center justify-between">
+            <div className="p-5 border-b border-border flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-semibold line-clamp-1">
+                <h2 className="text-lg font-semibold line-clamp-2 text-foreground leading-snug">
                   {video.title || 'Análisis de Video'}
                 </h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground mt-1">
                   @{video.creator_handle || video.creator_name || 'creator'}
                 </p>
               </div>
               <Button
                 size="icon"
-                variant={isFavorite ? "default" : "outline"}
+                variant="outline"
                 onClick={handleToggleFavorite}
-                className={isFavorite ? "bg-red-500 hover:bg-red-600" : ""}
+                className={`flex-shrink-0 rounded-xl transition-all ${
+                  isFavorite 
+                    ? "bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive hover:text-white" 
+                    : "hover:border-destructive/30 hover:text-destructive"
+                }`}
               >
-                <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current text-white' : ''}`} />
+                <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
               </Button>
             </div>
 
             {/* Tabs Content */}
             <div className="flex-1 overflow-hidden">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-                <TabsList className="grid grid-cols-3 mx-4 mt-4">
-                  <TabsTrigger value="script" className="gap-2">
-                    <FileText className="h-4 w-4" />
-                    Script
-                  </TabsTrigger>
-                  <TabsTrigger value="analysis" className="gap-2">
-                    <Brain className="h-4 w-4" />
-                    Análisis
-                  </TabsTrigger>
-                  <TabsTrigger value="variants" className="gap-2">
-                    <Wand2 className="h-4 w-4" />
-                    Variantes IA
-                  </TabsTrigger>
-                </TabsList>
+                <div className="px-5 pt-4">
+                  <TabsList className="grid grid-cols-3 w-full h-11 p-1 bg-muted/50 rounded-xl">
+                    <TabsTrigger 
+                      value="script" 
+                      className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span className="hidden sm:inline">Script</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="analysis" 
+                      className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                    >
+                      <Brain className="h-4 w-4" />
+                      <span className="hidden sm:inline">Análisis</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="variants" 
+                      className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                    >
+                      <Wand2 className="h-4 w-4" />
+                      <span className="hidden sm:inline">Variantes IA</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto p-5 pt-4">
                   {isProcessing ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-4">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-muted-foreground">{statusMessage}</p>
+                    <div className="flex flex-col items-center justify-center h-full gap-4 py-12">
+                      <div className="relative">
+                        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                      </div>
+                      <p className="text-muted-foreground text-sm">{statusMessage}</p>
                     </div>
                   ) : (
                     <>
                       {/* Script Tab */}
-                      <TabsContent value="script" className="mt-0">
-                        <Card className="p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-semibold">Transcripción Original</h3>
-                            {transcript && <CopyButton text={transcript} field="transcript" />}
+                      <TabsContent value="script" className="mt-0 animate-fade-in">
+                        <div className="card-premium p-5">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                              <h3 className="font-semibold text-foreground">Transcripción Original</h3>
+                            </div>
+                            {transcript && <CopyButton text={transcript} field="transcript" variant="outline" />}
                           </div>
                           {transcript ? (
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                              {transcript}
-                            </p>
+                            <div className="bg-muted/30 rounded-xl p-4 border border-border/50">
+                              <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed font-mono">
+                                {transcript}
+                              </p>
+                            </div>
                           ) : (
-                            <div className="text-center py-8">
+                            <div className="text-center py-10">
+                              <div className="h-14 w-14 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                                <FileText className="h-6 w-6 text-muted-foreground/50" />
+                              </div>
                               <p className="text-muted-foreground mb-4">
                                 No hay transcripción disponible
                               </p>
-                              <Button onClick={processVideo} disabled={isProcessing}>
+                              <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl">
+                                <Sparkles className="h-4 w-4 mr-2" />
                                 Generar transcripción
                               </Button>
                             </div>
                           )}
-                        </Card>
+                        </div>
                       </TabsContent>
 
                       {/* Analysis Tab */}
-                      <TabsContent value="analysis" className="mt-0 space-y-4">
+                      <TabsContent value="analysis" className="mt-0 space-y-4 animate-fade-in">
                         {analysis ? (
                           <>
                             {/* Hook */}
                             {analysis.hook && (
-                              <Card className="p-4 border-l-4 border-l-primary">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h3 className="font-semibold text-primary">🎣 Hook (Gancho)</h3>
-                                  <CopyButton text={analysis.hook} field="hook" />
+                              <div className="card-premium p-5 border-l-4 border-l-primary bg-gradient-to-r from-primary/[0.03] to-transparent">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                      <span className="text-sm">🎣</span>
+                                    </div>
+                                    <h3 className="font-semibold text-primary">Hook (Gancho)</h3>
+                                  </div>
+                                  <CopyButton text={analysis.hook} field="hook" variant="outline" />
                                 </div>
-                                <p className="text-sm">{analysis.hook}</p>
-                              </Card>
+                                <p className="text-sm text-foreground/80 leading-relaxed pl-10">{analysis.hook}</p>
+                              </div>
                             )}
 
                             {/* Body */}
                             {analysis.body && (
-                              <Card className="p-4 border-l-4 border-l-blue-500">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h3 className="font-semibold text-blue-600">📝 Cuerpo</h3>
-                                  <CopyButton text={analysis.body} field="body" />
+                              <div className="card-premium p-5 border-l-4 border-l-accent bg-gradient-to-r from-accent/[0.03] to-transparent">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                                      <span className="text-sm">📝</span>
+                                    </div>
+                                    <h3 className="font-semibold text-accent">Cuerpo</h3>
+                                  </div>
+                                  <CopyButton text={analysis.body} field="body" variant="outline" />
                                 </div>
-                                <p className="text-sm">{analysis.body}</p>
-                              </Card>
+                                <p className="text-sm text-foreground/80 leading-relaxed pl-10">{analysis.body}</p>
+                              </div>
                             )}
 
                             {/* CTA */}
                             {analysis.cta && (
-                              <Card className="p-4 border-l-4 border-l-green-500">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h3 className="font-semibold text-green-600">🎯 Cierre / CTA</h3>
-                                  <CopyButton text={analysis.cta} field="cta" />
+                              <div className="card-premium p-5 border-l-4 border-l-success bg-gradient-to-r from-success/[0.03] to-transparent">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
+                                      <span className="text-sm">🎯</span>
+                                    </div>
+                                    <h3 className="font-semibold text-success">Cierre / CTA</h3>
+                                  </div>
+                                  <CopyButton text={analysis.cta} field="cta" variant="outline" />
                                 </div>
-                                <p className="text-sm">{analysis.cta}</p>
-                              </Card>
+                                <p className="text-sm text-foreground/80 leading-relaxed pl-10">{analysis.cta}</p>
+                              </div>
                             )}
                           </>
                         ) : (
-                          <div className="text-center py-8">
+                          <div className="text-center py-10">
+                            <div className="h-14 w-14 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                              <Brain className="h-6 w-6 text-muted-foreground/50" />
+                            </div>
                             <p className="text-muted-foreground mb-4">
                               No hay análisis disponible
                             </p>
-                            <Button onClick={processVideo} disabled={isProcessing}>
+                            <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl">
+                              <Sparkles className="h-4 w-4 mr-2" />
                               Generar análisis
                             </Button>
                           </div>
@@ -540,139 +691,194 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
                       </TabsContent>
 
                       {/* Variants Tab */}
-                      <TabsContent value="variants" className="mt-0 h-full flex flex-col">
+                      <TabsContent value="variants" className="mt-0 h-full flex flex-col animate-fade-in">
                         {/* Control Panel */}
-                        <Card className="p-4 mb-4 bg-muted/30">
-                          <div className="flex items-center gap-2 mb-4">
-                            <FlaskConical className="h-5 w-5 text-primary" />
-                            <h3 className="font-semibold text-base">Generador de Variantes IA</h3>
-                          </div>
-
-                          {/* Quantity Selector */}
-                          <div className="mb-4">
-                            <Label className="text-xs text-muted-foreground mb-2 block">
-                              Cantidad de variantes
-                            </Label>
-                            <div className="flex gap-2">
-                              {[1, 2, 3].map((num) => (
-                                <Button
-                                  key={num}
-                                  size="sm"
-                                  variant={variantCount === num ? 'default' : 'outline'}
-                                  className="w-10 h-9"
-                                  onClick={() => setVariantCount(num)}
-                                >
-                                  {num}
-                                </Button>
-                              ))}
+                        <div className="card-premium p-5 mb-4 bg-gradient-to-br from-primary/[0.02] via-background to-accent/[0.02]">
+                          <div className="flex items-center gap-3 mb-5">
+                            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
+                              <FlaskConical className="h-5 w-5 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-base text-foreground">Generador de Variantes IA</h3>
+                              <p className="text-xs text-muted-foreground">Crea guiones optimizados basados en este video</p>
                             </div>
                           </div>
 
-                          {/* Change Level */}
-                          <div className="mb-4">
-                            <Label className="text-xs text-muted-foreground mb-2 block">
-                              Nivel de cambio
-                            </Label>
-                            <RadioGroup
-                              value={changeLevel}
-                              onValueChange={(v) => setChangeLevel(v as 'light' | 'medium' | 'aggressive')}
-                              className="flex flex-wrap gap-4"
-                            >
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="light" id="light" />
-                                <Label htmlFor="light" className="text-sm cursor-pointer">Ligero</Label>
+                          <div className="grid sm:grid-cols-2 gap-5">
+                            {/* Quantity Selector */}
+                            <div>
+                              <Label className="text-xs font-medium text-muted-foreground mb-2.5 block uppercase tracking-wider">
+                                Cantidad de variantes
+                              </Label>
+                              <div className="flex gap-2">
+                                {[1, 2, 3].map((num) => (
+                                  <Button
+                                    key={num}
+                                    size="sm"
+                                    variant={variantCount === num ? 'default' : 'outline'}
+                                    className={`flex-1 h-10 rounded-xl transition-all ${
+                                      variantCount === num ? 'shadow-sm' : ''
+                                    }`}
+                                    onClick={() => setVariantCount(num)}
+                                  >
+                                    {num}
+                                  </Button>
+                                ))}
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="medium" id="medium" />
-                                <Label htmlFor="medium" className="text-sm cursor-pointer">Medio</Label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="aggressive" id="aggressive" />
-                                <Label htmlFor="aggressive" className="text-sm cursor-pointer">Agresivo</Label>
-                              </div>
-                            </RadioGroup>
+                            </div>
+
+                            {/* Change Level */}
+                            <div>
+                              <Label className="text-xs font-medium text-muted-foreground mb-2.5 block uppercase tracking-wider">
+                                Nivel de cambio
+                              </Label>
+                              <RadioGroup
+                                value={changeLevel}
+                                onValueChange={(v) => setChangeLevel(v as 'light' | 'medium' | 'aggressive')}
+                                className="flex gap-3"
+                              >
+                                {[
+                                  { value: 'light', label: 'Ligero', emoji: '🌱' },
+                                  { value: 'medium', label: 'Medio', emoji: '🔥' },
+                                  { value: 'aggressive', label: 'Agresivo', emoji: '🚀' }
+                                ].map(({ value, label, emoji }) => (
+                                  <div key={value} className="flex items-center">
+                                    <RadioGroupItem value={value} id={value} className="peer sr-only" />
+                                    <Label 
+                                      htmlFor={value} 
+                                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer transition-all text-sm ${
+                                        changeLevel === value 
+                                          ? 'border-primary bg-primary/10 text-primary font-medium' 
+                                          : 'border-border bg-background hover:border-primary/30'
+                                      }`}
+                                    >
+                                      <span>{emoji}</span>
+                                      <span className="hidden sm:inline">{label}</span>
+                                    </Label>
+                                  </div>
+                                ))}
+                              </RadioGroup>
+                            </div>
                           </div>
 
                           {/* Generate Button */}
                           <Button
                             onClick={generateVariants}
                             disabled={isGeneratingVariants || !transcript}
-                            className="w-full"
+                            className="w-full mt-5 h-11 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
+                            size="lg"
                           >
                             {isGeneratingVariants ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Generando...
+                                Generando variantes...
                               </>
                             ) : (
                               <>
-                                <Wand2 className="h-4 w-4 mr-2" />
+                                <Sparkles className="h-4 w-4 mr-2" />
                                 Generar Variantes IA
                               </>
                             )}
                           </Button>
 
                           {!transcript && (
-                            <p className="text-xs text-muted-foreground mt-2 text-center">
-                              Primero genera la transcripción en la pestaña Script
+                            <p className="text-xs text-muted-foreground mt-3 text-center bg-muted/50 py-2 rounded-lg">
+                              ⚠️ Primero genera la transcripción en la pestaña Script
                             </p>
                           )}
-                        </Card>
+                        </div>
 
                         {/* Scrollable Variants Container */}
-                        <ScrollArea className="flex-1 pr-2">
-                          <div className="space-y-3">
+                        <ScrollArea className="flex-1">
+                          <div className="space-y-4 pr-2">
                             {generatedVariants.length > 0 ? (
                               generatedVariants.map((variant, index) => (
-                                <Card key={index} className="p-4">
-                                  <div className="flex items-center justify-between mb-3">
-                                    <h4 className="font-semibold text-sm">Variante {index + 1}</h4>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 gap-1.5"
-                                      onClick={() => copyVariant(variant, index)}
-                                    >
-                                      {copiedField === `full-variant-${index}` ? (
-                                        <Check className="h-3.5 w-3.5 text-green-500" />
-                                      ) : (
-                                        <Copy className="h-3.5 w-3.5" />
-                                      )}
-                                      Copiar
-                                    </Button>
-                                  </div>
-
-                                  {/* Hook */}
-                                  <div className="mb-2 p-2.5 bg-primary/5 rounded-lg border-l-4 border-l-primary">
-                                    <span className="text-xs font-medium text-primary mb-1 block">🎣 Hook</span>
-                                    <p className="text-sm">{variant.hook}</p>
-                                  </div>
-
-                                  {/* Body */}
-                                  <div className="mb-2 p-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-lg border-l-4 border-l-blue-500">
-                                    <span className="text-xs font-medium text-blue-600 mb-1 block">📝 Cuerpo</span>
-                                    <p className="text-sm">{variant.body}</p>
-                                  </div>
-
-                                  {/* CTA */}
-                                  <div className="mb-2 p-2.5 bg-green-50 dark:bg-green-950/30 rounded-lg border-l-4 border-l-green-500">
-                                    <span className="text-xs font-medium text-green-600 mb-1 block">🎯 CTA</span>
-                                    <p className="text-sm">{variant.cta}</p>
-                                  </div>
-
-                                  {/* Strategy Note */}
-                                  {variant.strategy_note && (
-                                    <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-lg border-l-4 border-l-amber-500">
-                                      <span className="text-xs font-medium text-amber-600 mb-1 block">💡 Estrategia</span>
-                                      <p className="text-xs text-muted-foreground">{variant.strategy_note}</p>
+                                <div key={index} className="card-premium p-5 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+                                  <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+                                        <span className="text-white text-xs font-bold">{index + 1}</span>
+                                      </div>
+                                      <h4 className="font-semibold text-foreground">Variante {index + 1}</h4>
                                     </div>
-                                  )}
-                                </Card>
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 gap-1.5 rounded-lg"
+                                        onClick={() => saveVariantToFavorites(variant, index)}
+                                        disabled={isSavingVariant}
+                                      >
+                                        {isSavingVariant ? (
+                                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        ) : (
+                                          <Save className="h-3.5 w-3.5" />
+                                        )}
+                                        <span className="hidden sm:inline">Guardar</span>
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 gap-1.5 rounded-lg"
+                                        onClick={() => copyVariant(variant, index)}
+                                      >
+                                        {copiedField === `full-variant-${index}` ? (
+                                          <Check className="h-3.5 w-3.5 text-success" />
+                                        ) : (
+                                          <Copy className="h-3.5 w-3.5" />
+                                        )}
+                                        <span className="hidden sm:inline">Copiar</span>
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-3">
+                                    {/* Hook */}
+                                    <div className="p-4 rounded-xl bg-gradient-to-r from-primary/[0.06] to-primary/[0.02] border border-primary/10">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-sm">🎣</span>
+                                        <span className="text-xs font-semibold text-primary uppercase tracking-wider">Hook</span>
+                                      </div>
+                                      <p className="text-sm text-foreground/80 leading-relaxed">{variant.hook}</p>
+                                    </div>
+
+                                    {/* Body */}
+                                    <div className="p-4 rounded-xl bg-gradient-to-r from-accent/[0.06] to-accent/[0.02] border border-accent/10">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-sm">📝</span>
+                                        <span className="text-xs font-semibold text-accent uppercase tracking-wider">Cuerpo</span>
+                                      </div>
+                                      <p className="text-sm text-foreground/80 leading-relaxed">{variant.body}</p>
+                                    </div>
+
+                                    {/* CTA */}
+                                    <div className="p-4 rounded-xl bg-gradient-to-r from-success/[0.06] to-success/[0.02] border border-success/10">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-sm">🎯</span>
+                                        <span className="text-xs font-semibold text-success uppercase tracking-wider">CTA</span>
+                                      </div>
+                                      <p className="text-sm text-foreground/80 leading-relaxed">{variant.cta}</p>
+                                    </div>
+
+                                    {/* Strategy Note */}
+                                    {variant.strategy_note && (
+                                      <div className="p-4 rounded-xl bg-amber-500/[0.06] border border-amber-500/10">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <span className="text-sm">💡</span>
+                                          <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Estrategia</span>
+                                        </div>
+                                        <p className="text-xs text-foreground/60 leading-relaxed">{variant.strategy_note}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               ))
                             ) : (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <Wand2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                                <p className="text-sm">
+                              <div className="text-center py-12">
+                                <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                                  <Wand2 className="h-7 w-7 text-muted-foreground/40" />
+                                </div>
+                                <p className="text-sm text-muted-foreground">
                                   Las variantes aparecerán aquí después de generarlas
                                 </p>
                               </div>
