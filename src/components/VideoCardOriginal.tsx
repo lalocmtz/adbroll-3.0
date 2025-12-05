@@ -218,28 +218,28 @@ const VideoCardOriginal = ({
         <CardContent className="p-3 space-y-2">
           {/* Title and Creator */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-tight min-h-[2.5rem]">
+            <h3 className="text-sm font-semibold text-foreground line-clamp-1 leading-tight" title={video.title || 'Video TikTok Shop'}>
               {video.title || 'Video TikTok Shop'}
             </h3>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-0.5">
               @{video.creator_handle || video.creator_name || 'creator'}
             </p>
           </div>
 
-          {/* Product Association with Badge */}
-          {video.product || video.product_name ? <button onClick={navigateToProduct} className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left">
-              {video.product?.imagen_url ? <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-8 h-8 rounded object-cover flex-shrink-0" /> : <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <ShoppingCart className="h-4 w-4 text-primary" />
+          {/* Product Association with Badge - Highlighted */}
+          {video.product || video.product_name ? <button onClick={navigateToProduct} className="flex items-center gap-2 w-full p-2.5 rounded-lg bg-slate-800 dark:bg-slate-900 hover:bg-slate-700 dark:hover:bg-slate-800 transition-colors text-left shadow-sm">
+              {video.product?.imagen_url ? <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-10 h-10 rounded object-cover flex-shrink-0 border border-slate-600" /> : <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <ShoppingCart className="h-5 w-5 text-primary" />
                 </div>}
               <div className="flex-1 min-w-0">
-                <span className="text-xs text-primary font-medium truncate block">
+                <span className="text-xs text-white font-medium line-clamp-2 leading-tight">
                   {video.product?.producto_nombre || video.product_name}
                 </span>
-                {video.product?.total_ingresos_mxn && <span className="text-[10px] text-muted-foreground">
+                {video.product?.total_ingresos_mxn && <span className="text-[10px] text-slate-400">
                     GMV: {formatCurrency(video.product.total_ingresos_mxn)}
                   </span>}
               </div>
-              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 shrink-0">
+              <Badge variant="secondary" className="text-[9px] px-1.5 py-0.5 h-auto shrink-0 bg-white/10 text-white hover:bg-white/20 border-0">
                 Ver producto →
               </Badge>
             </button> : <div className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/30 text-left">
