@@ -40,6 +40,8 @@ interface Video {
     imagen_url: string | null;
     total_ingresos_mxn: number | null;
     commission: number | null;
+    price: number | null;
+    precio_mxn: number | null;
   } | null;
 }
 
@@ -111,7 +113,9 @@ const Dashboard = () => {
             producto_nombre,
             imagen_url,
             total_ingresos_mxn,
-            commission
+            commission,
+            price,
+            precio_mxn
           )
         `, { count: "exact" })
         .not("video_mp4_url", "is", null)  // Must be downloaded

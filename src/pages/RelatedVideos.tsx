@@ -37,6 +37,8 @@ interface Video {
     imagen_url: string | null;
     total_ingresos_mxn: number | null;
     commission: number | null;
+    price: number | null;
+    precio_mxn: number | null;
   } | null;
 }
 
@@ -127,7 +129,7 @@ const RelatedVideos = () => {
           .select(`
             *,
             product:products!videos_product_id_fkey (
-              id, producto_nombre, imagen_url, total_ingresos_mxn, commission
+              id, producto_nombre, imagen_url, total_ingresos_mxn, commission, price, precio_mxn
             )
           `)
           .eq("product_id", productId)
@@ -159,7 +161,7 @@ const RelatedVideos = () => {
           .select(`
             *,
             product:products!videos_product_id_fkey (
-              id, producto_nombre, imagen_url, total_ingresos_mxn, commission
+              id, producto_nombre, imagen_url, total_ingresos_mxn, commission, price, precio_mxn
             )
           `)
           .or(`creator_id.eq.${creatorId},creator_handle.ilike.%${creatorHandle}%`)

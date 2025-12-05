@@ -33,6 +33,8 @@ interface Video {
     imagen_url: string | null;
     total_ingresos_mxn: number | null;
     commission: number | null;
+    price: number | null;
+    precio_mxn: number | null;
   } | null;
 }
 
@@ -67,8 +69,12 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const commissionRate = 6; // Default 6%
+  const commissionRate = video.product?.commission || 6; // Default 6%
   const commissionEstimated = (video.revenue_mxn || 0) * (commissionRate / 100);
+  
+  // Calculate earnings per sale: price * commission%
+  const productPrice = video.product?.price || video.product?.precio_mxn || 0;
+  const earningsPerSale = productPrice * (commissionRate / 100);
 
   // Check if video is in favorites on mount
   useEffect(() => {
@@ -242,6 +248,13 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                     <Play className="w-6 h-6 text-foreground ml-1" fill="currentColor" />
                   </div>
                 </div>
+              )}
+              
+              {/* Earnings per sale badge - bottom left */}
+              {earningsPerSale > 0 && (
+                <Badge className="absolute bottom-2 left-2 z-10 bg-black text-white text-[10px] font-semibold px-2 py-1 shadow-lg">
+                  💰 Gana {formatCurrency(earningsPerSale)} por venta
+                </Badge>
               )}
             </>
           ) : (
