@@ -253,11 +253,11 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
 
         {/* Video Info */}
         <CardContent className="p-2 space-y-2">
-          {/* Title and Creator */}
-          <div>
-            <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
-              {video.descripcion_video}
-            </h3>
+        {/* Title and Creator - Truncated to first 20-25 words */}
+        <div>
+          <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
+            {video.descripcion_video?.split(' ').slice(0, 20).join(' ')}{video.descripcion_video?.split(' ').length > 20 ? '...' : ''}
+          </h3>
             <div className="flex items-center justify-between mt-0.5">
               <p className="text-[10px] text-muted-foreground">
                 @{video.creador}
