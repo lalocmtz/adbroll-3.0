@@ -54,6 +54,14 @@
 
 ---
 
+## 🔒 SEGURIDAD - Diciembre 2024
+
+- [x] **Vista `product_opportunities`** - Corregida con `security_invoker = true`
+- [x] **Función `update_updated_at_column`** - Añadido `search_path = public`
+- [ ] **Leaked Password Protection** - Pendiente configuración en auth settings (opcional)
+
+---
+
 ## 📁 ARCHIVOS CLAVE
 
 ```
@@ -75,4 +83,4 @@ src/pages/
 ---
 
 **Última actualización:** Diciembre 2024
-**Estado:** Sistema de vinculación inteligente implementado
+**Estado:** Sistema de vinculación inteligente implementado + Seguridad corregida
