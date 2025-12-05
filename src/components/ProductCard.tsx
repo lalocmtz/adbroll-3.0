@@ -37,9 +37,9 @@ const ProductCard = ({ product, showRelatedVideos = false }: ProductCardProps) =
   };
 
   return (
-    <Card className="card-premium">
+    <Card className="overflow-hidden bg-card border-border rounded-card transition-card hover:shadow-card-hover">
       {/* Product Image */}
-      <div className="relative aspect-square bg-muted overflow-hidden">
+      <div className="relative aspect-square bg-muted card-media">
         {product.cover_image ? (
           <img 
             src={product.cover_image} 
@@ -53,59 +53,59 @@ const ProductCard = ({ product, showRelatedVideos = false }: ProductCardProps) =
         )}
       </div>
 
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-3 p-card">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg md:text-xl line-clamp-2 mb-2">
+            <CardTitle className="text-base font-semibold line-clamp-2 mb-2">
               {product.producto_nombre}
             </CardTitle>
             {product.categoria && (
-              <Badge variant="outline" className="w-fit">
+              <Badge variant="outline" className="w-fit text-xs">
                 {product.categoria}
               </Badge>
             )}
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+      <CardContent className="space-y-card-gap pt-0 px-card pb-card">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="metric-box-success">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-4 w-4 text-primary" />
+              <DollarSign className="h-4 w-4 text-success" />
               <span className="text-xs text-muted-foreground">Revenue</span>
             </div>
-            <p className="text-base font-bold text-success">
+            <p className="text-sm font-bold text-success">
               {formatCurrency(product.total_ingresos_mxn)}
             </p>
           </div>
 
-          <div className="p-3 rounded-lg bg-muted">
+          <div className="metric-box-muted">
             <div className="flex items-center gap-2 mb-1">
               <ShoppingCart className="h-4 w-4 text-foreground" />
               <span className="text-xs text-muted-foreground">Ventas</span>
             </div>
-            <p className="text-base font-bold text-foreground">
+            <p className="text-sm font-bold text-foreground">
               {product.total_ventas ?? "N/A"}
             </p>
           </div>
 
-          <div className="p-3 rounded-lg bg-muted">
+          <div className="metric-box-muted">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="h-4 w-4 text-foreground" />
               <span className="text-xs text-muted-foreground">Precio</span>
             </div>
-            <p className="text-base font-bold text-foreground">
+            <p className="text-sm font-bold text-foreground">
               {formatCurrency(product.precio_mxn)}
             </p>
           </div>
 
           {product.promedio_roas !== null && (
-            <div className="p-3 rounded-lg bg-accent/5 border border-accent/10">
+            <div className="metric-box bg-accent/5 border border-accent/10">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="h-4 w-4 text-accent" />
                 <span className="text-xs text-muted-foreground">ROAS</span>
               </div>
-              <p className="text-base font-bold text-foreground">
+              <p className="text-sm font-bold text-foreground">
                 {product.promedio_roas.toFixed(1)}x
               </p>
             </div>

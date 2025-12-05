@@ -169,15 +169,15 @@ const VideoCardOriginal = ({
   };
   const isTop5 = ranking <= 5;
   return <>
-      <Card className="overflow-hidden group hover:shadow-xl transition-all duration-300 bg-card border-border" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      <Card className="overflow-hidden group bg-card border-border rounded-card transition-card hover:shadow-card-hover" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
         {/* Video Container - 9:16 aspect ratio */}
-        <div className="relative aspect-[9/16] bg-muted overflow-hidden">
+        <div className="relative aspect-[9/16] bg-muted card-media">
           {/* Top Icons Bar */}
           <div className="absolute top-2 left-2 right-2 z-20 flex items-center justify-between pointer-events-none">
             {/* Ranking Badge */}
-            <Badge className={`pointer-events-auto font-bold text-xs px-2 py-0.5 shadow-lg ${isTop5 ? 'bg-primary text-primary-foreground' : 'bg-background/90 text-foreground border'}`}>
+            <span className={`pointer-events-auto shadow-lg ${isTop5 ? 'badge-position' : 'badge-position-neutral'}`}>
               #{ranking} {isTop5 && '🔥'}
-            </Badge>
+            </span>
 
             {/* Right Icons */}
             <div className="flex items-center gap-1.5 pointer-events-auto">
@@ -204,9 +204,9 @@ const VideoCardOriginal = ({
                 </div>}
               
               {/* Earnings per sale badge - bottom left */}
-              {earningsPerSale > 0 && <Badge className="absolute bottom-2 left-2 z-10 text-white text-[10px] font-semibold px-2 py-1 shadow-lg bg-success">
+              {earningsPerSale > 0 && <span className="absolute bottom-2 left-2 z-10 label-gain shadow-lg">
                   💰 Gana {formatCurrency(earningsPerSale)} por venta
-                </Badge>}
+                </span>}
             </> : <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-muted to-muted/80">
               <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
                 <Play className="w-6 h-6 text-muted-foreground ml-1" />
@@ -215,78 +215,78 @@ const VideoCardOriginal = ({
         </div>
 
         {/* Video Info */}
-        <CardContent className="p-3 space-y-2">
+        <CardContent className="p-card space-y-card-gap">
           {/* Title and Creator */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground line-clamp-1 leading-tight" title={video.title || 'Video TikTok Shop'}>
+            <h3 className="text-base font-semibold text-foreground line-clamp-1 leading-tight" title={video.title || 'Video TikTok Shop'}>
               {video.title || 'Video TikTok Shop'}
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               @{video.creator_handle || video.creator_name || 'creator'}
             </p>
           </div>
 
           {/* Product Association with Badge - Highlighted */}
-          {video.product || video.product_name ? <button onClick={navigateToProduct} className="flex items-center gap-2 w-full p-2.5 rounded-lg bg-slate-800 dark:bg-slate-900 hover:bg-slate-700 dark:hover:bg-slate-800 transition-colors text-left shadow-sm">
-              {video.product?.imagen_url ? <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-10 h-10 rounded object-cover flex-shrink-0 border border-slate-600" /> : <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
+          {video.product || video.product_name ? <button onClick={navigateToProduct} className="card-product-embed flex items-center gap-2 w-full hover:bg-muted/50 transition-colors text-left">
+              {video.product?.imagen_url ? <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-10 h-10 rounded-media object-cover flex-shrink-0 border border-border" /> : <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <ShoppingCart className="h-5 w-5 text-primary" />
                 </div>}
               <div className="flex-1 min-w-0">
-                <span className="text-xs text-white font-medium line-clamp-2 leading-tight">
+                <span className="text-[13px] text-foreground font-medium line-clamp-2 leading-tight">
                   {video.product?.producto_nombre || video.product_name}
                 </span>
-                {video.product?.total_ingresos_mxn && <span className="text-[10px] text-slate-400">
+                {video.product?.total_ingresos_mxn && <span className="text-[11px] text-muted-foreground">
                     GMV: {formatCurrency(video.product.total_ingresos_mxn)}
                   </span>}
               </div>
-              <Badge variant="secondary" className="text-[9px] px-1.5 py-0.5 h-auto shrink-0 bg-white/10 text-white hover:bg-white/20 border-0">
+              <Badge variant="secondary" className="text-[10px] px-2 py-0.5 h-auto shrink-0">
                 Ver producto →
               </Badge>
-            </button> : <div className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/30 text-left">
-              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+            </button> : <div className="card-product-embed flex items-center gap-2 w-full text-left opacity-60">
+              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </div>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[13px] text-muted-foreground">
                 Sin producto asignado
               </span>
             </div>}
 
           {/* Metrics Grid - 2x2 */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
+            <div className="metric-box-success">
               <div className="flex items-center gap-1 mb-0.5">
-                <DollarSign className="h-3 w-3 text-emerald-600" />
-                <span className="text-[10px] text-muted-foreground">Ingresos</span>
+                <DollarSign className="h-3.5 w-3.5 text-success" />
+                <span className="text-[11px] text-muted-foreground">Ingresos</span>
               </div>
-              <p className="text-sm font-bold text-emerald-600">
+              <p className="text-sm font-bold text-success">
                 {formatCurrency(video.revenue_mxn)}
               </p>
             </div>
 
-            <div className="p-2 rounded-lg bg-muted">
+            <div className="metric-box-muted">
               <div className="flex items-center gap-1 mb-0.5">
-                <ShoppingCart className="h-3 w-3 text-foreground" />
-                <span className="text-[10px] text-muted-foreground">Ventas</span>
+                <ShoppingCart className="h-3.5 w-3.5 text-foreground" />
+                <span className="text-[11px] text-muted-foreground">Ventas</span>
               </div>
               <p className="text-sm font-bold text-foreground">
                 {formatNumber(video.sales)}
               </p>
             </div>
 
-            <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
+            <div className="metric-box bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
               <div className="flex items-center gap-1 mb-0.5">
-                <DollarSign className="h-3 w-3 text-amber-600" />
-                <span className="text-[10px] text-muted-foreground">Ganancias Est.</span>
+                <DollarSign className="h-3.5 w-3.5 text-amber-600" />
+                <span className="text-[11px] text-muted-foreground">Ganancias Est.</span>
               </div>
               <p className="text-sm font-bold text-amber-600">
                 {formatCurrency(commissionEstimated)}
               </p>
             </div>
 
-            <div className="p-2 rounded-lg bg-muted">
+            <div className="metric-box-muted">
               <div className="flex items-center gap-1 mb-0.5">
-                <Eye className="h-3 w-3 text-foreground" />
-                <span className="text-[10px] text-muted-foreground">Vistas</span>
+                <Eye className="h-3.5 w-3.5 text-foreground" />
+                <span className="text-[11px] text-muted-foreground">Vistas</span>
               </div>
               <p className="text-sm font-bold text-foreground">
                 {formatNumber(video.views)}

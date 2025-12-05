@@ -49,6 +49,12 @@
 - [x] Proceso Maestro (Descargar + Vincular)
 - [x] Estadísticas de vinculación en tiempo real
 
+### 7. DESIGN SYSTEM - Sistema de Diseño Global
+- [x] **Tipografía Global** - Inter (sans) + JetBrains Mono (código)
+- [x] **Sistema de Colores** - Paleta TikTok (rosa/azul) + semánticos
+- [x] **Sistema de Botones** - Primario, Secundario, Destructivo, Link
+- [x] **Sistema de Tarjetas** - Cards globales para video/producto/creador
+
 ---
 
 ## 🔄 PENDIENTE

@@ -77,6 +77,25 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        card: "var(--card-radius)",
+        media: "var(--media-radius)",
+      },
+      spacing: {
+        'card': 'var(--card-padding)',
+        'card-gap': 'var(--card-spacing)',
+      },
+      boxShadow: {
+        'card-hover': 'var(--shadow-card-hover)',
+        'card-active': 'var(--shadow-card-active)',
+      },
+      transitionProperty: {
+        'card': 'box-shadow, transform',
+      },
+      transitionDuration: {
+        'card': '200ms',
+      },
+      transitionTimingFunction: {
+        'card': 'ease-in-out',
       },
       keyframes: {
         "accordion-down": {
