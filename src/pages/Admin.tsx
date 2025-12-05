@@ -98,17 +98,37 @@ const Admin = () => {
 
   const handleSmartMatch = async () => {
     setIsMatching(true);
+    let totalMatched = 0;
+    let complete = false;
+    
     try {
-      const { data, error } = await supabase.functions.invoke("auto-match-videos-products");
+      // Run batches until complete
+      while (!complete) {
+        const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
+          body: { batchSize: 50, offset: 0 }
+        });
 
-      if (error) throw error;
+        if (error) throw error;
+        
+        totalMatched += data.matchedInBatch || 0;
+        complete = data.complete;
+        
+        // Update stats after each batch
+        await loadMatchStats();
+        
+        if (!complete) {
+          toast({
+            title: "Procesando...",
+            description: `${totalMatched} videos vinculados. ${data.remainingUnmatched} restantes.`,
+          });
+        }
+      }
 
       toast({
         title: "Matching completado",
-        description: `${data.matchedCount || 0} videos vinculados, ${data.updatedCount || 0} actualizados.`,
+        description: `${totalMatched} videos vinculados exitosamente.`,
       });
 
-      loadMatchStats();
       loadStats();
     } catch (error: any) {
       toast({
