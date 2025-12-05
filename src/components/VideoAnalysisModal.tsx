@@ -1,12 +1,10 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Heart, Copy, X, ExternalLink, DollarSign, ShoppingCart, Eye, Percent, Check, FileText, BarChart3, Wand2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Copy, X, Check, FileText, BarChart3, Wand2, Loader2 } from "lucide-react";
 
 interface VideoAnalysisModalProps {
   isOpen: boolean;
@@ -16,25 +14,18 @@ interface VideoAnalysisModalProps {
     tiktok_url: string;
     descripcion_video: string;
     creador: string;
-    ingresos_mxn: number;
-    ventas: number;
-    visualizaciones: number;
-    duracion: string;
-    transcripcion_original: string | null;
-    guion_ia: string | null;
-    producto_nombre: string | null;
-    producto_url: string | null;
-    product_id?: string | null;
+    transcripcion_original?: string | null;
+    guion_ia?: string | null;
   };
 }
 
-interface AnalysisResult {
-  transcript: string;
-  analysis: {
-    hook: string;
-    body: string;
-    cta: string;
-  };
+interface Insights {
+  hook: string;
+  body: string;
+  cta: string;
+}
+
+interface Variants {
   hooks: {
     similar: string;
     medium: string;
@@ -43,39 +34,53 @@ interface AnalysisResult {
   full_variant: string;
 }
 
+interface ModalState {
+  loading: boolean;
+  loadingStep: string;
+  transcript: string;
+  insights: Insights | null;
+  variants: Variants | null;
+}
+
 const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps) => {
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [manualTranscription, setManualTranscription] = useState<string>("");
+  const [state, setState] = useState<ModalState>({
+    loading: false,
+    loadingStep: "",
+    transcript: "",
+    insights: null,
+    variants: null,
+  });
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const embedRef = useRef<HTMLDivElement>(null);
+  const hasStartedAnalysis = useRef(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
+  // Reset state when modal closes
   useEffect(() => {
-    const initModal = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from("favorites_videos")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("video_url", video.tiktok_url)
-          .maybeSingle();
-        setIsFavorite(!!data);
-      }
-    };
+    if (!isOpen) {
+      setState({
+        loading: false,
+        loadingStep: "",
+        transcript: "",
+        insights: null,
+        variants: null,
+      });
+      hasStartedAnalysis.current = false;
+    }
+  }, [isOpen]);
 
-    if (isOpen) {
-      initModal();
-      setAnalysisResult(null);
-      setManualTranscription("");
-      
+  // Load TikTok embed script and start auto-analysis
+  useEffect(() => {
+    if (isOpen && !hasStartedAnalysis.current) {
+      // Load TikTok embed
       const script = document.createElement('script');
       script.src = 'https://www.tiktok.com/embed.js';
       script.async = true;
       document.body.appendChild(script);
+
+      // Start automatic analysis
+      hasStartedAnalysis.current = true;
+      startAutomaticAnalysis();
 
       return () => {
         const existingScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
@@ -84,91 +89,115 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
         }
       };
     }
-  }, [isOpen, video.tiktok_url]);
+  }, [isOpen]);
 
-  const handleAnalyze = async () => {
-    const scriptToAnalyze = manualTranscription || video.transcripcion_original || video.guion_ia;
-    
-    if (!scriptToAnalyze) {
-      toast({
-        title: "No hay guión disponible",
-        description: "Ingresa la transcripción del video manualmente.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const startAutomaticAnalysis = async () => {
+    setState(prev => ({ ...prev, loading: true, loadingStep: "Transcribiendo video…" }));
 
-    setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('analyze-full-script', {
-        body: { script: scriptToAnalyze }
-      });
+      // Step 1: Get transcript
+      let transcript = video.transcripcion_original || video.guion_ia || "";
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (!transcript) {
+        // Try to transcribe via edge function
+        const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke('transcribe-video', {
+          body: { tiktokUrl: video.tiktok_url }
+        });
 
-      setAnalysisResult(data);
-      
+        if (transcribeError) {
+          console.error("Transcription error:", transcribeError);
+        }
+
+        if (transcribeData?.transcription) {
+          transcript = transcribeData.transcription;
+        } else if (transcribeData?.requiresManualInput) {
+          // If transcription not available, show message
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            loadingStep: "",
+            transcript: "⚠️ No se pudo transcribir automáticamente. La transcripción del video no está disponible.",
+          }));
+          return;
+        }
+      }
+
+      if (!transcript) {
+        setState(prev => ({
+          ...prev,
+          loading: false,
+          loadingStep: "",
+          transcript: "⚠️ No hay transcripción disponible para este video.",
+        }));
+        return;
+      }
+
+      // Update transcript immediately
+      setState(prev => ({ ...prev, transcript, loadingStep: "Analizando estructura del guión…" }));
+
+      // Step 2: Analyze script (parallel calls)
+      const [insightsResult, variantsResult] = await Promise.all([
+        supabase.functions.invoke('analyze-full-script', {
+          body: { script: transcript }
+        }),
+        supabase.functions.invoke('generate-script-variants', {
+          body: { 
+            originalScript: transcript,
+            videoTitle: video.descripcion_video,
+            numVariants: 1,
+            variantType: "full"
+          }
+        })
+      ]);
+
+      // Process insights
+      let insights: Insights | null = null;
+      if (insightsResult.data && !insightsResult.error) {
+        const data = insightsResult.data;
+        insights = {
+          hook: data.analysis?.hook || data.hook || "",
+          body: data.analysis?.body || data.body || "",
+          cta: data.analysis?.cta || data.cta || "",
+        };
+      }
+
+      // Process variants
+      let variants: Variants | null = null;
+      if (insightsResult.data && !insightsResult.error) {
+        const data = insightsResult.data;
+        variants = {
+          hooks: {
+            similar: data.hooks?.similar || "",
+            medium: data.hooks?.medium || "",
+            different: data.hooks?.different || "",
+          },
+          full_variant: data.full_variant || variantsResult.data?.variant || "",
+        };
+      }
+
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        loadingStep: "",
+        insights,
+        variants,
+      }));
+
       toast({
         title: "✓ Análisis completado",
         description: "El guión ha sido analizado correctamente.",
       });
+
     } catch (error: any) {
-      console.error("Error in analysis:", error);
+      console.error("Analysis error:", error);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        loadingStep: "",
+      }));
       toast({
         title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleToggleFavorite = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      toast({
-        title: "Inicia sesión",
-        description: "Debes iniciar sesión para guardar favoritos",
-      });
-      navigate("/login");
-      return;
-    }
-
-    try {
-      if (isFavorite) {
-        await supabase
-          .from("favorites_videos")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("video_url", video.tiktok_url);
-
-        setIsFavorite(false);
-        toast({ title: "✓ Eliminado de favoritos" });
-      } else {
-        const { data: videoData } = await supabase
-          .from("daily_feed")
-          .select("*")
-          .eq("tiktok_url", video.tiktok_url)
-          .single();
-
-        await supabase
-          .from("favorites_videos")
-          .insert({
-            user_id: user.id,
-            video_url: video.tiktok_url,
-            video_data: videoData,
-          });
-
-        setIsFavorite(true);
-        toast({ title: "✓ Guardado en favoritos" });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
+        description: error.message || "Error al analizar el video",
         variant: "destructive",
       });
     }
@@ -198,298 +227,199 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
   };
 
   const videoId = getVideoId(video.tiktok_url);
-  const existingScript = video.transcripcion_original || video.guion_ia || "";
-
-  const formatCurrency = (num: number) => {
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
-  };
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-    if (num >= 1000) return (num / 1000).toFixed(1) + "k";
-    return new Intl.NumberFormat("es-MX").format(num);
-  };
 
   const CopyButton = ({ text, section }: { text: string; section: string }) => (
     <Button
       size="sm"
       variant="ghost"
       onClick={() => handleCopy(text, section)}
-      className="h-8"
+      className="h-7 w-7 p-0"
     >
       {copiedSection === section ? (
-        <Check className="h-4 w-4 text-green-500" />
+        <Check className="h-3.5 w-3.5 text-green-500" />
       ) : (
-        <Copy className="h-4 w-4" />
+        <Copy className="h-3.5 w-3.5" />
       )}
     </Button>
   );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] p-0 overflow-hidden bg-background">
-        {/* Top Actions */}
-        <div className="absolute top-3 right-3 z-50 flex items-center gap-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={handleToggleFavorite}
-            className={`h-8 w-8 ${isFavorite ? "text-red-500" : ""}`}
-          >
-            <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => window.open(video.tiktok_url, '_blank')}
-            className="h-8 w-8"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
-          <Button size="icon" variant="ghost" onClick={onClose} className="h-8 w-8">
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+      <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden bg-background border-border">
+        {/* Close Button */}
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-50 h-8 w-8"
+        >
+          <X className="h-4 w-4" />
+        </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 h-full overflow-y-auto">
-          {/* Left Side - Video & Metrics */}
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">@{video.creador}</p>
+        {/* Loading Overlay */}
+        {state.loading && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-40 flex flex-col items-center justify-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm font-medium">{state.loadingStep}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
+          {/* Left Side - Video */}
+          <div className="p-6 border-r border-border flex flex-col">
+            <p className="text-sm text-muted-foreground mb-4">@{video.creador}</p>
             
-            {/* Video Player */}
-            <div className="relative w-full max-w-[300px] mx-auto">
-              <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden">
-                {videoId ? (
-                  <div ref={embedRef} className="w-full h-full">
-                    <blockquote
-                      className="tiktok-embed"
-                      cite={video.tiktok_url}
-                      data-video-id={videoId}
-                      style={{ maxWidth: '100%', minWidth: '100%', margin: 0 }}
-                    >
-                      <section></section>
-                    </blockquote>
-                  </div>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <p className="text-sm text-muted-foreground">Cargando video...</p>
-                  </div>
-                )}
+            <div className="flex-1 flex items-start justify-center">
+              <div className="relative w-full max-w-[280px]">
+                <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden">
+                  {videoId ? (
+                    <div ref={embedRef} className="w-full h-full">
+                      <blockquote
+                        className="tiktok-embed"
+                        cite={video.tiktok_url}
+                        data-video-id={videoId}
+                        style={{ maxWidth: '100%', minWidth: '100%', margin: 0 }}
+                      >
+                        <section></section>
+                      </blockquote>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <p className="text-sm text-muted-foreground">Cargando video...</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-
-            {/* Metrics */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSign className="h-4 w-4 text-primary" />
-                  <span className="text-xs text-muted-foreground">Ingresos</span>
-                </div>
-                <p className="text-sm font-bold text-green-600">{formatCurrency(video.ingresos_mxn)}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted">
-                <div className="flex items-center gap-2 mb-1">
-                  <ShoppingCart className="h-4 w-4" />
-                  <span className="text-xs text-muted-foreground">Ventas</span>
-                </div>
-                <p className="text-sm font-bold">{formatNumber(video.ventas)}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted">
-                <div className="flex items-center gap-2 mb-1">
-                  <Eye className="h-4 w-4" />
-                  <span className="text-xs text-muted-foreground">Vistas</span>
-                </div>
-                <p className="text-sm font-bold">{formatNumber(video.visualizaciones)}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-accent/5 border border-accent/10">
-                <div className="flex items-center gap-2 mb-1">
-                  <Percent className="h-4 w-4 text-accent" />
-                  <span className="text-xs text-muted-foreground">Comisión Est.</span>
-                </div>
-                <p className="text-sm font-bold text-accent">{formatCurrency(video.ingresos_mxn * 0.06)}</p>
-              </div>
-            </div>
-
-            {/* Transcription Input (if no existing script) */}
-            {!existingScript && !analysisResult && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  Pega la transcripción del video para analizarlo:
-                </p>
-                <Textarea
-                  placeholder="Pega aquí la transcripción del video..."
-                  value={manualTranscription}
-                  onChange={(e) => setManualTranscription(e.target.value)}
-                  className="min-h-[120px] text-sm"
-                />
-              </div>
-            )}
-
-            {/* Analyze Button */}
-            <Button
-              onClick={handleAnalyze}
-              disabled={isAnalyzing || (!existingScript && !manualTranscription)}
-              size="lg"
-              className="w-full"
-            >
-              {isAnalyzing ? (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
-                  Analizando con GPT-4o-mini...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Analizar guión y replicar
-                </>
-              )}
-            </Button>
           </div>
 
           {/* Right Side - Tabs */}
-          <div className="flex flex-col h-full">
-            <Tabs defaultValue="script" className="flex-1 flex flex-col">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="script" className="gap-2">
-                  <FileText className="h-4 w-4" />
+          <div className="p-6 flex flex-col h-[80vh] overflow-hidden">
+            <Tabs defaultValue="script" className="flex-1 flex flex-col overflow-hidden">
+              <TabsList className="grid w-full grid-cols-3 mb-4">
+                <TabsTrigger value="script" className="gap-1.5 text-xs">
+                  <FileText className="h-3.5 w-3.5" />
                   Script
                 </TabsTrigger>
-                <TabsTrigger value="analysis" className="gap-2">
-                  <BarChart3 className="h-4 w-4" />
+                <TabsTrigger value="analysis" className="gap-1.5 text-xs">
+                  <BarChart3 className="h-3.5 w-3.5" />
                   Análisis
                 </TabsTrigger>
-                <TabsTrigger value="variants" className="gap-2">
-                  <Wand2 className="h-4 w-4" />
+                <TabsTrigger value="variants" className="gap-1.5 text-xs">
+                  <Wand2 className="h-3.5 w-3.5" />
                   Variantes IA
                 </TabsTrigger>
               </TabsList>
 
               {/* TAB 1 - Script */}
-              <TabsContent value="script" className="flex-1 overflow-y-auto mt-4">
+              <TabsContent value="script" className="flex-1 overflow-y-auto">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <h3 className="font-semibold">Transcripción del Video</h3>
-                    {(analysisResult?.transcript || existingScript) && (
-                      <CopyButton 
-                        text={analysisResult?.transcript || existingScript} 
-                        section="transcript" 
-                      />
+                    <h3 className="text-sm font-medium">Transcripción</h3>
+                    {state.transcript && !state.transcript.startsWith("⚠️") && (
+                      <CopyButton text={state.transcript} section="transcript" />
                     )}
                   </div>
                   
-                  {analysisResult?.transcript ? (
-                    <div className="bg-muted p-4 rounded-lg">
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                        {analysisResult.transcript}
-                      </p>
-                    </div>
-                  ) : existingScript ? (
-                    <div className="bg-muted p-4 rounded-lg">
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                        {existingScript}
-                      </p>
+                  {state.transcript ? (
+                    <div className="bg-muted/50 p-4 rounded-lg border border-border">
+                      <pre className="text-sm leading-relaxed whitespace-pre-wrap font-mono">
+                        {state.transcript}
+                      </pre>
                     </div>
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">
-                        {manualTranscription 
-                          ? "Presiona 'Analizar guión y replicar' para procesar"
-                          : "Ingresa la transcripción del video para comenzar"
-                        }
-                      </p>
+                      <FileText className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">Cargando transcripción...</p>
                     </div>
                   )}
                 </div>
               </TabsContent>
 
               {/* TAB 2 - Análisis */}
-              <TabsContent value="analysis" className="flex-1 overflow-y-auto mt-4">
-                {!analysisResult ? (
+              <TabsContent value="analysis" className="flex-1 overflow-y-auto">
+                {!state.insights ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">Analiza el guión para ver la segmentación</p>
+                    <BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Generando análisis...</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* Hook */}
-                    <div className="border rounded-lg p-4 bg-red-500/5 border-red-500/20">
+                    <div className="border border-red-200 dark:border-red-900/30 rounded-lg p-4 bg-red-50/50 dark:bg-red-950/20">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-red-600">🎯 Hook</h4>
-                        <CopyButton text={analysisResult.analysis.hook} section="hook" />
+                        <h4 className="text-sm font-medium text-red-700 dark:text-red-400">🎯 Hook</h4>
+                        {state.insights.hook && <CopyButton text={state.insights.hook} section="hook" />}
                       </div>
-                      <p className="text-sm">{analysisResult.analysis.hook}</p>
+                      <p className="text-sm">{state.insights.hook || "No detectado"}</p>
                     </div>
 
                     {/* Body */}
-                    <div className="border rounded-lg p-4">
+                    <div className="border border-border rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-muted-foreground">📝 Cuerpo</h4>
-                        <CopyButton text={analysisResult.analysis.body} section="body" />
+                        <h4 className="text-sm font-medium text-muted-foreground">📝 Cuerpo</h4>
+                        {state.insights.body && <CopyButton text={state.insights.body} section="body" />}
                       </div>
-                      <p className="text-sm">{analysisResult.analysis.body}</p>
+                      <p className="text-sm">{state.insights.body || "No detectado"}</p>
                     </div>
 
                     {/* CTA */}
-                    <div className="border rounded-lg p-4 bg-green-500/5 border-green-500/20">
+                    <div className="border border-green-200 dark:border-green-900/30 rounded-lg p-4 bg-green-50/50 dark:bg-green-950/20">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-green-600">🛒 CTA</h4>
-                        <CopyButton text={analysisResult.analysis.cta} section="cta" />
+                        <h4 className="text-sm font-medium text-green-700 dark:text-green-400">🛒 CTA</h4>
+                        {state.insights.cta && <CopyButton text={state.insights.cta} section="cta" />}
                       </div>
-                      <p className="text-sm">{analysisResult.analysis.cta}</p>
+                      <p className="text-sm">{state.insights.cta || "No detectado"}</p>
                     </div>
                   </div>
                 )}
               </TabsContent>
 
               {/* TAB 3 - Variantes IA */}
-              <TabsContent value="variants" className="flex-1 overflow-y-auto mt-4">
-                {!analysisResult ? (
+              <TabsContent value="variants" className="flex-1 overflow-y-auto">
+                {!state.variants ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    <Wand2 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">Analiza el guión para generar variantes</p>
+                    <Wand2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Generando variantes...</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {/* Hook 1 - Similar */}
-                    <div className="border rounded-lg p-4 bg-blue-500/5 border-blue-500/20">
+                    <div className="border border-blue-200 dark:border-blue-900/30 rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-blue-600">Hook 1 — Similar</h4>
-                        <CopyButton text={analysisResult.hooks.similar} section="hook1" />
+                        <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400">Hook 1 — Similar</h4>
+                        {state.variants.hooks.similar && <CopyButton text={state.variants.hooks.similar} section="hook1" />}
                       </div>
-                      <p className="text-sm">{analysisResult.hooks.similar}</p>
+                      <p className="text-sm">{state.variants.hooks.similar || "No generado"}</p>
                     </div>
 
                     {/* Hook 2 - Intermedio */}
-                    <div className="border rounded-lg p-4 bg-amber-500/5 border-amber-500/20">
+                    <div className="border border-amber-200 dark:border-amber-900/30 rounded-lg p-4 bg-amber-50/50 dark:bg-amber-950/20">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-amber-600">Hook 2 — Intermedio</h4>
-                        <CopyButton text={analysisResult.hooks.medium} section="hook2" />
+                        <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400">Hook 2 — Intermedio</h4>
+                        {state.variants.hooks.medium && <CopyButton text={state.variants.hooks.medium} section="hook2" />}
                       </div>
-                      <p className="text-sm">{analysisResult.hooks.medium}</p>
+                      <p className="text-sm">{state.variants.hooks.medium || "No generado"}</p>
                     </div>
 
                     {/* Hook 3 - Diferente */}
-                    <div className="border rounded-lg p-4 bg-purple-500/5 border-purple-500/20">
+                    <div className="border border-purple-200 dark:border-purple-900/30 rounded-lg p-4 bg-purple-50/50 dark:bg-purple-950/20">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-purple-600">Hook 3 — Diferente</h4>
-                        <CopyButton text={analysisResult.hooks.different} section="hook3" />
+                        <h4 className="text-sm font-medium text-purple-700 dark:text-purple-400">Hook 3 — Diferente</h4>
+                        {state.variants.hooks.different && <CopyButton text={state.variants.hooks.different} section="hook3" />}
                       </div>
-                      <p className="text-sm">{analysisResult.hooks.different}</p>
+                      <p className="text-sm">{state.variants.hooks.different || "No generado"}</p>
                     </div>
 
                     {/* Full Variant */}
-                    <div className="border-2 rounded-lg p-4 bg-gradient-to-br from-primary/5 to-accent/5">
+                    <div className="border border-border rounded-lg p-4 bg-muted/30">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold">✨ Variación del Guión Completo</h4>
-                        <CopyButton text={analysisResult.full_variant} section="fullVariant" />
+                        <h4 className="text-sm font-medium">✨ Variante Completa</h4>
+                        {state.variants.full_variant && <CopyButton text={state.variants.full_variant} section="fullvariant" />}
                       </div>
-                      <p className="text-sm whitespace-pre-wrap">{analysisResult.full_variant}</p>
+                      <pre className="text-sm whitespace-pre-wrap font-mono">
+                        {state.variants.full_variant || "No generada"}
+                      </pre>
                     </div>
                   </div>
                 )}
