@@ -54,6 +54,7 @@
 - [x] **Sistema de Colores** - Paleta TikTok (rosa/azul) + semánticos
 - [x] **Sistema de Botones** - Primario, Secundario, Destructivo, Link
 - [x] **Sistema de Tarjetas** - Cards globales para video/producto/creador
+- [x] **Sidebar Rediseñado** - Linear/TikTok inspired, 240px width, active states
 
 ---
 
