@@ -6,6 +6,15 @@
 
 ## ✅ COMPLETADO - Diciembre 2024
 
+### 0. INGESTA - Sistema de Importación Kalodata
+- [x] Edge functions usan XLSX (SheetJS) para archivos `.xlsx`
+- [x] Column mapping dinámico para encabezados en español
+- [x] Limpieza de datos: `$`, `%`, `,` → números
+- [x] Orden forzado: Creadores → Productos → Videos
+- [x] UPSERT inteligente por campos únicos
+- [x] Componente `PendingLinks.tsx` para vinculación manual
+- [x] Admin panel con progreso por fases (1/5 → 5/5)
+
 ### 1. CEREBRO - Backend ETL
 - [x] Importaciones incrementales con UPSERT
 - [x] Matching determinista + IA
