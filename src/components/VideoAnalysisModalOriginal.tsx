@@ -3,9 +3,18 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, DollarSign, ShoppingCart, Percent, Eye } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, DollarSign, ShoppingCart, Percent, Eye, FlaskConical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface GeneratedVariant {
+  hook: string;
+  body: string;
+  cta: string;
+}
 
 interface Video {
   id: string;
@@ -69,6 +78,11 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
   const [isFavorite, setIsFavorite] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+  
+  // New state for variant generator controls
+  const [variantCount, setVariantCount] = useState<number>(2);
+  const [changeLevel, setChangeLevel] = useState<'light' | 'medium' | 'aggressive'>('medium');
+  const [generatedVariants, setGeneratedVariants] = useState<GeneratedVariant[]>([]);
 
   // Calculate earning per sale from product data
   const productPrice = video.product?.price || 0;
@@ -232,6 +246,33 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
     const cta = analysis?.cta || '';
     
     return `${hook}\n\n${body}\n\n${cta}`;
+  };
+
+  // Generate variants - placeholder function for Phase 2
+  const generateVariants = () => {
+    console.log('Generating variants with:', { variantCount, changeLevel });
+    setIsGeneratingVariants(true);
+    
+    // In Phase 3, this will call the AI edge function
+    // For now, just show toast and set empty array to show the UI is working
+    toast({
+      title: '🧪 Generando variantes...',
+      description: `${variantCount} variantes con nivel ${changeLevel === 'light' ? 'ligero' : changeLevel === 'medium' ? 'medio' : 'agresivo'}`,
+    });
+
+    // Simulate delay for Phase 3 integration
+    setTimeout(() => {
+      setIsGeneratingVariants(false);
+      // Placeholder: set empty to show "no variants yet" state
+      // In Phase 3, this will receive real AI-generated variants
+      setGeneratedVariants([]);
+    }, 1000);
+  };
+
+  // Copy entire variant to clipboard
+  const copyVariant = (variant: GeneratedVariant, index: number) => {
+    const fullText = `Hook:\n${variant.hook}\n\nCuerpo:\n${variant.body}\n\nCTA:\n${variant.cta}`;
+    handleCopy(fullText, `full-variant-${index}`);
   };
 
   return (
@@ -471,64 +512,137 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
                       </TabsContent>
 
                       {/* Variants Tab */}
-                      <TabsContent value="variants" className="mt-0 space-y-4">
-                        {variants && variants.hooks && variants.hooks.length > 0 ? (
-                          <>
-                            <p className="text-sm text-muted-foreground mb-4">
-                              3 variantes completas del guion, cada una con un hook diferente + cuerpo reescrito + mismo CTA:
+                      <TabsContent value="variants" className="mt-0 h-full flex flex-col">
+                        {/* Control Panel */}
+                        <Card className="p-4 mb-4 bg-muted/30">
+                          <div className="flex items-center gap-2 mb-4">
+                            <FlaskConical className="h-5 w-5 text-primary" />
+                            <h3 className="font-semibold text-base">Generador de Variantes IA</h3>
+                          </div>
+
+                          {/* Quantity Selector */}
+                          <div className="mb-4">
+                            <Label className="text-xs text-muted-foreground mb-2 block">
+                              Cantidad de variantes
+                            </Label>
+                            <div className="flex gap-2">
+                              {[1, 2, 3].map((num) => (
+                                <Button
+                                  key={num}
+                                  size="sm"
+                                  variant={variantCount === num ? 'default' : 'outline'}
+                                  className="w-10 h-9"
+                                  onClick={() => setVariantCount(num)}
+                                >
+                                  {num}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Change Level */}
+                          <div className="mb-4">
+                            <Label className="text-xs text-muted-foreground mb-2 block">
+                              Nivel de cambio
+                            </Label>
+                            <RadioGroup
+                              value={changeLevel}
+                              onValueChange={(v) => setChangeLevel(v as 'light' | 'medium' | 'aggressive')}
+                              className="flex flex-wrap gap-4"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="light" id="light" />
+                                <Label htmlFor="light" className="text-sm cursor-pointer">Ligero</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="medium" id="medium" />
+                                <Label htmlFor="medium" className="text-sm cursor-pointer">Medio</Label>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="aggressive" id="aggressive" />
+                                <Label htmlFor="aggressive" className="text-sm cursor-pointer">Agresivo</Label>
+                              </div>
+                            </RadioGroup>
+                          </div>
+
+                          {/* Generate Button */}
+                          <Button
+                            onClick={generateVariants}
+                            disabled={isGeneratingVariants || !transcript}
+                            className="w-full"
+                          >
+                            {isGeneratingVariants ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Generando...
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                Generar Variantes IA
+                              </>
+                            )}
+                          </Button>
+
+                          {!transcript && (
+                            <p className="text-xs text-muted-foreground mt-2 text-center">
+                              Primero genera la transcripción en la pestaña Script
                             </p>
-                            
-                            {[0, 1, 2].map((index) => {
-                              const completeVariant = buildCompleteVariant(index);
-                              if (!completeVariant) return null;
-                              
-                              return (
+                          )}
+                        </Card>
+
+                        {/* Scrollable Variants Container */}
+                        <ScrollArea className="flex-1 pr-2">
+                          <div className="space-y-3">
+                            {generatedVariants.length > 0 ? (
+                              generatedVariants.map((variant, index) => (
                                 <Card key={index} className="p-4">
                                   <div className="flex items-center justify-between mb-3">
-                                    <h3 className="font-semibold">Variante {index + 1}</h3>
-                                    <CopyButton text={completeVariant} field={`variant-${index}`} />
+                                    <h4 className="font-semibold text-sm">Variante {index + 1}</h4>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 gap-1.5"
+                                      onClick={() => copyVariant(variant, index)}
+                                    >
+                                      {copiedField === `full-variant-${index}` ? (
+                                        <Check className="h-3.5 w-3.5 text-green-500" />
+                                      ) : (
+                                        <Copy className="h-3.5 w-3.5" />
+                                      )}
+                                      Copiar
+                                    </Button>
                                   </div>
-                                  
+
                                   {/* Hook */}
-                                  <div className="mb-3 p-3 bg-primary/5 rounded-lg border-l-4 border-l-primary">
-                                    <span className="text-xs font-medium text-primary mb-1 block">🎣 Hook {index + 1}</span>
-                                    <p className="text-sm">{variants.hooks[index]}</p>
+                                  <div className="mb-2 p-2.5 bg-primary/5 rounded-lg border-l-4 border-l-primary">
+                                    <span className="text-xs font-medium text-primary mb-1 block">🎣 Hook</span>
+                                    <p className="text-sm">{variant.hook}</p>
                                   </div>
-                                  
+
                                   {/* Body */}
-                                  <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border-l-4 border-l-blue-500">
+                                  <div className="mb-2 p-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-lg border-l-4 border-l-blue-500">
                                     <span className="text-xs font-medium text-blue-600 mb-1 block">📝 Cuerpo</span>
-                                    <p className="text-sm">{variants.body_variant || analysis?.body}</p>
+                                    <p className="text-sm">{variant.body}</p>
                                   </div>
-                                  
+
                                   {/* CTA */}
-                                  {analysis?.cta && (
-                                    <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border-l-4 border-l-green-500">
-                                      <span className="text-xs font-medium text-green-600 mb-1 block">🎯 CTA</span>
-                                      <p className="text-sm">{analysis.cta}</p>
-                                    </div>
-                                  )}
+                                  <div className="p-2.5 bg-green-50 dark:bg-green-950/30 rounded-lg border-l-4 border-l-green-500">
+                                    <span className="text-xs font-medium text-green-600 mb-1 block">🎯 CTA</span>
+                                    <p className="text-sm">{variant.cta}</p>
+                                  </div>
                                 </Card>
-                              );
-                            })}
-                          </>
-                        ) : (
-                          <div className="text-center py-8">
-                            <p className="text-muted-foreground mb-4">
-                              {transcript ? 'Las variantes se generan automáticamente al procesar el video' : 'Primero necesitas generar la transcripción'}
-                            </p>
-                            <Button onClick={processVideo} disabled={isProcessing || isGeneratingVariants}>
-                              {isGeneratingVariants ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Generando...
-                                </>
-                              ) : (
-                                'Generar variantes IA'
-                              )}
-                            </Button>
+                              ))
+                            ) : (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <Wand2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                                <p className="text-sm">
+                                  Las variantes aparecerán aquí después de generarlas
+                                </p>
+                              </div>
+                            )}
                           </div>
-                        )}
+                        </ScrollArea>
                       </TabsContent>
                     </>
                   )}
