@@ -5,6 +5,7 @@ interface UseTranscriptionPollingResult {
   isPolling: boolean;
   transcript: string | null;
   error: string | null;
+  status: 'idle' | 'starting' | 'extracting' | 'transcribing' | 'completed' | 'error';
   startTranscription: (videoId: string, tiktokUrl: string) => Promise<boolean>;
   reset: () => void;
 }
@@ -13,6 +14,7 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
   const [isPolling, setIsPolling] = useState(false);
   const [transcript, setTranscript] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'idle' | 'starting' | 'extracting' | 'transcribing' | 'completed' | 'error'>('idle');
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const abortRef = useRef(false);
 
@@ -20,6 +22,7 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
     setIsPolling(false);
     setTranscript(null);
     setError(null);
+    setStatus('idle');
     abortRef.current = true;
     if (pollingRef.current) {
       clearTimeout(pollingRef.current);
@@ -46,6 +49,7 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
     setIsPolling(true);
     setError(null);
     setTranscript(null);
+    setStatus('starting');
     abortRef.current = false;
 
     try {
@@ -55,11 +59,14 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
         console.log("Transcript already exists, skipping transcription");
         setTranscript(existingTranscript);
         setIsPolling(false);
+        setStatus('completed');
         return true;
       }
 
       // Trigger transcription edge function
       console.log("Starting transcription for:", tiktokUrl);
+      setStatus('extracting');
+      
       const { data, error: transcribeError } = await supabase.functions.invoke("transcribe-video", {
         body: { tiktokUrl, videoId }
       });
@@ -68,21 +75,24 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
         console.error("Transcription error:", transcribeError);
         setError("Error al iniciar la transcripción");
         setIsPolling(false);
+        setStatus('error');
         return false;
       }
 
-      // If immediate transcription returned
-      if (data?.transcription) {
+      // If immediate transcription returned (already existed)
+      if (data?.status === 'completed' && data?.transcription) {
         console.log("Got immediate transcription");
         setTranscript(data.transcription);
         setIsPolling(false);
+        setStatus('completed');
         return true;
       }
 
       // Otherwise, poll the database
       console.log("Polling for transcript...");
+      setStatus('transcribing');
       let attempts = 0;
-      const maxAttempts = 30; // 60 seconds max
+      const maxAttempts = 60; // 2 minutes max (2 seconds * 60)
 
       return new Promise((resolve) => {
         const poll = async () => {
@@ -98,18 +108,21 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
             console.log("Transcript found after", attempts, "attempts");
             setTranscript(transcript);
             setIsPolling(false);
+            setStatus('completed');
             resolve(true);
             return;
           }
 
           if (attempts >= maxAttempts) {
             console.log("Polling timeout reached");
-            setError("Tiempo de espera agotado. Intenta de nuevo.");
+            setError("Tiempo de espera agotado. El video puede ser muy largo o no estar disponible.");
             setIsPolling(false);
+            setStatus('error');
             resolve(false);
             return;
           }
 
+          // Poll every 2 seconds
           pollingRef.current = setTimeout(poll, 2000);
         };
 
@@ -119,6 +132,7 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
       console.error("Transcription error:", err);
       setError(err.message || "Error desconocido");
       setIsPolling(false);
+      setStatus('error');
       return false;
     }
   }, [pollForTranscript]);
@@ -127,6 +141,7 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
     isPolling,
     transcript,
     error,
+    status,
     startTranscription,
     reset,
   };

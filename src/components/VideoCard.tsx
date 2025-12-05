@@ -53,7 +53,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const { isPolling, transcript, error, startTranscription, reset } = useTranscriptionPolling();
+  const { isPolling, transcript, error, status, startTranscription, reset } = useTranscriptionPolling();
 
   useEffect(() => {
     // Load TikTok embed script
@@ -276,9 +276,16 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
 
           {/* Loading Overlay when transcribing */}
           {isPolling && (
-            <div className="absolute inset-0 z-30 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
+            <div className="absolute inset-0 z-30 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm font-medium text-center px-4">Transcribiendo video...</p>
+              <p className="text-sm font-medium text-center px-4">
+                {status === 'starting' && 'Iniciando...'}
+                {status === 'extracting' && 'Extrayendo audio del video...'}
+                {status === 'transcribing' && 'Transcribiendo con IA...'}
+              </p>
+              <p className="text-xs text-muted-foreground text-center px-4">
+                Esto puede tomar hasta 30 segundos
+              </p>
             </div>
           )}
 
@@ -377,7 +384,9 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             {isPolling ? (
               <>
                 <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-                Transcribiendo...
+                {status === 'extracting' ? 'Extrayendo audio...' : 
+                 status === 'transcribing' ? 'Transcribiendo...' : 
+                 'Procesando...'}
               </>
             ) : (
               <>
