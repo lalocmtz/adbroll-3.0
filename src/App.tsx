@@ -21,6 +21,8 @@ import Settings from "./pages/Settings";
 import Support from "./pages/Support";
 import Admin from "./pages/Admin";
 import RelatedVideos from "./pages/RelatedVideos";
+import Opportunities from "./pages/Opportunities";
+import Affiliates from "./pages/Affiliates";
 import FAQ from "./pages/FAQ";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -172,6 +174,22 @@ const App = () => {
                 element={
                   <ProtectedRoute session={session}>
                     <RelatedVideos />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/opportunities"
+                element={
+                  <ProtectedRoute session={session}>
+                    <Opportunities />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/affiliates"
+                element={
+                  <ProtectedRoute session={session}>
+                    <Affiliates />
                   </ProtectedRoute>
                 }
               />

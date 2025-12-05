@@ -24,6 +24,8 @@ import {
   ChevronRight,
   Sparkles,
   X,
+  Gem,
+  DollarSign,
 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -36,10 +38,19 @@ const navItems = [
   { to: "/app", label: "videos", icon: Video },
   { to: "/products", label: "products", icon: Package },
   { to: "/creadores", label: "creators", icon: Users },
+  { to: "/opportunities", label: "opportunities", icon: Gem },
   { to: "/favorites", label: "favorites", icon: Heart },
   { to: "/tools", label: "tools", icon: Wrench },
+  { to: "/affiliates", label: "affiliates", icon: DollarSign, subtitle: "gana dinero hoy" },
   { to: "/settings", label: "settings", icon: Settings },
 ];
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  subtitle?: string;
+}
 
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   const { t, language } = useLanguage();
@@ -128,7 +139,14 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
               }
             >
               <item.icon className="h-5 w-5" />
-              <span>{t(item.label)}</span>
+              <div className="flex flex-col">
+                <span>{t(item.label)}</span>
+                {item.subtitle && (
+                  <span className="text-[10px] text-green-600 font-normal -mt-0.5">
+                    {language === "es" ? "💰 gana dinero hoy" : "💰 earn money today"}
+                  </span>
+                )}
+              </div>
             </NavLink>
           ))}
         </nav>
