@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.analyze-full-script]
 verify_jwt = false
+
+[functions.download-tiktok-video]
+verify_jwt = false
+
+[functions.transcribe-and-analyze]
+verify_jwt = false

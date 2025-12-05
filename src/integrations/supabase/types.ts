@@ -629,12 +629,15 @@ export type Database = {
       }
       videos: {
         Row: {
+          analysis_json: Json | null
           category: string | null
           country: string | null
           creator_handle: string | null
           creator_name: string | null
+          duration: number | null
           id: string
           imported_at: string | null
+          processing_status: string | null
           product_id: string | null
           product_name: string | null
           product_price: number | null
@@ -644,17 +647,24 @@ export type Database = {
           revenue_mxn: number | null
           roas: number | null
           sales: number | null
+          thumbnail_url: string | null
           title: string | null
+          transcript: string | null
+          variants_json: Json | null
+          video_mp4_url: string | null
           video_url: string
           views: number | null
         }
         Insert: {
+          analysis_json?: Json | null
           category?: string | null
           country?: string | null
           creator_handle?: string | null
           creator_name?: string | null
+          duration?: number | null
           id?: string
           imported_at?: string | null
+          processing_status?: string | null
           product_id?: string | null
           product_name?: string | null
           product_price?: number | null
@@ -664,17 +674,24 @@ export type Database = {
           revenue_mxn?: number | null
           roas?: number | null
           sales?: number | null
+          thumbnail_url?: string | null
           title?: string | null
+          transcript?: string | null
+          variants_json?: Json | null
+          video_mp4_url?: string | null
           video_url: string
           views?: number | null
         }
         Update: {
+          analysis_json?: Json | null
           category?: string | null
           country?: string | null
           creator_handle?: string | null
           creator_name?: string | null
+          duration?: number | null
           id?: string
           imported_at?: string | null
+          processing_status?: string | null
           product_id?: string | null
           product_name?: string | null
           product_price?: number | null
@@ -684,7 +701,11 @@ export type Database = {
           revenue_mxn?: number | null
           roas?: number | null
           sales?: number | null
+          thumbnail_url?: string | null
           title?: string | null
+          transcript?: string | null
+          variants_json?: Json | null
+          video_mp4_url?: string | null
           video_url?: string
           views?: number | null
         }

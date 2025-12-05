@@ -25,20 +25,58 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 
 ---
 
+## 🆕 NUEVA ARQUITECTURA MP4 - Diciembre 2024
+
+### Cambio de arquitectura: URLs TikTok → Videos MP4 reales
+
+- [x] Migración de base de datos con nuevas columnas:
+  - `video_mp4_url` - URL del video en Supabase Storage
+  - `thumbnail_url` - URL del thumbnail
+  - `duration` - Duración del video
+  - `transcript` - Transcripción del audio
+  - `analysis_json` - Análisis estructurado (hook/body/cta)
+  - `variants_json` - Variantes IA generadas
+  - `processing_status` - Estado del procesamiento
+
+- [x] Storage buckets creados:
+  - `/videos/*` - Videos MP4 públicos
+  - `/thumbnails/*` - Thumbnails públicos
+
+- [x] Edge functions nuevas:
+  - `download-tiktok-video` - Descarga MP4 via RapidAPI TikTok Downloader
+  - `transcribe-and-analyze` - Transcribe con AssemblyAI + analiza con OpenAI
+
+- [x] Nuevo frontend estilo ViralViews:
+  - `VideoCardNew.tsx` - Tarjetas con hover-autoplay
+  - `VideoAnalysisModalNew.tsx` - Modal con 3 pestañas (Script, Análisis, Variantes)
+  - `useAnalyzeVideo.ts` - Hook para manejo del flujo completo
+
+### Flujo nuevo:
+1. Usuario hace click en "Analizar guión"
+2. Si no hay MP4 → descarga via RapidAPI → guarda en Storage
+3. Transcribe con AssemblyAI
+4. Analiza con OpenAI (hook/body/cta + variantes)
+5. Muestra resultados en modal
+
+### API Keys requeridas:
+- `RAPIDAPI_KEY` - Para descargar videos de TikTok
+- `ASSEMBLYAI_API_KEY` - Para transcripción de audio
+- `OPENAI_API_KEY` - Para análisis y generación de variantes
+
+---
+
 ## 📺 SECCIÓN VIDEOS - COMPLETADO
 
 - [x] Mostrar 100 videos ordenados por ingresos (desc)
-- [x] Tarjetas con: Miniatura, Rank, Ingresos, Ventas, Vistas, Comisión
+- [x] Tarjetas con hover-autoplay de videos MP4
+- [x] Overlay con métricas al hacer hover
 - [x] Filtros por categoría
 - [x] Ordenamiento por ingresos/ventas
 - [x] Paginación funcional
 - [x] Modal de análisis con 3 pestañas:
-  - Script (transcripción línea por línea)
-  - Analizar (insights del guión con IA)
-  - Variante IA (generar variantes)
-- [x] Caption truncado (primeras 20-25 palabras)
-- [x] Botón "Analizar guion y replicar"
-- [x] Hover scale en tarjetas
+  - Script (transcripción completa)
+  - Análisis (Hook, Cuerpo, CTA)
+  - Variantes IA (3 hooks + variante del cuerpo)
 
 ---
 
@@ -47,27 +85,15 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 - [x] Mostrar Top 20 productos
 - [x] Cada tarjeta muestra: Imagen, Nombre, Precio, Comisión %, Categoría
 - [x] Link al producto externo
-- [x] CRUD manual (solo founder):
-  - Agregar producto
-  - Editar producto
-  - Eliminar producto
+- [x] CRUD manual (solo founder)
 
 ---
 
 ## 👤 SECCIÓN CREADORES - COMPLETADO
 
 - [x] Mostrar Top 50 creadores importados
-- [x] Cada tarjeta muestra:
-  - Foto de perfil real (con fallback ui-avatars)
-  - Nombre y @username
-  - Ranking dinámico según filtro
-  - Métricas Fila 1: Ingresos 30D, Seguidores, Views 30D
-  - Métricas Fila 2: Ventas 30D, Comisión estimada (10%)
-  - Botón "Ver perfil" → abre TikTok
-- [x] Sistema de filtros con 4 píldoras (sin buscador):
-  - Más ingresos, Más seguidores, Más views, Más ventas
-- [x] Ordenamiento instantáneo client-side
-- [x] Números formateados (1.2M, 91.2K, etc.)
+- [x] Sistema de filtros
+- [x] Ordenamiento instantáneo
 
 ---
 
@@ -75,66 +101,16 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 
 - [x] Ruta oculta: `/admin/import`
 - [x] Solo accesible por usuarios con rol "founder"
-- [x] Importación de 3 archivos:
-  - videos.xlsx
-  - productos.xlsx
-  - creadores.xlsx
-- [x] Cada importación:
-  - Borra registros actuales
-  - Valida columnas
-  - Inserta todos los registros
-- [x] Estadísticas en tiempo real
+- [x] Importación de 3 archivos
 
 ---
 
 ## 🔌 FUNCIONALIDAD IA - COMPLETADO
 
-- [x] Transcripción automática con Lovable AI
-- [x] Análisis de secciones del guión (Hook, Problema, Beneficio, Demostración, CTA)
-- [x] Análisis de insights del guión
-- [x] Generación de variantes IA con producto seleccionable
-- [x] Manejo de errores 429/402 en edge functions
-
----
-
-## 🚫 ELEMENTOS REMOVIDOS
-
-- [x] ~~Dashboard~~ (renombrado a Videos)
-- [x] ~~Oportunidades~~
-- [x] ~~Favoritos~~
-- [x] ~~Afiliados~~
-- [x] ~~Top 5 rankings parciales~~
-- [x] ~~Captions completos~~ (truncados a 20-25 palabras)
-
----
-
-## 💅 UI/UX - COMPLETADO
-
-- [x] Zoom hover en videos
-- [x] Tarjetas minimalistas
-- [x] Filtros laterales
-- [x] Modales claros para Script/IA
-- [x] Responsivo (desktop y móvil)
-
----
-
-## 🧪 ESTADO DEL MVP
-
-✅ **Function-first** - Todo funciona
-✅ **Sin pantallas incompletas** - Todas las vistas están completas
-✅ **Sin funcionalidades rotas** - IA, importación, filtros funcionan
-✅ **Independiente de datos externos** - Solo depende de importaciones
-
----
-
-## 📦 PRÓXIMOS PASOS (Fase 2)
-
-- [ ] Mejorar UI/UX general
-- [ ] Agregar favoritos opcionales
-- [ ] Integrar Stripe para suscripciones
-- [ ] Dashboard con métricas agregadas
-- [ ] Exportación de datos
-- [ ] Notificaciones de nuevos videos
+- [x] Transcripción automática con AssemblyAI
+- [x] Análisis de secciones (Hook, Cuerpo, CTA) con OpenAI
+- [x] Generación de variantes IA
+- [x] Sistema de caché (si ya existe transcript, no re-procesa)
 
 ---
 
@@ -142,26 +118,27 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 
 ```
 src/
-├── App.tsx                    # Rutas principales
+├── App.tsx
 ├── components/
-│   ├── DashboardNav.tsx       # Menú: Videos, Productos, Creadores
-│   ├── VideoCard.tsx          # Tarjeta de video con métricas
-│   ├── VideoAnalysisModal.tsx # Modal 3 pestañas (Script, Analizar, Variante)
-│   └── ProductCard.tsx        # Tarjeta de producto
+│   ├── DashboardNav.tsx
+│   ├── VideoCardNew.tsx          # Nueva tarjeta con hover-autoplay
+│   ├── VideoAnalysisModalNew.tsx # Nuevo modal de análisis
+│   └── ProductCard.tsx
+├── hooks/
+│   └── useAnalyzeVideo.ts        # Hook para flujo de análisis
 ├── pages/
-│   ├── Dashboard.tsx          # /app - Videos
-│   ├── Products.tsx           # /products - Productos con CRUD
-│   ├── Creators.tsx           # /creadores - Creadores
-│   └── Admin.tsx              # /admin/import - Panel importación
+│   ├── Dashboard.tsx             # /app - Videos
+│   ├── Products.tsx
+│   ├── Creators.tsx
+│   └── Admin.tsx
 supabase/
 └── functions/
-    ├── analyze-script-sections/  # IA: analiza secciones
-    ├── analyze-script-insights/  # IA: genera insights
-    ├── generate-script-variants/ # IA: genera variantes
-    └── transcribe-video/         # IA: transcribe videos
+    ├── download-tiktok-video/    # Descarga MP4 via RapidAPI
+    ├── transcribe-and-analyze/   # AssemblyAI + OpenAI
+    └── ...
 ```
 
 ---
 
 **Última actualización:** Diciembre 2024
-**Estado:** MVP 100% Funcional
+**Estado:** MVP 100% Funcional con arquitectura MP4
