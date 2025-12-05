@@ -7,16 +7,66 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface CreatorRow {
-  "Usuario del creador": string;
-  "Nombre completo"?: string;
-  "Seguidores"?: number;
-  "Total Videos": number;
-  "Total Ventas": number;
-  "Total Ingresos (M$)": number;
-  "Promedio Visualizaciones"?: number;
-  "Promedio ROAS"?: number;
-  "Mejor Video URL"?: string;
+// Dynamic column mapping for Kalodata creator files
+const COLUMN_MAPPINGS: Record<string, string[]> = {
+  creator_name: ["creator name", "nombre del creador", "creator", "nombre", "name", "nombre completo"],
+  username: ["username", "handle", "usuario", "usuario del creador", "@", "creator handle", "tiktok handle"],
+  profile_image: ["profile image", "profile image url", "imagen", "avatar", "foto", "image url", "profile pic"],
+  followers: ["followers", "seguidores", "follower count", "total followers"],
+  revenue: ["revenue", "ingresos", "ingresos totales", "total revenue", "gmv", "total ingresos", "ingresos(m$)", "total ingresos (m$)"],
+  views: ["views", "vistas", "content views", "total views", "vistas de contenido", "visualizaciones", "video views"],
+  sales: ["sales", "ventas", "items sold", "artículos vendidos", "total ventas", "orders", "total orders"],
+  conversion_rate: ["conversion rate", "tasa de conversión", "tasa conversión", "creator conversion", "conversion", "tasa de conversión del creador"],
+  tiktok_url: ["tiktok url", "url", "profile url", "enlace", "link", "creator url", "tiktok link"],
+  country: ["country", "país", "region", "location"],
+  videos_count: ["videos", "total videos", "video count", "cantidad de videos"],
+};
+
+// Find matching column value dynamically
+function findColumnValue(row: Record<string, any>, fieldName: string): any {
+  const possibleNames = COLUMN_MAPPINGS[fieldName] || [];
+  
+  // Exact match first (case-insensitive)
+  for (const colName of possibleNames) {
+    for (const key of Object.keys(row)) {
+      if (key.toLowerCase().trim() === colName.toLowerCase()) {
+        return row[key];
+      }
+    }
+  }
+  
+  // Partial match
+  for (const colName of possibleNames) {
+    for (const key of Object.keys(row)) {
+      if (key.toLowerCase().includes(colName.toLowerCase()) || 
+          colName.toLowerCase().includes(key.toLowerCase())) {
+        return row[key];
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Parse numeric values safely
+function parseNumericValue(value: any): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") return value;
+  
+  const str = String(value).replace(/[$,MXN\s%]/gi, "").trim();
+  
+  // Handle ranges
+  if (str.includes("-") && !str.startsWith("-")) {
+    const parts = str.split("-");
+    const num1 = parseFloat(parts[0]);
+    const num2 = parseFloat(parts[1]);
+    if (!isNaN(num1) && !isNaN(num2)) {
+      return (num1 + num2) / 2;
+    }
+  }
+  
+  const num = parseFloat(str);
+  return isNaN(num) ? null : num;
 }
 
 serve(async (req) => {
@@ -61,7 +111,7 @@ serve(async (req) => {
 
     console.log("Rol de fundador verificado");
 
-    // Create service role client for database operations (bypasses RLS)
+    // Create service role client for database operations
     const supabaseServiceClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -80,113 +130,93 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array" });
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows: CreatorRow[] = XLSX.utils.sheet_to_json(worksheet);
+    const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet);
 
-    console.log(`Procesando ${rows.length} creadores del Excel`);
-
-    // Sort by total revenue and take top entries
-    const topCreators = rows
-      .sort((a, b) => b["Total Ingresos (M$)"] - a["Total Ingresos (M$)"])
-      .slice(0, 100); // Top 100 creadores
-
-    console.log(`Top ${topCreators.length} creadores seleccionados, iniciando UPSERT...`);
-
-    // Map and validate rows with ROAS parsing
-    const validRows = topCreators.map((row) => {
-      // Parse ROAS - handle percentages and ranges
-      let parsedRoas: number | null = null;
-      const roasValue = row["Promedio ROAS"];
-      
-      if (roasValue !== null && roasValue !== undefined) {
-        const roasStr = String(roasValue);
-        // Remove % if present and handle ranges
-        let cleanValue = roasStr.replace("%", "").trim();
-        if (cleanValue.includes("-")) {
-          const parts = cleanValue.split("-");
-          const num1 = parseFloat(parts[0]);
-          const num2 = parseFloat(parts[1]);
-          if (!isNaN(num1) && !isNaN(num2)) {
-            parsedRoas = (num1 + num2) / 2;
-          }
-        } else {
-          const num = parseFloat(cleanValue);
-          if (!isNaN(num)) {
-            parsedRoas = num;
-          }
-        }
-      }
-
-      return {
-        usuario_creador: row["Usuario del creador"],
-        nombre_completo: row["Nombre completo"] || null,
-        seguidores: row["Seguidores"] || null,
-        total_videos: row["Total Videos"] || 0,
-        total_ventas: row["Total Ventas"] || 0,
-        total_ingresos_mxn: row["Total Ingresos (M$)"] || 0,
-        promedio_visualizaciones: row["Promedio Visualizaciones"] || null,
-        promedio_roas: parsedRoas,
-        mejor_video_url: row["Mejor Video URL"] || null,
-      };
-    });
-
-    console.log(`Procesando ${validRows.length} creadores con UPSERT...`);
-
-    // UPSERT creators one by one based on creator_handle
-    let insertedCount = 0;
-    let updatedCount = 0;
-
-    for (const creator of validRows) {
-      // Check if creator exists by usuario_creador (handle)
-      const { data: existing } = await supabaseServiceClient
-        .from("creators")
-        .select("id")
-        .eq("usuario_creador", creator.usuario_creador)
-        .maybeSingle();
-
-      if (existing) {
-        // UPDATE: update metrics only
-        const { error: updateError } = await supabaseServiceClient
-          .from("creators")
-          .update({
-            seguidores: creator.seguidores,
-            total_ingresos_mxn: creator.total_ingresos_mxn,
-            total_ventas: creator.total_ventas,
-            total_videos: creator.total_videos,
-            promedio_visualizaciones: creator.promedio_visualizaciones,
-            promedio_roas: creator.promedio_roas,
-            mejor_video_url: creator.mejor_video_url,
-          })
-          .eq("id", existing.id);
-
-        if (updateError) {
-          console.error(`Error updating creator ${creator.usuario_creador}:`, updateError);
-        } else {
-          updatedCount++;
-        }
-      } else {
-        // INSERT: new creator
-        const { error: insertError } = await supabaseServiceClient
-          .from("creators")
-          .insert(creator);
-
-        if (insertError) {
-          console.error(`Error inserting creator ${creator.usuario_creador}:`, insertError);
-        } else {
-          insertedCount++;
-        }
-      }
+    console.log(`Procesando ${rows.length} filas del Excel`);
+    
+    if (rows.length > 0) {
+      console.log("Columnas detectadas:", Object.keys(rows[0]));
     }
 
-    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
+    // Process each row with dynamic column detection
+    const processedCreators = rows.map((row, index) => {
+      const creatorName = findColumnValue(row, "creator_name");
+      const username = findColumnValue(row, "username");
+      const profileImage = findColumnValue(row, "profile_image");
+      const followers = parseNumericValue(findColumnValue(row, "followers"));
+      const revenue = parseNumericValue(findColumnValue(row, "revenue"));
+      const views = parseNumericValue(findColumnValue(row, "views"));
+      const sales = parseNumericValue(findColumnValue(row, "sales"));
+      const conversionRate = parseNumericValue(findColumnValue(row, "conversion_rate"));
+      const tiktokUrl = findColumnValue(row, "tiktok_url");
+      const country = findColumnValue(row, "country");
+      const videosCount = parseNumericValue(findColumnValue(row, "videos_count"));
+
+      // Username is required - try to extract from name if not available
+      const finalUsername = username || creatorName || `creator_${index + 1}`;
+
+      return {
+        usuario_creador: String(finalUsername).replace("@", "").trim(),
+        nombre_completo: creatorName ? String(creatorName).trim() : null,
+        creator_handle: String(finalUsername).replace("@", "").trim(),
+        seguidores: followers ? Math.round(followers) : null,
+        total_ingresos_mxn: revenue || 0,
+        total_ventas: sales ? Math.round(sales) : 0,
+        total_videos: videosCount ? Math.round(videosCount) : 0,
+        promedio_visualizaciones: views ? Math.round(views) : null,
+        promedio_roas: conversionRate, // Store conversion rate here (reusing field)
+        mejor_video_url: tiktokUrl ? String(tiktokUrl).trim() : null,
+        country: country ? String(country).trim() : null,
+      };
+    }).filter(c => c.usuario_creador && c.usuario_creador !== "creator_0");
+
+    console.log(`Creadores procesados: ${processedCreators.length}`);
+
+    // Sort by revenue descending and take Top 50
+    const sortedCreators = processedCreators.sort((a, b) => {
+      return (b.total_ingresos_mxn || 0) - (a.total_ingresos_mxn || 0);
+    });
+
+    const top50Creators = sortedCreators.slice(0, 50);
+    console.log(`Top 50 creadores seleccionados`);
+
+    // Delete ALL existing creators
+    console.log("Eliminando creadores anteriores...");
+    const { error: deleteError } = await supabaseServiceClient
+      .from("creators")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+
+    if (deleteError) {
+      console.error("Error deleting creators:", deleteError);
+    } else {
+      console.log("Creadores anteriores eliminados");
+    }
+
+    // Insert new creators
+    console.log(`Insertando ${top50Creators.length} creadores...`);
+    if (top50Creators.length > 0) {
+      console.log("Ejemplo creador:", JSON.stringify(top50Creators[0], null, 2));
+    }
+
+    const { data: insertedData, error: insertError } = await supabaseServiceClient
+      .from("creators")
+      .insert(top50Creators)
+      .select();
+
+    if (insertError) {
+      console.error("Error inserting creators:", insertError);
+      throw new Error(`Error al insertar creadores: ${insertError.message}`);
+    }
+
+    console.log(`${insertedData?.length || 0} creadores insertados exitosamente`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        inserted: insertedCount,
-        updated: updatedCount,
-        processed: insertedCount + updatedCount,
-        total: validRows.length,
-        message: `Successfully processed ${insertedCount + updatedCount} creators: ${insertedCount} new, ${updatedCount} updated.`,
+        processed: top50Creators.length,
+        total: rows.length,
+        message: `Se importaron los Top ${top50Creators.length} creadores de ${rows.length} filas.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
