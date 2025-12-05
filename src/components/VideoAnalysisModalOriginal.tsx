@@ -14,6 +14,7 @@ interface GeneratedVariant {
   hook: string;
   body: string;
   cta: string;
+  strategy_note?: string;
 }
 
 interface Video {
@@ -248,25 +249,52 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
     return `${hook}\n\n${body}\n\n${cta}`;
   };
 
-  // Generate variants - placeholder function for Phase 2
-  const generateVariants = () => {
+  // Generate variants using AI edge function
+  const generateVariants = async () => {
     console.log('Generating variants with:', { variantCount, changeLevel });
     setIsGeneratingVariants(true);
+    setGeneratedVariants([]);
     
-    // In Phase 3, this will call the AI edge function
-    // For now, just show toast and set empty array to show the UI is working
-    toast({
-      title: '🧪 Generando variantes...',
-      description: `${variantCount} variantes con nivel ${changeLevel === 'light' ? 'ligero' : changeLevel === 'medium' ? 'medio' : 'agresivo'}`,
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-script-variants', {
+        body: {
+          transcript,
+          analysis,
+          product: video.product,
+          variantCount,
+          changeLevel
+        }
+      });
 
-    // Simulate delay for Phase 3 integration
-    setTimeout(() => {
+      if (error) throw error;
+      
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.variants && data.variants.length > 0) {
+        setGeneratedVariants(data.variants);
+        toast({
+          title: '✅ Variantes generadas',
+          description: `${data.variants.length} variante(s) lista(s) para usar`,
+        });
+      } else {
+        toast({
+          title: '⚠️ Sin resultados',
+          description: 'No se pudieron generar variantes. Intenta de nuevo.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error generating variants:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Error al generar variantes',
+        variant: 'destructive'
+      });
+    } finally {
       setIsGeneratingVariants(false);
-      // Placeholder: set empty to show "no variants yet" state
-      // In Phase 3, this will receive real AI-generated variants
-      setGeneratedVariants([]);
-    }, 1000);
+    }
   };
 
   // Copy entire variant to clipboard
@@ -627,10 +655,18 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
                                   </div>
 
                                   {/* CTA */}
-                                  <div className="p-2.5 bg-green-50 dark:bg-green-950/30 rounded-lg border-l-4 border-l-green-500">
+                                  <div className="mb-2 p-2.5 bg-green-50 dark:bg-green-950/30 rounded-lg border-l-4 border-l-green-500">
                                     <span className="text-xs font-medium text-green-600 mb-1 block">🎯 CTA</span>
                                     <p className="text-sm">{variant.cta}</p>
                                   </div>
+
+                                  {/* Strategy Note */}
+                                  {variant.strategy_note && (
+                                    <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-lg border-l-4 border-l-amber-500">
+                                      <span className="text-xs font-medium text-amber-600 mb-1 block">💡 Estrategia</span>
+                                      <p className="text-xs text-muted-foreground">{variant.strategy_note}</p>
+                                    </div>
+                                  )}
                                 </Card>
                               ))
                             ) : (
