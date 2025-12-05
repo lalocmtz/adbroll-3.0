@@ -2,12 +2,16 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
+// Declare EdgeRuntime for background tasks
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<any>) => void;
+} | undefined;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Dynamic column mapping for Kalodata LIST_CREATOR files
 const COLUMN_MAPPINGS: Record<string, string[]> = {
   creator_name: ["nombre del creador", "creator name", "creator", "nombre", "name", "nombre completo", "nickname"],
   username: ["usuario del creador", "username", "handle", "usuario", "@", "creator handle", "tiktok handle"],
@@ -23,7 +27,6 @@ const COLUMN_MAPPINGS: Record<string, string[]> = {
   country: ["country", "país", "region", "location"],
 };
 
-// Find matching column value dynamically
 function findColumnValue(row: Record<string, any>, fieldName: string): any {
   const possibleNames = COLUMN_MAPPINGS[fieldName] || [];
   
@@ -47,7 +50,6 @@ function findColumnValue(row: Record<string, any>, fieldName: string): any {
   return null;
 }
 
-// Parse numeric values safely
 function parseNumericValue(value: any): number | null {
   if (value === null || value === undefined || value === "") return null;
   if (typeof value === "number") return value;
@@ -77,7 +79,6 @@ function parseNumericValue(value: any): number | null {
   return isNaN(num) ? null : num;
 }
 
-// Build TikTok URL from username
 function buildTikTokUrl(username: string, existingUrl: string | null): string | null {
   if (existingUrl && existingUrl.includes("tiktok.com")) {
     return existingUrl;
@@ -89,94 +90,62 @@ function buildTikTokUrl(username: string, existingUrl: string | null): string | 
   return null;
 }
 
-// Scrape TikTok avatar from profile page
-async function scrapeTikTokAvatar(tiktokUrl: string): Promise<string | null> {
-  try {
-    console.log(`Scraping avatar from: ${tiktokUrl}`);
-    
-    const response = await fetch(tiktokUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
-      },
-    });
-
-    if (!response.ok) {
-      console.log(`Failed to fetch TikTok page: ${response.status}`);
-      return null;
-    }
-
-    const html = await response.text();
-    
-    const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i) ||
-                         html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:image"/i);
-    
-    if (ogImageMatch && ogImageMatch[1]) {
-      console.log(`Found og:image`);
-      return ogImageMatch[1];
-    }
-
-    const avatarLargerMatch = html.match(/"avatarLarger"\s*:\s*"([^"]+)"/);
-    if (avatarLargerMatch && avatarLargerMatch[1]) {
-      const avatarUrl = avatarLargerMatch[1].replace(/\\u002F/g, "/");
-      console.log(`Found avatarLarger`);
-      return avatarUrl;
-    }
-
-    const avatarThumbMatch = html.match(/"avatarThumb"\s*:\s*"([^"]+)"/);
-    if (avatarThumbMatch && avatarThumbMatch[1]) {
-      const avatarUrl = avatarThumbMatch[1].replace(/\\u002F/g, "/");
-      console.log(`Found avatarThumb`);
-      return avatarUrl;
-    }
-
-    return null;
-  } catch (error) {
-    console.error(`Error scraping avatar: ${error}`);
-    return null;
-  }
-}
-
 // Background task to fetch and update avatars
 async function fetchAvatarsInBackground(
   creators: Array<{ id: string; tiktok_url: string | null; avatar_url: string | null }>,
-  supabaseServiceClient: any
+  supabaseUrl: string,
+  supabaseServiceKey: string
 ) {
   console.log(`Starting background avatar fetch for ${creators.length} creators...`);
   
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
   let successCount = 0;
   let failCount = 0;
   
   for (const creator of creators) {
     if (creator.avatar_url && creator.avatar_url.startsWith("http")) {
-      console.log(`Creator ${creator.id} already has avatar, skipping`);
       continue;
     }
     
     if (!creator.tiktok_url) {
-      console.log(`Creator ${creator.id} has no TikTok URL, skipping`);
       continue;
     }
     
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const avatarUrl = await scrapeTikTokAvatar(creator.tiktok_url);
+      const response = await fetch(creator.tiktok_url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+      });
+
+      if (!response.ok) {
+        failCount++;
+        continue;
+      }
+
+      const html = await response.text();
+      
+      const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i) ||
+                           html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:image"/i);
+      
+      let avatarUrl = null;
+      if (ogImageMatch && ogImageMatch[1]) {
+        avatarUrl = ogImageMatch[1];
+      } else {
+        const avatarLargerMatch = html.match(/"avatarLarger"\s*:\s*"([^"]+)"/);
+        if (avatarLargerMatch && avatarLargerMatch[1]) {
+          avatarUrl = avatarLargerMatch[1].replace(/\\u002F/g, "/");
+        }
+      }
       
       if (avatarUrl) {
-        const { error } = await supabaseServiceClient
+        await supabase
           .from("creators")
           .update({ avatar_url: avatarUrl })
           .eq("id", creator.id);
-        
-        if (error) {
-          console.error(`Error updating avatar for ${creator.id}:`, error);
-          failCount++;
-        } else {
-          console.log(`Updated avatar for creator ${creator.id}`);
-          successCount++;
-        }
+        successCount++;
       } else {
         failCount++;
       }
@@ -205,14 +174,8 @@ serve(async (req) => {
       }
     );
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      throw new Error("No autenticado");
-    }
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) throw new Error("No autenticado");
 
     console.log("Usuario autenticado:", user.email);
 
@@ -229,17 +192,13 @@ serve(async (req) => {
 
     console.log("Rol de fundador verificado");
 
-    const supabaseServiceClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabaseServiceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
-
-    if (!file) {
-      throw new Error("No se proporcionó archivo");
-    }
+    if (!file) throw new Error("No se proporcionó archivo");
 
     console.log("Archivo de creadores recibido:", file.name, "Tamaño:", file.size);
 
@@ -252,18 +211,6 @@ serve(async (req) => {
     
     if (rows.length > 0) {
       console.log("Columnas detectadas:", JSON.stringify(Object.keys(rows[0])));
-    }
-
-    // Validate required fields
-    const missingFields: string[] = [];
-    if (rows.length > 0) {
-      const testRow = rows[0];
-      if (!findColumnValue(testRow, "gmv_live")) missingFields.push("GMV en vivo(M$)");
-      if (!findColumnValue(testRow, "gmv_videos")) missingFields.push("GMV por videos(M$)");
-    }
-
-    if (missingFields.length > 0) {
-      console.warn(`Campos faltantes en el archivo: ${missingFields.join(", ")}`);
     }
 
     // Process each row with dynamic column detection
@@ -285,6 +232,7 @@ serve(async (req) => {
       const cleanUsername = String(finalUsername).replace("@", "").trim();
 
       return {
+        handle: cleanUsername,
         usuario_creador: cleanUsername,
         nombre_completo: creatorName ? String(creatorName).trim() : cleanUsername,
         creator_handle: cleanUsername,
@@ -303,9 +251,8 @@ serve(async (req) => {
         revenue_videos: gmvVideos || 0,
         tiktok_url: buildTikTokUrl(cleanUsername, tiktokUrl ? String(tiktokUrl).trim() : null),
         country: country ? String(country).trim() : null,
-        last_import: new Date().toISOString(),
       };
-    }).filter(c => c.usuario_creador && c.usuario_creador !== "creator_0");
+    }).filter(c => c.handle && c.handle !== "creator_0");
 
     console.log(`Creadores procesados: ${processedCreators.length}`);
 
@@ -317,62 +264,106 @@ serve(async (req) => {
     const top50Creators = sortedCreators.slice(0, 50);
     console.log(`Top 50 creadores seleccionados`);
 
-    // Delete ALL existing creators
-    console.log("Eliminando creadores anteriores...");
-    const { error: deleteError } = await supabaseServiceClient
-      .from("creators")
-      .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000");
+    // SMART UPSERT: Check existing creators by handle
+    let insertedCount = 0;
+    let updatedCount = 0;
+    const creatorsForAvatarFetch: Array<{ id: string; tiktok_url: string | null; avatar_url: string | null }> = [];
 
-    if (deleteError) {
-      console.error("Error deleting creators:", deleteError);
-    }
+    for (const c of top50Creators) {
+      // Check if creator exists by handle
+      const { data: existing } = await supabaseServiceClient
+        .from("creators")
+        .select("id, avatar_url")
+        .eq("creator_handle", c.handle)
+        .maybeSingle();
 
-    // Insert new creators
-    console.log(`Insertando ${top50Creators.length} creadores...`);
+      if (existing) {
+        // UPDATE existing creator - only update followers and avatar if new
+        const updateData: any = {
+          seguidores: c.seguidores,
+          total_ingresos_mxn: c.total_ingresos_mxn,
+          total_videos: c.total_videos,
+          promedio_visualizaciones: c.promedio_visualizaciones,
+          total_live_count: c.total_live_count,
+          gmv_live_mxn: c.gmv_live_mxn,
+          revenue_live: c.revenue_live,
+          revenue_videos: c.revenue_videos,
+          updated_at: new Date().toISOString(),
+          last_import: new Date().toISOString(),
+        };
 
-    const { data: insertedData, error: insertError } = await supabaseServiceClient
-      .from("creators")
-      .insert(top50Creators)
-      .select("id, tiktok_url, avatar_url");
-
-    if (insertError) {
-      console.error("Error inserting creators:", insertError);
-      throw new Error(`Error al insertar creadores: ${insertError.message}`);
-    }
-
-    console.log(`${insertedData?.length || 0} creadores insertados exitosamente`);
-
-    // Start background task to fetch avatars for creators without one
-    if (insertedData && insertedData.length > 0) {
-      const creatorsNeedingAvatars = insertedData.filter(
-        c => !c.avatar_url || !c.avatar_url.startsWith("http")
-      );
-      
-      if (creatorsNeedingAvatars.length > 0) {
-        console.log(`Starting background avatar fetch for ${creatorsNeedingAvatars.length} creators`);
-        
-        const globalRuntime = globalThis as unknown as { EdgeRuntime?: { waitUntil: (promise: Promise<void>) => void } };
-        if (globalRuntime.EdgeRuntime?.waitUntil) {
-          globalRuntime.EdgeRuntime.waitUntil(
-            fetchAvatarsInBackground(creatorsNeedingAvatars, supabaseServiceClient)
-          );
-        } else {
-          console.log("EdgeRuntime.waitUntil not available, fetching first 5 avatars synchronously");
-          fetchAvatarsInBackground(creatorsNeedingAvatars.slice(0, 5), supabaseServiceClient);
+        // Only update avatar if we have a new one and existing doesn't have one
+        if (c.avatar_url && (!existing.avatar_url || !existing.avatar_url.startsWith("http"))) {
+          updateData.avatar_url = c.avatar_url;
         }
+
+        const { error: updateError } = await supabaseServiceClient
+          .from("creators")
+          .update(updateData)
+          .eq("id", existing.id);
+
+        if (!updateError) {
+          updatedCount++;
+          console.log(`Updated creator: ${c.handle}`);
+          
+          // Queue for avatar fetch if still missing
+          if (!existing.avatar_url && !c.avatar_url) {
+            creatorsForAvatarFetch.push({ id: existing.id, tiktok_url: c.tiktok_url, avatar_url: null });
+          }
+        } else {
+          console.error(`Error updating creator ${c.handle}:`, updateError);
+        }
+      } else {
+        // INSERT new creator
+        const { data: inserted, error: insertError } = await supabaseServiceClient
+          .from("creators")
+          .insert({
+            ...c,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            last_import: new Date().toISOString(),
+          })
+          .select("id, tiktok_url, avatar_url")
+          .single();
+
+        if (!insertError && inserted) {
+          insertedCount++;
+          console.log(`Inserted creator: ${c.handle}`);
+          
+          // Queue for avatar fetch if missing
+          if (!inserted.avatar_url) {
+            creatorsForAvatarFetch.push({ id: inserted.id, tiktok_url: inserted.tiktok_url, avatar_url: null });
+          }
+        } else {
+          console.error(`Error inserting creator ${c.handle}:`, insertError);
+        }
+      }
+    }
+
+    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
+
+    // Start background task to fetch avatars
+    if (creatorsForAvatarFetch.length > 0) {
+      console.log(`Starting background avatar fetch for ${creatorsForAvatarFetch.length} creators`);
+      
+      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
+        EdgeRuntime.waitUntil(
+          fetchAvatarsInBackground(creatorsForAvatarFetch, supabaseUrl, supabaseServiceKey)
+        );
+      } else {
+        // Fallback: fetch first 5 synchronously
+        await fetchAvatarsInBackground(creatorsForAvatarFetch.slice(0, 5), supabaseUrl, supabaseServiceKey);
       }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
+        inserted: insertedCount,
+        updated: updatedCount,
         processed: top50Creators.length,
         total: rows.length,
-        missingFields: missingFields.length > 0 ? missingFields : undefined,
-        message: missingFields.length > 0 
-          ? `Se importaron ${top50Creators.length} creadores. Advertencia: Faltan campos en el archivo: ${missingFields.join(", ")}.`
-          : `Se importaron los Top ${top50Creators.length} creadores. Los avatares se están descargando en segundo plano.`,
+        message: `Importación inteligente: ${insertedCount} nuevos, ${updatedCount} actualizados. Avatares descargándose en segundo plano.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

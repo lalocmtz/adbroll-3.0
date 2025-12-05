@@ -18,6 +18,7 @@ interface Video {
   title: string | null;
   creator_name: string | null;
   creator_handle: string | null;
+  creator_id: string | null;
   product_name: string | null;
   product_id: string | null;
   sales: number | null;
@@ -32,6 +33,14 @@ interface Video {
   analysis_json: any;
   variants_json: any;
   processing_status: string | null;
+  // Joined product data
+  product?: {
+    id: string;
+    producto_nombre: string;
+    imagen_url: string | null;
+    total_ingresos_mxn: number | null;
+    commission: number | null;
+  } | null;
 }
 
 const SORT_OPTIONS = [
@@ -91,9 +100,19 @@ const Dashboard = () => {
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
+      // Use JOIN to get product data
       let query = supabase
         .from("videos")
-        .select("*", { count: "exact" });
+        .select(`
+          *,
+          product:products!videos_product_id_fkey (
+            id,
+            producto_nombre,
+            imagen_url,
+            total_ingresos_mxn,
+            commission
+          )
+        `, { count: "exact" });
 
       // Apply category filter
       if (selectedCategory && selectedCategory !== "all") {

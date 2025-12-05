@@ -42,7 +42,6 @@ async function downloadSingleVideo(
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Call RapidAPI TikTok Video No Watermark API
     const rapidApiResponse = await fetch(
       `https://tiktok-video-no-watermark2.p.rapidapi.com/?url=${encodeURIComponent(tiktokUrl)}&hd=1`,
       {
@@ -62,7 +61,6 @@ async function downloadSingleVideo(
 
     const rapidApiData = await rapidApiResponse.json();
     
-    // Extract MP4 URL
     const mp4Url = rapidApiData.data?.hdplay || 
                    rapidApiData.data?.play || 
                    rapidApiData.data?.wmplay;
@@ -73,7 +71,6 @@ async function downloadSingleVideo(
       return false;
     }
 
-    // Download the video
     const videoResponse = await fetch(mp4Url);
     if (!videoResponse.ok) {
       await supabase.from('videos').update({ processing_status: 'download_failed' }).eq('id', videoId);
@@ -83,7 +80,6 @@ async function downloadSingleVideo(
     const videoBuffer = await videoResponse.arrayBuffer();
     console.log(`[download] Video ${videoId} downloaded, size: ${videoBuffer.byteLength} bytes`);
 
-    // Upload to Supabase Storage
     const fileName = `${videoId}.mp4`;
     const { error: uploadError } = await supabase.storage
       .from('videos')
@@ -98,12 +94,10 @@ async function downloadSingleVideo(
       return false;
     }
 
-    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from('videos')
       .getPublicUrl(fileName);
 
-    // Update database
     await supabase
       .from('videos')
       .update({ 
@@ -133,7 +127,6 @@ async function downloadVideosInBackground(
   let successCount = 0;
   let failCount = 0;
 
-  // Process videos sequentially with delay to avoid rate limits
   for (const video of videoIds) {
     const success = await downloadSingleVideo(
       video.id,
@@ -162,7 +155,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify founder role
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -173,18 +165,11 @@ serve(async (req) => {
       }
     );
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      throw new Error("No autenticado");
-    }
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) throw new Error("No autenticado");
 
     console.log("Usuario autenticado:", user.email);
 
-    // Check founder role
     const { data: roleData, error: roleError } = await supabaseClient
       .from("user_roles")
       .select("role")
@@ -198,20 +183,15 @@ serve(async (req) => {
 
     console.log("Rol de fundador verificado");
 
-    // Create service role client for database operations (bypasses RLS)
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const rapidApiKey = Deno.env.get("RAPIDAPI_KEY") ?? "";
 
     const supabaseServiceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse Excel file
     const formData = await req.formData();
     const file = formData.get("file") as File;
-
-    if (!file) {
-      throw new Error("No se proporcionó archivo");
-    }
+    if (!file) throw new Error("No se proporcionó archivo");
 
     console.log("Archivo recibido:", file.name, "Tamaño:", file.size);
 
@@ -222,21 +202,23 @@ serve(async (req) => {
 
     console.log(`Procesando ${rows.length} filas del Excel`);
 
-    // Sort by revenue (no limit)
+    // Sort by revenue
     const sortedRows = rows.sort((a, b) => b["Ingresos (M$)"] - a["Ingresos (M$)"]);
 
-    // Load all products to match against
-    const { data: products, error: productsError } = await supabaseServiceClient
+    // Load all products for matching
+    const { data: products } = await supabaseServiceClient
       .from("products")
       .select("id, producto_nombre, producto_url, price, total_ventas, total_ingresos_mxn");
 
-    if (productsError) {
-      console.error("Error loading products:", productsError);
-    }
-
     console.log(`Loaded ${products?.length || 0} products for matching`);
 
-    // Helper function to normalize product names
+    // Load all creators for matching
+    const { data: creators } = await supabaseServiceClient
+      .from("creators")
+      .select("id, creator_handle");
+
+    console.log(`Loaded ${creators?.length || 0} creators for matching`);
+
     const normalizeProductName = (name: string): string => {
       return name
         .toLowerCase()
@@ -247,46 +229,37 @@ serve(async (req) => {
         .trim();
     };
 
-    // Process videos and track newly inserted ones for downloading
+    // Process videos with smart upsert
     const newlyInsertedVideos: { id: string; video_url: string }[] = [];
-    let upsertedCount = 0;
     let updatedCount = 0;
     let insertedCount = 0;
 
-    for (const row of sortedRows) {
+    for (let idx = 0; idx < sortedRows.length; idx++) {
+      const row = sortedRows[idx];
       const videoUrl = row["Enlace de TikTok"];
       const videoTitle = row["Descripción del vídeo"]?.toLowerCase() || "";
+      const creatorHandle = row["Usuario del creador"] || null;
+      const rank = idx + 1;
 
-      // Try to match product
+      // Match product by name
       let matchedProduct = null;
       if (products && products.length > 0) {
         const normalizedVideoTitle = normalizeProductName(videoTitle);
-        
         matchedProduct = products.find((p) => {
           const pName = normalizeProductName(p.producto_nombre || "");
           return normalizedVideoTitle.includes(pName) || pName.includes(normalizedVideoTitle);
         });
       }
 
-      const videoData = {
-        video_url: videoUrl,
-        title: row["Descripción del vídeo"],
-        creator_name: row["Usuario del creador"],
-        creator_handle: row["Usuario del creador"],
-        sales: row["Ventas"],
-        revenue_mxn: row["Ingresos (M$)"],
-        views: row["Visualizaciones"],
-        roas: row["ROAS - Retorno de la inversión publicitaria"],
-        category: null,
-        country: null,
-        rank: null,
-        product_name: matchedProduct?.producto_nombre || null,
-        product_id: matchedProduct?.id || null,
-        product_price: matchedProduct?.price || null,
-        product_sales: matchedProduct?.total_ventas || null,
-        product_revenue: matchedProduct?.total_ingresos_mxn || null,
-        processing_status: 'pending',
-      };
+      // Match creator by handle
+      let matchedCreator = null;
+      if (creators && creators.length > 0 && creatorHandle) {
+        const normalizedHandle = creatorHandle.replace("@", "").toLowerCase().trim();
+        matchedCreator = creators.find((c) => {
+          const cHandle = (c.creator_handle || "").toLowerCase().trim();
+          return cHandle === normalizedHandle;
+        });
+      }
 
       // Check if video exists by video_url
       const { data: existing } = await supabaseServiceClient
@@ -295,46 +268,67 @@ serve(async (req) => {
         .eq("video_url", videoUrl)
         .maybeSingle();
 
+      const videoMetrics = {
+        rank,
+        title: row["Descripción del vídeo"],
+        creator_name: row["Usuario del creador"],
+        creator_handle: row["Usuario del creador"],
+        creator_id: matchedCreator?.id || null,
+        product_name: matchedProduct?.producto_nombre || null,
+        product_id: matchedProduct?.id || null,
+        product_price: matchedProduct?.price || null,
+        product_sales: matchedProduct?.total_ventas || null,
+        product_revenue: matchedProduct?.total_ingresos_mxn || null,
+        sales: row["Ventas"],
+        revenue_mxn: row["Ingresos (M$)"],
+        views: row["Visualizaciones"],
+        roas: row["ROAS - Retorno de la inversión publicitaria"],
+      };
+
       if (existing) {
-        // UPDATE: only update metrics
-        await supabaseServiceClient
+        // UPDATE existing video - only update metrics, DO NOT re-download MP4
+        const { error: updateError } = await supabaseServiceClient
           .from("videos")
           .update({
-            rank: videoData.rank,
-            revenue_mxn: videoData.revenue_mxn,
-            sales: videoData.sales,
-            views: videoData.views,
-            roas: videoData.roas,
-            product_id: videoData.product_id,
-            product_price: videoData.product_price,
-            product_sales: videoData.product_sales,
-            product_revenue: videoData.product_revenue,
+            ...videoMetrics,
+            updated_at: new Date().toISOString(),
           })
           .eq("id", existing.id);
 
-        updatedCount++;
-
-        // If video doesn't have MP4 yet, add to download queue
-        if (!existing.video_mp4_url) {
-          newlyInsertedVideos.push({ id: existing.id, video_url: videoUrl });
+        if (!updateError) {
+          updatedCount++;
+          console.log(`Updated video: ${videoUrl.substring(0, 50)}...`);
+          
+          // If video doesn't have MP4 yet, queue for download
+          if (!existing.video_mp4_url) {
+            newlyInsertedVideos.push({ id: existing.id, video_url: videoUrl });
+          }
+        } else {
+          console.error(`Error updating video:`, updateError);
         }
       } else {
-        // INSERT: new video
+        // INSERT new video
         const { data: inserted, error: insertError } = await supabaseServiceClient
           .from("videos")
-          .insert(videoData)
+          .insert({
+            video_url: videoUrl,
+            ...videoMetrics,
+            processing_status: 'pending',
+            category: null,
+            country: null,
+            imported_at: new Date().toISOString(),
+          })
           .select("id")
           .single();
 
         if (!insertError && inserted) {
           insertedCount++;
           newlyInsertedVideos.push({ id: inserted.id, video_url: videoUrl });
+          console.log(`Inserted video: ${videoUrl.substring(0, 50)}...`);
         } else {
-          console.error(`Error inserting video ${videoUrl}:`, insertError);
+          console.error(`Error inserting video:`, insertError);
         }
       }
-      
-      upsertedCount++;
     }
 
     console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
@@ -342,7 +336,6 @@ serve(async (req) => {
 
     // Start background downloads if we have RapidAPI key
     if (rapidApiKey && newlyInsertedVideos.length > 0) {
-      // Use EdgeRuntime.waitUntil for background processing
       if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
         EdgeRuntime.waitUntil(
           downloadVideosInBackground(
@@ -354,7 +347,6 @@ serve(async (req) => {
         );
         console.log("Background download task started");
       } else {
-        // Fallback: download first 5 videos synchronously
         console.log("EdgeRuntime not available, downloading first 5 videos synchronously");
         for (let i = 0; i < Math.min(5, newlyInsertedVideos.length); i++) {
           await downloadSingleVideo(
@@ -374,10 +366,10 @@ serve(async (req) => {
         success: true,
         inserted: insertedCount,
         updated: updatedCount,
-        processed: upsertedCount,
+        processed: sortedRows.length,
         total: sortedRows.length,
         downloads_queued: newlyInsertedVideos.length,
-        message: `Successfully processed ${upsertedCount} videos: ${insertedCount} new, ${updatedCount} updated. ${newlyInsertedVideos.length} videos queued for MP4 download.`,
+        message: `Importación inteligente: ${insertedCount} nuevos, ${updatedCount} actualizados. ${newlyInsertedVideos.length} videos en cola para descarga.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

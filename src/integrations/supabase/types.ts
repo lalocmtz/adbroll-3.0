@@ -633,6 +633,7 @@ export type Database = {
           category: string | null
           country: string | null
           creator_handle: string | null
+          creator_id: string | null
           creator_name: string | null
           duration: number | null
           id: string
@@ -660,6 +661,7 @@ export type Database = {
           category?: string | null
           country?: string | null
           creator_handle?: string | null
+          creator_id?: string | null
           creator_name?: string | null
           duration?: number | null
           id?: string
@@ -687,6 +689,7 @@ export type Database = {
           category?: string | null
           country?: string | null
           creator_handle?: string | null
+          creator_id?: string | null
           creator_name?: string | null
           duration?: number | null
           id?: string
@@ -710,6 +713,13 @@ export type Database = {
           views?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "videos_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "videos_product_id_fkey"
             columns: ["product_id"]
