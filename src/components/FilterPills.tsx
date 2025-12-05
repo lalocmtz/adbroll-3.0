@@ -33,9 +33,10 @@ export const FilterPills = ({ options, value, onChange, className }: FilterPills
   );
 };
 
+// Subtle data freshness indicator - smaller, less prominent
 export const DataSubtitle = () => (
-  <p className="text-xs text-[hsl(var(--muted-foreground))] mb-3">
-    📊 Datos actualizados – últimos 30 días
+  <p className="text-[11px] text-muted-foreground/70 mb-2">
+    Datos actualizados · últimos 30 días
   </p>
 );
 

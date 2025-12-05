@@ -267,10 +267,10 @@ const Products = () => {
               return (
                 <div 
                   key={product.id}
-                  className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 group"
+                  className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 group"
                 >
                   {/* Product Image - 1:1 aspect ratio */}
-                  <div className="relative aspect-square bg-muted rounded-2xl overflow-hidden mb-3">
+                  <div className="relative aspect-square bg-muted rounded-2xl overflow-hidden mb-4">
                     <img
                       src={product.imagen_url || PLACEHOLDER_IMAGE}
                       alt={product.producto_nombre}
@@ -323,25 +323,28 @@ const Products = () => {
                     {/* Earnings badge */}
                     {earningsPerSale > 0 && (
                       <span className="absolute bottom-3 left-3 z-10 bg-[#EEF2FF] text-[#6366F1] text-xs font-medium px-2 py-1 rounded-md shadow-sm">
-                        💰 Gana {formatCurrency(earningsPerSale)} por venta
+                        💰 Gana {formatCurrency(earningsPerSale)}
                       </span>
                     )}
                   </div>
 
                   {/* Content */}
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div>
-                      <h3 className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground line-clamp-2 leading-snug">
+                      <h3 
+                        className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground truncate cursor-help"
+                        title={product.producto_nombre}
+                      >
                         {product.producto_nombre}
                       </h3>
                       {product.categoria && (
-                        <p className="text-[13px] text-[#94A3B8] mt-0.5">{product.categoria}</p>
+                        <p className="text-[13px] text-[#94A3B8] mt-1">{product.categoria}</p>
                       )}
                     </div>
 
                     {/* Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="p-2.5 rounded-xl bg-[#ECFDF5] dark:bg-success/10">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-[#ECFDF5] dark:bg-success/10">
                         <div className="flex items-center gap-1.5 mb-1">
                           <TrendingUp className="h-3.5 w-3.5 text-[#475569]" />
                           <span className="text-[11px] text-[#94A3B8]">Ingresos 30D</span>
@@ -351,7 +354,7 @@ const Products = () => {
                         </p>
                       </div>
 
-                      <div className="p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
+                      <div className="p-3 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
                         <div className="flex items-center gap-1.5 mb-1">
                           <ShoppingCart className="h-3.5 w-3.5 text-[#475569]" />
                           <span className="text-[11px] text-[#94A3B8]">Ventas 30D</span>
@@ -361,7 +364,7 @@ const Products = () => {
                         </p>
                       </div>
 
-                      <div className="p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
+                      <div className="p-3 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
                         <div className="flex items-center gap-1.5 mb-1">
                           <DollarSign className="h-3.5 w-3.5 text-[#475569]" />
                           <span className="text-[11px] text-[#94A3B8]">Precio</span>
@@ -371,7 +374,7 @@ const Products = () => {
                         </p>
                       </div>
 
-                      <div className="p-2.5 rounded-xl bg-[#FEF3C7] dark:bg-amber-950/30">
+                      <div className="p-3 rounded-xl bg-[#FEF3C7] dark:bg-amber-950/30">
                         <div className="flex items-center gap-1.5 mb-1">
                           <Percent className="h-3.5 w-3.5 text-[#475569]" />
                           <span className="text-[11px] text-[#94A3B8]">Comisión</span>
@@ -385,7 +388,7 @@ const Products = () => {
                     {(product.creators_count || 0) > 0 && (
                       <div className="flex items-center gap-1.5 text-[13px] text-[#94A3B8]">
                         <Users className="h-3.5 w-3.5 text-[#475569]" />
-                        <span>{product.creators_count} creadores activos</span>
+                        <span>{product.creators_count} creadores</span>
                       </div>
                     )}
 

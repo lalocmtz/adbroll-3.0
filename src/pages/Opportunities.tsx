@@ -6,7 +6,6 @@ import { Gem, TrendingUp, Users, DollarSign, Percent, ExternalLink } from "lucid
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { DataSubtitle } from "@/components/FilterPills";
 import { useNavigate } from "react-router-dom";
 
 interface OpportunityProduct {
@@ -88,23 +87,15 @@ const Opportunities = () => {
 
   return (
     <div className="pt-5 pb-6 px-4 md:px-6">
-      <DataSubtitle />
-
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Gem className="h-5 w-5 text-yellow-500" />
-          <h1 className="text-xl font-bold">
-            {language === "es" ? "Gemas Ocultas" : "Hidden Gems"}
-          </h1>
-          <Badge variant="secondary" className="ml-2">
-            {opportunities.length} {language === "es" ? "encontradas" : "found"}
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground">
+      {/* Simplified Header */}
+      <div className="mb-5">
+        <h1 className="text-lg font-semibold text-foreground mb-1">
+          {language === "es" ? "Oportunidades" : "Opportunities"}
+        </h1>
+        <p className="text-[13px] text-muted-foreground">
           {language === "es" 
-            ? "Productos con alta comisión (>15%), ventas activas y baja competencia (<50 creadores)"
-            : "Products with high commission (>15%), active sales, and low competition (<50 creators)"}
+            ? "Productos con alta comisión y baja competencia"
+            : "Products with high commission and low competition"}
         </p>
       </div>
 
@@ -113,16 +104,16 @@ const Opportunities = () => {
           <Gem className="h-16 w-16 text-muted-foreground/30 mb-4 mx-auto" />
           <p className="text-muted-foreground">
             {language === "es" 
-              ? "No se encontraron gemas ocultas. Los productos deben tener comisión >15%, GMV >0 y <50 creadores activos."
-              : "No hidden gems found. Products must have commission >15%, GMV >0, and <50 active creators."}
+              ? "No se encontraron oportunidades. Los productos deben tener comisión >15%, GMV >0 y <50 creadores activos."
+              : "No opportunities found. Products must have commission >15%, GMV >0, and <50 active creators."}
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {opportunities.map((product, index) => (
             <Card 
               key={product.id} 
-              className="overflow-hidden hover:shadow-lg transition-all duration-200 group cursor-pointer"
+              className="overflow-hidden hover:shadow-lg transition-all duration-200 group cursor-pointer bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border shadow-[0_4px_12px_rgba(0,0,0,0.03)]"
               onClick={() => navigate(`/videos/product/${product.id}`)}
             >
               {/* Image */}
@@ -131,7 +122,7 @@ const Opportunities = () => {
                   <img 
                     src={product.imagen_url} 
                     alt={product.producto_nombre}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -139,32 +130,38 @@ const Opportunities = () => {
                   </div>
                 )}
                 
-                {/* IO Badge */}
-                <div className="absolute top-2 left-2">
-                  <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 gap-1">
+                {/* IO Badge with tooltip */}
+                <div className="absolute top-3 left-3 group/io">
+                  <Badge 
+                    className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 gap-1 cursor-help"
+                    title={language === "es" 
+                      ? "Índice de Oportunidad: (comisión × GMV) / creadores activos" 
+                      : "Opportunity Index: (commission × GMV) / active creators"}
+                  >
                     <TrendingUp className="h-3 w-3" />
                     IO: {formatNumber(product.opportunity_index)}
                   </Badge>
                 </div>
 
                 {/* Rank Badge */}
-                <div className="absolute top-2 right-2">
-                  <Badge variant="secondary" className="font-bold">
+                <div className="absolute top-3 right-3">
+                  <Badge variant="secondary" className="font-bold bg-white/95 text-[#0F172A]">
                     #{index + 1}
                   </Badge>
                 </div>
               </div>
 
               {/* Content */}
-              <div className="p-3">
-                <h3 className="font-medium text-sm line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+              <div className="p-4">
+                <h3 
+                  className="font-semibold text-[15px] text-[#0F172A] dark:text-foreground truncate mb-1 cursor-help"
+                  title={product.producto_nombre}
+                >
                   {product.producto_nombre}
                 </h3>
 
                 {product.categoria && (
-                  <Badge variant="outline" className="text-xs mb-2">
-                    {product.categoria}
-                  </Badge>
+                  <p className="text-[13px] text-[#94A3B8] mb-3">{product.categoria}</p>
                 )}
 
                 {/* Metrics Grid */}

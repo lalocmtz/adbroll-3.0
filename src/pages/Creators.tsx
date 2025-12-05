@@ -258,10 +258,10 @@ const Creators = () => {
               return (
                 <div
                   key={creator.id}
-                  className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 group"
+                  className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 group"
                 >
                   {/* Header: Avatar + Name + Ranking + Favorite */}
-                  <div className="flex items-start gap-3 mb-3">
+                  <div className="flex items-start gap-3 mb-4">
                     <div className="relative">
                       <Avatar className="h-12 w-12 border-2 border-[#F31260]/20 shrink-0 shadow-md transition-transform duration-300 group-hover:scale-[1.02]">
                         <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
@@ -276,13 +276,16 @@ const Creators = () => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground line-clamp-1">
+                      <h3 
+                        className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground truncate cursor-help"
+                        title={creator.nombre_completo || creator.usuario_creador}
+                      >
                         {creator.nombre_completo || creator.usuario_creador}
                       </h3>
                       <p className="text-[13px] text-[#94A3B8]">
                         @{creator.creator_handle || creator.usuario_creador}
                       </p>
-                      <span className={`inline-block mt-1 text-[12px] font-bold px-2 py-0.5 rounded-full ${
+                      <span className={`inline-block mt-1.5 text-[12px] font-bold px-2.5 py-0.5 rounded-full ${
                         isTop5(globalIndex)
                           ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white'
                           : 'bg-[#F1F5F9] text-[#0F172A] border border-[#E2E8F0]'
@@ -299,7 +302,7 @@ const Creators = () => {
                   </div>
 
                   {/* Secondary Metrics */}
-                  <div className="flex gap-4 mb-3 text-[13px] text-[#94A3B8]">
+                  <div className="flex gap-4 mb-4 text-[13px] text-[#94A3B8]">
                     <div className="flex items-center gap-1.5">
                       <Users className="h-3.5 w-3.5 text-[#475569]" />
                       <span>{formatNumber(creator.seguidores)}</span>
@@ -311,8 +314,8 @@ const Creators = () => {
                   </div>
 
                   {/* Primary Revenue Cards */}
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="p-2.5 rounded-xl bg-[#ECFDF5] dark:bg-success/10 text-center">
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="p-3 rounded-xl bg-[#ECFDF5] dark:bg-success/10 text-center">
                       <DollarSign className="h-4 w-4 text-[#475569] mx-auto mb-1" />
                       <p className="text-[10px] text-[#94A3B8] uppercase">GMV Total</p>
                       <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
@@ -320,7 +323,7 @@ const Creators = () => {
                       </p>
                     </div>
                     
-                    <div className="p-2.5 rounded-xl bg-[#ECFDF5] dark:bg-success/10 text-center">
+                    <div className="p-3 rounded-xl bg-[#ECFDF5] dark:bg-success/10 text-center">
                       <TrendingUp className="h-4 w-4 text-[#475569] mx-auto mb-1" />
                       <p className="text-[10px] text-[#94A3B8] uppercase">Comisión Est.</p>
                       <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
@@ -330,8 +333,8 @@ const Creators = () => {
                   </div>
 
                   {/* Activity Metrics */}
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    <div className="p-2 rounded-xl bg-[#F5F3FF] dark:bg-purple-950/30 text-center">
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <div className="p-2.5 rounded-xl bg-[#F5F3FF] dark:bg-purple-950/30 text-center">
                       <Video className="h-3.5 w-3.5 text-[#475569] mx-auto mb-0.5" />
                       <p className="text-[9px] text-[#94A3B8] uppercase">Lives</p>
                       <p className="text-xs font-bold text-[#0F172A] dark:text-foreground">
@@ -339,7 +342,7 @@ const Creators = () => {
                       </p>
                     </div>
                     
-                    <div className="p-2 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 text-center">
+                    <div className="p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 text-center">
                       <ShoppingCart className="h-3.5 w-3.5 text-[#475569] mx-auto mb-0.5" />
                       <p className="text-[9px] text-[#94A3B8] uppercase">GMV Lives</p>
                       <p className="text-xs font-bold text-[#0F172A] dark:text-foreground">
@@ -347,7 +350,7 @@ const Creators = () => {
                       </p>
                     </div>
                     
-                    <div className="p-2 rounded-xl bg-[#F0F9FF] dark:bg-blue-950/30 text-center">
+                    <div className="p-2.5 rounded-xl bg-[#F0F9FF] dark:bg-blue-950/30 text-center">
                       <Film className="h-3.5 w-3.5 text-[#475569] mx-auto mb-0.5" />
                       <p className="text-[9px] text-[#94A3B8] uppercase">GMV Videos</p>
                       <p className="text-xs font-bold text-[#0F172A] dark:text-foreground">
@@ -356,8 +359,8 @@ const Creators = () => {
                     </div>
                   </div>
 
-                  {/* CTA Buttons */}
-                  <div className="flex gap-2">
+                  {/* CTA Buttons - Improved spacing */}
+                  <div className="flex gap-3">
                     <Button
                       className="flex-1 h-10"
                       onClick={() => navigate(`/videos/creator/${creator.id}`)}
@@ -369,7 +372,7 @@ const Creators = () => {
                     {tiktokUrl && (
                       <Button
                         variant="secondary"
-                        className="h-10"
+                        className="h-10 px-4"
                         onClick={() => window.open(tiktokUrl, '_blank')}
                       >
                         <ExternalLink className="h-4 w-4" />

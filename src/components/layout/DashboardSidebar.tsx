@@ -21,7 +21,6 @@ import {
   Settings,
   HelpCircle,
   ChevronDown,
-  Zap,
   X,
   TrendingUp,
   Coins,
@@ -251,16 +250,30 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             <span>{language === "es" ? "Soporte" : "Support"}</span>
           </button>
 
-          {/* Upgrade Plan CTA */}
-          <Button
-            className="w-full h-11 rounded-xl font-semibold text-sm gap-2 shadow-md hover:shadow-lg transition-all"
-            onClick={() => {
-              alert(language === "es" ? "Próximamente: Integración de pagos" : "Coming soon: Payment integration");
-            }}
-          >
-            <Zap className="h-4 w-4" />
-            {language === "es" ? "Actualizar plan" : "Upgrade"} – $25/mes
-          </Button>
+          {/* Plan Card - Redesigned */}
+          <div className="p-3 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 border border-[#E2E8F0] dark:border-border">
+            <div className="flex items-start gap-2 mb-2">
+              <span className="text-base">💼</span>
+              <div className="flex-1">
+                <p className="text-xs font-medium text-[#0F172A] dark:text-foreground">
+                  {language === "es" ? "Plan actual:" : "Current plan:"} <span className="text-primary">Starter</span>
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {language === "es" ? "🚀 Mejora para acceder a más herramientas" : "🚀 Upgrade for more tools"}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-8 text-xs rounded-lg"
+              onClick={() => {
+                alert(language === "es" ? "Próximamente: Planes disponibles" : "Coming soon: Available plans");
+              }}
+            >
+              {language === "es" ? "Ver planes" : "View plans"}
+            </Button>
+          </div>
 
           {/* User card */}
           <button
