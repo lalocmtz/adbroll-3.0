@@ -8,105 +8,163 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
+    /* Base surfaces */
     --background: 0 0% 98%;
     --foreground: 222 47% 11%;
-
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-
-    --primary: 221 83% 53%;
+    
+    /* Borders & separators */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --separator: 210 40% 96%;
+    
+    /* Primary - TikTok Pink */
+    --primary: 340 91% 51%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 46%;
-
-    --accent: 221 83% 53%;
+    --primary-hover: 338 89% 45%;
+    
+    /* Secondary - TikTok Blue */
+    --secondary: 214 100% 97%;
+    --secondary-foreground: 217 91% 60%;
+    --secondary-dark: 224 76% 48%;
+    
+    /* Muted */
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 47%;
+    
+    /* Accent */
+    --accent: 217 91% 60%;
     --accent-foreground: 0 0% 100%;
-
-    --success: 142 76% 36%;
+    
+    /* Success - Green for revenue/gains */
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
-
+    --success-muted: 149 80% 90%;
+    
+    /* Destructive - Red for CPA/losses */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
-
+    --destructive-muted: 0 93% 94%;
+    
+    --ring: 340 91% 51%;
     --radius: 0.75rem;
 
     /* Typography colors */
     --text-heading: 222 47% 11%;
-    --text-subheading: 215 19% 35%;
+    --text-subheading: 217 33% 17%;
     --text-body: 215 25% 27%;
     --text-muted: 215 16% 47%;
+    --text-disabled: 215 16% 65%;
     --text-code: 217 33% 17%;
 
-    /* Button colors - TikTok aligned */
+    /* Button colors */
     --btn-primary: 340 91% 51%;
     --btn-primary-hover: 338 89% 45%;
     --btn-primary-shadow: 340 91% 51%;
     
-    --btn-secondary: 204 94% 94%;
-    --btn-secondary-text: 199 98% 39%;
-    --btn-secondary-border: 199 95% 87%;
-    --btn-secondary-hover: 199 95% 87%;
-    --btn-secondary-hover-text: 199 96% 32%;
+    --btn-secondary: 214 100% 97%;
+    --btn-secondary-text: 217 91% 60%;
+    --btn-secondary-border: 217 91% 60%;
+    --btn-secondary-hover: 217 91% 60%;
+    --btn-secondary-hover-text: 0 0% 100%;
     
     --btn-danger: 0 93% 94%;
     --btn-danger-text: 0 73% 42%;
-    --btn-danger-hover: 0 91% 82%;
-    --btn-danger-hover-text: 0 62% 31%;
+    --btn-danger-hover: 0 84% 60%;
+    --btn-danger-hover-text: 0 0% 100%;
     
     --btn-link: 217 91% 60%;
-    --btn-link-hover: 217 91% 53%;
+    --btn-link-hover: 224 76% 48%;
+
+    /* Badge colors */
+    --badge-bg: 220 14% 96%;
+    --badge-text: 221 39% 17%;
 
     /* Premium shadows */
+    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.04);
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
+    --shadow-cta: 0 4px 14px rgba(243, 18, 96, 0.1);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
+    /* Base surfaces */
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;
-
     --card: 222 47% 13%;
     --card-foreground: 210 40% 98%;
-
     --popover: 222 47% 13%;
     --popover-foreground: 210 40% 98%;
-
-    --primary: 221 83% 53%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 221 83% 53%;
-    --accent-foreground: 0 0% 100%;
-
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 100%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
+    
+    /* Borders & separators */
     --border: 217 33% 20%;
     --input: 217 33% 20%;
-    --ring: 221 83% 53%;
+    --separator: 217 33% 17%;
+    
+    /* Primary - TikTok Pink */
+    --primary: 340 91% 51%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 340 91% 58%;
+    
+    /* Secondary */
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 217 91% 70%;
+    --secondary-dark: 217 91% 60%;
+    
+    /* Muted */
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    
+    /* Accent */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Success */
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    --success-muted: 160 40% 20%;
+    
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-muted: 0 40% 20%;
+    
+    --ring: 340 91% 51%;
+
+    /* Typography colors - dark mode */
+    --text-heading: 210 40% 98%;
+    --text-subheading: 214 32% 91%;
+    --text-body: 215 20% 80%;
+    --text-muted: 215 20% 65%;
+    --text-disabled: 215 16% 47%;
+    --text-code: 210 40% 98%;
+
+    /* Button colors - dark mode */
+    --btn-secondary: 217 33% 20%;
+    --btn-secondary-text: 217 91% 70%;
+    --btn-secondary-border: 217 33% 30%;
+    --btn-secondary-hover: 217 91% 60%;
+    --btn-secondary-hover-text: 0 0% 100%;
+    
+    --btn-danger: 0 40% 20%;
+    --btn-danger-text: 0 84% 70%;
+    --btn-danger-hover: 0 84% 60%;
+    --btn-danger-hover-text: 0 0% 100%;
+
+    /* Badge colors - dark mode */
+    --badge-bg: 217 33% 20%;
+    --badge-text: 210 40% 98%;
+
+    /* Shadows - dark mode */
+    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.2);
+    --shadow-cta: 0 4px 14px rgba(243, 18, 96, 0.2);
   }
 }
 
