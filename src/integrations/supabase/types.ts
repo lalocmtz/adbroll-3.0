@@ -794,18 +794,22 @@ export type Database = {
           commission: number | null
           commission_amount: number | null
           commission_percent_calc: number | null
+          commission_percentile: number | null
           created_at: string | null
           creators_active_30d: number | null
           creators_active_calc: number | null
           creators_count: number | null
+          creators_niche_avg: number | null
           currency: string | null
           descripcion: string | null
           earning_per_sale: number | null
           gmv_30d_calc: number | null
           gmv_30d_mxn: number | null
           gmv_7d_mxn: number | null
+          gmv30d_percentile: number | null
           id: string | null
           imagen_url: string | null
+          io_score: number | null
           is_hidden: boolean | null
           is_hidden_gem: boolean | null
           is_opportunity: boolean | null
@@ -817,6 +821,8 @@ export type Database = {
           price: number | null
           producto_nombre: string | null
           producto_url: string | null
+          profit_niche_avg: number | null
+          profit_percentile: number | null
           promedio_roas: number | null
           rank: number | null
           rating: number | null
