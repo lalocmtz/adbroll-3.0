@@ -14,8 +14,13 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Creators from "./pages/Creators";
+import Favorites from "./pages/Favorites";
 import Admin from "./pages/Admin";
 import RelatedVideos from "./pages/RelatedVideos";
+import FAQ from "./pages/FAQ";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,9 +75,16 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/about" element={<About />} />
+              
+              {/* Protected routes */}
               <Route
                 path="/app"
                 element={
@@ -94,6 +106,14 @@ const App = () => {
                 element={
                   <ProtectedRoute session={session}>
                     <Creators />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/favorites"
+                element={
+                  <ProtectedRoute session={session}>
+                    <Favorites />
                   </ProtectedRoute>
                 }
               />

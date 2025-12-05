@@ -1,11 +1,15 @@
 import { NavLink } from "./NavLink";
-import { Video, Package, Users as UsersIcon } from "lucide-react";
+import { Video, Package, Users as UsersIcon, Heart } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const DashboardNav = () => {
+  const { t } = useLanguage();
+
   const navItems = [
-    { to: "/app", label: "Videos", icon: Video },
-    { to: "/products", label: "Productos", icon: Package },
-    { to: "/creadores", label: "Creadores", icon: UsersIcon },
+    { to: "/app", label: t("videos"), icon: Video },
+    { to: "/products", label: t("products"), icon: Package },
+    { to: "/creadores", label: t("creators"), icon: UsersIcon },
+    { to: "/favorites", label: t("favorites"), icon: Heart },
   ];
 
   return (
