@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, AlertTriangle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
@@ -17,12 +18,19 @@ const Admin = () => {
   const [creatorFile, setCreatorFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
+  const [isAIMatching, setIsAIMatching] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [processPhase, setProcessPhase] = useState("");
   const [processProgress, setProcessProgress] = useState(0);
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [useAI, setUseAI] = useState(true);
+  const [lastMatchStats, setLastMatchStats] = useState<{
+    fuzzy: number;
+    ai: number;
+    total: number;
+  } | null>(null);
   const { toast } = useToast();
 
   const [stats, setStats] = useState({
@@ -38,6 +46,8 @@ const Admin = () => {
     checkFounderRole();
     const saved = localStorage.getItem("adbroll_last_sync");
     if (saved) setLastSync(saved);
+    const savedAI = localStorage.getItem("adbroll_use_ai");
+    if (savedAI !== null) setUseAI(savedAI === "true");
   }, []);
 
   useEffect(() => {
@@ -45,6 +55,10 @@ const Admin = () => {
       loadStats();
     }
   }, [isFounder]);
+
+  useEffect(() => {
+    localStorage.setItem("adbroll_use_ai", String(useAI));
+  }, [useAI]);
 
   const loadStats = async () => {
     setIsRefreshing(true);
@@ -114,6 +128,7 @@ const Admin = () => {
     setLastSync(now);
   };
 
+  // Standard matching (fuzzy only)
   const handleMatchPending = async () => {
     if (stats.pendingMatch === 0) {
       toast({ title: "Todo vinculado", description: "No hay videos pendientes." });
@@ -122,24 +137,28 @@ const Admin = () => {
 
     setIsMatching(true);
     let totalMatched = 0;
+    let fuzzyTotal = 0;
+    let aiTotal = 0;
 
     try {
       let complete = false;
       while (!complete) {
         const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-          body: { batchSize: 100, threshold: 0.5 }
+          body: { batchSize: 100, threshold: 0.5, useAI: false } // Fuzzy only
         });
 
         if (error) throw error;
         
         totalMatched += data.matchedInBatch || 0;
+        fuzzyTotal += data.fuzzyMatches || 0;
         complete = data.complete;
       }
 
+      setLastMatchStats({ fuzzy: fuzzyTotal, ai: 0, total: totalMatched });
       saveLastSync();
       toast({
         title: "Vinculación completada",
-        description: `${totalMatched} videos vinculados con productos.`,
+        description: `${totalMatched} videos vinculados (fuzzy matching).`,
       });
       await loadStats();
     } catch (error: any) {
@@ -150,6 +169,51 @@ const Admin = () => {
       });
     } finally {
       setIsMatching(false);
+    }
+  };
+
+  // AI-powered matching
+  const handleAIMatch = async () => {
+    if (stats.pendingMatch === 0) {
+      toast({ title: "Todo vinculado", description: "No hay videos pendientes." });
+      return;
+    }
+
+    setIsAIMatching(true);
+    let totalMatched = 0;
+    let fuzzyTotal = 0;
+    let aiTotal = 0;
+
+    try {
+      let complete = false;
+      while (!complete) {
+        const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
+          body: { batchSize: 50, threshold: 0.5, useAI: true } // With AI fallback
+        });
+
+        if (error) throw error;
+        
+        totalMatched += data.matchedInBatch || 0;
+        fuzzyTotal += data.fuzzyMatches || 0;
+        aiTotal += data.aiMatches || 0;
+        complete = data.complete;
+      }
+
+      setLastMatchStats({ fuzzy: fuzzyTotal, ai: aiTotal, total: totalMatched });
+      saveLastSync();
+      toast({
+        title: "Vinculación IA completada",
+        description: `${totalMatched} videos vinculados (${fuzzyTotal} fuzzy, ${aiTotal} IA).`,
+      });
+      await loadStats();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsAIMatching(false);
     }
   };
 
@@ -167,7 +231,7 @@ const Admin = () => {
     setProcessProgress(0);
 
     try {
-      // Step 1: Import Creators FIRST (required for FK resolution)
+      // Step 1: Import Creators FIRST
       if (creatorFile) {
         setProcessPhase("1/5 Importando creadores...");
         setProcessProgress(5);
@@ -182,7 +246,7 @@ const Admin = () => {
         setCreatorFile(null);
       }
 
-      // Step 2: Import Products SECOND (required for FK resolution)
+      // Step 2: Import Products SECOND
       if (productFile) {
         setProcessPhase("2/5 Importando productos...");
         setProcessProgress(15);
@@ -197,7 +261,7 @@ const Admin = () => {
         setProductFile(null);
       }
 
-      // Step 3: Import Videos THIRD (uses FK from creators/products)
+      // Step 3: Import Videos THIRD
       if (videoFile) {
         setProcessPhase("3/5 Importando videos...");
         setProcessProgress(30);
@@ -242,16 +306,18 @@ const Admin = () => {
         }
       }
 
-      // Step 5: Match all videos with products
-      setProcessPhase("5/5 Vinculando videos con productos...");
+      // Step 5: Match all videos with products (using AI toggle setting)
+      setProcessPhase(`5/5 Vinculando videos ${useAI ? "(con IA)" : "(fuzzy)"}...`);
       setProcessProgress(75);
       
       let matchComplete = false;
       let totalMatched = 0;
+      let fuzzyTotal = 0;
+      let aiTotal = 0;
       
       while (!matchComplete) {
         const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-          body: { batchSize: 100, threshold: 0.5 }
+          body: { batchSize: useAI ? 50 : 100, threshold: 0.5, useAI }
         });
         
         if (error) {
@@ -260,12 +326,16 @@ const Admin = () => {
         }
         
         totalMatched += data.matchedInBatch || 0;
+        fuzzyTotal += data.fuzzyMatches || 0;
+        aiTotal += data.aiMatches || 0;
         matchComplete = data.complete;
         
         const progress = 75 + Math.min(20, (totalMatched / 100) * 20);
         setProcessProgress(progress);
-        setProcessPhase(`5/5 Vinculando productos... (${totalMatched} vinculados)`);
+        setProcessPhase(`5/5 Vinculando... (${totalMatched} vinculados${aiTotal > 0 ? `, ${aiTotal} IA` : ""})`);
       }
+
+      setLastMatchStats({ fuzzy: fuzzyTotal, ai: aiTotal, total: totalMatched });
 
       // Done!
       setProcessProgress(100);
@@ -274,7 +344,7 @@ const Admin = () => {
       
       toast({
         title: "¡Proceso completado!",
-        description: `${downloadedCount} videos descargados, ${totalMatched} productos vinculados.`,
+        description: `${downloadedCount} videos descargados, ${totalMatched} productos vinculados${aiTotal > 0 ? ` (${aiTotal} con IA)` : ""}.`,
       });
 
       await loadStats();
@@ -339,15 +409,6 @@ const Admin = () => {
               <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
               Actualizar
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleMatchPending}
-              disabled={isMatching || stats.pendingMatch === 0}
-            >
-              <Link2 className={`h-4 w-4 mr-1 ${isMatching ? 'animate-pulse' : ''}`} />
-              {isMatching ? "Vinculando..." : `Vincular (${stats.pendingMatch})`}
-            </Button>
           </div>
         </div>
 
@@ -389,6 +450,75 @@ const Admin = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* AI Matching Section */}
+        <Card className="mb-6 border-purple-200 bg-gradient-to-r from-purple-50/50 to-indigo-50/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center text-base">
+              <Brain className="h-5 w-5 mr-2 text-purple-600" />
+              Vinculación Inteligente
+            </CardTitle>
+            <CardDescription>
+              La IA analiza títulos de videos y encuentra coincidencias semánticas cuando el matching normal falla
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* AI Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                <div>
+                  <p className="text-sm font-medium">Usar IA en procesamiento</p>
+                  <p className="text-xs text-muted-foreground">
+                    OpenAI GPT-4o-mini como fallback cuando fuzzy matching falla
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={useAI}
+                onCheckedChange={setUseAI}
+                disabled={isProcessing || isMatching || isAIMatching}
+              />
+            </div>
+
+            {/* Matching Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                onClick={handleMatchPending}
+                disabled={isMatching || isAIMatching || stats.pendingMatch === 0}
+                className="h-12"
+              >
+                <Link2 className={`h-4 w-4 mr-2 ${isMatching ? 'animate-pulse' : ''}`} />
+                {isMatching ? "Vinculando..." : `Fuzzy (${stats.pendingMatch})`}
+              </Button>
+              <Button
+                onClick={handleAIMatch}
+                disabled={isMatching || isAIMatching || stats.pendingMatch === 0}
+                className="h-12 bg-purple-600 hover:bg-purple-700"
+              >
+                <Brain className={`h-4 w-4 mr-2 ${isAIMatching ? 'animate-pulse' : ''}`} />
+                {isAIMatching ? "IA procesando..." : `🤖 Vincular con IA (${stats.pendingMatch})`}
+              </Button>
+            </div>
+
+            {/* Last Match Stats */}
+            {lastMatchStats && lastMatchStats.total > 0 && (
+              <div className="flex items-center gap-4 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                <span>Último match:</span>
+                <span className="text-foreground font-medium">{lastMatchStats.total} total</span>
+                <span>•</span>
+                <span>{lastMatchStats.fuzzy} fuzzy</span>
+                {lastMatchStats.ai > 0 && (
+                  <>
+                    <span>•</span>
+                    <span className="text-purple-600 font-medium">{lastMatchStats.ai} IA</span>
+                  </>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* File Upload Section */}
         <Card className="mb-6">
@@ -492,13 +622,13 @@ const Admin = () => {
               ) : (
                 <>
                   <Zap className="h-5 w-5 mr-2" />
-                  🚀 Procesar Todo
+                  🚀 Procesar Todo {useAI && <span className="ml-2 text-xs bg-purple-500/20 px-2 py-0.5 rounded">+ IA</span>}
                 </>
               )}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
-              Creadores → Productos → Videos → Descarga MP4 → Vinculación automática
+              Creadores → Productos → Videos → Descarga MP4 → Vinculación {useAI ? "(con IA)" : "(fuzzy)"}
             </p>
           </CardContent>
         </Card>
