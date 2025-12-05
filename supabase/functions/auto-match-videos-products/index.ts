@@ -27,7 +27,7 @@ interface Video {
   category: string | null;
 }
 
-// Text normalization - removes accents, lowercase, trim
+// Text normalization
 function normalizeText(text: string | null): string {
   if (!text) return '';
   return text
@@ -38,16 +38,6 @@ function normalizeText(text: string | null): string {
     .replace(/[^\w\s]/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-// Extract product URL from video URL or description if present
-function extractProductUrl(videoUrl: string, title: string | null): string | null {
-  const urlPattern = /https?:\/\/[^\s]+tiktokshop[^\s]*/gi;
-  const productUrlPattern = /https?:\/\/[^\s]*product[^\s]*/gi;
-  
-  const combined = `${videoUrl} ${title || ''}`;
-  const match = combined.match(urlPattern) || combined.match(productUrlPattern);
-  return match ? match[0] : null;
 }
 
 // Levenshtein distance for fuzzy matching
@@ -134,19 +124,6 @@ function calculateFuzzyScore(video: Video, product: Product): number {
   return maxScore;
 }
 
-// Priority A: Direct URL match
-function findDirectUrlMatch(video: Video, products: Product[]): Product | null {
-  const extractedUrl = extractProductUrl(video.video_url, video.title);
-  if (!extractedUrl) return null;
-  
-  for (const product of products) {
-    if (product.producto_url && normalizeText(product.producto_url) === normalizeText(extractedUrl)) {
-      return product;
-    }
-  }
-  return null;
-}
-
 // Priority B: Fuzzy matching with score threshold
 function findBestFuzzyMatch(video: Video, products: Product[], threshold: number = 0.55): { product: Product; score: number } | null {
   let bestMatch: { product: Product; score: number } | null = null;
@@ -169,31 +146,24 @@ async function findAIMatch(
 ): Promise<{ product: Product; score: number } | null> {
   if (!openAIKey) return null;
   
-  // Prepare product list for AI (max 30 to fit context)
-  const productList = products.slice(0, 30).map((p, idx) => ({
+  // Prepare product list for AI (max 25 to fit context and reduce tokens)
+  const productList = products.slice(0, 25).map((p, idx) => ({
     index: idx,
     name: p.producto_nombre,
     category: p.categoria || 'Sin categoría'
   }));
   
-  const prompt = `Eres un experto en TikTok Shop México. Tu tarea es identificar qué producto se promociona en un video de TikTok.
+  const prompt = `VIDEO: "${video.title || 'Sin título'}"
 
-VIDEO:
-- Título: "${video.title || 'Sin título'}"
-- Creador: Video de TikTok Shop
+PRODUCTOS:
+${productList.map(p => `${p.index}. ${p.name}`).join('\n')}
 
-PRODUCTOS DISPONIBLES:
-${productList.map(p => `${p.index}. ${p.name} (${p.category})`).join('\n')}
-
-INSTRUCCIONES:
-1. Analiza el título del video para identificar el producto mencionado
-2. Busca coincidencias semánticas (sinónimos, descripciones del producto)
-3. Si encuentras una coincidencia clara, responde SOLO con el número del índice
-4. Si NO hay coincidencia clara, responde "NONE"
-
-RESPUESTA (solo el número o NONE):`;
+¿Qué producto coincide? Responde SOLO con el número o NONE:`;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout per AI call
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -203,13 +173,15 @@ RESPUESTA (solo el número o NONE):`;
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'Eres un asistente que identifica productos de TikTok Shop. Responde SOLO con un número de índice o "NONE".' },
           { role: 'user', content: prompt }
         ],
-        max_tokens: 10,
-        temperature: 0.1,
+        max_tokens: 5,
+        temperature: 0,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.error('OpenAI API error:', response.status);
@@ -231,7 +203,7 @@ RESPUESTA (solo el número o NONE):`;
     const matchedProduct = products[productIndex];
     console.log(`🤖 AI matched video to "${matchedProduct.producto_nombre}"`);
     
-    return { product: matchedProduct, score: 0.75 }; // AI matches get 0.75 confidence
+    return { product: matchedProduct, score: 0.75 };
     
   } catch (error) {
     console.error('AI matching error:', error);
@@ -244,25 +216,33 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  const MAX_EXECUTION_TIME = 8000; // 8 seconds max (leave buffer before 10s limit)
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const openAIKey = Deno.env.get('OPENAI_API_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let batchSize = 100;
+    let batchSize = 50;
     let offset = 0;
     let threshold = 0.55;
     let useAI = true;
     
     try {
       const body = await req.json();
-      batchSize = body.batchSize || 100;
+      batchSize = body.batchSize || 50;
       offset = body.offset || 0;
       threshold = body.threshold || 0.55;
-      useAI = body.useAI !== false; // AI enabled by default
+      useAI = body.useAI !== false;
     } catch {
       // Use defaults
+    }
+
+    // CRITICAL: Reduce batch size significantly when AI is enabled
+    if (useAI && openAIKey) {
+      batchSize = Math.min(batchSize, 10); // Max 10 videos per batch with AI
     }
 
     console.log(`🔄 Auto-Matcher V3: offset=${offset}, batchSize=${batchSize}, threshold=${threshold}, AI=${useAI && !!openAIKey}`);
@@ -321,44 +301,51 @@ serve(async (req) => {
     let fuzzyMatches = 0;
     let aiMatches = 0;
     let noMatches = 0;
+    let processedCount = 0;
+    let timedOut = false;
 
     for (const video of videos) {
-      // Priority A: Direct URL match
-      let matchedProduct = findDirectUrlMatch(video, products);
-      let matchScore = 1.0;
-      let matchType = 'direct_url';
-
-      // Priority B: Fuzzy matching
-      if (!matchedProduct) {
-        const fuzzyResult = findBestFuzzyMatch(video, products, threshold);
-        if (fuzzyResult) {
-          matchedProduct = fuzzyResult.product;
-          matchScore = fuzzyResult.score;
-          matchType = 'fuzzy';
-        }
+      // Check if we're running out of time
+      if (Date.now() - startTime > MAX_EXECUTION_TIME) {
+        console.log(`⏱️ Timeout approaching, stopping at ${processedCount} videos`);
+        timedOut = true;
+        break;
       }
 
-      // Priority C: AI matching (fallback when fuzzy fails)
+      processedCount++;
+      let matchedProduct: Product | null = null;
+      let matchScore = 0;
+      let matchType = 'none';
+
+      // Priority B: Fuzzy matching (fast, no API call)
+      const fuzzyResult = findBestFuzzyMatch(video, products, threshold);
+      if (fuzzyResult) {
+        matchedProduct = fuzzyResult.product;
+        matchScore = fuzzyResult.score;
+        matchType = 'fuzzy';
+      }
+
+      // Priority C: AI matching (only if fuzzy failed and AI enabled)
       if (!matchedProduct && useAI && openAIKey) {
+        // Check time again before making AI call
+        if (Date.now() - startTime > MAX_EXECUTION_TIME - 2000) {
+          console.log(`⏱️ Not enough time for AI call, skipping`);
+          timedOut = true;
+          break;
+        }
+
         const aiResult = await findAIMatch(video, products, openAIKey);
         if (aiResult) {
           matchedProduct = aiResult.product;
           matchScore = aiResult.score;
           matchType = 'ai';
         }
-        // Small delay between AI calls to avoid rate limits
-        await new Promise(r => setTimeout(r, 200));
       }
 
       if (matchedProduct) {
         matchedCount++;
-        if (matchType === 'direct_url') directMatches++;
-        else if (matchType === 'fuzzy') fuzzyMatches++;
+        if (matchType === 'fuzzy') fuzzyMatches++;
         else if (matchType === 'ai') aiMatches++;
-
-        const earningPerSale = matchedProduct.price && matchedProduct.commission
-          ? matchedProduct.price * (matchedProduct.commission / 100)
-          : null;
 
         const { error: updateError } = await supabase
           .from('videos')
@@ -376,7 +363,7 @@ serve(async (req) => {
         if (updateError) {
           console.error(`Error updating video ${video.id}:`, updateError.message);
         } else {
-          console.log(`✓ Matched video to "${matchedProduct.producto_nombre}" (${matchType}, score: ${matchScore.toFixed(2)})`);
+          console.log(`✓ Matched "${matchedProduct.producto_nombre}" (${matchType}, ${matchScore.toFixed(2)})`);
         }
       } else {
         noMatches++;
@@ -391,14 +378,14 @@ serve(async (req) => {
     }
 
     const remainingUnmatched = Math.max(0, (totalUnmatched || 0) - matchedCount);
-    const complete = videos.length < batchSize;
+    const complete = !timedOut && videos.length < batchSize;
 
-    console.log(`✅ Batch complete: ${matchedCount}/${videos.length} matched (${directMatches} direct, ${fuzzyMatches} fuzzy, ${aiMatches} AI, ${noMatches} no match)`);
+    console.log(`✅ Done: ${matchedCount}/${processedCount} matched (${fuzzyMatches} fuzzy, ${aiMatches} AI)`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        batchProcessed: videos.length,
+        batchProcessed: processedCount,
         matchedInBatch: matchedCount,
         directMatches,
         fuzzyMatches,
@@ -406,12 +393,16 @@ serve(async (req) => {
         noMatches,
         remainingUnmatched,
         complete,
-        nextOffset: complete ? null : offset + batchSize,
+        timedOut,
+        nextOffset: complete ? null : offset + processedCount,
         threshold,
         aiEnabled: useAI && !!openAIKey,
+        executionTimeMs: Date.now() - startTime,
         message: complete 
-          ? `Matching complete! ${matchedCount} matched (${aiMatches} via AI)`
-          : `Batch processed: ${matchedCount} matched, ${remainingUnmatched} remaining`
+          ? `Complete! ${matchedCount} matched (${aiMatches} via AI)`
+          : timedOut
+            ? `Timeout: ${matchedCount} matched, continue from offset ${offset + processedCount}`
+            : `Batch: ${matchedCount} matched, ${remainingUnmatched} remaining`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
