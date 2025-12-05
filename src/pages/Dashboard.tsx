@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import VideoCard from "@/components/VideoCard";
+import { VideoCardNew } from "@/components/VideoCardNew";
 import { useToast } from "@/hooks/use-toast";
 import DashboardNav from "@/components/DashboardNav";
 import GlobalHeader from "@/components/GlobalHeader";
@@ -23,6 +23,8 @@ import {
 interface Video {
   id: string;
   video_url: string;
+  video_mp4_url: string | null;
+  thumbnail_url: string | null;
   title: string | null;
   creator_name: string | null;
   creator_handle: string | null;
@@ -36,9 +38,10 @@ interface Video {
   country: string | null;
   rank: number | null;
   imported_at: string | null;
-  product_price: number | null;
-  product_sales: number | null;
-  product_revenue: number | null;
+  transcript: string | null;
+  analysis_json: any;
+  variants_json: any;
+  processing_status: string | null;
 }
 
 const Dashboard = () => {
@@ -99,7 +102,6 @@ const Dashboard = () => {
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
-      // Determine sort order
       let primarySort: "sales" | "revenue_mxn" = "revenue_mxn";
       let secondarySort: "sales" | "revenue_mxn" = "sales";
 
@@ -115,15 +117,10 @@ const Dashboard = () => {
         .order(secondarySort, { ascending: false })
         .range(from, to);
 
-      // Apply category filter
       if (selectedCategory !== "all") {
         query = query.eq("category", selectedCategory);
       }
 
-      // Apply date filter (simplified for now - would need actual date logic)
-      // TODO: Implement date filtering based on imported_at or created_at
-
-      // Apply existing filters
       if (productFilter) {
         query = query.ilike("product_name", `%${productFilter}%`);
       }
@@ -210,9 +207,7 @@ const Dashboard = () => {
       <GlobalHeader />
       <DashboardNav />
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 md:px-6 py-2 max-w-7xl">
-        {/* Compact Header - Single Row */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
           <h1 className="text-2xl md:text-3xl font-bold">
             {productFilter 
@@ -223,7 +218,6 @@ const Dashboard = () => {
           </h1>
 
           <div className="flex items-center gap-3">
-            {/* Sort Selector */}
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium hidden md:inline">Ordenar:</span>
               <Select value={sortOrder} onValueChange={(value: "sales" | "revenue") => setSortOrder(value)}>
@@ -237,7 +231,6 @@ const Dashboard = () => {
               </Select>
             </div>
 
-            {/* Filter Button */}
             <Button
               variant="outline"
               size="default"
@@ -279,7 +272,6 @@ const Dashboard = () => {
           </Card>
         ) : (
           <>
-            {/* Pagination Info and Controls - TOP */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <p className="text-sm text-muted-foreground">
                 Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} de {Math.min(totalCount, MAX_VIDEOS)} videos
@@ -291,37 +283,17 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Video Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+            {/* Video Grid - ViralViews style */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
               {videos.map((video, index) => (
-                <VideoCard 
+                <VideoCardNew 
                   key={video.id} 
-                  video={{
-                    id: video.id,
-                    tiktok_url: video.video_url,
-                    descripcion_video: video.title || "",
-                    creador: video.creator_name || video.creator_handle || "",
-                    ingresos_mxn: video.revenue_mxn || 0,
-                    ventas: video.sales || 0,
-                    visualizaciones: video.views || 0,
-                    producto_nombre: video.product_name,
-                    producto_url: null,
-                    cpa_mxn: video.revenue_mxn && video.sales ? video.revenue_mxn / video.sales : 0,
-                    duracion: "",
-                    fecha_publicacion: video.imported_at || "",
-                    transcripcion_original: null,
-                    guion_ia: null,
-                    product_id: video.product_id,
-                    product_price: video.product_price,
-                    product_sales: video.product_sales,
-                    product_revenue: video.product_revenue,
-                  }} 
+                  video={video}
                   ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} 
                 />
               ))}
             </div>
 
-            {/* Pagination - BOTTOM */}
             {totalPages > 1 && (
               <div className="mt-8 mb-4 flex justify-center">
                 <PaginationComponent />
@@ -330,7 +302,6 @@ const Dashboard = () => {
           </>
         )}
 
-        {/* Filter Sidebar */}
         <FilterSidebar
           open={filterSidebarOpen}
           onOpenChange={setFilterSidebarOpen}
