@@ -92,13 +92,15 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
   }, [isOpen]);
 
   const startAutomaticAnalysis = async () => {
-    setState(prev => ({ ...prev, loading: true, loadingStep: "Transcribiendo video…" }));
+    setState(prev => ({ ...prev, loading: true, loadingStep: "Extrayendo audio del video…" }));
 
     try {
       // Step 1: Get transcript
       let transcript = video.transcripcion_original || video.guion_ia || "";
 
       if (!transcript) {
+        setState(prev => ({ ...prev, loadingStep: "Descargando audio de TikTok…" }));
+        
         // Try to transcribe via edge function
         const { data: transcribeData, error: transcribeError } = await supabase.functions.invoke('transcribe-video', {
           body: { tiktokUrl: video.tiktok_url }
@@ -106,17 +108,24 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
 
         if (transcribeError) {
           console.error("Transcription error:", transcribeError);
-        }
-
-        if (transcribeData?.transcription) {
-          transcript = transcribeData.transcription;
-        } else if (transcribeData?.requiresManualInput) {
-          // If transcription not available, show message
           setState(prev => ({
             ...prev,
             loading: false,
             loadingStep: "",
-            transcript: "⚠️ No se pudo transcribir automáticamente. La transcripción del video no está disponible.",
+            transcript: "⚠️ Error al conectar con el servicio de transcripción. Intenta de nuevo.",
+          }));
+          return;
+        }
+
+        if (transcribeData?.transcription) {
+          transcript = transcribeData.transcription;
+          setState(prev => ({ ...prev, loadingStep: "Transcripción completada. Analizando…" }));
+        } else if (transcribeData?.requiresManualInput || transcribeData?.message) {
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            loadingStep: "",
+            transcript: `⚠️ ${transcribeData.message || "No se pudo transcribir automáticamente."}`,
           }));
           return;
         }
