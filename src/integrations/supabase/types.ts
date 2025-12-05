@@ -371,7 +371,9 @@ export type Database = {
         Row: {
           categoria: string | null
           commission: number | null
+          commission_amount: number | null
           created_at: string | null
+          creators_count: number | null
           currency: string | null
           descripcion: string | null
           id: string
@@ -383,6 +385,11 @@ export type Database = {
           producto_nombre: string
           producto_url: string | null
           promedio_roas: number | null
+          rank: number | null
+          rating: number | null
+          revenue_30d: number | null
+          revenue_7d: number | null
+          sales_7d: number | null
           tiktok_product_id: string | null
           total_ingresos_mxn: number | null
           total_ventas: number | null
@@ -391,7 +398,9 @@ export type Database = {
         Insert: {
           categoria?: string | null
           commission?: number | null
+          commission_amount?: number | null
           created_at?: string | null
+          creators_count?: number | null
           currency?: string | null
           descripcion?: string | null
           id?: string
@@ -403,6 +412,11 @@ export type Database = {
           producto_nombre: string
           producto_url?: string | null
           promedio_roas?: number | null
+          rank?: number | null
+          rating?: number | null
+          revenue_30d?: number | null
+          revenue_7d?: number | null
+          sales_7d?: number | null
           tiktok_product_id?: string | null
           total_ingresos_mxn?: number | null
           total_ventas?: number | null
@@ -411,7 +425,9 @@ export type Database = {
         Update: {
           categoria?: string | null
           commission?: number | null
+          commission_amount?: number | null
           created_at?: string | null
+          creators_count?: number | null
           currency?: string | null
           descripcion?: string | null
           id?: string
@@ -423,6 +439,11 @@ export type Database = {
           producto_nombre?: string
           producto_url?: string | null
           promedio_roas?: number | null
+          rank?: number | null
+          rating?: number | null
+          revenue_30d?: number | null
+          revenue_7d?: number | null
+          sales_7d?: number | null
           tiktok_product_id?: string | null
           total_ingresos_mxn?: number | null
           total_ventas?: number | null
