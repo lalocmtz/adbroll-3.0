@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 // Column mapping - maps various possible column names to our internal fields
-// Kalodata only provides 30-day metrics
 const COLUMN_MAPPINGS: Record<string, string[]> = {
   rank: ["#", "rank", "ranking", "posición", "position"],
   name: ["product name", "nombre del producto", "product", "nombre", "name"],
@@ -22,14 +21,11 @@ const COLUMN_MAPPINGS: Record<string, string[]> = {
   sales_30d: ["orders 30d", "ventas 30d", "sales 30d", "orders 30 days", "pedidos 30d", "ventas", "orders", "sales", "orders 7d", "ventas 7d", "sales 7d"],
   creators_count: ["creators active", "creadores activos", "active creators", "creators", "número de creadores", "creators count"],
   rating: ["rating", "calificación", "calificaciones del producto", "product rating"],
-  creator_conversion_rate: ["creator conversion rate", "tasa conversión creadores", "conversion rate", "conversión", "tasa de conversión de creadores"],
 };
 
-// Find the matching column name in the row
 function findColumnValue(row: Record<string, any>, fieldName: string): any {
   const possibleNames = COLUMN_MAPPINGS[fieldName] || [];
   
-  // First try exact match (case-insensitive)
   for (const colName of possibleNames) {
     for (const key of Object.keys(row)) {
       if (key.toLowerCase().trim() === colName.toLowerCase()) {
@@ -38,7 +34,6 @@ function findColumnValue(row: Record<string, any>, fieldName: string): any {
     }
   }
   
-  // Then try partial match
   for (const colName of possibleNames) {
     for (const key of Object.keys(row)) {
       if (key.toLowerCase().includes(colName.toLowerCase()) || 
@@ -51,16 +46,12 @@ function findColumnValue(row: Record<string, any>, fieldName: string): any {
   return null;
 }
 
-// Parse numeric values - handles ranges like "267.12-289.48" and percentages
 function parseNumericValue(value: any): number | null {
   if (value === null || value === undefined || value === "") return null;
-  
-  // If already a number, return it
   if (typeof value === "number") return value;
   
   const str = String(value).replace(/[$,MXN\s]/gi, "").trim();
   
-  // Handle ranges - take average
   if (str.includes("-") && !str.startsWith("-")) {
     const parts = str.split("-");
     const num1 = parseFloat(parts[0]);
@@ -70,14 +61,11 @@ function parseNumericValue(value: any): number | null {
     }
   }
   
-  // Handle percentages
   const cleanValue = str.replace("%", "").trim();
   const num = parseFloat(cleanValue);
   return isNaN(num) ? null : num;
 }
 
-// Extract short category from full path
-// "Belleza y cuidado personal > Aparatos > Rizadores" → "Belleza y cuidado personal"
 function extractShortCategory(fullCategory: string | null): string | null {
   if (!fullCategory) return null;
   const parts = fullCategory.split(">");
@@ -90,7 +78,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify founder role
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -101,18 +88,11 @@ serve(async (req) => {
       }
     );
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      throw new Error("No autenticado");
-    }
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) throw new Error("No autenticado");
 
     console.log("Usuario autenticado:", user.email);
 
-    // Check founder role
     const { data: roleData, error: roleError } = await supabaseClient
       .from("user_roles")
       .select("role")
@@ -126,19 +106,14 @@ serve(async (req) => {
 
     console.log("Rol de fundador verificado");
 
-    // Create service role client for database operations (bypasses RLS)
     const supabaseServiceClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Parse Excel file
     const formData = await req.formData();
     const file = formData.get("file") as File;
-
-    if (!file) {
-      throw new Error("No se proporcionó archivo");
-    }
+    if (!file) throw new Error("No se proporcionó archivo");
 
     console.log("Archivo de productos recibido:", file.name, "Tamaño:", file.size);
 
@@ -149,14 +124,12 @@ serve(async (req) => {
 
     console.log(`Procesando ${rows.length} filas del Excel`);
     
-    // Log first row columns for debugging
     if (rows.length > 0) {
       console.log("Columnas detectadas:", Object.keys(rows[0]));
     }
 
-    // Process each row - Using 30-day metrics ONLY (Kalodata standard)
+    // Process each row
     const processedProducts = rows.map((row, index) => {
-      // Extract values using dynamic column detection
       const rank = parseNumericValue(findColumnValue(row, "rank")) || index + 1;
       const name = findColumnValue(row, "name");
       const imageUrl = findColumnValue(row, "image_url");
@@ -170,17 +143,14 @@ serve(async (req) => {
       const creatorsCount = parseNumericValue(findColumnValue(row, "creators_count"));
       const rating = parseNumericValue(findColumnValue(row, "rating"));
 
-      // Commission amount: if not provided, calculate from price and rate
       if (!commissionAmount && price && commissionRate) {
         commissionAmount = price * (commissionRate / 100);
       }
       
-      // Extract short category
       const categoryShort = extractShortCategory(categoryRaw);
 
       return {
-        rank,
-        name: name || `Producto ${index + 1}`,
+        name: name ? String(name).trim() : null,
         image_url: imageUrl || null,
         product_url: productUrl || null,
         category: categoryShort,
@@ -192,73 +162,94 @@ serve(async (req) => {
         creators_count: creatorsCount,
         rating,
       };
-    }).filter(p => p.name && p.name !== `Producto ${0}`); // Filter out products without names
+    }).filter(p => p.name);
 
     console.log(`Productos procesados: ${processedProducts.length}`);
 
-    // Sort by revenue_30d descending, fallback to sales_30d if no revenue
+    // Sort by revenue_30d descending
     const sortedProducts = processedProducts.sort((a, b) => {
       const aValue = a.revenue_30d || a.sales_30d || 0;
       const bValue = b.revenue_30d || b.sales_30d || 0;
       return bValue - aValue;
     });
 
-    // Assign final ranks based on sorting - keep ALL products
-    const rankedProducts = sortedProducts.map((p, idx) => ({
-      ...p,
-      rank: idx + 1
-    }));
-    
-    console.log(`${rankedProducts.length} productos ordenados y rankeados`);
+    // SMART UPSERT: Check existing products by name
+    let insertedCount = 0;
+    let updatedCount = 0;
 
-    // Delete all existing products
-    console.log("Eliminando productos anteriores...");
-    const { error: deleteError } = await supabaseServiceClient
-      .from("products")
-      .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete all
+    for (let idx = 0; idx < sortedProducts.length; idx++) {
+      const p = sortedProducts[idx];
+      const rank = idx + 1;
 
-    if (deleteError) {
-      console.error("Error deleting products:", deleteError);
-    } else {
-      console.log("Productos anteriores eliminados");
+      // Check if product exists by name
+      const { data: existing } = await supabaseServiceClient
+        .from("products")
+        .select("id")
+        .eq("producto_nombre", p.name)
+        .maybeSingle();
+
+      const productData = {
+        rank,
+        producto_nombre: p.name,
+        imagen_url: p.image_url,
+        producto_url: p.product_url,
+        categoria: p.category,
+        precio_mxn: p.price,
+        price: p.price,
+        commission: p.commission_rate,
+        commission_amount: p.commission_amount,
+        revenue_30d: p.revenue_30d,
+        total_ingresos_mxn: p.revenue_30d,
+        sales_7d: p.sales_30d,
+        total_ventas: p.sales_30d,
+        creators_count: p.creators_count,
+        rating: p.rating,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existing) {
+        // UPDATE existing product - only update metrics and rank
+        const { error: updateError } = await supabaseServiceClient
+          .from("products")
+          .update({
+            rank: productData.rank,
+            imagen_url: productData.imagen_url,
+            precio_mxn: productData.precio_mxn,
+            price: productData.price,
+            commission: productData.commission,
+            commission_amount: productData.commission_amount,
+            revenue_30d: productData.revenue_30d,
+            total_ingresos_mxn: productData.total_ingresos_mxn,
+            sales_7d: productData.sales_7d,
+            total_ventas: productData.total_ventas,
+            creators_count: productData.creators_count,
+            rating: productData.rating,
+            updated_at: productData.updated_at,
+          })
+          .eq("id", existing.id);
+
+        if (!updateError) {
+          updatedCount++;
+          console.log(`Updated product: ${p.name}`);
+        } else {
+          console.error(`Error updating product ${p.name}:`, updateError);
+        }
+      } else {
+        // INSERT new product
+        const { error: insertError } = await supabaseServiceClient
+          .from("products")
+          .insert(productData);
+
+        if (!insertError) {
+          insertedCount++;
+          console.log(`Inserted product: ${p.name}`);
+        } else {
+          console.error(`Error inserting product ${p.name}:`, insertError);
+        }
+      }
     }
 
-    // Insert ALL products - map to database column names
-    const productsToInsert = rankedProducts.map((p) => ({
-      rank: p.rank,
-      producto_nombre: p.name,
-      imagen_url: p.image_url,
-      producto_url: p.product_url,
-      categoria: p.category,
-      precio_mxn: p.price,
-      price: p.price,
-      commission: p.commission_rate,
-      commission_amount: p.commission_amount,
-      revenue_30d: p.revenue_30d,
-      total_ingresos_mxn: p.revenue_30d, // Backward compatibility
-      sales_7d: p.sales_30d, // Store in sales_7d for backward compatibility
-      total_ventas: p.sales_30d, // Backward compatibility
-      creators_count: p.creators_count,
-      rating: p.rating,
-    }));
-
-    console.log(`Insertando ${productsToInsert.length} productos...`);
-    if (productsToInsert.length > 0) {
-      console.log("Ejemplo producto:", JSON.stringify(productsToInsert[0], null, 2));
-    }
-
-    const { data: insertedData, error: insertError } = await supabaseServiceClient
-      .from("products")
-      .insert(productsToInsert)
-      .select();
-
-    if (insertError) {
-      console.error("Error inserting products:", insertError);
-      throw new Error(`Error al insertar productos: ${insertError.message}`);
-    }
-
-    console.log(`${insertedData?.length || 0} productos insertados exitosamente`);
+    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
 
     // Trigger auto-matching after products import
     console.log('Triggering auto-match videos to products...');
@@ -276,9 +267,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        processed: rankedProducts.length,
+        inserted: insertedCount,
+        updated: updatedCount,
+        processed: sortedProducts.length,
         total: rows.length,
-        message: `Se importaron ${rankedProducts.length} productos de ${rows.length} filas.`,
+        message: `Importación inteligente: ${insertedCount} nuevos, ${updatedCount} actualizados de ${rows.length} filas.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

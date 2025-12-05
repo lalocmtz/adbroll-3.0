@@ -16,6 +16,7 @@ interface Video {
   title?: string | null;
   creator_name?: string | null;
   creator_handle?: string | null;
+  creator_id?: string | null;
   product_name?: string | null;
   product_id?: string | null;
   views?: number | null;
@@ -25,6 +26,14 @@ interface Video {
   analysis_json?: any;
   variants_json?: any;
   processing_status?: string | null;
+  // Joined product data
+  product?: {
+    id: string;
+    producto_nombre: string;
+    imagen_url: string | null;
+    total_ingresos_mxn: number | null;
+    commission: number | null;
+  } | null;
 }
 
 interface VideoCardOriginalProps {
@@ -256,18 +265,33 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
             </p>
           </div>
 
-          {/* Product Association */}
-          {video.product_name && (
+          {/* Product Association with Image */}
+          {(video.product || video.product_name) && (
             <button
               onClick={navigateToProduct}
               className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
             >
-              <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <ShoppingCart className="h-3 w-3 text-primary" />
+              {video.product?.imagen_url ? (
+                <img 
+                  src={video.product.imagen_url} 
+                  alt={video.product.producto_nombre}
+                  className="w-8 h-8 rounded object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <ShoppingCart className="h-4 w-4 text-primary" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <span className="text-xs text-primary font-medium truncate block">
+                  {video.product?.producto_nombre || video.product_name}
+                </span>
+                {video.product?.total_ingresos_mxn && (
+                  <span className="text-[10px] text-muted-foreground">
+                    GMV: {formatCurrency(video.product.total_ingresos_mxn)}
+                  </span>
+                )}
               </div>
-              <span className="text-xs text-primary font-medium truncate">
-                {video.product_name}
-              </span>
             </button>
           )}
 
