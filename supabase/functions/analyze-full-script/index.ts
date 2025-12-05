@@ -9,9 +9,10 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `Eres un experto en análisis de guiones de TikTok Shop y creación de contenido viral de ventas.
 
 Tu tarea es analizar un guion de video de TikTok y generar:
-1. Un análisis completo del guion
-2. 3 hooks diferentes (similar, variado, disruptivo)
-3. Un cuerpo reescrito para cada hook
+1. El script limpio (sin timestamps, errores, repeticiones)
+2. Análisis segmentado: Hook, Cuerpo, CTA
+3. 3 hooks alternativos (similar, intermedio, diferente)
+4. Una variante completa del guion
 
 REGLAS IMPORTANTES:
 - Usa tono casual de TikTok, natural y conversacional
@@ -23,28 +24,18 @@ REGLAS IMPORTANTES:
 DEBES responder ÚNICAMENTE con un JSON válido con esta estructura exacta:
 
 {
-  "script_original_limpio": "El guion limpio sin timestamps ni errores",
-  "analisis_guion": {
-    "hook_detectado": "El hook que aparece en el video",
-    "problema": "El problema que resuelve el producto",
-    "beneficios": "Los beneficios mencionados",
-    "demostracion": "Cómo se demuestra el producto",
-    "cta": "El llamado a la acción",
-    "intencion_emocional": "Qué emoción busca generar",
-    "fortalezas": ["Lista de fortalezas del guion"],
-    "debilidades": ["Lista de debilidades"],
-    "oportunidades_mejora": ["Lista de oportunidades"]
+  "transcript": "El guion limpio, continuo y natural sin timestamps ni errores",
+  "analysis": {
+    "hook": "El hook/gancho inicial del video",
+    "body": "El cuerpo principal del mensaje",
+    "cta": "El llamado a la acción final"
   },
   "hooks": {
-    "hook_1_similar": "Hook muy similar al original, mismo ángulo y tono",
-    "hook_2_variado": "Hook con ángulo diferente pero coherente",
-    "hook_3_disruptivo": "Hook emocional, viral, sorprendente"
+    "similar": "Hook muy similar al original, mismo ángulo y tono",
+    "medium": "Hook con ángulo intermedio, variación moderada",
+    "different": "Hook muy diferente, más emocional y viral"
   },
-  "cuerpo_reescrito": {
-    "para_hook_1": "Cuerpo completo adaptado al hook 1",
-    "para_hook_2": "Cuerpo completo adaptado al hook 2",
-    "para_hook_3": "Cuerpo completo adaptado al hook 3"
-  }
+  "full_variant": "Guion completo reescrito manteniendo estructura e intención pero siendo original"
 }
 
 IMPORTANTE: Responde SOLO con el JSON, sin explicaciones adicionales.`;
@@ -55,26 +46,23 @@ serve(async (req) => {
   }
 
   try {
-    const { transcription, videoTitle, productName } = await req.json();
+    const { script } = await req.json();
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
     if (!OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    if (!transcription) {
-      throw new Error('No transcription provided');
+    if (!script) {
+      throw new Error('No script provided');
     }
 
-    console.log('Analyzing script for video:', videoTitle);
+    console.log('Analyzing script, length:', script.length);
 
     const userPrompt = `Analiza este guion de TikTok Shop y genera el JSON completo:
 
-TÍTULO DEL VIDEO: ${videoTitle || 'Sin título'}
-PRODUCTO: ${productName || 'No especificado'}
-
 GUION ORIGINAL:
-${transcription}
+${script}
 
 Recuerda: Responde SOLO con el JSON válido, sin explicaciones.`;
 
@@ -126,7 +114,7 @@ Recuerda: Responde SOLO con el JSON válido, sin explicaciones.`;
     }
 
     // Validate required fields
-    const requiredFields = ['script_original_limpio', 'analisis_guion', 'hooks', 'cuerpo_reescrito'];
+    const requiredFields = ['transcript', 'analysis', 'hooks', 'full_variant'];
     for (const field of requiredFields) {
       if (!result[field]) {
         throw new Error(`Missing required field: ${field}`);
