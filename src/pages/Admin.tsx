@@ -40,6 +40,8 @@ const Admin = () => {
     videosWithProduct: 0,
     videosDownloaded: 0,
     pendingMatch: 0,
+    pendingDownload: 0,
+    readyToShow: 0, // Videos that are complete (downloaded + product)
   });
 
   useEffect(() => {
@@ -71,14 +73,18 @@ const Admin = () => {
 
       const videos = videosRes.data || [];
       const withProduct = videos.filter(v => v.product_id).length;
+      const downloaded = videos.filter(v => v.video_mp4_url).length;
+      const readyToShow = videos.filter(v => v.video_mp4_url && v.product_id).length;
       
       setStats({
         videos: videos.length,
         products: productsRes.count || 0,
         creators: creatorsRes.count || 0,
         videosWithProduct: withProduct,
-        videosDownloaded: videos.filter(v => v.video_mp4_url).length,
+        videosDownloaded: downloaded,
         pendingMatch: videos.length - withProduct,
+        pendingDownload: videos.length - downloaded,
+        readyToShow,
       });
     } finally {
       setIsRefreshing(false);
@@ -451,16 +457,40 @@ const Admin = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card className="border-green-200 bg-green-50/50">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Videos</p>
-                  <p className="text-xl font-bold">{stats.videos}</p>
-                  <p className="text-xs text-green-600">{downloadPercent}% MP4</p>
+                  <p className="text-xs text-muted-foreground">Listos para mostrar</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.readyToShow}</p>
+                  <p className="text-xs text-green-600">Videos completos</p>
                 </div>
-                <Video className="h-6 w-6 text-primary" />
+                <CheckCircle className="h-6 w-6 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-orange-200 bg-orange-50/50">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Pendientes descarga</p>
+                  <p className="text-2xl font-bold text-orange-600">{stats.pendingDownload}</p>
+                  <p className="text-xs text-orange-600">Sin MP4</p>
+                </div>
+                <Video className="h-6 w-6 text-orange-500" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-purple-200 bg-purple-50/50">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Pendientes vincular</p>
+                  <p className="text-2xl font-bold text-purple-600">{stats.pendingMatch}</p>
+                  <p className="text-xs text-purple-600">Sin producto</p>
+                </div>
+                <Link2 className="h-6 w-6 text-purple-500" />
               </div>
             </CardContent>
           </Card>
@@ -468,22 +498,11 @@ const Admin = () => {
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Productos</p>
-                  <p className="text-xl font-bold">{stats.products}</p>
-                  <p className="text-xs text-green-600">{matchPercent}% vinculados</p>
+                  <p className="text-xs text-muted-foreground">Total videos</p>
+                  <p className="text-2xl font-bold">{stats.videos}</p>
+                  <p className="text-xs text-muted-foreground">{stats.products} productos • {stats.creators} creadores</p>
                 </div>
                 <Package className="h-6 w-6 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Creadores</p>
-                  <p className="text-xl font-bold">{stats.creators}</p>
-                </div>
-                <Users className="h-6 w-6 text-primary" />
               </div>
             </CardContent>
           </Card>

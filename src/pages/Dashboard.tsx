@@ -101,6 +101,7 @@ const Dashboard = () => {
       const to = from + ITEMS_PER_PAGE - 1;
 
       // Use JOIN to get product data
+      // ONLY show videos that are COMPLETE (downloaded AND have product assigned)
       let query = supabase
         .from("videos")
         .select(`
@@ -112,7 +113,9 @@ const Dashboard = () => {
             total_ingresos_mxn,
             commission
           )
-        `, { count: "exact" });
+        `, { count: "exact" })
+        .not("video_mp4_url", "is", null)  // Must be downloaded
+        .not("product_id", "is", null);     // Must have product assigned
 
       // Apply category filter
       if (selectedCategory && selectedCategory !== "all") {

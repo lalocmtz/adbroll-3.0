@@ -122,12 +122,13 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const batchSize = body.batchSize || 5;
 
-    // Get pending videos that need download
+    // Get pending videos that need download - PRIORITIZE by revenue (top sellers first)
     const { data: pendingVideos, error: queryError } = await supabase
       .from('videos')
-      .select('id, video_url')
+      .select('id, video_url, revenue_mxn')
       .is('video_mp4_url', null)
       .in('processing_status', ['pending', 'download_failed', 'no_mp4_url'])
+      .order('revenue_mxn', { ascending: false, nullsFirst: false })
       .limit(batchSize);
 
     if (queryError) {
