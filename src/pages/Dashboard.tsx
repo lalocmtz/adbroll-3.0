@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { VideoCardNew } from "@/components/VideoCardNew";
+import VideoCardOriginal from "@/components/VideoCardOriginal";
 import { useToast } from "@/hooks/use-toast";
 import DashboardNav from "@/components/DashboardNav";
 import GlobalHeader from "@/components/GlobalHeader";
@@ -283,10 +283,10 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Video Grid - ViralViews style */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+            {/* Video Grid - 4 columns like original design */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {videos.map((video, index) => (
-                <VideoCardNew 
+                <VideoCardOriginal 
                   key={video.id} 
                   video={video}
                   ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} 
