@@ -4,9 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Flame, Video, ShoppingCart, Film, ChevronLeft, ChevronRight, Heart, Play, Package } from "lucide-react";
+import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Flame, Video, ShoppingCart, Film, Heart, Play, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { FilterPills, DataSubtitle } from "@/components/FilterPills";
+import { CompactPagination } from "@/components/CompactPagination";
 
 interface Creator {
   id: string;
@@ -27,12 +29,12 @@ interface Creator {
 
 type SortOption = "revenue" | "followers" | "views" | "lives" | "gmv_live";
 
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+const SORT_OPTIONS = [
   { value: "revenue", label: "Más ingresos" },
   { value: "followers", label: "Más seguidores" },
-  { value: "views", label: "Más views" },
+  { value: "views", label: "Más vistas" },
   { value: "lives", label: "Más lives" },
-  { value: "gmv_live", label: "Más ventas por lives" }
+  { value: "gmv_live", label: "Más ventas por live" },
 ];
 
 const ITEMS_PER_PAGE = 12;
@@ -205,16 +207,13 @@ const Creators = () => {
 
   const isTop5 = (index: number): boolean => index < 5;
 
-  // Pagination logic
   const totalPages = Math.ceil(sortedCreators.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedCreators = sortedCreators.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) {
@@ -226,231 +225,194 @@ const Creators = () => {
   }
 
   return (
-    <div className="py-4 px-4 md:px-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-foreground">
-          Creadores Top 50 TikTok Shop
-        </h1>
-          <p className="text-muted-foreground">Los creadores con mejor rendimiento en los últimos 30 días.</p>
-          <Badge variant="secondary" className="mt-2">
-            📊 Datos actualizados · Últimos 30 días
-          </Badge>
-        </div>
+    <div className="pt-5 pb-6 px-4 md:px-6">
+      {/* Minimal header */}
+      <DataSubtitle />
 
-        {/* Filter Pills */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {SORT_OPTIONS.map(option => (
-            <button
-              key={option.value}
-              onClick={() => setSortBy(option.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                sortBy === option.value
-                  ? "bg-primary text-primary-foreground shadow-lg"
-                  : "bg-secondary/50 text-secondary-foreground hover:bg-secondary border border-border"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-          <span className="ml-auto text-sm text-muted-foreground self-center">
-            {sortedCreators.length} creadores
-          </span>
-        </div>
+      {/* Filter Pills */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <FilterPills
+          options={SORT_OPTIONS}
+          value={sortBy}
+          onChange={(v) => setSortBy(v as SortOption)}
+        />
+        <span className="text-xs text-muted-foreground ml-auto">
+          {sortedCreators.length} creadores
+        </span>
+      </div>
 
-        {/* Creator Cards */}
-        {sortedCreators.length === 0 ? (
-          <Card className="p-12 text-center">
-            <Users className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
-            <p className="text-muted-foreground text-lg">
-              No hay creadores disponibles. Importa datos desde el panel de administración.
-            </p>
-          </Card>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {paginatedCreators.map((creator, pageIndex) => {
-                const tiktokUrl = getTikTokUrl(creator);
-                const globalIndex = startIndex + pageIndex;
-                const ranking = globalIndex + 1;
-                const isFav = favorites.has(creator.id);
+      {sortedCreators.length === 0 ? (
+        <Card className="p-12 text-center">
+          <Users className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
+          <p className="text-muted-foreground text-lg">
+            No hay creadores disponibles.
+          </p>
+        </Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {paginatedCreators.map((creator, pageIndex) => {
+              const tiktokUrl = getTikTokUrl(creator);
+              const globalIndex = startIndex + pageIndex;
+              const ranking = globalIndex + 1;
+              const isFav = favorites.has(creator.id);
 
-                return (
-                  <Card
-                    key={creator.id}
-                    className="overflow-hidden transition-all duration-300 hover:shadow-xl bg-card border-border"
-                  >
-                    <CardContent className="p-4">
-                      {/* Header: Avatar + Name + Ranking + Favorite */}
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="relative">
-                          <Avatar className="h-12 w-12 border-2 border-primary/20 shrink-0 shadow-md">
-                            <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
-                            <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold">
-                              {getInitials(creator.nombre_completo, creator.usuario_creador)}
-                            </AvatarFallback>
-                          </Avatar>
-                          {isTop5(globalIndex) && (
-                            <div className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full p-1 shadow-lg">
-                              <Flame className="h-2.5 w-2.5 text-white" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-foreground line-clamp-1 text-sm">
-                            {creator.nombre_completo || creator.usuario_creador}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            @{creator.creator_handle || creator.usuario_creador}
-                          </p>
-                          <Badge
-                            variant="outline"
-                            className={`mt-1 text-xs font-bold ${
-                              isTop5(globalIndex)
-                                ? "bg-gradient-to-r from-orange-500/10 to-red-500/10 border-orange-500/30 text-orange-600"
-                                : "bg-primary/10 border-primary/30 text-primary"
-                            }`}
-                          >
-                            #{ranking} {isTop5(globalIndex) && '🔥'}
-                          </Badge>
-                        </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className={`h-8 w-8 shrink-0 ${isFav ? 'text-red-500' : ''}`}
-                          onClick={(e) => toggleFavorite(creator.id, e)}
-                          title={isFav ? "Quitar de favoritos" : "Agregar a favoritos"}
+              return (
+                <Card
+                  key={creator.id}
+                  className="overflow-hidden transition-all duration-300 hover:shadow-lg bg-card border-border"
+                >
+                  <CardContent className="p-3">
+                    {/* Header: Avatar + Name + Ranking + Favorite */}
+                    <div className="flex items-start gap-2.5 mb-2.5">
+                      <div className="relative">
+                        <Avatar className="h-10 w-10 border-2 border-primary/20 shrink-0 shadow-md">
+                          <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-xs">
+                            {getInitials(creator.nombre_completo, creator.usuario_creador)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {isTop5(globalIndex) && (
+                          <div className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full p-0.5 shadow-lg">
+                            <Flame className="h-2 w-2 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-foreground line-clamp-1 text-xs">
+                          {creator.nombre_completo || creator.usuario_creador}
+                        </h3>
+                        <p className="text-[10px] text-muted-foreground">
+                          @{creator.creator_handle || creator.usuario_creador}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className={`mt-0.5 text-[10px] font-bold px-1.5 py-0 ${
+                            isTop5(globalIndex)
+                              ? "bg-gradient-to-r from-orange-500/10 to-red-500/10 border-orange-500/30 text-orange-600"
+                              : "bg-primary/10 border-primary/30 text-primary"
+                          }`}
                         >
-                          <Heart className={`h-4 w-4 ${isFav ? 'fill-current' : ''}`} />
-                        </Button>
+                          #{ranking} {isTop5(globalIndex) && '🔥'}
+                        </Badge>
                       </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={`h-7 w-7 shrink-0 ${isFav ? 'text-red-500' : ''}`}
+                        onClick={(e) => toggleFavorite(creator.id, e)}
+                      >
+                        <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-current' : ''}`} />
+                      </Button>
+                    </div>
 
-                      {/* Secondary Metrics: Followers & Views */}
-                      <div className="flex gap-4 mb-3 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          <span>{formatNumber(creator.seguidores)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          <span>{formatNumber(creator.promedio_visualizaciones)} views</span>
-                        </div>
+                    {/* Secondary Metrics */}
+                    <div className="flex gap-3 mb-2.5 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Users className="h-2.5 w-2.5" />
+                        <span>{formatNumber(creator.seguidores)}</span>
                       </div>
-
-                      {/* Primary Revenue Cards */}
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50 text-center">
-                          <DollarSign className="h-3 w-3 text-emerald-600 mx-auto mb-0.5" />
-                          <p className="text-[9px] text-muted-foreground uppercase">GMV Total</p>
-                          <p className="text-sm font-bold text-emerald-600">
-                            {formatCurrency(creator.total_ingresos_mxn)}
-                          </p>
-                        </div>
-                        
-                        <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50 text-center">
-                          <TrendingUp className="h-3 w-3 text-emerald-600 mx-auto mb-0.5" />
-                          <p className="text-[9px] text-muted-foreground uppercase">Comisión Est.</p>
-                          <p className="text-sm font-bold text-emerald-600">
-                            {calculateCommission(creator.total_ingresos_mxn)}
-                          </p>
-                        </div>
+                      <div className="flex items-center gap-1">
+                        <Eye className="h-2.5 w-2.5" />
+                        <span>{formatNumber(creator.promedio_visualizaciones)} views</span>
                       </div>
+                    </div>
 
-                      {/* Activity Metrics */}
-                      <div className="grid grid-cols-3 gap-1 mb-3">
-                        <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-center">
-                          <Video className="h-3 w-3 text-purple-500 mx-auto mb-0.5" />
-                          <p className="text-[8px] text-muted-foreground uppercase">Lives</p>
-                          <p className="text-xs font-bold text-purple-600">
-                            {creator.total_live_count ? formatNumber(creator.total_live_count) : "—"}
-                          </p>
-                        </div>
-                        
-                        <div className="p-1.5 rounded-lg bg-muted text-center">
-                          <ShoppingCart className="h-3 w-3 text-foreground mx-auto mb-0.5" />
-                          <p className="text-[8px] text-muted-foreground uppercase">GMV Lives</p>
-                          <p className="text-xs font-bold text-foreground">
-                            {formatCurrency(creator.gmv_live_mxn)}
-                          </p>
-                        </div>
-                        
-                        <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-center">
-                          <Film className="h-3 w-3 text-blue-600 mx-auto mb-0.5" />
-                          <p className="text-[8px] text-muted-foreground uppercase">GMV Videos</p>
-                          <p className="text-xs font-bold text-blue-600">
-                            {formatCurrency(creator.revenue_videos)}
-                          </p>
-                        </div>
+                    {/* Primary Revenue Cards */}
+                    <div className="grid grid-cols-2 gap-1.5 mb-2.5">
+                      <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50 text-center">
+                        <DollarSign className="h-2.5 w-2.5 text-emerald-600 mx-auto mb-0.5" />
+                        <p className="text-[8px] text-muted-foreground uppercase">GMV Total</p>
+                        <p className="text-xs font-bold text-emerald-600">
+                          {formatCurrency(creator.total_ingresos_mxn)}
+                        </p>
                       </div>
+                      
+                      <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50 text-center">
+                        <TrendingUp className="h-2.5 w-2.5 text-emerald-600 mx-auto mb-0.5" />
+                        <p className="text-[8px] text-muted-foreground uppercase">Comisión Est.</p>
+                        <p className="text-xs font-bold text-emerald-600">
+                          {calculateCommission(creator.total_ingresos_mxn)}
+                        </p>
+                      </div>
+                    </div>
 
-                      {/* CTA Buttons */}
-                      <div className="space-y-2">
+                    {/* Activity Metrics */}
+                    <div className="grid grid-cols-3 gap-1 mb-2.5">
+                      <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-950/30 text-center">
+                        <Video className="h-2.5 w-2.5 text-purple-500 mx-auto mb-0.5" />
+                        <p className="text-[7px] text-muted-foreground uppercase">Lives</p>
+                        <p className="text-[10px] font-bold text-purple-600">
+                          {creator.total_live_count ? formatNumber(creator.total_live_count) : "—"}
+                        </p>
+                      </div>
+                      
+                      <div className="p-1 rounded-md bg-muted text-center">
+                        <ShoppingCart className="h-2.5 w-2.5 text-foreground mx-auto mb-0.5" />
+                        <p className="text-[7px] text-muted-foreground uppercase">GMV Lives</p>
+                        <p className="text-[10px] font-bold text-foreground">
+                          {formatCurrency(creator.gmv_live_mxn)}
+                        </p>
+                      </div>
+                      
+                      <div className="p-1 rounded-md bg-blue-50 dark:bg-blue-950/30 text-center">
+                        <Film className="h-2.5 w-2.5 text-blue-600 mx-auto mb-0.5" />
+                        <p className="text-[7px] text-muted-foreground uppercase">GMV Videos</p>
+                        <p className="text-[10px] font-bold text-blue-600">
+                          {formatCurrency(creator.revenue_videos)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* CTA Buttons */}
+                    <div className="space-y-1.5">
+                      <Button
+                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        onClick={() => navigate(`/app?creator=${encodeURIComponent(creator.creator_handle || creator.usuario_creador)}`)}
+                      >
+                        <Play className="h-3.5 w-3.5 mr-1.5" />
+                        Ver videos
+                      </Button>
+                      
+                      <div className="flex gap-1.5">
                         <Button
-                          className="w-full h-9 text-sm font-semibold bg-primary hover:bg-primary/90"
-                          onClick={() => navigate(`/app?creator=${encodeURIComponent(creator.creator_handle || creator.usuario_creador)}`)}
+                          variant="outline"
+                          className="flex-1 h-7 text-[10px]"
+                          onClick={() => navigate(`/products?creator=${encodeURIComponent(creator.creator_handle || creator.usuario_creador)}`)}
                         >
-                          <Play className="h-4 w-4 mr-2" />
-                          Ver videos
+                          <Package className="h-3 w-3 mr-1" />
+                          Productos
                         </Button>
                         
-                        <div className="flex gap-2">
+                        {tiktokUrl && (
                           <Button
                             variant="outline"
-                            className="flex-1 h-8 text-xs"
-                            onClick={() => navigate(`/products?creator=${encodeURIComponent(creator.creator_handle || creator.usuario_creador)}`)}
+                            className="flex-1 h-7 text-[10px]"
+                            onClick={() => window.open(tiktokUrl, '_blank')}
                           >
-                            <Package className="h-3 w-3 mr-1" />
-                            Productos
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            TikTok
                           </Button>
-                          
-                          {tiktokUrl && (
-                            <Button
-                              variant="outline"
-                              className="flex-1 h-8 text-xs"
-                              onClick={() => window.open(tiktokUrl, '_blank')}
-                            >
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              TikTok
-                            </Button>
-                          )}
-                        </div>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-4 mt-8">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Anterior
-                </Button>
-                
-                <span className="text-sm text-muted-foreground">
-                  Página {currentPage} de {totalPages}
-                </span>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  Siguiente
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+          {totalPages > 1 && (
+            <div className="mt-6">
+              <CompactPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

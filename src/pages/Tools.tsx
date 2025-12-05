@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Wrench, FileText, Sparkles, Copy, Loader2 } from "lucide-react";
+import { FileText, Sparkles, Copy, Loader2 } from "lucide-react";
+import { DataSubtitle } from "@/components/FilterPills";
 
 const Tools = () => {
   const { language } = useLanguage();
@@ -25,7 +26,6 @@ const Tools = () => {
     }
 
     setLoading(true);
-    // Simulate extraction - in real implementation this would call the transcription API
     setTimeout(() => {
       setTranscript(
         language === "es"
@@ -50,34 +50,20 @@ const Tools = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 md:px-6 py-6 max-w-4xl">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Wrench className="h-6 w-6 text-primary" />
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold">
-            {language === "es" ? "Herramientas" : "Tools"}
-          </h1>
-        </div>
-        <p className="text-muted-foreground">
-          {language === "es"
-            ? "Herramientas de análisis y extracción para creadores"
-            : "Analysis and extraction tools for creators"}
-        </p>
-      </div>
+    <div className="pt-5 pb-6 px-4 md:px-6 max-w-4xl">
+      <DataSubtitle />
 
       {/* Script Extractor Tool */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-lg bg-accent/10">
-            <FileText className="h-5 w-5 text-accent" />
+      <Card className="p-4">
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="p-1.5 rounded-md bg-accent/10">
+            <FileText className="h-4 w-4 text-accent" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-sm font-semibold">
               {language === "es" ? "Extractor de Guiones" : "Script Extractor"}
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {language === "es"
                 ? "Extrae el guión de cualquier video de TikTok"
                 : "Extract the script from any TikTok video"}
@@ -85,9 +71,9 @@ const Tools = () => {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div>
-            <label className="text-sm font-medium mb-2 block">
+            <label className="text-xs font-medium mb-1.5 block">
               {language === "es" ? "URL del video de TikTok" : "TikTok Video URL"}
             </label>
             <div className="flex gap-2">
@@ -95,14 +81,14 @@ const Tools = () => {
                 placeholder="https://www.tiktok.com/@user/video/..."
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                className="flex-1"
+                className="flex-1 h-9 text-sm"
               />
-              <Button onClick={handleExtract} disabled={loading}>
+              <Button onClick={handleExtract} disabled={loading} className="h-9 text-sm">
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4 mr-2" />
+                    <Sparkles className="h-4 w-4 mr-1.5" />
                     {language === "es" ? "Extraer" : "Extract"}
                   </>
                 )}
@@ -111,20 +97,20 @@ const Tools = () => {
           </div>
 
           {transcript && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">
+                <label className="text-xs font-medium">
                   {language === "es" ? "Guión extraído" : "Extracted Script"}
                 </label>
-                <Button variant="ghost" size="sm" onClick={handleCopy}>
-                  <Copy className="h-4 w-4 mr-2" />
+                <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 text-xs">
+                  <Copy className="h-3.5 w-3.5 mr-1.5" />
                   {language === "es" ? "Copiar" : "Copy"}
                 </Button>
               </div>
               <Textarea
                 value={transcript}
                 readOnly
-                className="min-h-[200px] font-mono text-sm"
+                className="min-h-[160px] font-mono text-xs"
               />
             </div>
           )}
@@ -132,9 +118,9 @@ const Tools = () => {
       </Card>
 
       {/* More tools coming soon */}
-      <div className="mt-6 p-6 rounded-xl border border-dashed border-border text-center">
-        <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-        <p className="text-muted-foreground">
+      <div className="mt-4 p-4 rounded-lg border border-dashed border-border text-center">
+        <Sparkles className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground">
           {language === "es"
             ? "Más herramientas próximamente..."
             : "More tools coming soon..."}

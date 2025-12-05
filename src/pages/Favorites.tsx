@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import VideoAnalysisModalOriginal from "@/components/VideoAnalysisModalOriginal";
 import { useNavigate } from "react-router-dom";
+import { DataSubtitle } from "@/components/FilterPills";
 
 interface FavoriteVideo {
   id: string;
@@ -185,441 +186,369 @@ const Favorites = () => {
   const totalFavorites = videos.length + products.length + creators.length;
 
   return (
-    <div className="py-4 px-4 md:px-6">
-      <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3 text-foreground">
-            <Heart className="h-7 w-7 text-red-500 fill-current" />
-            {t("myFavorites")}
-          </h1>
-          <p className="text-muted-foreground">
-            {totalFavorites === 0 ? t("noFavorites") : `${totalFavorites} ${t("savedItems")}`}
-          </p>
-        </div>
+    <div className="pt-5 pb-6 px-4 md:px-6">
+      {/* Minimal header */}
+      <div className="flex items-center gap-2 mb-3">
+        <Heart className="h-4 w-4 text-red-500 fill-current" />
+        <span className="text-xs text-muted-foreground">
+          {totalFavorites === 0 ? t("noFavorites") : `${totalFavorites} ${t("savedItems")}`}
+        </span>
+      </div>
 
-        <Tabs defaultValue="videos" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="videos" className="flex items-center gap-2">
-              <Video className="h-4 w-4" />
-              {t("videos")} ({videos.length})
-            </TabsTrigger>
-            <TabsTrigger value="productos" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              {t("products")} ({products.length})
-            </TabsTrigger>
-            <TabsTrigger value="creadores" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              {t("creators")} ({creators.length})
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="videos" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-4 h-9">
+          <TabsTrigger value="videos" className="flex items-center gap-1.5 text-xs">
+            <Video className="h-3.5 w-3.5" />
+            {t("videos")} ({videos.length})
+          </TabsTrigger>
+          <TabsTrigger value="productos" className="flex items-center gap-1.5 text-xs">
+            <Package className="h-3.5 w-3.5" />
+            {t("products")} ({products.length})
+          </TabsTrigger>
+          <TabsTrigger value="creadores" className="flex items-center gap-1.5 text-xs">
+            <Users className="h-3.5 w-3.5" />
+            {t("creators")} ({creators.length})
+          </TabsTrigger>
+        </TabsList>
 
-          {/* VIDEOS TAB */}
-          <TabsContent value="videos" className="mt-6">
-            {videos.length === 0 ? (
-              <Card className="p-12 text-center">
-                <Video className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground text-lg">{t("noSavedVideos")}</p>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {videos.map((fav, index) => {
-                  const video = fav.video_data;
-                  const commissionEstimated = (video.revenue_mxn || video.ingresos_mxn || 0) * 0.06;
-                  
-                  return (
-                    <Card key={fav.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-card border-border">
-                      {/* Video Thumbnail */}
-                      <div className="relative aspect-[9/16] bg-muted overflow-hidden">
-                        <div className="absolute top-2 left-2 right-2 z-10 flex items-center justify-between">
-                          <Badge className="bg-primary text-primary-foreground font-bold text-xs px-2 py-0.5 shadow-lg">
-                            #{index + 1} 🔥
-                          </Badge>
-                          <div className="flex items-center gap-1.5">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                              onClick={() => window.open(video.video_url || video.tiktok_url, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90 text-red-500"
-                              onClick={() => handleDeleteVideo(fav.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+        {/* VIDEOS TAB */}
+        <TabsContent value="videos" className="mt-4">
+          {videos.length === 0 ? (
+            <Card className="p-12 text-center">
+              <Video className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">{t("noSavedVideos")}</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {videos.map((fav, index) => {
+                const video = fav.video_data;
+                const commissionEstimated = (video.revenue_mxn || video.ingresos_mxn || 0) * 0.06;
+                
+                return (
+                  <Card key={fav.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
+                    <div className="relative aspect-[9/16] bg-muted overflow-hidden">
+                      <div className="absolute top-2 left-2 right-2 z-10 flex items-center justify-between">
+                        <Badge className="bg-primary text-primary-foreground font-bold text-xs px-2 py-0.5 shadow-lg">
+                          #{index + 1} 🔥
+                        </Badge>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                            onClick={() => window.open(video.video_url || video.tiktok_url, '_blank')}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90 text-red-500"
+                            onClick={() => handleDeleteVideo(fav.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {video.video_mp4_url || video.thumbnail_url ? (
+                        <img 
+                          src={video.thumbnail_url || PLACEHOLDER_IMAGE} 
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-muted to-muted/80">
+                          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+                            <Play className="w-5 h-5 text-muted-foreground ml-0.5" />
                           </div>
                         </div>
-                        
-                        {video.video_mp4_url || video.thumbnail_url ? (
-                          <img 
-                            src={video.thumbnail_url || PLACEHOLDER_IMAGE} 
-                            alt={video.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-muted to-muted/80">
-                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                              <Play className="w-6 h-6 text-muted-foreground ml-1" />
-                            </div>
-                          </div>
-                        )}
-                        
-                        {!video.video_mp4_url && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                              <Play className="w-6 h-6 text-foreground ml-1" fill="currentColor" />
-                            </div>
-                          </div>
-                        )}
+                      )}
+                    </div>
+
+                    <CardContent className="p-2.5 space-y-2">
+                      <div>
+                        <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight min-h-[2rem]">
+                          {video.title || video.descripcion_video || "Video TikTok Shop"}
+                        </h3>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          @{video.creator_handle || video.creador || "creator"}
+                        </p>
                       </div>
 
-                      <CardContent className="p-3 space-y-2">
-                        <div>
-                          <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-tight min-h-[2.5rem]">
-                            {video.title || video.descripcion_video || "Video TikTok Shop"}
-                          </h3>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            @{video.creator_handle || video.creador || "creator"}
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <DollarSign className="h-2.5 w-2.5 text-emerald-600" />
+                            <span className="text-[9px] text-muted-foreground">Ingresos</span>
+                          </div>
+                          <p className="text-xs font-bold text-emerald-600">
+                            {formatCurrency(video.revenue_mxn || video.ingresos_mxn)}
+                          </p>
+                        </div>
+                        <div className="p-1.5 rounded-md bg-muted">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <ShoppingCart className="h-2.5 w-2.5 text-foreground" />
+                            <span className="text-[9px] text-muted-foreground">Ventas</span>
+                          </div>
+                          <p className="text-xs font-bold text-foreground">
+                            {formatNumber(video.sales || video.ventas)}
+                          </p>
+                        </div>
+                        <div className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <Percent className="h-2.5 w-2.5 text-amber-600" />
+                            <span className="text-[9px] text-muted-foreground">Comisión</span>
+                          </div>
+                          <p className="text-xs font-bold text-amber-600">
+                            {formatCurrency(commissionEstimated)}
+                          </p>
+                        </div>
+                        <div className="p-1.5 rounded-md bg-muted">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <Eye className="h-2.5 w-2.5 text-foreground" />
+                            <span className="text-[9px] text-muted-foreground">Vistas</span>
+                          </div>
+                          <p className="text-xs font-bold text-foreground">
+                            {formatNumber(video.views || video.visualizaciones)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        onClick={() => setSelectedVideo(video)}
+                      >
+                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                        Analizar guion
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* PRODUCTS TAB */}
+        <TabsContent value="productos" className="mt-4">
+          {products.length === 0 ? (
+            <Card className="p-12 text-center">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">{t("noSavedProducts")}</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {products.map((fav, index) => {
+                const product = fav.product_data;
+                const revenue = product.revenue_30d || product.total_ingresos_mxn;
+                const sales = product.sales_7d || product.total_ventas;
+                const price = product.price || product.precio_mxn;
+                const commission = product.commission || 6;
+                
+                return (
+                  <Card key={fav.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
+                    <div className="relative aspect-square bg-muted overflow-hidden">
+                      <img
+                        src={product.imagen_url || PLACEHOLDER_IMAGE}
+                        alt={product.producto_nombre}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+                        }}
+                      />
+                      
+                      <div className="absolute top-2 left-2 right-2 z-10 flex items-center justify-between">
+                        <Badge className="bg-primary text-primary-foreground font-bold text-xs px-2 py-0.5 shadow-lg">
+                          #{index + 1} 🔥
+                        </Badge>
+                        <div className="flex items-center gap-1">
+                          {product.producto_url && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                              onClick={() => window.open(product.producto_url, '_blank')}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90 text-red-500"
+                            onClick={() => handleDeleteProduct(fav.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {product.rating && (
+                        <Badge variant="secondary" className="absolute bottom-2 right-2 flex items-center gap-1 text-xs">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          {product.rating.toFixed(1)}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <CardContent className="p-2.5 space-y-2">
+                      <h3 className="font-semibold text-xs text-foreground line-clamp-2 min-h-[2rem]">
+                        {product.producto_nombre}
+                      </h3>
+                      
+                      {product.categoria && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {product.categoria}
+                        </Badge>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <TrendingUp className="h-2.5 w-2.5 text-emerald-600" />
+                            <span className="text-[9px] text-muted-foreground">Ingresos 30D</span>
+                          </div>
+                          <p className="text-xs font-bold text-emerald-600">
+                            {formatCurrency(revenue)}
                           </p>
                         </div>
 
-                        {/* Metrics Grid 2x2 */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <DollarSign className="h-3 w-3 text-emerald-600" />
-                              <span className="text-[10px] text-muted-foreground">Ingresos</span>
-                            </div>
-                            <p className="text-sm font-bold text-emerald-600">
-                              {formatCurrency(video.revenue_mxn || video.ingresos_mxn)}
-                            </p>
+                        <div className="p-1.5 rounded-md bg-muted">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <ShoppingCart className="h-2.5 w-2.5 text-foreground" />
+                            <span className="text-[9px] text-muted-foreground">Ventas 30D</span>
                           </div>
-                          <div className="p-2 rounded-lg bg-muted">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <ShoppingCart className="h-3 w-3 text-foreground" />
-                              <span className="text-[10px] text-muted-foreground">Ventas</span>
-                            </div>
-                            <p className="text-sm font-bold text-foreground">
-                              {formatNumber(video.sales || video.ventas)}
-                            </p>
-                          </div>
-                          <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <Percent className="h-3 w-3 text-amber-600" />
-                              <span className="text-[10px] text-muted-foreground">Comisión</span>
-                            </div>
-                            <p className="text-sm font-bold text-amber-600">
-                              {formatCurrency(commissionEstimated)}
-                            </p>
-                          </div>
-                          <div className="p-2 rounded-lg bg-muted">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <Eye className="h-3 w-3 text-foreground" />
-                              <span className="text-[10px] text-muted-foreground">Vistas</span>
-                            </div>
-                            <p className="text-sm font-bold text-foreground">
-                              {formatNumber(video.views || video.visualizaciones)}
-                            </p>
-                          </div>
+                          <p className="text-xs font-bold text-foreground">
+                            {formatNumber(sales)}
+                          </p>
                         </div>
 
-                        <Button
-                          className="w-full h-9 text-sm font-semibold bg-primary hover:bg-primary/90"
-                          onClick={() => setSelectedVideo(video)}
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Analizar guion y replicar
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* PRODUCTS TAB */}
-          <TabsContent value="productos" className="mt-6">
-            {products.length === 0 ? (
-              <Card className="p-12 text-center">
-                <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground text-lg">{t("noSavedProducts")}</p>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {products.map((fav, index) => {
-                  const product = fav.product_data;
-                  const revenue = product.revenue_30d || product.total_ingresos_mxn;
-                  const sales = product.sales_7d || product.total_ventas;
-                  const price = product.price || product.precio_mxn;
-                  const commission = product.commission || 6;
-                  
-                  return (
-                    <Card key={fav.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-card border-border">
-                      {/* Product Image */}
-                      <div className="relative aspect-square bg-muted overflow-hidden">
-                        <img
-                          src={product.imagen_url || PLACEHOLDER_IMAGE}
-                          alt={product.producto_nombre}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
-                          }}
-                        />
-                        
-                        <div className="absolute top-2 left-2 right-2 z-10 flex items-center justify-between">
-                          <Badge className="bg-primary text-primary-foreground font-bold text-xs px-2 py-0.5 shadow-lg">
-                            #{index + 1} 🔥
-                          </Badge>
-                          <div className="flex items-center gap-1.5">
-                            {product.producto_url && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                                onClick={() => window.open(product.producto_url, '_blank')}
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90 text-red-500"
-                              onClick={() => handleDeleteProduct(fav.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                        <div className="p-1.5 rounded-md bg-muted">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <DollarSign className="h-2.5 w-2.5 text-foreground" />
+                            <span className="text-[9px] text-muted-foreground">Precio</span>
                           </div>
+                          <p className="text-xs font-bold text-foreground">
+                            {formatCurrency(price)}
+                          </p>
                         </div>
-                        
-                        {product.rating && (
-                          <Badge variant="secondary" className="absolute bottom-2 right-2 flex items-center gap-1">
-                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                            {product.rating.toFixed(1)}
-                          </Badge>
-                        )}
+
+                        <div className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <Percent className="h-2.5 w-2.5 text-amber-600" />
+                            <span className="text-[9px] text-muted-foreground">Comisión</span>
+                          </div>
+                          <p className="text-xs font-bold text-amber-600">
+                            {commission}%
+                          </p>
+                        </div>
                       </div>
 
-                      <CardContent className="p-3 space-y-2">
-                        <h3 className="font-semibold text-sm text-foreground line-clamp-2 min-h-[2.5rem]">
-                          {product.producto_nombre}
+                      <Button
+                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        onClick={() => navigate(`/app?productName=${encodeURIComponent(product.producto_nombre)}`)}
+                      >
+                        <Play className="h-3.5 w-3.5 mr-1.5" />
+                        Ver videos
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* CREATORS TAB */}
+        <TabsContent value="creadores" className="mt-4">
+          {creators.length === 0 ? (
+            <Card className="p-12 text-center">
+              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">{t("noSavedCreators")}</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {creators.map((creator, index) => (
+                <Card key={creator.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-2.5 mb-2.5">
+                      <Avatar className="h-10 w-10 border-2 border-primary/20 shrink-0 shadow-md">
+                        <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-xs">
+                          {creator.nombre_completo?.substring(0, 2).toUpperCase() || creator.usuario_creador.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-foreground line-clamp-1 text-xs">
+                          {creator.nombre_completo || creator.usuario_creador}
                         </h3>
-                        
-                        {product.categoria && (
-                          <Badge variant="outline" className="text-xs">
-                            {product.categoria}
-                          </Badge>
-                        )}
-
-                        {/* Metrics Grid 2x2 */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <TrendingUp className="h-3 w-3 text-emerald-600" />
-                              <span className="text-[10px] text-muted-foreground">Ingresos 30D</span>
-                            </div>
-                            <p className="text-sm font-bold text-emerald-600">
-                              {formatCurrency(revenue)}
-                            </p>
-                          </div>
-                          <div className="p-2 rounded-lg bg-muted">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <ShoppingCart className="h-3 w-3 text-foreground" />
-                              <span className="text-[10px] text-muted-foreground">Ventas 30D</span>
-                            </div>
-                            <p className="text-sm font-bold text-foreground">
-                              {formatNumber(sales)}
-                            </p>
-                          </div>
-                          <div className="p-2 rounded-lg bg-muted">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <DollarSign className="h-3 w-3 text-foreground" />
-                              <span className="text-[10px] text-muted-foreground">Precio</span>
-                            </div>
-                            <p className="text-sm font-bold text-foreground">
-                              {formatCurrency(price)}
-                            </p>
-                          </div>
-                          <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <Percent className="h-3 w-3 text-amber-600" />
-                              <span className="text-[10px] text-muted-foreground">Comisión</span>
-                            </div>
-                            <p className="text-sm font-bold text-amber-600">
-                              {commission}%
-                            </p>
-                          </div>
-                        </div>
-
-                        {product.creators_count && (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Users className="h-3 w-3" />
-                            <span>{formatNumber(product.creators_count)} creadores activos</span>
-                          </div>
-                        )}
-
-                        <Button
-                          className="w-full h-9 text-sm font-semibold bg-primary hover:bg-primary/90"
-                          onClick={() => navigate(`/app?productName=${encodeURIComponent(product.producto_nombre)}`)}
-                        >
-                          <Play className="h-4 w-4 mr-2" />
-                          Ver videos de este producto
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* CREATORS TAB */}
-          <TabsContent value="creadores" className="mt-6">
-            {creators.length === 0 ? (
-              <Card className="p-12 text-center">
-                <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground text-lg">{t("noSavedCreators")}</p>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {creators.map((creator, index) => {
-                  const commissionEstimated = (creator.total_ingresos_mxn || 0) * 0.08;
-                  const isTop5 = index < 5;
-                  
-                  return (
-                    <Card key={creator.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-card border-border">
-                      {/* Creator Header */}
-                      <div className="relative p-4 pb-2">
-                        <div className="flex items-center justify-between mb-3">
-                          <Badge 
-                            className={`font-bold text-xs px-2 py-0.5 ${
-                              isTop5 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'bg-muted text-foreground'
-                            }`}
-                          >
-                            #{index + 1} {isTop5 && '🔥'}
-                          </Badge>
-                          <div className="flex items-center gap-1.5">
-                            {creator.tiktok_url && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80"
-                                onClick={() => window.open(creator.tiktok_url!, '_blank')}
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 rounded-full bg-muted hover:bg-muted/80 text-red-500"
-                              onClick={() => handleDeleteCreator(creator.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-14 w-14 border-2 border-primary/20">
-                            <AvatarImage src={getAvatarUrl(creator)} />
-                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                              {(creator.nombre_completo || creator.usuario_creador).substring(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm text-foreground truncate">
-                              {creator.nombre_completo || creator.usuario_creador}
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                              @{creator.creator_handle || creator.usuario_creador}
-                            </p>
-                          </div>
-                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          @{creator.creator_handle || creator.usuario_creador}
+                        </p>
+                        <Badge variant="outline" className="mt-0.5 text-[10px] font-bold px-1.5 py-0 bg-primary/10 border-primary/30 text-primary">
+                          #{index + 1} 🔥
+                        </Badge>
                       </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0 text-red-500"
+                        onClick={() => handleDeleteCreator(creator.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
 
-                      <CardContent className="p-3 pt-0 space-y-2">
-                        {/* Metrics Grid 2x2 */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <TrendingUp className="h-3 w-3 text-emerald-600" />
-                              <span className="text-[10px] text-muted-foreground">GMV Total</span>
-                            </div>
-                            <p className="text-sm font-bold text-emerald-600">
-                              {formatCurrency(creator.total_ingresos_mxn)}
-                            </p>
-                          </div>
-                          <div className="p-2 rounded-lg bg-muted">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <Users className="h-3 w-3 text-foreground" />
-                              <span className="text-[10px] text-muted-foreground">Seguidores</span>
-                            </div>
-                            <p className="text-sm font-bold text-foreground">
-                              {formatNumber(creator.seguidores)}
-                            </p>
-                          </div>
-                          <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <Percent className="h-3 w-3 text-amber-600" />
-                              <span className="text-[10px] text-muted-foreground">Comisión Est.</span>
-                            </div>
-                            <p className="text-sm font-bold text-amber-600">
-                              {formatCurrency(commissionEstimated)}
-                            </p>
-                          </div>
-                          <div className="p-2 rounded-lg bg-muted">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <Eye className="h-3 w-3 text-foreground" />
-                              <span className="text-[10px] text-muted-foreground">Views Prom.</span>
-                            </div>
-                            <p className="text-sm font-bold text-foreground">
-                              {formatNumber(creator.promedio_visualizaciones)}
-                            </p>
-                          </div>
-                        </div>
+                    <div className="grid grid-cols-2 gap-1.5 mb-2.5">
+                      <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50 text-center">
+                        <p className="text-[8px] text-muted-foreground uppercase">GMV Total</p>
+                        <p className="text-xs font-bold text-emerald-600">
+                          {formatCurrency(creator.total_ingresos_mxn)}
+                        </p>
+                      </div>
+                      <div className="p-1.5 rounded-md bg-muted text-center">
+                        <p className="text-[8px] text-muted-foreground uppercase">Seguidores</p>
+                        <p className="text-xs font-bold text-foreground">
+                          {formatNumber(creator.seguidores)}
+                        </p>
+                      </div>
+                    </div>
 
+                    <div className="space-y-1.5">
+                      <Button
+                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        onClick={() => navigate(`/app?creator=${encodeURIComponent(creator.creator_handle || creator.usuario_creador)}`)}
+                      >
+                        <Play className="h-3.5 w-3.5 mr-1.5" />
+                        Ver videos
+                      </Button>
+                      
+                      {creator.tiktok_url && (
                         <Button
-                          className="w-full h-9 text-sm font-semibold bg-primary hover:bg-primary/90"
-                          onClick={() => navigate(`/app?creator=${encodeURIComponent(creator.creator_handle || creator.usuario_creador)}`)}
+                          variant="outline"
+                          className="w-full h-7 text-[10px]"
+                          onClick={() => window.open(creator.tiktok_url!, '_blank')}
                         >
-                          <Play className="h-4 w-4 mr-2" />
-                          Ver videos del creador
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Ver en TikTok
                         </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Video Analysis Modal */}
       {selectedVideo && (
         <VideoAnalysisModalOriginal
+          video={selectedVideo}
           isOpen={!!selectedVideo}
           onClose={() => setSelectedVideo(null)}
-          video={{
-            id: selectedVideo.id || '',
-            video_url: selectedVideo.video_url || selectedVideo.tiktok_url || '',
-            video_mp4_url: selectedVideo.video_mp4_url,
-            thumbnail_url: selectedVideo.thumbnail_url,
-            title: selectedVideo.title || selectedVideo.descripcion_video,
-            creator_handle: selectedVideo.creator_handle || selectedVideo.creador,
-            views: selectedVideo.views || selectedVideo.visualizaciones,
-            sales: selectedVideo.sales || selectedVideo.ventas,
-            revenue_mxn: selectedVideo.revenue_mxn || selectedVideo.ingresos_mxn,
-            transcript: selectedVideo.transcript || selectedVideo.transcripcion_original,
-            analysis_json: selectedVideo.analysis_json,
-            variants_json: selectedVideo.variants_json || selectedVideo.ai_variants,
-          }}
         />
       )}
     </div>
