@@ -41,22 +41,23 @@ function formatCurrency(num: number | null | undefined): string {
 export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
+    setIsMuted(false);
     if (videoRef.current && video.video_mp4_url) {
-      videoRef.current.muted = false;
       videoRef.current.play().catch(() => {});
     }
   };
 
   const handleMouseLeave = () => {
     setIsHovered(false);
+    setIsMuted(true);
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
-      videoRef.current.muted = true;
     }
   };
 
@@ -81,7 +82,7 @@ export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
               ref={videoRef}
               src={video.video_mp4_url}
               className="w-full h-full object-cover"
-              muted
+              muted={isMuted}
               loop
               playsInline
               poster={video.thumbnail_url || undefined}
