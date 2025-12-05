@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.transcribe-and-analyze]
 verify_jwt = false
+
+[functions.download-videos-batch]
+verify_jwt = false

@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Database, ArrowLeft, Video, Package, Users, CheckCircle } from "lucide-react";
+import { Upload, Database, ArrowLeft, Video, Package, Users, CheckCircle, Download, RefreshCw, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const Admin = () => {
   const [isUploadingVideos, setIsUploadingVideos] = useState(false);
   const [isUploadingProducts, setIsUploadingProducts] = useState(false);
   const [isUploadingCreators, setIsUploadingCreators] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -28,6 +30,14 @@ const Admin = () => {
     creators: 0,
   });
 
+  // Download stats
+  const [downloadStats, setDownloadStats] = useState({
+    total: 0,
+    downloaded: 0,
+    pending: 0,
+    failed: 0,
+  });
+
   useEffect(() => {
     checkFounderRole();
   }, []);
@@ -35,6 +45,7 @@ const Admin = () => {
   useEffect(() => {
     if (isFounder) {
       loadStats();
+      loadDownloadStats();
     }
   }, [isFounder]);
 
@@ -50,6 +61,23 @@ const Admin = () => {
       products: productsRes.count || 0,
       creators: creatorsRes.count || 0,
     });
+  };
+
+  const loadDownloadStats = async () => {
+    const { data: videos } = await supabase
+      .from("videos")
+      .select("processing_status, video_mp4_url");
+
+    if (videos) {
+      const total = videos.length;
+      const downloaded = videos.filter(v => v.video_mp4_url).length;
+      const pending = videos.filter(v => !v.video_mp4_url && v.processing_status === 'pending').length;
+      const failed = videos.filter(v => 
+        ['download_failed', 'no_mp4_url', 'upload_failed'].includes(v.processing_status || '')
+      ).length;
+
+      setDownloadStats({ total, downloaded, pending, failed });
+    }
   };
 
   const checkFounderRole = async () => {
@@ -126,6 +154,7 @@ const Admin = () => {
       });
 
       loadStats();
+      loadDownloadStats();
       setVideoFile(null);
       
       // Reset file input
@@ -219,6 +248,94 @@ const Admin = () => {
     }
   };
 
+  const handleDownloadBatch = async () => {
+    setIsDownloading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("download-videos-batch", {
+        body: { batchSize: 5 },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Lote procesado",
+        description: `${data.successful || 0} descargados, ${data.failed || 0} fallidos. Quedan ${data.remaining || 0} pendientes.`,
+      });
+
+      loadDownloadStats();
+      
+    } catch (error: any) {
+      toast({
+        title: "Error al descargar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    setIsDownloading(true);
+    let totalProcessed = 0;
+    let totalSuccess = 0;
+    let totalFailed = 0;
+    
+    try {
+      // Keep downloading batches until no more pending
+      while (true) {
+        const { data, error } = await supabase.functions.invoke("download-videos-batch", {
+          body: { batchSize: 5 },
+        });
+
+        if (error) throw error;
+
+        if (data.processed === 0) {
+          break; // No more videos to process
+        }
+
+        totalProcessed += data.processed || 0;
+        totalSuccess += data.successful || 0;
+        totalFailed += data.failed || 0;
+
+        // Update stats after each batch
+        await loadDownloadStats();
+
+        toast({
+          title: "Progreso de descarga",
+          description: `${totalSuccess} descargados, ${totalFailed} fallidos. Quedan ${data.remaining || 0}...`,
+        });
+
+        // Small delay between batches
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Safety limit - stop after 200 videos
+        if (totalProcessed >= 200) {
+          toast({
+            title: "Límite alcanzado",
+            description: "Descarga pausada después de 200 videos. Haz clic de nuevo para continuar.",
+          });
+          break;
+        }
+      }
+
+      toast({
+        title: "Descarga completada",
+        description: `Total: ${totalSuccess} descargados, ${totalFailed} fallidos.`,
+      });
+      
+    } catch (error: any) {
+      toast({
+        title: "Error en descarga masiva",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+      loadDownloadStats();
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -228,6 +345,10 @@ const Admin = () => {
   }
 
   if (!isFounder) return null;
+
+  const downloadProgress = downloadStats.total > 0 
+    ? (downloadStats.downloaded / downloadStats.total) * 100 
+    : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -282,6 +403,71 @@ const Admin = () => {
             </Card>
           </div>
 
+          {/* MP4 Download Status */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Download className="h-5 w-5 mr-2" />
+                Estado de Descarga de MP4
+              </CardTitle>
+              <CardDescription>
+                Descarga los videos de TikTok para reproducción local sin embeds
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-4 gap-4 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{downloadStats.total}</p>
+                  <p className="text-xs text-muted-foreground">Total</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-500">{downloadStats.downloaded}</p>
+                  <p className="text-xs text-muted-foreground">Descargados</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-yellow-500">{downloadStats.pending}</p>
+                  <p className="text-xs text-muted-foreground">Pendientes</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-red-500">{downloadStats.failed}</p>
+                  <p className="text-xs text-muted-foreground">Fallidos</p>
+                </div>
+              </div>
+
+              <Progress value={downloadProgress} className="h-2" />
+              <p className="text-sm text-muted-foreground text-center">
+                {downloadProgress.toFixed(1)}% completado
+              </p>
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleDownloadBatch} 
+                  disabled={isDownloading || downloadStats.pending === 0}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
+                  Descargar 5 videos
+                </Button>
+                <Button 
+                  onClick={handleDownloadAll} 
+                  disabled={isDownloading || downloadStats.pending === 0}
+                  className="flex-1"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {isDownloading ? "Descargando..." : "Descargar todos"}
+                </Button>
+              </div>
+
+              {downloadStats.failed > 0 && (
+                <div className="flex items-center gap-2 text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Algunos videos fallaron. Haz clic en "Descargar todos" para reintentar.</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Tabs defaultValue="videos" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="videos">
@@ -321,7 +507,7 @@ const Admin = () => {
                     />
                     {videoFile && (
                       <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-success" />
+                        <CheckCircle className="h-4 w-4 text-green-500" />
                         {videoFile.name}
                       </p>
                     )}
@@ -362,7 +548,7 @@ const Admin = () => {
                     />
                     {productFile && (
                       <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-success" />
+                        <CheckCircle className="h-4 w-4 text-green-500" />
                         {productFile.name}
                       </p>
                     )}
@@ -403,7 +589,7 @@ const Admin = () => {
                     />
                     {creatorFile && (
                       <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-success" />
+                        <CheckCircle className="h-4 w-4 text-green-500" />
                         {creatorFile.name}
                       </p>
                     )}
@@ -433,6 +619,7 @@ const Admin = () => {
                 <li>Lee y valida las columnas del archivo Excel</li>
                 <li>Inserta <strong>todos los registros</strong> del archivo (sin límite de "Top X")</li>
                 <li>Los videos se ordenarán por ingresos, productos y creadores por fecha</li>
+                <li><strong>Después de importar videos</strong>, usa "Descargar todos" para obtener los MP4</li>
               </ol>
             </CardContent>
           </Card>
