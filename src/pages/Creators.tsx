@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Flame, Video, ShoppingCart, Film, Heart, Play, Package } from "lucide-react";
+import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Flame, Video, ShoppingCart, Film, Heart, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
@@ -364,37 +364,26 @@ const Creators = () => {
                       </div>
                     </div>
 
-                    {/* CTA Buttons */}
-                    <div className="space-y-1.5">
+                    {/* CTA Buttons - Simplified to 2 */}
+                    <div className="flex gap-1.5">
                       <Button
-                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
-                        onClick={() => navigate(`/app?creator=${encodeURIComponent(creator.creator_handle || creator.usuario_creador)}`)}
+                        className="flex-1 h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        onClick={() => navigate(`/videos/creator/${creator.id}`)}
                       >
                         <Play className="h-3.5 w-3.5 mr-1.5" />
                         Ver videos
                       </Button>
                       
-                      <div className="flex gap-1.5">
+                      {tiktokUrl && (
                         <Button
                           variant="outline"
-                          className="flex-1 h-7 text-[10px]"
-                          onClick={() => navigate(`/products?creator=${encodeURIComponent(creator.creator_handle || creator.usuario_creador)}`)}
+                          className="h-8 text-xs"
+                          onClick={() => window.open(tiktokUrl, '_blank')}
                         >
-                          <Package className="h-3 w-3 mr-1" />
-                          Productos
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                          TikTok
                         </Button>
-                        
-                        {tiktokUrl && (
-                          <Button
-                            variant="outline"
-                            className="flex-1 h-7 text-[10px]"
-                            onClick={() => window.open(tiktokUrl, '_blank')}
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            TikTok
-                          </Button>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

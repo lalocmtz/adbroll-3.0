@@ -385,7 +385,7 @@ const Products = () => {
 
                     <Button
                       className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
-                      onClick={() => navigate(`/app?productName=${encodeURIComponent(product.producto_nombre)}`)}
+                      onClick={() => navigate(`/videos/product/${product.id}`)}
                     >
                       <Play className="h-3.5 w-3.5 mr-1.5" />
                       Ver videos

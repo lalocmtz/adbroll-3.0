@@ -61,6 +61,35 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 
 ---
 
+## 🔗 NAVEGACIÓN BIDIRECCIONAL COMPLETA - Diciembre 2024
+
+### Nuevas rutas implementadas:
+- [x] `/videos/product/:productId` - Videos de un producto específico
+- [x] `/videos/creator/:creatorId` - Videos de un creador específico
+
+### Páginas de detalle:
+- [x] **RelatedVideos** actualizada con DashboardLayout integrado
+- [x] Header compacto con imagen, nombre, GMV y badge de ranking
+- [x] Grid de videos con filtros y paginación
+- [x] Navegación cruzada completa
+
+### Video Card mejorada:
+- [x] Producto asociado clickeable con imagen y GMV
+- [x] Badge "Ver producto →" en tarjeta de video
+- [x] Mensaje "Sin producto asignado" cuando no hay producto
+- [x] Click navega a `/videos/product/:id`
+
+### Creadores simplificados:
+- [x] Solo 2 botones: "Ver videos" y "TikTok"
+- [x] Eliminado botón "Productos" (simplificación)
+- [x] "Ver videos" navega a `/videos/creator/:id`
+
+### Productos actualizados:
+- [x] Botón "Ver videos" navega a `/videos/product/:id`
+- [x] Ruta correcta en lugar de query params
+
+---
+
 ## 📺 SECCIÓN VIDEOS - COMPLETADO
 
 - [x] Mostrar 100 videos ordenados por ingresos (desc)
@@ -89,7 +118,7 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 - [x] Sistema de favoritos por usuario
 - [x] Badge de ranking (#1, #2, etc.) con 🔥 para top 5
 - [x] Métricas: Ingresos 30D, Ventas 30D, Precio, Comisión
-- [x] Botón "Ver videos de este producto" → filtra Dashboard por producto
+- [x] Botón "Ver videos" → navega a `/videos/product/:id`
 - [x] UI alineada con tarjetas de videos (misma estética)
 
 ---
@@ -101,10 +130,9 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 - [x] Ordenamiento instantáneo
 - [x] Sistema de favoritos por usuario (tabla `favorites`)
 - [x] Badge de ranking con 🔥 para top 5
-- [x] Botón "Ver videos" → filtra Dashboard por creador
-- [x] Botón "Productos" → filtra Products por creador (futuro)
+- [x] Botón "Ver videos" → navega a `/videos/creator/:id`
 - [x] Botón "TikTok" → abre perfil externo
-- [x] UI alineada con tarjetas de videos (misma estética)
+- [x] UI simplificada (solo 2 botones por tarjeta)
 
 ---
 
@@ -119,12 +147,13 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 
 ---
 
-## 🔗 NAVEGACIÓN CRUZADA - COMPLETADO (FASE 2)
+## 🔗 NAVEGACIÓN CRUZADA - COMPLETADO (FASE 3)
 
-- [x] Producto → Videos que lo promocionan (query param `productName`)
-- [x] Creador → Videos de ese creador (query param `creator`)
-- [x] Video → Producto asociado (click en mini card de producto)
-- [x] RelatedVideos page actualizada para usar tabla `videos` y VideoCardOriginal
+- [x] Producto → Videos (`/videos/product/:id`)
+- [x] Creador → Videos (`/videos/creator/:id`)
+- [x] Video → Producto (click en mini card → `/videos/product/:id`)
+- [x] RelatedVideos con DashboardLayout, filtros y paginación
+- [x] Header compacto con info de entidad (imagen, nombre, GMV)
 
 ---
 
@@ -177,7 +206,7 @@ src/
 │   │   ├── DashboardLayout.tsx
 │   │   ├── DashboardSidebar.tsx
 │   │   └── DashboardHeader.tsx
-│   ├── VideoCardOriginal.tsx      # Tarjeta con hover-autoplay + producto JOIN
+│   ├── VideoCardOriginal.tsx      # Tarjeta con producto + badge
 │   ├── VideoAnalysisModalOriginal.tsx
 │   ├── FilterPills.tsx
 │   ├── CompactPagination.tsx
@@ -186,8 +215,9 @@ src/
 │   └── useAnalyzeVideo.ts
 ├── pages/
 │   ├── Dashboard.tsx              # /app - Videos con JOIN productos
-│   ├── Products.tsx
-│   ├── Creators.tsx
+│   ├── Products.tsx               # Ver videos → /videos/product/:id
+│   ├── Creators.tsx               # Ver videos → /videos/creator/:id
+│   ├── RelatedVideos.tsx          # /videos/product/:id y /videos/creator/:id
 │   ├── Favorites.tsx
 │   ├── Tools.tsx
 │   ├── Settings.tsx
@@ -272,4 +302,4 @@ supabase/
 ---
 
 **Última actualización:** Diciembre 2024
-**Estado:** Backend relacional + UPSERT inteligente implementado
+**Estado:** Navegación bidireccional completa implementada
