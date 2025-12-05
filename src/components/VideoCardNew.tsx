@@ -3,7 +3,6 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Eye, ShoppingCart, DollarSign, Play } from 'lucide-react';
 import { VideoAnalysisModalNew } from './VideoAnalysisModalNew';
-import { VideoHoverControls } from './VideoHoverControls';
 
 interface Video {
   id: string;
@@ -42,7 +41,6 @@ function formatCurrency(num: number | null | undefined): string {
 export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleMouseEnter = useCallback(() => {
@@ -50,23 +48,18 @@ export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
     if (videoRef.current && video.video_mp4_url) {
       videoRef.current.muted = false;
       videoRef.current.volume = 0.7;
-      videoRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {
-          // Autoplay with sound blocked, try muted
-          if (videoRef.current) {
-            videoRef.current.muted = true;
-            videoRef.current.play()
-              .then(() => setIsPlaying(true))
-              .catch(() => {});
-          }
-        });
+      videoRef.current.play().catch(() => {
+        // Autoplay with sound blocked, try muted
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+          videoRef.current.play().catch(() => {});
+        }
+      });
     }
   }, [video.video_mp4_url]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
-    setIsPlaying(false);
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
@@ -74,21 +67,7 @@ export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
     }
   }, []);
 
-  const handlePlayPause = useCallback(() => {
-    if (!videoRef.current) return;
-    
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      videoRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {});
-    }
-  }, [isPlaying]);
-
   const handleClick = () => {
-    if (!isHovered) return; // Only open modal if not clicking controls
     setShowModal(true);
   };
 
@@ -133,14 +112,6 @@ export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
           >
             {isTop5 && '🔥'} #{ranking}
           </Badge>
-
-          {/* Video Hover Controls */}
-          <VideoHoverControls
-            videoRef={videoRef}
-            isVisible={isHovered}
-            onPlayPause={handlePlayPause}
-            isPlaying={isPlaying}
-          />
 
           {/* Hover Overlay */}
           <div 
