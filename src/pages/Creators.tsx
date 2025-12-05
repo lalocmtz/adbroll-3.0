@@ -272,7 +272,7 @@ const Creators = () => {
                       <div className="grid grid-cols-2 gap-2 mb-3">
                         <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
                           <DollarSign className="h-4 w-4 text-emerald-600 mx-auto mb-1" />
-                          <p className="text-[10px] text-muted-foreground uppercase font-medium">Ingresos 30D</p>
+                          <p className="text-[10px] text-muted-foreground uppercase font-medium">GMV Total</p>
                           <p className="text-lg font-bold text-emerald-600">
                             {formatCurrency(creator.total_ingresos_mxn)}
                           </p>
