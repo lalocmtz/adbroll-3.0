@@ -166,7 +166,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
   const navigateToProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (video.product_id) {
-      navigate(`/products?id=${video.product_id}`);
+      navigate(`/videos/product/${video.product_id}`);
     } else if (video.product_name) {
       navigate(`/products?name=${encodeURIComponent(video.product_name)}`);
     }
@@ -265,8 +265,8 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
             </p>
           </div>
 
-          {/* Product Association with Image */}
-          {(video.product || video.product_name) && (
+          {/* Product Association with Badge */}
+          {(video.product || video.product_name) ? (
             <button
               onClick={navigateToProduct}
               className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
@@ -292,7 +292,19 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                   </span>
                 )}
               </div>
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 shrink-0">
+                Ver producto →
+              </Badge>
             </button>
+          ) : (
+            <div className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/30 text-left">
+              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Sin producto asignado
+              </span>
+            </div>
           )}
 
           {/* Metrics Grid - 2x2 */}
