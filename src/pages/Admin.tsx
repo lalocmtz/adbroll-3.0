@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Database, ArrowLeft, Video, Package, Users, CheckCircle, Download, RefreshCw, AlertCircle } from "lucide-react";
+import { Upload, Database, ArrowLeft, Video, Package, Users, CheckCircle, Download, RefreshCw, AlertCircle, Sparkles, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -19,6 +19,8 @@ const Admin = () => {
   const [isUploadingProducts, setIsUploadingProducts] = useState(false);
   const [isUploadingCreators, setIsUploadingCreators] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isMatching, setIsMatching] = useState(false);
+  const [matchStats, setMatchStats] = useState({ matched: 0, unmatched: 0, total: 0 });
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -46,6 +48,7 @@ const Admin = () => {
     if (isFounder) {
       loadStats();
       loadDownloadStats();
+      loadMatchStats();
     }
   }, [isFounder]);
 
@@ -77,6 +80,44 @@ const Admin = () => {
       ).length;
 
       setDownloadStats({ total, downloaded, pending, failed });
+    }
+  };
+
+  const loadMatchStats = async () => {
+    const { data: videos } = await supabase
+      .from("videos")
+      .select("id, product_id");
+
+    if (videos) {
+      const total = videos.length;
+      const matched = videos.filter(v => v.product_id).length;
+      const unmatched = total - matched;
+      setMatchStats({ matched, unmatched, total });
+    }
+  };
+
+  const handleSmartMatch = async () => {
+    setIsMatching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("auto-match-videos-products");
+
+      if (error) throw error;
+
+      toast({
+        title: "Matching completado",
+        description: `${data.matchedCount || 0} videos vinculados, ${data.updatedCount || 0} actualizados.`,
+      });
+
+      loadMatchStats();
+      loadStats();
+    } catch (error: any) {
+      toast({
+        title: "Error en matching",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsMatching(false);
     }
   };
 
@@ -150,7 +191,7 @@ const Admin = () => {
 
       toast({
         title: "¡Videos importados!",
-        description: `${successCount} videos cargados exitosamente.`,
+        description: `${successCount} videos cargados. Iniciando vinculación automática...`,
       });
 
       loadStats();
@@ -160,6 +201,19 @@ const Admin = () => {
       // Reset file input
       const input = document.getElementById('video-file') as HTMLInputElement;
       if (input) input.value = '';
+
+      // Auto-trigger smart matching
+      setIsMatching(true);
+      toast({ title: "Vinculando productos...", description: "Este proceso puede tardar unos segundos." });
+      
+      const { data: matchData } = await supabase.functions.invoke("auto-match-videos-products");
+      
+      toast({
+        title: "Vinculación completada",
+        description: `${matchData?.matchedCount || 0} videos vinculados con productos.`,
+      });
+      
+      loadMatchStats();
       
     } catch (error: any) {
       toast({
@@ -169,6 +223,7 @@ const Admin = () => {
       });
     } finally {
       setIsUploadingVideos(false);
+      setIsMatching(false);
     }
   };
 
@@ -190,7 +245,7 @@ const Admin = () => {
 
       toast({
         title: "¡Productos importados!",
-        description: `${successCount} productos cargados exitosamente.`,
+        description: `${successCount} productos cargados. Iniciando vinculación automática...`,
       });
 
       loadStats();
@@ -198,6 +253,17 @@ const Admin = () => {
       
       const input = document.getElementById('product-file') as HTMLInputElement;
       if (input) input.value = '';
+
+      // Auto-trigger smart matching after products upload
+      setIsMatching(true);
+      const { data: matchData } = await supabase.functions.invoke("auto-match-videos-products");
+      
+      toast({
+        title: "Vinculación completada",
+        description: `${matchData?.matchedCount || 0} videos vinculados con productos.`,
+      });
+      
+      loadMatchStats();
       
     } catch (error: any) {
       toast({
@@ -207,6 +273,7 @@ const Admin = () => {
       });
     } finally {
       setIsUploadingProducts(false);
+      setIsMatching(false);
     }
   };
 
@@ -463,6 +530,59 @@ const Admin = () => {
                 <div className="flex items-center gap-2 text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg">
                   <AlertCircle className="h-4 w-4" />
                   <span>Algunos videos fallaron. Haz clic en "Descargar todos" para reintentar.</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Smart Product Matching */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Link className="h-5 w-5 mr-2" />
+                Vinculación Inteligente de Productos
+              </CardTitle>
+              <CardDescription>
+                Vincula automáticamente videos con productos usando matching avanzado con IA
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{matchStats.total}</p>
+                  <p className="text-xs text-muted-foreground">Total Videos</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-500">{matchStats.matched}</p>
+                  <p className="text-xs text-muted-foreground">Con Producto</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-yellow-500">{matchStats.unmatched}</p>
+                  <p className="text-xs text-muted-foreground">Sin Producto</p>
+                </div>
+              </div>
+
+              <Progress 
+                value={matchStats.total > 0 ? (matchStats.matched / matchStats.total) * 100 : 0} 
+                className="h-2" 
+              />
+              <p className="text-sm text-muted-foreground text-center">
+                {matchStats.total > 0 ? ((matchStats.matched / matchStats.total) * 100).toFixed(1) : 0}% vinculados
+              </p>
+
+              <Button 
+                onClick={handleSmartMatch} 
+                disabled={isMatching || matchStats.total === 0}
+                className="w-full"
+              >
+                <Sparkles className={`h-4 w-4 mr-2 ${isMatching ? 'animate-pulse' : ''}`} />
+                {isMatching ? "Vinculando productos..." : "Ejecutar Vinculación Inteligente"}
+              </Button>
+
+              {matchStats.unmatched > 0 && (
+                <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
+                  <Sparkles className="h-4 w-4" />
+                  <span>Haz clic para vincular {matchStats.unmatched} videos con sus productos correspondientes.</span>
                 </div>
               )}
             </CardContent>

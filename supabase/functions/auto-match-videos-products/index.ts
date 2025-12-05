@@ -13,120 +13,127 @@ interface Product {
   total_ingresos_mxn: number | null;
   total_ventas: number | null;
   commission: number | null;
+  price: number | null;
 }
 
 interface Video {
   id: string;
-  descripcion_video: string;
-  producto_nombre: string | null;
+  title: string | null;
+  product_name: string | null;
   product_id: string | null;
 }
 
-// Fuzzy matching using Levenshtein distance
-function calculateSimilarity(str1: string, str2: string): number {
-  const s1 = str1.toLowerCase().trim();
-  const s2 = str2.toLowerCase().trim();
+// Advanced fuzzy matching with multiple strategies
+function calculateMatchScore(videoText: string, productName: string): number {
+  if (!videoText || !productName) return 0;
+
+  const v = videoText.toLowerCase().trim();
+  const p = productName.toLowerCase().trim();
+
+  // Exact match
+  if (v === p) return 1.0;
+
+  // Remove emojis and special chars
+  const clean = (s: string) => s
+    .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+    .replace(/[^\w\sáéíóúñü]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const vClean = clean(v);
+  const pClean = clean(p);
+
+  // Direct containment (high confidence)
+  if (vClean.includes(pClean) || pClean.includes(vClean)) return 0.9;
+
+  // Extract keywords (remove stopwords)
+  const stopWords = ['de', 'el', 'la', 'los', 'las', 'un', 'una', 'para', 'con', 'y', 'o', 'en', 'a', 'del', 'al', 'por', 'que', 'se', 'es', 'su', 'más', 'como', 'pero'];
   
-  if (s1 === s2) return 1.0;
-  if (s1.length === 0 || s2.length === 0) return 0.0;
-  
-  // Simple substring match bonus
-  if (s1.includes(s2) || s2.includes(s1)) return 0.85;
-  
-  // Levenshtein distance
+  const extractWords = (s: string): string[] => 
+    s.split(' ').filter(w => w.length > 2 && !stopWords.includes(w) && !/^\d+$/.test(w));
+
+  const productWords = extractWords(pClean);
+  const videoWords = extractWords(vClean);
+
+  if (productWords.length === 0) return 0;
+
+  // Word matching with partial matching
+  let matchedScore = 0;
+  for (const pw of productWords) {
+    let bestWordMatch = 0;
+    for (const vw of videoWords) {
+      // Exact word match
+      if (pw === vw) {
+        bestWordMatch = 1;
+        break;
+      }
+      // Partial word match (one contains the other)
+      if (pw.length >= 4 && vw.length >= 4) {
+        if (pw.includes(vw) || vw.includes(pw)) {
+          bestWordMatch = Math.max(bestWordMatch, 0.7);
+        }
+      }
+      // Levenshtein similarity for typos
+      const lev = levenshteinSimilarity(pw, vw);
+      if (lev >= 0.8) {
+        bestWordMatch = Math.max(bestWordMatch, lev);
+      }
+    }
+    matchedScore += bestWordMatch;
+  }
+
+  return matchedScore / productWords.length;
+}
+
+function levenshteinSimilarity(s1: string, s2: string): number {
+  if (s1 === s2) return 1;
+  if (s1.length === 0 || s2.length === 0) return 0;
+
   const matrix: number[][] = [];
-  
-  for (let i = 0; i <= s2.length; i++) {
-    matrix[i] = [i];
-  }
-  
-  for (let j = 0; j <= s1.length; j++) {
-    matrix[0][j] = j;
-  }
-  
+  for (let i = 0; i <= s2.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= s1.length; j++) matrix[0][j] = j;
+
   for (let i = 1; i <= s2.length; i++) {
     for (let j = 1; j <= s1.length; j++) {
-      if (s2.charAt(i - 1) === s1.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
+      matrix[i][j] = s2[i - 1] === s1[j - 1]
+        ? matrix[i - 1][j - 1]
+        : Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+    }
+  }
+
+  return 1 - matrix[s2.length][s1.length] / Math.max(s1.length, s2.length);
+}
+
+function findBestProductMatch(video: Video, products: Product[], threshold = 0.5): Product | null {
+  const searchText = video.title || video.product_name || '';
+  if (!searchText) return null;
+
+  let bestMatch: { product: Product; score: number } | null = null;
+
+  for (const product of products) {
+    const score = calculateMatchScore(searchText, product.producto_nombre);
+
+    if (score >= threshold) {
+      if (!bestMatch || score > bestMatch.score) {
+        bestMatch = { product, score };
       }
     }
   }
-  
-  const maxLength = Math.max(s1.length, s2.length);
-  const distance = matrix[s2.length][s1.length];
-  
-  return 1 - (distance / maxLength);
-}
 
-function findBestProductMatch(
-  video: Video,
-  products: Product[],
-  threshold: number = 0.70
-): Product | null {
-  if (!video.descripcion_video) return null;
-  
-  const candidates: Array<{ product: Product; score: number }> = [];
-  
-  for (const product of products) {
-    let score = 0;
-    let maxScore = 0;
-    
-    // Match against product name
-    const nameScore = calculateSimilarity(
-      video.descripcion_video,
-      product.producto_nombre
-    );
-    score += nameScore * 2; // Weight product name heavily
-    maxScore += 2;
-    
-    // Match against existing producto_nombre field if available
-    if (video.producto_nombre) {
-      const existingNameScore = calculateSimilarity(
-        video.producto_nombre,
-        product.producto_nombre
-      );
-      score += existingNameScore * 1.5;
-      maxScore += 1.5;
-    }
-    
-    // Normalize score
-    const normalizedScore = maxScore > 0 ? score / maxScore : 0;
-    
-    if (normalizedScore >= threshold) {
-      candidates.push({ product, score: normalizedScore });
-    }
-  }
-  
-  if (candidates.length === 0) return null;
-  
-  // Sort by score first
-  candidates.sort((a, b) => b.score - a.score);
-  
-  // If top candidates have similar scores, prefer by revenue/sales
-  const topScore = candidates[0].score;
-  const topCandidates = candidates.filter(c => 
-    Math.abs(c.score - topScore) < 0.05
-  );
-  
-  if (topCandidates.length > 1) {
-    topCandidates.sort((a, b) => {
-      const aRevenue = a.product.total_ingresos_mxn || 0;
-      const bRevenue = b.product.total_ingresos_mxn || 0;
-      if (aRevenue !== bRevenue) return bRevenue - aRevenue;
-      
-      const aSales = a.product.total_ventas || 0;
-      const bSales = b.product.total_ventas || 0;
-      return bSales - aSales;
+  // If multiple candidates have similar top scores, prefer by revenue
+  if (bestMatch && bestMatch.score < 0.7) {
+    const alternatives = products.filter(p => {
+      const s = calculateMatchScore(searchText, p.producto_nombre);
+      return s >= threshold && Math.abs(s - bestMatch!.score) < 0.1;
     });
+
+    if (alternatives.length > 1) {
+      alternatives.sort((a, b) => (b.total_ingresos_mxn || 0) - (a.total_ingresos_mxn || 0));
+      bestMatch = { product: alternatives[0], score: bestMatch.score };
+    }
   }
-  
-  return topCandidates[0].product;
+
+  return bestMatch?.product || null;
 }
 
 serve(async (req) => {
@@ -139,12 +146,13 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Starting auto-matching videos to products...');
+    console.log('🔄 Starting auto-matching videos to products...');
 
-    // Fetch all products
+    // Fetch all products ordered by revenue
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select('id, producto_nombre, categoria, total_ingresos_mxn, total_ventas, commission');
+      .select('id, producto_nombre, categoria, total_ingresos_mxn, total_ventas, commission, price')
+      .order('total_ingresos_mxn', { ascending: false, nullsFirst: false });
 
     if (productsError) {
       throw new Error(`Error fetching products: ${productsError.message}`);
@@ -152,20 +160,17 @@ serve(async (req) => {
 
     if (!products || products.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          message: 'No products found to match',
-          matched: 0 
-        }),
+        JSON.stringify({ message: 'No products found to match', matched: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${products.length} products`);
+    console.log(`📦 Found ${products.length} products`);
 
-    // Fetch all videos that need matching (no product_id or outdated)
+    // Fetch all videos from the videos table
     const { data: videos, error: videosError } = await supabase
-      .from('daily_feed')
-      .select('id, descripcion_video, producto_nombre, product_id');
+      .from('videos')
+      .select('id, title, product_name, product_id');
 
     if (videosError) {
       throw new Error(`Error fetching videos: ${videosError.message}`);
@@ -173,34 +178,34 @@ serve(async (req) => {
 
     if (!videos || videos.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          message: 'No videos found to match',
-          matched: 0 
-        }),
+        JSON.stringify({ message: 'No videos found to match', matched: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Processing ${videos.length} videos for matching...`);
+    console.log(`🎬 Processing ${videos.length} videos for matching...`);
 
     let matchedCount = 0;
     let updatedCount = 0;
+    let alreadyMatchedCount = 0;
 
     // Process each video
     for (const video of videos) {
       const bestMatch = findBestProductMatch(video, products);
-      
+
       if (bestMatch) {
         matchedCount++;
-        
-        // Only update if product_id is different
+
+        // Only update if product_id is different or null
         if (video.product_id !== bestMatch.id) {
           const { error: updateError } = await supabase
-            .from('daily_feed')
-            .update({ 
+            .from('videos')
+            .update({
               product_id: bestMatch.id,
-              producto_nombre: bestMatch.producto_nombre,
-              producto_url: null // Reset producto_url to use the one from products table
+              product_name: bestMatch.producto_nombre,
+              product_price: bestMatch.price,
+              product_revenue: bestMatch.total_ingresos_mxn,
+              product_sales: bestMatch.total_ventas,
             })
             .eq('id', video.id);
 
@@ -208,22 +213,26 @@ serve(async (req) => {
             console.error(`Error updating video ${video.id}:`, updateError.message);
           } else {
             updatedCount++;
-            console.log(`Matched video "${video.descripcion_video?.substring(0, 50)}" to product "${bestMatch.producto_nombre}"`);
+            console.log(`✓ Matched: "${video.title?.substring(0, 40)}" → "${bestMatch.producto_nombre.substring(0, 40)}"`);
           }
+        } else {
+          alreadyMatchedCount++;
         }
       }
     }
 
-    console.log(`Matching complete: ${matchedCount} matches found, ${updatedCount} videos updated`);
+    console.log(`✅ Matching complete: ${matchedCount} total matches, ${updatedCount} updated, ${alreadyMatchedCount} already matched`);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         totalVideos: videos.length,
         totalProducts: products.length,
         matchedCount,
         updatedCount,
-        message: `Successfully matched ${matchedCount} videos to products (${updatedCount} updated)`
+        alreadyMatchedCount,
+        unmatchedCount: videos.length - matchedCount,
+        message: `Matched ${matchedCount} videos to products (${updatedCount} updated)`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -231,10 +240,7 @@ serve(async (req) => {
     console.error('Error in auto-match-videos-products:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

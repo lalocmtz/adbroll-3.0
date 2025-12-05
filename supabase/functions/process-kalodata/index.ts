@@ -219,14 +219,63 @@ serve(async (req) => {
 
     console.log(`Loaded ${creators?.length || 0} creators for matching`);
 
-    const normalizeProductName = (name: string): string => {
-      return name
-        .toLowerCase()
+    // Advanced product matching function
+    const calculateMatchScore = (videoText: string, productName: string): number => {
+      if (!videoText || !productName) return 0;
+      
+      const v = videoText.toLowerCase().trim();
+      const p = productName.toLowerCase().trim();
+      
+      if (v === p) return 1.0;
+      
+      // Remove emojis and special chars
+      const clean = (s: string) => s
         .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-        .replace(/\([^)]*\)/g, '')
-        .replace(/\[[^\]]*\]/g, '')
+        .replace(/[^\w\sáéíóúñü]/gi, ' ')
         .replace(/\s+/g, ' ')
         .trim();
+      
+      const vClean = clean(v);
+      const pClean = clean(p);
+      
+      // Direct containment
+      if (vClean.includes(pClean) || pClean.includes(vClean)) return 0.9;
+      
+      // Extract keywords
+      const stopWords = ['de', 'el', 'la', 'los', 'las', 'un', 'una', 'para', 'con', 'y', 'en', 'a', 'del', 'al', 'por'];
+      const extractWords = (s: string) => s.split(' ').filter(w => w.length > 2 && !stopWords.includes(w));
+      
+      const pWords = extractWords(pClean);
+      const vWords = extractWords(vClean);
+      
+      if (pWords.length === 0) return 0;
+      
+      let matched = 0;
+      for (const pw of pWords) {
+        for (const vw of vWords) {
+          if (pw === vw || (pw.length >= 4 && vw.length >= 4 && (pw.includes(vw) || vw.includes(pw)))) {
+            matched++;
+            break;
+          }
+        }
+      }
+      
+      return matched / pWords.length;
+    };
+
+    const findBestProductMatch = (videoTitle: string, products: any[]): any | null => {
+      let bestMatch = null;
+      let bestScore = 0;
+      
+      for (const p of products) {
+        const score = calculateMatchScore(videoTitle, p.producto_nombre);
+        if (score > bestScore && score >= 0.5) {
+          bestScore = score;
+          bestMatch = p;
+        }
+      }
+      
+      return bestMatch;
     };
 
     // Process videos with smart upsert
@@ -241,15 +290,8 @@ serve(async (req) => {
       const creatorHandle = row["Usuario del creador"] || null;
       const rank = idx + 1;
 
-      // Match product by name
-      let matchedProduct = null;
-      if (products && products.length > 0) {
-        const normalizedVideoTitle = normalizeProductName(videoTitle);
-        matchedProduct = products.find((p) => {
-          const pName = normalizeProductName(p.producto_nombre || "");
-          return normalizedVideoTitle.includes(pName) || pName.includes(normalizedVideoTitle);
-        });
-      }
+      // Match product using advanced scoring
+      const matchedProduct = findBestProductMatch(videoTitle, products || []);
 
       // Match creator by handle
       let matchedCreator = null;
