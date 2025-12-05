@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import VideoCardOriginal from "@/components/VideoCardOriginal";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import DashboardNav from "@/components/DashboardNav";
 import GlobalHeader from "@/components/GlobalHeader";
+import Footer from "@/components/Footer";
 import FilterSidebar from "@/components/FilterSidebar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -52,10 +54,11 @@ const Dashboard = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<"sales" | "revenue">("revenue");
+  const [sortOrder, setSortOrder] = useState<"sales" | "revenue" | "views">("revenue");
   const [filterSidebarOpen, setFilterSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const productFilter = searchParams.get("productName");
   const creatorFilter = searchParams.get("creator");
@@ -154,7 +157,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Cargando videos...</p>
+        <p className="text-muted-foreground">{t("loadingVideos")}</p>
       </div>
     );
   }
@@ -203,11 +206,11 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <GlobalHeader />
       <DashboardNav />
 
-      <main className="container mx-auto px-4 md:px-6 py-2 max-w-7xl">
+      <main className="container mx-auto px-4 md:px-6 py-2 max-w-7xl flex-1">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
           <h1 className="text-2xl md:text-3xl font-bold">
             {productFilter 
@@ -219,14 +222,15 @@ const Dashboard = () => {
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium hidden md:inline">Ordenar:</span>
-              <Select value={sortOrder} onValueChange={(value: "sales" | "revenue") => setSortOrder(value)}>
+              <span className="text-sm font-medium hidden md:inline">{t("sortBy")}:</span>
+              <Select value={sortOrder} onValueChange={(value: "sales" | "revenue" | "views") => setSortOrder(value)}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="revenue">Más ingresos</SelectItem>
-                  <SelectItem value="sales">Más ventas</SelectItem>
+                  <SelectItem value="revenue">{t("moreRevenue")}</SelectItem>
+                  <SelectItem value="sales">{t("moreSales")}</SelectItem>
+                  <SelectItem value="views">{t("moreViews")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -312,6 +316,7 @@ const Dashboard = () => {
           onDateChange={setSelectedDate}
         />
       </main>
+      <Footer />
     </div>
   );
 };
