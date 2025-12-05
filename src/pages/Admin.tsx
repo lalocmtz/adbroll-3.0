@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock } from "lucide-react";
+import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { PendingLinks } from "@/components/PendingLinks";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -35,7 +36,6 @@ const Admin = () => {
 
   useEffect(() => {
     checkFounderRole();
-    // Load last sync from localStorage
     const saved = localStorage.getItem("adbroll_last_sync");
     if (saved) setLastSync(saved);
   }, []);
@@ -114,7 +114,6 @@ const Admin = () => {
     setLastSync(now);
   };
 
-  // Match only pending videos
   const handleMatchPending = async () => {
     if (stats.pendingMatch === 0) {
       toast({ title: "Todo vinculado", description: "No hay videos pendientes." });
@@ -154,7 +153,6 @@ const Admin = () => {
     }
   };
 
-  // Main process: Import all files → Download videos → Match products
   const handleProcessAll = async () => {
     if (!videoFile && !productFile && !creatorFile) {
       toast({
@@ -169,25 +167,10 @@ const Admin = () => {
     setProcessProgress(0);
 
     try {
-      // Step 1: Import Products (if file exists)
-      if (productFile) {
-        setProcessPhase("Importando productos...");
-        setProcessProgress(10);
-        
-        const formData = new FormData();
-        formData.append("file", productFile);
-        
-        const { error } = await supabase.functions.invoke("process-kalodata-products", {
-          body: formData,
-        });
-        if (error) throw new Error(`Error en productos: ${error.message}`);
-        setProductFile(null);
-      }
-
-      // Step 2: Import Creators (if file exists)
+      // Step 1: Import Creators FIRST (required for FK resolution)
       if (creatorFile) {
-        setProcessPhase("Importando creadores...");
-        setProcessProgress(20);
+        setProcessPhase("1/5 Importando creadores...");
+        setProcessProgress(5);
         
         const formData = new FormData();
         formData.append("file", creatorFile);
@@ -199,9 +182,24 @@ const Admin = () => {
         setCreatorFile(null);
       }
 
-      // Step 3: Import Videos (if file exists)
+      // Step 2: Import Products SECOND (required for FK resolution)
+      if (productFile) {
+        setProcessPhase("2/5 Importando productos...");
+        setProcessProgress(15);
+        
+        const formData = new FormData();
+        formData.append("file", productFile);
+        
+        const { error } = await supabase.functions.invoke("process-kalodata-products", {
+          body: formData,
+        });
+        if (error) throw new Error(`Error en productos: ${error.message}`);
+        setProductFile(null);
+      }
+
+      // Step 3: Import Videos THIRD (uses FK from creators/products)
       if (videoFile) {
-        setProcessPhase("Importando videos...");
+        setProcessPhase("3/5 Importando videos...");
         setProcessProgress(30);
         
         const formData = new FormData();
@@ -215,8 +213,8 @@ const Admin = () => {
       }
 
       // Step 4: Download pending videos
-      setProcessPhase("Descargando videos de TikTok...");
-      setProcessProgress(40);
+      setProcessPhase("4/5 Descargando videos de TikTok...");
+      setProcessProgress(45);
       
       let downloadedCount = 0;
       let continueDownload = true;
@@ -235,9 +233,9 @@ const Admin = () => {
           continueDownload = false;
         } else {
           downloadedCount += data.successful || 0;
-          const progress = 40 + Math.min(30, (downloadedCount / 50) * 30);
+          const progress = 45 + Math.min(25, (downloadedCount / 50) * 25);
           setProcessProgress(progress);
-          setProcessPhase(`Descargando videos... (${downloadedCount} completados)`);
+          setProcessPhase(`4/5 Descargando videos... (${downloadedCount} completados)`);
           await new Promise(r => setTimeout(r, 500));
           
           if (downloadedCount >= 100) break;
@@ -245,7 +243,7 @@ const Admin = () => {
       }
 
       // Step 5: Match all videos with products
-      setProcessPhase("Vinculando videos con productos...");
+      setProcessPhase("5/5 Vinculando videos con productos...");
       setProcessProgress(75);
       
       let matchComplete = false;
@@ -266,7 +264,7 @@ const Admin = () => {
         
         const progress = 75 + Math.min(20, (totalMatched / 100) * 20);
         setProcessProgress(progress);
-        setProcessPhase(`Vinculando productos... (${totalMatched} vinculados)`);
+        setProcessPhase(`5/5 Vinculando productos... (${totalMatched} vinculados)`);
       }
 
       // Done!
@@ -324,7 +322,7 @@ const Admin = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
+      <main className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Last Sync & Quick Actions */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -397,53 +395,22 @@ const Admin = () => {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center text-lg">
               <FileSpreadsheet className="h-5 w-5 mr-2" />
-              Archivos de Kalodata
+              Archivos de Kalodata (.xlsx)
             </CardTitle>
             <CardDescription>
-              Sube archivos nuevos o actualizaciones de datos existentes
+              Orden de procesamiento: Creadores → Productos → Videos
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Videos File */}
+            {/* Creators File - FIRST */}
             <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <Label htmlFor="video-file" className="text-sm font-medium">Videos</Label>
-                <Input
-                  id="video-file"
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                  className="mt-1"
-                  disabled={isProcessing}
-                />
-              </div>
-              {videoFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
-            </div>
-
-            {/* Products File */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <Label htmlFor="product-file" className="text-sm font-medium">Productos</Label>
-                <Input
-                  id="product-file"
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  onChange={(e) => setProductFile(e.target.files?.[0] || null)}
-                  className="mt-1"
-                  disabled={isProcessing}
-                />
-              </div>
-              {productFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
-            </div>
-
-            {/* Creators File */}
-            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">1</div>
               <div className="flex-1">
                 <Label htmlFor="creator-file" className="text-sm font-medium">Creadores</Label>
                 <Input
                   id="creator-file"
                   type="file"
-                  accept=".xlsx,.xls,.csv"
+                  accept=".xlsx,.xls"
                   onChange={(e) => setCreatorFile(e.target.files?.[0] || null)}
                   className="mt-1"
                   disabled={isProcessing}
@@ -452,14 +419,54 @@ const Admin = () => {
               {creatorFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
             </div>
 
-            <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-              💡 Los archivos actualizan datos existentes sin duplicar registros (upsert inteligente)
-            </p>
+            {/* Products File - SECOND */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">2</div>
+              <div className="flex-1">
+                <Label htmlFor="product-file" className="text-sm font-medium">Productos</Label>
+                <Input
+                  id="product-file"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => setProductFile(e.target.files?.[0] || null)}
+                  className="mt-1"
+                  disabled={isProcessing}
+                />
+              </div>
+              {productFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
+            </div>
+
+            {/* Videos File - THIRD */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">3</div>
+              <div className="flex-1">
+                <Label htmlFor="video-file" className="text-sm font-medium">Videos</Label>
+                <Input
+                  id="video-file"
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                  className="mt-1"
+                  disabled={isProcessing}
+                />
+              </div>
+              {videoFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
+            </div>
+
+            <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded space-y-1">
+              <p className="font-medium">💡 Importación inteligente (UPSERT):</p>
+              <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                <li>Creadores: match por <code className="bg-muted px-1 rounded">username</code></li>
+                <li>Productos: match por <code className="bg-muted px-1 rounded">nombre + URL</code></li>
+                <li>Videos: match por <code className="bg-muted px-1 rounded">URL de TikTok</code></li>
+              </ul>
+              <p className="mt-2">Los datos existentes se actualizan, los nuevos se crean.</p>
+            </div>
           </CardContent>
         </Card>
 
         {/* Process Button */}
-        <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+        <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 mb-6">
           <CardContent className="pt-6 pb-6 space-y-4">
             {isProcessing && (
               <div className="space-y-2">
@@ -491,10 +498,15 @@ const Admin = () => {
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
-              Importa → Descarga MP4 → Vincula productos automáticamente
+              Creadores → Productos → Videos → Descarga MP4 → Vinculación automática
             </p>
           </CardContent>
         </Card>
+
+        {/* Pending Links Section */}
+        {stats.pendingMatch > 0 && (
+          <PendingLinks />
+        )}
       </main>
     </div>
   );
