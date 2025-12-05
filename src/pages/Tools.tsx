@@ -6,16 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Copy, Loader2, Zap, PenTool, Check, AlertCircle, CheckCircle2, Link2, RotateCcw } from "lucide-react";
+import { 
+  FileText, Copy, Loader2, Zap, PenTool, Check, AlertCircle, 
+  Link2, RotateCcw, Play, Heart, Download, Sparkles, ChevronRight
+} from "lucide-react";
 import { DataSubtitle } from "@/components/FilterPills";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Product {
   id: string;
@@ -23,9 +20,15 @@ interface Product {
   categoria: string | null;
   precio_mxn: number | null;
   commission: number | null;
+  imagen_url?: string | null;
+  gmv_30d_mxn?: number | null;
 }
 
-// Validate TikTok URL
+interface FavoriteProduct {
+  product_id: string;
+  product_data: Product;
+}
+
 const isValidTikTokUrl = (url: string): boolean => {
   const tiktokPatterns = [
     /^https?:\/\/(www\.)?tiktok\.com\/@[\w.-]+\/video\/\d+/i,
@@ -38,6 +41,16 @@ const isValidTikTokUrl = (url: string): boolean => {
 type ExtractorState = "idle" | "loading" | "success" | "error";
 type ExtractorError = "invalid_url" | "api_error" | "no_transcript" | null;
 
+const formatCurrency = (num: number | null | undefined): string => {
+  if (!num) return '$0';
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(num);
+};
+
 const Tools = () => {
   const { language } = useLanguage();
   const { toast } = useToast();
@@ -48,7 +61,11 @@ const Tools = () => {
   const [extractorError, setExtractorError] = useState<ExtractorError>(null);
   const [transcript, setTranscript] = useState("");
   const [structuredScript, setStructuredScript] = useState<any>(null);
+  const [analysisData, setAnalysisData] = useState<any>(null);
+  const [variants, setVariants] = useState<any>(null);
   const [transcriptCopied, setTranscriptCopied] = useState(false);
+  const [activeExtractorTab, setActiveExtractorTab] = useState("script");
+  const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
   
   // Hook Generator State
   const [hookProductDesc, setHookProductDesc] = useState("");
@@ -56,24 +73,47 @@ const Tools = () => {
   const [generatedHooks, setGeneratedHooks] = useState<string[]>([]);
   
   // Script Generator State
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState("");
+  const [popularProducts, setPopularProducts] = useState<Product[]>([]);
+  const [favoriteProducts, setFavoriteProducts] = useState<FavoriteProduct[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [additionalBenefits, setAdditionalBenefits] = useState("");
   const [loadingScript, setLoadingScript] = useState(false);
   const [generatedScript, setGeneratedScript] = useState<any>(null);
+  const [productTab, setProductTab] = useState<"popular" | "favorites">("popular");
   
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchProducts();
+    fetchPopularProducts();
+    fetchFavoriteProducts();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchPopularProducts = async () => {
     const { data } = await supabase
       .from("products")
-      .select("id, producto_nombre, categoria, precio_mxn, commission")
-      .order("producto_nombre");
-    if (data) setProducts(data);
+      .select("id, producto_nombre, categoria, precio_mxn, commission, imagen_url, gmv_30d_mxn")
+      .order("gmv_30d_mxn", { ascending: false, nullsFirst: false })
+      .limit(8);
+    if (data) setPopularProducts(data);
+  };
+
+  const fetchFavoriteProducts = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("favorites_products")
+      .select("product_id, product_data")
+      .eq("user_id", user.id)
+      .limit(8);
+    
+    if (data) {
+      const mapped = data.map(item => ({
+        product_id: item.product_id,
+        product_data: item.product_data as unknown as Product
+      }));
+      setFavoriteProducts(mapped);
+    }
   };
 
   const getErrorMessage = (error: ExtractorError): string => {
@@ -95,12 +135,12 @@ const Tools = () => {
   };
 
   const handleExtract = async () => {
-    // Reset states
     setExtractorError(null);
     setTranscript("");
     setStructuredScript(null);
+    setAnalysisData(null);
+    setVariants(null);
 
-    // Validate URL
     if (!videoUrl.trim() || !isValidTikTokUrl(videoUrl)) {
       setExtractorError("invalid_url");
       return;
@@ -109,7 +149,6 @@ const Tools = () => {
     setExtractorState("loading");
 
     try {
-      // Call transcribe-assemblyai
       const { data, error } = await supabase.functions.invoke("transcribe-assemblyai", {
         body: { videoUrl }
       });
@@ -119,13 +158,14 @@ const Tools = () => {
       if (data?.transcript && data.transcript.trim().length > 0) {
         setTranscript(data.transcript);
         
-        // Now analyze the script structure
-        const { data: analysisData } = await supabase.functions.invoke("analyze-script-sections", {
+        // Analyze script structure
+        const { data: analysisResult } = await supabase.functions.invoke("analyze-script-sections", {
           body: { script: data.transcript, videoTitle: "Video de TikTok" }
         });
 
-        if (analysisData?.sections) {
-          setStructuredScript(analysisData.sections);
+        if (analysisResult?.sections) {
+          setStructuredScript(analysisResult.sections);
+          setAnalysisData(analysisResult);
         }
 
         setExtractorState("success");
@@ -133,7 +173,6 @@ const Tools = () => {
           title: language === "es" ? "✓ Guión extraído" : "✓ Script extracted",
         });
       } else {
-        // Empty transcript
         setExtractorState("error");
         setExtractorError("no_transcript");
       }
@@ -144,11 +183,48 @@ const Tools = () => {
     }
   };
 
+  const handleGenerateVariants = async () => {
+    if (!transcript) return;
+    
+    setIsGeneratingVariants(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-script-variants", {
+        body: { 
+          transcript, 
+          analysis: analysisData,
+          variantCount: 3,
+          changeLevel: 'medium'
+        }
+      });
+
+      if (error) throw error;
+      if (data?.variants) {
+        setVariants(data.variants);
+        toast({ title: language === "es" ? "✓ Variantes generadas" : "✓ Variants generated" });
+      }
+    } catch (err: any) {
+      console.error("Variants error:", err);
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsGeneratingVariants(false);
+    }
+  };
+
   const handleCopyTranscript = async () => {
     await navigator.clipboard.writeText(transcript);
     setTranscriptCopied(true);
     setTimeout(() => setTranscriptCopied(false), 2000);
     toast({ title: language === "es" ? "✓ Copiado al portapapeles" : "✓ Copied to clipboard" });
+  };
+
+  const handleDownloadScript = () => {
+    const blob = new Blob([transcript], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'guion-tiktok.txt';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const resetExtractor = () => {
@@ -157,6 +233,9 @@ const Tools = () => {
     setExtractorError(null);
     setTranscript("");
     setStructuredScript(null);
+    setAnalysisData(null);
+    setVariants(null);
+    setActiveExtractorTab("script");
   };
 
   const handleGenerateHooks = async () => {
@@ -181,22 +260,18 @@ const Tools = () => {
 
       if (data?.hooks) {
         setGeneratedHooks(data.hooks);
-        toast({ title: language === "es" ? "✓ 10 hooks generados" : "✓ 10 hooks generated" });
+        toast({ title: language === "es" ? "✓ Hooks generados" : "✓ Hooks generated" });
       }
     } catch (err: any) {
       console.error("Hook generation error:", err);
-      toast({
-        title: "Error",
-        description: err.message || "Error al generar hooks",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setLoadingHooks(false);
     }
   };
 
   const handleGenerateScript = async () => {
-    if (!selectedProductId) {
+    if (!selectedProduct) {
       toast({
         title: "Error",
         description: language === "es" ? "Selecciona un producto" : "Select a product",
@@ -205,9 +280,6 @@ const Tools = () => {
       return;
     }
 
-    const product = products.find(p => p.id === selectedProductId);
-    if (!product) return;
-
     setLoadingScript(true);
     setGeneratedScript(null);
 
@@ -215,10 +287,10 @@ const Tools = () => {
       const { data, error } = await supabase.functions.invoke("generate-full-script", {
         body: { 
           product: {
-            name: product.producto_nombre,
-            category: product.categoria,
-            price: product.precio_mxn,
-            commission: product.commission
+            name: selectedProduct.producto_nombre,
+            category: selectedProduct.categoria,
+            price: selectedProduct.precio_mxn,
+            commission: selectedProduct.commission
           },
           additionalBenefits 
         }
@@ -232,11 +304,7 @@ const Tools = () => {
       }
     } catch (err: any) {
       console.error("Script generation error:", err);
-      toast({
-        title: "Error",
-        description: err.message || "Error al generar guión",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setLoadingScript(false);
     }
@@ -262,363 +330,522 @@ const Tools = () => {
     }
   };
 
+  const ProductCard = ({ product, isSelected, onClick }: { product: Product; isSelected: boolean; onClick: () => void }) => (
+    <button
+      onClick={onClick}
+      className={`relative group p-3 rounded-xl border-2 transition-all duration-200 text-left ${
+        isSelected 
+          ? 'border-primary bg-primary/5 shadow-md' 
+          : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
+      }`}
+    >
+      <div className="flex gap-3">
+        <div className="w-14 h-14 rounded-lg bg-muted overflow-hidden shrink-0">
+          {product.imagen_url ? (
+            <img src={product.imagen_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+              <FileText className="h-5 w-5" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-foreground line-clamp-2 leading-tight">
+            {product.producto_nombre}
+          </p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-xs font-semibold text-primary">
+              {formatCurrency(product.precio_mxn)}
+            </span>
+            {product.commission && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                {product.commission}%
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      {isSelected && (
+        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+          <Check className="h-3 w-3 text-white" />
+        </div>
+      )}
+    </button>
+  );
+
   return (
-    <div className="pt-5 pb-6 px-4 md:px-6 max-w-4xl space-y-6">
+    <div className="pt-5 pb-6 px-4 md:px-6 max-w-5xl space-y-5">
       <DataSubtitle />
 
-      {/* 1. Script Extractor Tool - Premium Hero Section */}
-      <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-border/50 overflow-hidden">
-        {/* Idle State - Hero Input */}
+      {/* 1. Script Extractor Tool */}
+      <Card className="overflow-hidden border-border/50 shadow-sm">
+        {/* Idle State */}
         {extractorState === "idle" && (
-          <div className="px-6 py-10 md:px-10 md:py-14 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#ED4C84]/10 mb-5">
-              <FileText className="h-8 w-8 text-[#ED4C84]" />
+          <div className="p-5 md:p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-foreground">
+                  {language === "es" ? "Extractor de Guiones" : "Script Extractor"}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {language === "es" ? "Pega un link de TikTok y extrae el guión" : "Paste a TikTok link and extract the script"}
+                </p>
+              </div>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-              {language === "es" ? "Extractor de Guiones" : "Script Extractor"}
-            </h2>
-            <p className="text-muted-foreground max-w-md mx-auto mb-8">
-              {language === "es"
-                ? "Pega un link de TikTok y extrae el guión en segundos."
-                : "Paste a TikTok link and extract the script in seconds."}
-            </p>
             
-            <div className="max-w-xl mx-auto space-y-4">
-              {/* Modern Input with Icon */}
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <Link2 className="h-5 w-5 text-muted-foreground/50" />
-                </div>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
                 <Input
-                  placeholder={language === "es" ? "Pega aquí un enlace de TikTok..." : "Paste a TikTok link here..."}
+                  placeholder={language === "es" ? "https://tiktok.com/@usuario/video/..." : "https://tiktok.com/@user/video/..."}
                   value={videoUrl}
                   onChange={(e) => {
                     setVideoUrl(e.target.value);
                     setExtractorError(null);
                   }}
-                  className="h-14 text-base pl-12 pr-4 rounded-xl border-2 border-border/60 focus:border-[#ED4C84] focus:ring-[#ED4C84]/20 placeholder:text-muted-foreground/50 transition-all"
+                  className="h-11 pl-10 rounded-xl border-border/60"
                 />
               </div>
-              
-              {/* Error Banner */}
-              {extractorError === "invalid_url" && (
-                <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{getErrorMessage("invalid_url")}</span>
-                </div>
-              )}
-              
-              {/* Primary CTA Button */}
-              <button 
+              <Button 
                 onClick={handleExtract} 
-                className="w-full h-14 text-base font-semibold text-white bg-[#ED4C84] hover:bg-[#d93d73] rounded-xl transition-all duration-200 shadow-[0_4px_14px_rgba(237,76,132,0.35)] hover:shadow-[0_6px_20px_rgba(237,76,132,0.45)] hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                className="h-11 px-5 rounded-xl bg-primary hover:bg-primary/90 shadow-sm"
               >
-                <FileText className="h-5 w-5" />
-                {language === "es" ? "Extraer Guión" : "Extract Script"}
-              </button>
+                <FileText className="h-4 w-4 mr-2" />
+                {language === "es" ? "Extraer" : "Extract"}
+              </Button>
             </div>
+            
+            {extractorError === "invalid_url" && (
+              <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <span>{getErrorMessage("invalid_url")}</span>
+              </div>
+            )}
           </div>
         )}
 
         {/* Loading State */}
         {extractorState === "loading" && (
-          <div className="px-6 py-16 md:py-20 text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#ED4C84]/5 mb-6">
-              <div className="w-12 h-12 rounded-full border-3 border-[#ED4C84]/20 border-t-[#ED4C84] animate-spin" />
+          <div className="p-8 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/5 mb-4">
+              <Loader2 className="h-7 w-7 text-primary animate-spin" />
             </div>
-            <p className="text-lg font-medium text-foreground">
+            <p className="text-sm font-medium text-foreground">
               {language === "es" ? "Extrayendo guión..." : "Extracting script..."}
             </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {language === "es" ? "Esto puede tomar unos segundos." : "This may take a few seconds."}
+            <p className="text-xs text-muted-foreground mt-1">
+              {language === "es" ? "Esto puede tomar unos segundos" : "This may take a few seconds"}
             </p>
           </div>
         )}
 
         {/* Error State */}
         {extractorState === "error" && extractorError && (
-          <div className="px-6 py-14 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-5">
-              <AlertCircle className="h-8 w-8 text-red-500" />
+          <div className="p-8 text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10 mb-4">
+              <AlertCircle className="h-7 w-7 text-destructive" />
             </div>
-            <p className="text-lg font-medium text-red-600 mb-2">
+            <p className="text-sm font-medium text-destructive mb-1">
               {language === "es" ? "Error al extraer" : "Extraction error"}
             </p>
-            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-              {getErrorMessage(extractorError)}
-            </p>
-            <button 
-              onClick={resetExtractor} 
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-border hover:border-[#ED4C84] text-sm font-medium transition-colors"
-            >
-              <RotateCcw className="h-4 w-4" />
+            <p className="text-xs text-muted-foreground mb-4">{getErrorMessage(extractorError)}</p>
+            <Button onClick={resetExtractor} variant="outline" size="sm" className="rounded-xl">
+              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
               {language === "es" ? "Intentar de nuevo" : "Try again"}
-            </button>
+            </Button>
           </div>
         )}
 
-        {/* Success State - Result Panel */}
+        {/* Success State - Modal-like View with Tabs */}
         {extractorState === "success" && transcript && (
-          <div className="p-6 md:p-8">
-            {/* Header with success indicator */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-emerald-50">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">
-                  {language === "es" ? "Transcripción extraída" : "Transcript extracted"}
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={handleCopyTranscript}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#F7F7F7] hover:bg-[#EEEEEE] text-sm font-medium transition-colors"
-                >
-                  {transcriptCopied ? (
-                    <Check className="h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <Copy className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  {transcriptCopied 
-                    ? (language === "es" ? "Copiado" : "Copied")
-                    : (language === "es" ? "Copiar" : "Copy")
-                  }
-                </button>
-                <button 
-                  onClick={resetExtractor}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-[#F7F7F7] text-sm font-medium text-muted-foreground transition-colors"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  {language === "es" ? "Nuevo" : "New"}
-                </button>
-              </div>
-            </div>
-            
-            {/* Transcript Content Box */}
-            <div className="bg-[#F7F7F7] rounded-xl border border-border/30 overflow-hidden">
-              <ScrollArea className="h-[220px] md:h-[280px]">
-                <div className="p-5">
-                  <p className="text-sm leading-7 text-foreground whitespace-pre-wrap">
-                    {transcript}
+          <div className="flex flex-col lg:flex-row">
+            {/* Left: Video Preview */}
+            <div className="lg:w-72 bg-muted/30 p-4 border-r border-border/50 shrink-0">
+              <div className="aspect-[9/16] max-h-[320px] bg-black rounded-xl overflow-hidden flex items-center justify-center mx-auto">
+                <div className="text-center p-4">
+                  <Play className="h-10 w-10 text-white/40 mx-auto mb-2" />
+                  <p className="text-xs text-white/60">
+                    {language === "es" ? "Vista previa no disponible" : "Preview not available"}
                   </p>
                 </div>
-              </ScrollArea>
+              </div>
+              <Button 
+                onClick={resetExtractor} 
+                variant="outline" 
+                size="sm" 
+                className="w-full mt-3 rounded-xl text-xs"
+              >
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                {language === "es" ? "Nuevo video" : "New video"}
+              </Button>
             </div>
 
-            {/* Structured Script Sections */}
-            {structuredScript && structuredScript.length > 0 && (
-              <div className="mt-6 space-y-4">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {language === "es" ? "Estructura del guión" : "Script structure"}
-                </h4>
-                <div className="grid gap-3">
-                  {structuredScript.map((section: any, idx: number) => (
-                    <div key={idx} className="p-4 rounded-xl bg-white border border-border/60 hover:border-[#ED4C84]/40 transition-colors group">
-                      <div className="flex justify-between items-start gap-2">
-                        <span className="text-sm font-semibold text-[#ED4C84]">
-                          {getSectionEmoji(section.type)} {section.label}
-                        </span>
-                        <button 
-                          onClick={() => handleCopy(section.content)} 
-                          className="p-1.5 rounded-lg hover:bg-[#F7F7F7] opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                        </button>
-                      </div>
-                      <p className="text-sm mt-2 text-muted-foreground leading-relaxed">{section.content}</p>
-                    </div>
-                  ))}
+            {/* Right: Tabs Content */}
+            <div className="flex-1 min-w-0">
+              <Tabs value={activeExtractorTab} onValueChange={setActiveExtractorTab} className="h-full flex flex-col">
+                <div className="px-4 pt-3 border-b border-border/50">
+                  <TabsList className="h-9 bg-muted/50 p-1 rounded-lg">
+                    <TabsTrigger value="script" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
+                      Script
+                    </TabsTrigger>
+                    <TabsTrigger value="analysis" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
+                      {language === "es" ? "Análisis" : "Analysis"}
+                    </TabsTrigger>
+                    <TabsTrigger value="variants" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
+                      Variantes IA
+                    </TabsTrigger>
+                  </TabsList>
                 </div>
-              </div>
-            )}
+
+                <div className="flex-1 overflow-hidden">
+                  {/* Script Tab */}
+                  <TabsContent value="script" className="h-full m-0 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium">{language === "es" ? "Transcripción" : "Transcript"}</h4>
+                      <div className="flex items-center gap-1.5">
+                        <Button onClick={handleDownloadScript} variant="ghost" size="sm" className="h-8 px-2.5 text-xs">
+                          <Download className="h-3.5 w-3.5 mr-1" />
+                          {language === "es" ? "Descargar" : "Download"}
+                        </Button>
+                        <Button onClick={handleCopyTranscript} variant="ghost" size="sm" className="h-8 px-2.5 text-xs">
+                          {transcriptCopied ? <Check className="h-3.5 w-3.5 mr-1 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                          {transcriptCopied ? (language === "es" ? "Copiado" : "Copied") : (language === "es" ? "Copiar" : "Copy")}
+                        </Button>
+                      </div>
+                    </div>
+                    <ScrollArea className="h-[280px] rounded-xl bg-muted/30 border border-border/50">
+                      <div className="p-4">
+                        <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">{transcript}</p>
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+
+                  {/* Analysis Tab */}
+                  <TabsContent value="analysis" className="h-full m-0 p-4">
+                    <h4 className="text-sm font-medium mb-3">{language === "es" ? "Estructura del guión" : "Script structure"}</h4>
+                    <ScrollArea className="h-[280px]">
+                      {structuredScript && structuredScript.length > 0 ? (
+                        <div className="space-y-2.5 pr-2">
+                          {structuredScript.map((section: any, idx: number) => (
+                            <div key={idx} className="p-3 rounded-xl bg-muted/30 border border-border/50 group">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-xs font-semibold text-primary">
+                                  {getSectionEmoji(section.type)} {section.label}
+                                </span>
+                                <Button 
+                                  onClick={() => handleCopy(section.content)} 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <p className="text-xs text-muted-foreground leading-relaxed">{section.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-8">
+                          {language === "es" ? "No se pudo analizar la estructura" : "Could not analyze structure"}
+                        </p>
+                      )}
+                    </ScrollArea>
+                  </TabsContent>
+
+                  {/* Variants Tab */}
+                  <TabsContent value="variants" className="h-full m-0 p-4">
+                    {!variants ? (
+                      <div className="text-center py-8">
+                        <Sparkles className="h-10 w-10 text-primary/30 mx-auto mb-3" />
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {language === "es" ? "Genera variantes del guión con IA" : "Generate script variants with AI"}
+                        </p>
+                        <Button 
+                          onClick={handleGenerateVariants} 
+                          disabled={isGeneratingVariants}
+                          className="rounded-xl"
+                        >
+                          {isGeneratingVariants ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Sparkles className="h-4 w-4 mr-2" />
+                          )}
+                          {language === "es" ? "Generar Variantes IA" : "Generate AI Variants"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-[280px]">
+                        <div className="space-y-3 pr-2">
+                          {variants.map((variant: any, idx: number) => (
+                            <div key={idx} className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-primary">
+                                  Variante {idx + 1}
+                                </span>
+                                <Button 
+                                  onClick={() => handleCopy(`${variant.hook}\n\n${variant.body}\n\n${variant.cta}`)} 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  <Copy className="h-3 w-3 mr-1" />
+                                  {language === "es" ? "Copiar" : "Copy"}
+                                </Button>
+                              </div>
+                              <div className="space-y-2 text-xs">
+                                <div>
+                                  <span className="font-medium text-foreground">Hook:</span>
+                                  <p className="text-muted-foreground mt-0.5">{variant.hook}</p>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-foreground">Cuerpo:</span>
+                                  <p className="text-muted-foreground mt-0.5 line-clamp-3">{variant.body}</p>
+                                </div>
+                                <div>
+                                  <span className="font-medium text-foreground">CTA:</span>
+                                  <p className="text-muted-foreground mt-0.5">{variant.cta}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </TabsContent>
+                </div>
+              </Tabs>
+            </div>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* 2. Hook Generator */}
-      <Card className="p-4">
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="p-1.5 rounded-md bg-yellow-500/10">
-            <Zap className="h-4 w-4 text-yellow-500" />
+      {/* 2. Hook Generator - Compact */}
+      <Card className="p-5 border-border/50 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-amber-500/10">
+            <Zap className="h-5 w-5 text-amber-500" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold">
-              {language === "es" ? "Generador de Hooks con IA" : "AI Hook Generator"}
+            <h2 className="text-base font-semibold text-foreground">
+              {language === "es" ? "Generador de Hooks IA" : "AI Hook Generator"}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {language === "es"
-                ? "Genera 10 hooks stop-scroller para TikTok Shop"
-                : "Generate 10 stop-scroller hooks for TikTok Shop"}
+              {language === "es" ? "Genera 5 hooks stop-scroller" : "Generate 5 stop-scroller hooks"}
             </p>
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="flex gap-2">
           <Textarea
             placeholder={language === "es" 
-              ? "¿Qué producto vendes y qué beneficio principal quieres destacar?\n\nEj: Vendo un serum de vitamina C que elimina manchas en 2 semanas..."
-              : "What product do you sell and what main benefit do you want to highlight?"}
+              ? "Describe tu producto y el beneficio principal... Ej: Serum vitamina C que elimina manchas"
+              : "Describe your product and main benefit..."}
             value={hookProductDesc}
             onChange={(e) => setHookProductDesc(e.target.value)}
-            className="min-h-[80px] text-sm"
+            className="min-h-[56px] text-sm flex-1 resize-none rounded-xl"
           />
-          <Button onClick={handleGenerateHooks} disabled={loadingHooks} className="w-full h-9">
+          <Button 
+            onClick={handleGenerateHooks} 
+            disabled={loadingHooks} 
+            className="h-auto px-5 rounded-xl bg-amber-500 hover:bg-amber-600 shrink-0"
+          >
             {loadingHooks ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
                 <Zap className="h-4 w-4 mr-1.5" />
-                {language === "es" ? "Generar 10 Hooks" : "Generate 10 Hooks"}
+                {language === "es" ? "Generar Hooks" : "Generate Hooks"}
               </>
             )}
           </Button>
+        </div>
 
-          {generatedHooks.length > 0 && (
-            <div className="space-y-2 mt-4">
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-medium">
-                  {language === "es" ? "Hooks generados" : "Generated hooks"}
-                </label>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleCopy(generatedHooks.join("\n\n"))} 
-                  className="h-7 text-xs"
-                >
-                  <Copy className="h-3.5 w-3.5 mr-1.5" />
-                  {language === "es" ? "Copiar todos" : "Copy all"}
-                </Button>
-              </div>
+        {generatedHooks.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-medium text-muted-foreground">
+                {language === "es" ? `${generatedHooks.length} hooks generados` : `${generatedHooks.length} hooks generated`}
+              </span>
+              <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedHooks.join("\n\n"))} className="h-7 text-xs">
+                <Copy className="h-3 w-3 mr-1.5" />
+                {language === "es" ? "Copiar todos" : "Copy all"}
+              </Button>
+            </div>
+            <div className="grid gap-2">
               {generatedHooks.map((hook, idx) => (
-                <div key={idx} className="p-3 rounded-lg bg-yellow-50/50 dark:bg-yellow-950/20 border border-yellow-200/50 dark:border-yellow-900/30">
-                  <div className="flex justify-between items-start gap-2">
-                    <p className="text-sm flex-1">{hook}</p>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => handleCopy(hook, idx)} 
-                      className="h-7 w-7 p-0 shrink-0"
-                    >
-                      {copiedIndex === idx ? (
-                        <Check className="h-3.5 w-3.5 text-green-500" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </div>
+                <div key={idx} className="p-3 rounded-xl bg-amber-50/50 border border-amber-200/50 flex justify-between items-start gap-3 group">
+                  <p className="text-sm flex-1">{hook}</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleCopy(hook, idx)} 
+                    className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 shrink-0"
+                  >
+                    {copiedIndex === idx ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </Card>
 
-      {/* 3. Script Generator */}
-      <Card className="p-4">
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="p-1.5 rounded-md bg-purple-500/10">
-            <PenTool className="h-4 w-4 text-purple-500" />
+      {/* 3. Script Generator - Visual Product Cards */}
+      <Card className="p-5 border-border/50 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-purple-500/10">
+            <PenTool className="h-5 w-5 text-purple-500" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold">
+            <h2 className="text-base font-semibold text-foreground">
               {language === "es" ? "Generador de Guiones Potentes" : "Powerful Script Generator"}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {language === "es"
-                ? "Crea un guión completo optimizado para TikTok Shop"
-                : "Create a complete script optimized for TikTok Shop"}
+              {language === "es" ? "Selecciona un producto y genera un guión completo" : "Select a product and generate a full script"}
             </p>
           </div>
         </div>
 
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium mb-1.5 block">
-              {language === "es" ? "Selecciona producto" : "Select product"}
-            </label>
-            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder={language === "es" ? "Elige un producto..." : "Choose a product..."} />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.producto_nombre} {p.precio_mxn ? `- $${p.precio_mxn}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Product Selection Tabs */}
+        <div className="mb-4">
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setProductTab("popular")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                productTab === "popular" 
+                  ? 'bg-primary text-white' 
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {language === "es" ? "Productos Populares" : "Popular Products"}
+            </button>
+            <button
+              onClick={() => setProductTab("favorites")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                productTab === "favorites" 
+                  ? 'bg-primary text-white' 
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <Heart className="h-3 w-3" />
+              {language === "es" ? "Mis Favoritos" : "My Favorites"}
+            </button>
           </div>
 
-          <div>
-            <label className="text-xs font-medium mb-1.5 block">
-              {language === "es" ? "Beneficios adicionales (opcional)" : "Additional benefits (optional)"}
-            </label>
-            <Textarea
-              placeholder={language === "es" 
-                ? "Escribe beneficios o diferenciadores adicionales del producto..."
-                : "Write additional benefits or differentiators..."}
-              value={additionalBenefits}
-              onChange={(e) => setAdditionalBenefits(e.target.value)}
-              className="min-h-[60px] text-sm"
-            />
-          </div>
+          {/* Products Grid */}
+          {productTab === "popular" && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+              {popularProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  isSelected={selectedProduct?.id === product.id}
+                  onClick={() => setSelectedProduct(product)}
+                />
+              ))}
+            </div>
+          )}
 
-          <Button onClick={handleGenerateScript} disabled={loadingScript} className="w-full h-9">
+          {productTab === "favorites" && (
+            <>
+              {favoriteProducts.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                  {favoriteProducts.map((fav) => (
+                    <ProductCard
+                      key={fav.product_id}
+                      product={fav.product_data}
+                      isSelected={selectedProduct?.id === fav.product_id}
+                      onClick={() => setSelectedProduct(fav.product_data)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center bg-muted/20 rounded-xl border border-dashed border-border">
+                  <Heart className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {language === "es" 
+                      ? "Agrega productos a favoritos para generar guiones personalizados" 
+                      : "Add products to favorites to generate personalized scripts"}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Benefits Input + Generate Button */}
+        <div className="flex gap-2">
+          <Input
+            placeholder={language === "es" 
+              ? "Beneficios adicionales (opcional)..."
+              : "Additional benefits (optional)..."}
+            value={additionalBenefits}
+            onChange={(e) => setAdditionalBenefits(e.target.value)}
+            className="h-11 rounded-xl flex-1"
+          />
+          <Button 
+            onClick={handleGenerateScript} 
+            disabled={loadingScript || !selectedProduct} 
+            className="h-11 px-5 rounded-xl bg-purple-600 hover:bg-purple-700 shrink-0"
+          >
             {loadingScript ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
                 <PenTool className="h-4 w-4 mr-1.5" />
-                {language === "es" ? "Generar Guión Completo" : "Generate Full Script"}
+                {language === "es" ? "Generar Guión Personalizado" : "Generate Custom Script"}
               </>
             )}
           </Button>
-
-          {generatedScript && (
-            <div className="space-y-3 mt-4">
-              {/* Main Hook */}
-              <div className="p-3 rounded-lg bg-red-50/50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-900/30">
-                <div className="flex justify-between items-start">
-                  <span className="text-xs font-medium text-red-700 dark:text-red-400">🎯 Hook Principal</span>
-                  <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedScript.hook)} className="h-6 w-6 p-0">
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-                <p className="text-sm mt-1">{generatedScript.hook}</p>
-              </div>
-
-              {/* Full Script */}
-              <div className="p-3 rounded-lg bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/50 dark:border-purple-900/30">
-                <div className="flex justify-between items-start">
-                  <span className="text-xs font-medium text-purple-700 dark:text-purple-400">📝 Guión Completo</span>
-                  <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedScript.fullScript)} className="h-6 w-6 p-0">
-                    <Copy className="h-3 w-3" />
-                  </Button>
-                </div>
-                <p className="text-sm mt-1 whitespace-pre-wrap">{generatedScript.fullScript}</p>
-              </div>
-
-              {/* Alternative Hooks */}
-              {generatedScript.alternativeHooks?.length > 0 && (
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">
-                    {language === "es" ? "Hooks alternativos" : "Alternative hooks"}
-                  </label>
-                  {generatedScript.alternativeHooks.map((hook: string, idx: number) => (
-                    <div key={idx} className="p-2 rounded-lg bg-muted/50 border flex justify-between items-start gap-2">
-                      <p className="text-xs">{hook}</p>
-                      <Button variant="ghost" size="sm" onClick={() => handleCopy(hook)} className="h-6 w-6 p-0 shrink-0">
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </div>
+
+        {/* Generated Script Results */}
+        {generatedScript && (
+          <div className="mt-4 space-y-3">
+            {/* Hook */}
+            <div className="p-3 rounded-xl bg-red-50/50 border border-red-200/50">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-red-700">🎯 Hook Principal</span>
+                <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedScript.hook)} className="h-6 w-6 p-0">
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <p className="text-sm text-foreground">{generatedScript.hook}</p>
+            </div>
+
+            {/* Full Script */}
+            <div className="p-3 rounded-xl bg-purple-50/50 border border-purple-200/50">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-purple-700">📝 Guión Completo</span>
+                <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedScript.fullScript)} className="h-6 w-6 p-0">
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{generatedScript.fullScript}</p>
+            </div>
+
+            {/* Alternative Hooks */}
+            {generatedScript.alternativeHooks?.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {language === "es" ? "Hooks alternativos" : "Alternative hooks"}
+                </span>
+                {generatedScript.alternativeHooks.map((hook: string, idx: number) => (
+                  <div key={idx} className="p-2.5 rounded-xl bg-muted/30 border border-border/50 flex justify-between items-start gap-2 group">
+                    <p className="text-xs text-foreground/80">{hook}</p>
+                    <Button variant="ghost" size="sm" onClick={() => handleCopy(hook)} className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0">
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </Card>
     </div>
   );

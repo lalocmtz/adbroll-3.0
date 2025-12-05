@@ -57,12 +57,12 @@ Formatos que funcionan:
           },
           {
             role: 'user',
-            content: `Genera exactamente 10 hooks diferentes y creativos para este producto/beneficio:
+            content: `Genera exactamente 5 hooks diferentes y creativos para este producto/beneficio:
 
 ${productDescription}
 
-Responde SOLO con un array JSON de 10 strings, sin explicaciones. Ejemplo:
-["Hook 1 aquí", "Hook 2 aquí", ...]`
+Responde SOLO con un array JSON de 5 strings, sin explicaciones. Ejemplo:
+["Hook 1 aquí", "Hook 2 aquí", "Hook 3 aquí", "Hook 4 aquí", "Hook 5 aquí"]`
           }
         ],
       }),
