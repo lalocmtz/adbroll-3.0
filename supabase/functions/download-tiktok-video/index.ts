@@ -32,14 +32,14 @@ serve(async (req) => {
     console.log(`[download-tiktok-video] Processing video: ${videoId}`);
     console.log(`[download-tiktok-video] TikTok URL: ${tiktokUrl}`);
 
-    // Call RapidAPI to get direct MP4 URL - correct endpoint is /media with videoUrl param
+    // Call RapidAPI TikTok Video No Watermark API
     const rapidApiResponse = await fetch(
-      `https://tiktok-video-downloader-api.p.rapidapi.com/media?videoUrl=${encodeURIComponent(tiktokUrl)}`,
+      `https://tiktok-video-no-watermark2.p.rapidapi.com/?url=${encodeURIComponent(tiktokUrl)}&hd=1`,
       {
         method: 'GET',
         headers: {
           'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': 'tiktok-video-downloader-api.p.rapidapi.com'
+          'x-rapidapi-host': 'tiktok-video-no-watermark2.p.rapidapi.com'
         }
       }
     );
@@ -56,14 +56,12 @@ serve(async (req) => {
     const rapidApiData = await rapidApiResponse.json();
     console.log(`[download-tiktok-video] RapidAPI response:`, JSON.stringify(rapidApiData));
 
-    // Extract MP4 URL from response - API returns downloadUrl
-    let mp4Url = rapidApiData.downloadUrl || 
-                 rapidApiData.video_url || 
+    // Extract MP4 URL from response - API returns data.play or data.hdplay
+    let mp4Url = rapidApiData.data?.hdplay || 
                  rapidApiData.data?.play || 
                  rapidApiData.data?.wmplay ||
-                 rapidApiData.data?.hdplay ||
-                 rapidApiData.play ||
-                 rapidApiData.hdplay;
+                 rapidApiData.hdplay ||
+                 rapidApiData.play;
 
     if (!mp4Url) {
       console.error(`[download-tiktok-video] No MP4 URL in response:`, rapidApiData);
