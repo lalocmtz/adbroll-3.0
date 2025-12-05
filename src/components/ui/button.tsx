@@ -5,28 +5,28 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-semibold ring-offset-background transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold ring-offset-background transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#60A5FA] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] active:transition-transform active:duration-100 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default: 
-          "bg-[hsl(var(--btn-primary))] text-white hover:bg-[hsl(var(--btn-primary-hover))] hover:shadow-[0px_2px_6px_hsl(var(--btn-primary-shadow)/0.2)]",
+          "bg-[#F31260] text-white rounded-xl hover:bg-[#DA0C5E] shadow-[0_2px_8px_rgba(243,18,96,0.12)] hover:shadow-[0_4px_12px_rgba(243,18,96,0.2)] [&_svg]:text-white",
         destructive: 
-          "bg-[hsl(var(--btn-danger))] text-[hsl(var(--btn-danger-text))] hover:bg-[hsl(var(--btn-danger-hover))] hover:text-[hsl(var(--btn-danger-hover-text))]",
+          "bg-[hsl(var(--btn-danger))] text-[hsl(var(--btn-danger-text))] rounded-xl hover:bg-[hsl(var(--btn-danger-hover))] hover:text-[hsl(var(--btn-danger-hover-text))]",
         outline: 
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+          "border border-[#CBD5E1] bg-white text-[#0F172A] rounded-[10px] hover:bg-[#E2E8F0] hover:border-[#94A3B8]",
         secondary: 
-          "bg-[hsl(var(--btn-secondary))] text-[hsl(var(--btn-secondary-text))] border border-[hsl(var(--btn-secondary-border))] font-medium hover:bg-[hsl(var(--btn-secondary-hover))] hover:text-[hsl(var(--btn-secondary-hover-text))]",
+          "bg-[#F1F5F9] text-[#0F172A] border border-[#CBD5E1] rounded-[10px] hover:bg-[#E2E8F0]",
         ghost: 
-          "hover:bg-accent hover:text-accent-foreground",
+          "text-[#64748B] bg-transparent hover:text-[#334155] hover:underline underline-offset-4",
         link: 
-          "text-[hsl(var(--btn-link))] underline-offset-4 hover:underline hover:text-[hsl(var(--btn-link-hover))] text-sm font-normal px-1 py-0.5",
+          "text-[hsl(var(--btn-link))] underline-offset-4 hover:underline hover:text-[hsl(var(--btn-link-hover))] text-sm font-medium px-1 py-0.5",
       },
       size: {
-        default: "h-11 px-5 py-3.5 text-base",
-        sm: "h-9 rounded-lg px-3 text-sm",
-        lg: "h-12 rounded-lg px-8 text-base",
-        icon: "h-10 w-10",
+        default: "h-11 px-[18px] py-3 text-sm",
+        sm: "h-9 px-4 py-2.5 text-sm",
+        lg: "h-12 px-6 py-3 text-base",
+        icon: "h-10 w-10 rounded-lg",
       },
     },
     defaultVariants: {
