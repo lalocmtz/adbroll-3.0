@@ -21,8 +21,10 @@ const Admin = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [matchStats, setMatchStats] = useState({ matched: 0, unmatched: 0, total: 0 });
-  const [isMasterProcessing, setIsMasterProcessing] = useState(false);
+const [isMasterProcessing, setIsMasterProcessing] = useState(false);
   const [masterProgress, setMasterProgress] = useState({ phase: '', current: 0, total: 0, percent: 0 });
+  const [isRebuilding, setIsRebuilding] = useState(false);
+  const [rebuildStats, setRebuildStats] = useState<any>(null);
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -744,6 +746,74 @@ const Admin = () => {
                   <span>Haz clic para vincular {matchStats.unmatched} videos con sus productos correspondientes.</span>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Rebuild Index Section */}
+          <Card className="mb-8 border-2 border-orange-500/20 bg-gradient-to-r from-orange-500/5 to-orange-500/10">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <RefreshCw className="h-5 w-5 mr-2 text-orange-500" />
+                Reconstruir Índice
+              </CardTitle>
+              <CardDescription>
+                Reprocesa todos los matches, categorías, ganancias y métricas derivadas sin necesidad de volver a subir archivos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {rebuildStats && (
+                <div className="grid grid-cols-3 gap-4 text-center text-sm bg-background/50 rounded-lg p-4">
+                  <div>
+                    <p className="text-muted-foreground">Videos Procesados</p>
+                    <p className="font-bold text-foreground">{rebuildStats.totalVideos}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Vinculados</p>
+                    <p className="font-bold text-green-500">{rebuildStats.videosMatched}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Sin Vincular</p>
+                    <p className="font-bold text-yellow-500">{rebuildStats.videosUnmatched}</p>
+                  </div>
+                </div>
+              )}
+              
+              <Button 
+                onClick={async () => {
+                  setIsRebuilding(true);
+                  setRebuildStats(null);
+                  try {
+                    const { data, error } = await supabase.functions.invoke("rebuild-index");
+                    if (error) throw error;
+                    
+                    setRebuildStats(data.summary);
+                    toast({
+                      title: "¡Índice reconstruido!",
+                      description: data.message,
+                    });
+                    
+                    // Refresh all stats
+                    await Promise.all([loadStats(), loadDownloadStats(), loadMatchStats()]);
+                  } catch (error: any) {
+                    toast({
+                      title: "Error al reconstruir",
+                      description: error.message,
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setIsRebuilding(false);
+                  }
+                }}
+                disabled={isRebuilding || isMasterProcessing}
+                className="w-full bg-orange-500 hover:bg-orange-600"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRebuilding ? 'animate-spin' : ''}`} />
+                {isRebuilding ? "Reconstruyendo índice..." : "🔄 Reconstruir Todo (sin subir archivos)"}
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Recalcula: earning_per_sale, gmv_30d, sales_30d, creator_count, commission_rate y todos los vínculos video-producto
+              </p>
             </CardContent>
           </Card>
 
