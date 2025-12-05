@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Sparkles, Copy, Loader2, Zap, PenTool, Check } from "lucide-react";
+import { FileText, Copy, Loader2, Zap, PenTool, Check, AlertCircle, CheckCircle2 } from "lucide-react";
 import { DataSubtitle } from "@/components/FilterPills";
 import {
   Select,
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Product {
   id: string;
@@ -24,15 +25,30 @@ interface Product {
   commission: number | null;
 }
 
+// Validate TikTok URL
+const isValidTikTokUrl = (url: string): boolean => {
+  const tiktokPatterns = [
+    /^https?:\/\/(www\.)?tiktok\.com\/@[\w.-]+\/video\/\d+/i,
+    /^https?:\/\/vm\.tiktok\.com\/[\w]+/i,
+    /^https?:\/\/(www\.)?tiktok\.com\/t\/[\w]+/i,
+  ];
+  return tiktokPatterns.some(pattern => pattern.test(url.trim()));
+};
+
+type ExtractorState = "idle" | "loading" | "success" | "error";
+type ExtractorError = "invalid_url" | "api_error" | "no_transcript" | null;
+
 const Tools = () => {
   const { language } = useLanguage();
   const { toast } = useToast();
   
   // Script Extractor State
   const [videoUrl, setVideoUrl] = useState("");
-  const [loadingExtract, setLoadingExtract] = useState(false);
+  const [extractorState, setExtractorState] = useState<ExtractorState>("idle");
+  const [extractorError, setExtractorError] = useState<ExtractorError>(null);
   const [transcript, setTranscript] = useState("");
   const [structuredScript, setStructuredScript] = useState<any>(null);
+  const [transcriptCopied, setTranscriptCopied] = useState(false);
   
   // Hook Generator State
   const [hookProductDesc, setHookProductDesc] = useState("");
@@ -60,19 +76,37 @@ const Tools = () => {
     if (data) setProducts(data);
   };
 
+  const getErrorMessage = (error: ExtractorError): string => {
+    if (language === "es") {
+      switch (error) {
+        case "invalid_url": return "Ingresa un enlace válido de TikTok.";
+        case "api_error": return "No fue posible obtener el guión. Intenta con otro link.";
+        case "no_transcript": return "Este video no cuenta con transcripción disponible.";
+        default: return "";
+      }
+    } else {
+      switch (error) {
+        case "invalid_url": return "Enter a valid TikTok link.";
+        case "api_error": return "Could not extract the script. Try another link.";
+        case "no_transcript": return "This video does not have a transcript available.";
+        default: return "";
+      }
+    }
+  };
+
   const handleExtract = async () => {
-    if (!videoUrl.trim()) {
-      toast({
-        title: "Error",
-        description: language === "es" ? "Ingresa una URL de TikTok" : "Enter a TikTok URL",
-        variant: "destructive",
-      });
+    // Reset states
+    setExtractorError(null);
+    setTranscript("");
+    setStructuredScript(null);
+
+    // Validate URL
+    if (!videoUrl.trim() || !isValidTikTokUrl(videoUrl)) {
+      setExtractorError("invalid_url");
       return;
     }
 
-    setLoadingExtract(true);
-    setTranscript("");
-    setStructuredScript(null);
+    setExtractorState("loading");
 
     try {
       // Call transcribe-assemblyai
@@ -82,7 +116,7 @@ const Tools = () => {
 
       if (error) throw error;
 
-      if (data?.transcript) {
+      if (data?.transcript && data.transcript.trim().length > 0) {
         setTranscript(data.transcript);
         
         // Now analyze the script structure
@@ -94,20 +128,35 @@ const Tools = () => {
           setStructuredScript(analysisData.sections);
         }
 
+        setExtractorState("success");
         toast({
           title: language === "es" ? "✓ Guión extraído" : "✓ Script extracted",
         });
+      } else {
+        // Empty transcript
+        setExtractorState("error");
+        setExtractorError("no_transcript");
       }
     } catch (err: any) {
       console.error("Extract error:", err);
-      toast({
-        title: "Error",
-        description: err.message || "Error al extraer el guión",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingExtract(false);
+      setExtractorState("error");
+      setExtractorError("api_error");
     }
+  };
+
+  const handleCopyTranscript = async () => {
+    await navigator.clipboard.writeText(transcript);
+    setTranscriptCopied(true);
+    setTimeout(() => setTranscriptCopied(false), 2000);
+    toast({ title: language === "es" ? "✓ Copiado al portapapeles" : "✓ Copied to clipboard" });
+  };
+
+  const resetExtractor = () => {
+    setVideoUrl("");
+    setExtractorState("idle");
+    setExtractorError(null);
+    setTranscript("");
+    setStructuredScript(null);
   };
 
   const handleGenerateHooks = async () => {
@@ -217,80 +266,171 @@ const Tools = () => {
     <div className="pt-5 pb-6 px-4 md:px-6 max-w-4xl space-y-6">
       <DataSubtitle />
 
-      {/* 1. Script Extractor Tool */}
-      <Card className="p-4">
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="p-1.5 rounded-md bg-accent/10">
-            <FileText className="h-4 w-4 text-accent" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold">
-              {language === "es" ? "Extractor de Guiones" : "Script Extractor"}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {language === "es"
-                ? "Extrae y analiza el guión de cualquier video de TikTok"
-                : "Extract and analyze the script from any TikTok video"}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <Input
-              placeholder="https://www.tiktok.com/@user/video/..."
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              className="flex-1 h-9 text-sm"
-            />
-            <Button onClick={handleExtract} disabled={loadingExtract} className="h-9 text-sm">
-              {loadingExtract ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-1.5" />
-                  {language === "es" ? "Extraer" : "Extract"}
-                </>
+      {/* 1. Script Extractor Tool - Premium Hero Section */}
+      <Card className="p-6 md:p-8">
+        {/* Idle State - Hero Input */}
+        {extractorState === "idle" && (
+          <div className="text-center space-y-5">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-2">
+              <FileText className="h-7 w-7 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold mb-1">
+                {language === "es" ? "Extractor de Guiones" : "Script Extractor"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {language === "es"
+                  ? "Extrae la transcripción de videos de TikTok con un click."
+                  : "Extract TikTok video transcriptions with one click."}
+              </p>
+            </div>
+            
+            <div className="max-w-lg mx-auto space-y-3">
+              <Input
+                placeholder={language === "es" ? "Pega aquí un enlace de TikTok..." : "Paste a TikTok link here..."}
+                value={videoUrl}
+                onChange={(e) => {
+                  setVideoUrl(e.target.value);
+                  setExtractorError(null);
+                }}
+                className="h-12 text-base px-4 text-center placeholder:text-muted-foreground/60"
+              />
+              
+              {extractorError === "invalid_url" && (
+                <div className="flex items-center justify-center gap-2 text-destructive text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{getErrorMessage("invalid_url")}</span>
+                </div>
               )}
+              
+              <Button 
+                onClick={handleExtract} 
+                size="lg"
+                className="w-full h-12 text-base font-semibold"
+              >
+                <FileText className="h-5 w-5 mr-2" />
+                {language === "es" ? "Extraer Guión" : "Extract Script"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {extractorState === "loading" && (
+          <div className="text-center py-10 space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/5">
+              <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            </div>
+            <div>
+              <p className="text-base font-medium">
+                {language === "es" ? "Extrayendo guión..." : "Extracting script..."}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {language === "es" ? "Esto puede tomar unos segundos." : "This may take a few seconds."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {extractorState === "error" && extractorError && (
+          <div className="text-center py-8 space-y-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10">
+              <AlertCircle className="h-7 w-7 text-destructive" />
+            </div>
+            <div>
+              <p className="text-base font-medium text-destructive">
+                {getErrorMessage(extractorError)}
+              </p>
+            </div>
+            <Button variant="outline" onClick={resetExtractor} className="mt-2">
+              {language === "es" ? "Intentar de nuevo" : "Try again"}
             </Button>
           </div>
+        )}
 
-          {transcript && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium">
-                  {language === "es" ? "Transcripción" : "Transcript"}
-                </label>
-                <Button variant="ghost" size="sm" onClick={() => handleCopy(transcript)} className="h-7 text-xs">
-                  <Copy className="h-3.5 w-3.5 mr-1.5" />
-                  {language === "es" ? "Copiar" : "Copy"}
+        {/* Success State - Result */}
+        {extractorState === "success" && transcript && (
+          <div className="space-y-4">
+            {/* Header with success indicator */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-md bg-green-500/10">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                </div>
+                <h3 className="text-sm font-semibold">
+                  {language === "es" ? "Transcripción extraída" : "Transcript extracted"}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCopyTranscript}
+                  className="h-8 text-xs"
+                >
+                  {transcriptCopied ? (
+                    <Check className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  {transcriptCopied 
+                    ? (language === "es" ? "Copiado" : "Copied")
+                    : (language === "es" ? "Copiar" : "Copy")
+                  }
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={resetExtractor}
+                  className="h-8 text-xs"
+                >
+                  {language === "es" ? "Nuevo" : "New"}
                 </Button>
               </div>
-              <Textarea value={transcript} readOnly className="min-h-[100px] font-mono text-xs" />
+            </div>
+            
+            {/* Transcript Content */}
+            <Card className="bg-muted/30 border">
+              <ScrollArea className="h-[200px] md:h-[250px]">
+                <div className="p-4">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap font-mono">
+                    {transcript}
+                  </p>
+                </div>
+              </ScrollArea>
+            </Card>
 
-              {structuredScript && (
-                <div className="space-y-2">
-                  <label className="text-xs font-medium">
-                    {language === "es" ? "Estructura del guión" : "Script structure"}
-                  </label>
+            {/* Structured Script Sections */}
+            {structuredScript && structuredScript.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  {language === "es" ? "Estructura del guión" : "Script structure"}
+                </h4>
+                <div className="grid gap-2">
                   {structuredScript.map((section: any, idx: number) => (
-                    <div key={idx} className="p-3 rounded-lg bg-muted/50 border">
-                      <div className="flex justify-between items-start">
-                        <span className="text-xs font-medium">
+                    <div key={idx} className="p-3 rounded-lg bg-background border hover:border-primary/30 transition-colors">
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-xs font-medium text-primary">
                           {getSectionEmoji(section.type)} {section.label}
                         </span>
-                        <Button variant="ghost" size="sm" onClick={() => handleCopy(section.content)} className="h-6 w-6 p-0">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleCopy(section.content)} 
+                          className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
+                        >
                           <Copy className="h-3 w-3" />
                         </Button>
                       </div>
-                      <p className="text-xs mt-1 text-muted-foreground">{section.content}</p>
+                      <p className="text-sm mt-1.5 text-muted-foreground leading-relaxed">{section.content}</p>
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* 2. Hook Generator */}
