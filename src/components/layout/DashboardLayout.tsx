@@ -20,7 +20,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       />
 
       {/* Main content area */}
-      <div className="lg:pl-64 flex flex-col min-h-screen">
+      <div className="lg:pl-64 flex flex-col min-h-screen pb-14">
         {/* Mobile menu button only */}
         <div className="lg:hidden sticky top-0 z-30 h-14 bg-background/95 backdrop-blur border-b border-border flex items-center px-4">
           <Button
@@ -33,15 +33,15 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
 
         {/* Page content */}
-        <main className="flex-1 pb-16">
+        <main className="flex-1">
           {children}
         </main>
-
-        {/* Fixed Footer */}
-        <div className="fixed bottom-0 left-0 right-0 lg:left-64 z-20">
-          <DashboardFooter />
-        </div>
       </div>
+
+      {/* Fixed Footer - outside the flex container */}
+      <footer className="fixed bottom-0 left-0 right-0 lg:left-64 z-50">
+        <DashboardFooter />
+      </footer>
     </div>
   );
 };
