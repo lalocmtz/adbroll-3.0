@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 // Column mapping - maps various possible column names to our internal fields
+// Kalodata only provides 30-day metrics
 const COLUMN_MAPPINGS: Record<string, string[]> = {
   rank: ["#", "rank", "ranking", "posición", "position"],
   name: ["product name", "nombre del producto", "product", "nombre", "name"],
@@ -17,10 +18,8 @@ const COLUMN_MAPPINGS: Record<string, string[]> = {
   price: ["price (mxn)", "precio (m$)", "precio", "price", "precio mxn", "precio medio por unidad(m$)"],
   commission_rate: ["commission %", "comisión %", "commission", "comision", "comisión", "tasa de comisión", "commission rate"],
   commission_amount: ["commission (mxn)", "comisión (mxn)", "comision mxn", "commission amount"],
-  revenue_7d: ["gmv 7d", "ingresos 7d", "revenue 7d", "ingresos(m$)", "ingresos"],
-  revenue_30d: ["gmv 30d", "ingresos 30d", "revenue 30d", "gmv"],
-  sales_7d: ["orders 7d", "ventas 7d", "sales 7d", "orders 7 days", "pedidos 7d", "ventas"],
-  sales_30d: ["orders 30d", "ventas 30d", "sales 30d", "orders 30 days", "pedidos 30d"],
+  revenue_30d: ["gmv 30d", "ingresos 30d", "revenue 30d", "gmv", "ingresos(m$)", "ingresos", "revenue", "gmv 7d", "ingresos 7d", "revenue 7d"],
+  sales_30d: ["orders 30d", "ventas 30d", "sales 30d", "orders 30 days", "pedidos 30d", "ventas", "orders", "sales", "orders 7d", "ventas 7d", "sales 7d"],
   creators_count: ["creators active", "creadores activos", "active creators", "creators", "número de creadores", "creators count"],
   rating: ["rating", "calificación", "calificaciones del producto", "product rating"],
   creator_conversion_rate: ["creator conversion rate", "tasa conversión creadores", "conversion rate", "conversión", "tasa de conversión de creadores"],
@@ -155,7 +154,7 @@ serve(async (req) => {
       console.log("Columnas detectadas:", Object.keys(rows[0]));
     }
 
-    // Process each row
+    // Process each row - Using 30-day metrics ONLY (Kalodata standard)
     const processedProducts = rows.map((row, index) => {
       // Extract values using dynamic column detection
       const rank = parseNumericValue(findColumnValue(row, "rank")) || index + 1;
@@ -166,20 +165,11 @@ serve(async (req) => {
       const price = parseNumericValue(findColumnValue(row, "price"));
       const commissionRate = parseNumericValue(findColumnValue(row, "commission_rate"));
       let commissionAmount = parseNumericValue(findColumnValue(row, "commission_amount"));
-      const revenue7d = parseNumericValue(findColumnValue(row, "revenue_7d"));
       const revenue30d = parseNumericValue(findColumnValue(row, "revenue_30d"));
-      const sales7d = parseNumericValue(findColumnValue(row, "sales_7d"));
       const sales30d = parseNumericValue(findColumnValue(row, "sales_30d"));
       const creatorsCount = parseNumericValue(findColumnValue(row, "creators_count"));
       const rating = parseNumericValue(findColumnValue(row, "rating"));
 
-      // Calculate derived values
-      // Revenue 7d: use direct value or calculate from 30d
-      const calculatedRevenue7d = revenue7d ?? (revenue30d ? revenue30d / 4 : null);
-      
-      // Sales 7d: use direct value or calculate from 30d
-      const calculatedSales7d = sales7d ?? (sales30d ? Math.round(sales30d / 4) : null);
-      
       // Commission amount: if not provided, calculate from price and rate
       if (!commissionAmount && price && commissionRate) {
         commissionAmount = price * (commissionRate / 100);
@@ -197,9 +187,8 @@ serve(async (req) => {
         price,
         commission_rate: commissionRate,
         commission_amount: commissionAmount,
-        revenue_7d: calculatedRevenue7d,
-        revenue_30d: revenue30d,
-        sales_7d: calculatedSales7d,
+        revenue_30d: revenue30d || 0,
+        sales_30d: sales30d ? Math.round(sales30d) : 0,
         creators_count: creatorsCount,
         rating,
       };
@@ -207,20 +196,20 @@ serve(async (req) => {
 
     console.log(`Productos procesados: ${processedProducts.length}`);
 
-    // Sort by revenue 7d descending, fallback to sales if no revenue
+    // Sort by revenue_30d descending, fallback to sales_30d if no revenue
     const sortedProducts = processedProducts.sort((a, b) => {
-      const aValue = a.revenue_7d || a.sales_7d || 0;
-      const bValue = b.revenue_7d || b.sales_7d || 0;
+      const aValue = a.revenue_30d || a.sales_30d || 0;
+      const bValue = b.revenue_30d || b.sales_30d || 0;
       return bValue - aValue;
     });
 
-    // Take top 20 and assign final ranks
-    const top20Products = sortedProducts.slice(0, 20).map((p, idx) => ({
+    // Assign final ranks based on sorting - keep ALL products
+    const rankedProducts = sortedProducts.map((p, idx) => ({
       ...p,
       rank: idx + 1
     }));
     
-    console.log(`Top 20 productos seleccionados`);
+    console.log(`${rankedProducts.length} productos ordenados y rankeados`);
 
     // Delete all existing products
     console.log("Eliminando productos anteriores...");
@@ -235,8 +224,8 @@ serve(async (req) => {
       console.log("Productos anteriores eliminados");
     }
 
-    // Insert new products - map to database column names
-    const productsToInsert = top20Products.map((p) => ({
+    // Insert ALL products - map to database column names
+    const productsToInsert = rankedProducts.map((p) => ({
       rank: p.rank,
       producto_nombre: p.name,
       imagen_url: p.image_url,
@@ -246,17 +235,18 @@ serve(async (req) => {
       price: p.price,
       commission: p.commission_rate,
       commission_amount: p.commission_amount,
-      revenue_7d: p.revenue_7d,
       revenue_30d: p.revenue_30d,
-      total_ingresos_mxn: p.revenue_7d, // Keep for backward compatibility
-      sales_7d: p.sales_7d,
-      total_ventas: p.sales_7d, // Keep for backward compatibility
+      total_ingresos_mxn: p.revenue_30d, // Backward compatibility
+      sales_7d: p.sales_30d, // Store in sales_7d for backward compatibility
+      total_ventas: p.sales_30d, // Backward compatibility
       creators_count: p.creators_count,
       rating: p.rating,
     }));
 
     console.log(`Insertando ${productsToInsert.length} productos...`);
-    console.log("Ejemplo producto:", JSON.stringify(productsToInsert[0], null, 2));
+    if (productsToInsert.length > 0) {
+      console.log("Ejemplo producto:", JSON.stringify(productsToInsert[0], null, 2));
+    }
 
     const { data: insertedData, error: insertError } = await supabaseServiceClient
       .from("products")
@@ -286,9 +276,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        processed: top20Products.length,
+        processed: rankedProducts.length,
         total: rows.length,
-        message: `Se importaron los Top ${top20Products.length} productos de ${rows.length} filas.`,
+        message: `Se importaron ${rankedProducts.length} productos de ${rows.length} filas.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
