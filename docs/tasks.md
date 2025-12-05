@@ -52,11 +52,18 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
   - `useAnalyzeVideo.ts` - Hook para manejo del flujo completo
 
 ### Flujo nuevo:
-1. Usuario hace click en "Analizar guión"
-2. Si no hay MP4 → descarga via RapidAPI → guarda en Storage
-3. Transcribe con AssemblyAI
-4. Analiza con OpenAI (hook/body/cta + variantes)
-5. Muestra resultados en modal
+1. **Importación Kalodata** → Descarga automática de MP4s en background
+2. Usuario hace click en "Analizar guión"
+3. Si no hay MP4 → descarga via RapidAPI → guarda en Storage
+4. Transcribe con AssemblyAI
+5. Analiza con OpenAI (hook/body/cta + variantes)
+6. Muestra resultados en modal
+
+### Descarga automática al importar (Diciembre 2024):
+- [x] Al importar videos desde Kalodata, se descargan automáticamente los MP4
+- [x] Usa EdgeRuntime.waitUntil() para procesamiento en background
+- [x] 2 segundos de delay entre descargas para evitar rate limits
+- [x] Actualiza processing_status: pending → downloaded
 
 ### API Keys requeridas:
 - `RAPIDAPI_KEY` - Para descargar videos de TikTok
