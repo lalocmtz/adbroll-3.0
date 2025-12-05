@@ -117,13 +117,6 @@ const Admin = () => {
         
         // Update stats after each batch
         await loadMatchStats();
-        
-        if (!complete) {
-          toast({
-            title: "Procesando...",
-            description: `${totalMatched} videos vinculados. ${data.remainingUnmatched} restantes.`,
-          });
-        }
       }
 
       toast({
