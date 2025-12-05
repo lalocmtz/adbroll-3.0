@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Video {
   id: string;
@@ -37,7 +38,7 @@ const SORT_OPTIONS = [
   { value: "revenue", label: "Más ingresos" },
   { value: "sales", label: "Más ventas" },
   { value: "views", label: "Más vistas" },
-  { value: "recent", label: "Más recientes" },
+  { value: "earnings", label: "Ganancias estimadas" },
 ];
 
 const Dashboard = () => {
@@ -46,6 +47,8 @@ const Dashboard = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<string>("revenue");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -57,9 +60,25 @@ const Dashboard = () => {
   const MAX_VIDEOS = 100;
 
   useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
     setCurrentPage(1);
     fetchVideos(1);
-  }, [productFilter, creatorFilter, sortOrder]);
+  }, [productFilter, creatorFilter, sortOrder, selectedCategory]);
+
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from("videos")
+      .select("category")
+      .not("category", "is", null);
+    
+    if (data) {
+      const uniqueCategories = [...new Set(data.map(v => v.category).filter(Boolean))] as string[];
+      setCategories(uniqueCategories.sort());
+    }
+  };
 
   useEffect(() => {
     fetchVideos(currentPage);
@@ -76,6 +95,11 @@ const Dashboard = () => {
         .from("videos")
         .select("*", { count: "exact" });
 
+      // Apply category filter
+      if (selectedCategory && selectedCategory !== "all") {
+        query = query.eq("category", selectedCategory);
+      }
+
       // Apply sorting
       if (sortOrder === "revenue") {
         query = query.order("revenue_mxn", { ascending: false });
@@ -83,8 +107,9 @@ const Dashboard = () => {
         query = query.order("sales", { ascending: false });
       } else if (sortOrder === "views") {
         query = query.order("views", { ascending: false });
-      } else if (sortOrder === "recent") {
-        query = query.order("imported_at", { ascending: false });
+      } else if (sortOrder === "earnings") {
+        // Earnings = revenue * 0.06 (6% commission), so same as revenue order
+        query = query.order("revenue_mxn", { ascending: false });
       }
 
       query = query.range(from, to);
@@ -148,6 +173,22 @@ const Dashboard = () => {
           value={sortOrder}
           onChange={setSortOrder}
         />
+        
+        {/* Category Dropdown */}
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="h-8 w-auto min-w-[120px] text-xs rounded-full border-border/50 bg-muted/60">
+            <SelectValue placeholder="Categoría" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat} value={cat}>
+                {cat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
         <span className="text-xs text-muted-foreground ml-auto">
           {totalCount} videos
         </span>

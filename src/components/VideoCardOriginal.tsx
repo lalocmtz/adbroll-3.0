@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Heart, Sparkles, DollarSign, ShoppingCart, Percent, Eye, Play, ExternalLink } from 'lucide-react';
+import { Heart, Sparkles, DollarSign, ShoppingCart, Eye, Play, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -295,8 +295,8 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
 
             <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
               <div className="flex items-center gap-1 mb-0.5">
-                <Percent className="h-3 w-3 text-amber-600" />
-                <span className="text-[10px] text-muted-foreground">Comisión</span>
+                <DollarSign className="h-3 w-3 text-amber-600" />
+                <span className="text-[10px] text-muted-foreground">Ganancias Est.</span>
               </div>
               <p className="text-sm font-bold text-amber-600">
                 {formatCurrency(commissionEstimated)}

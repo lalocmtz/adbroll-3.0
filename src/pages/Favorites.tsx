@@ -297,8 +297,8 @@ const Favorites = () => {
                         </div>
                         <div className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
                           <div className="flex items-center gap-1 mb-0.5">
-                            <Percent className="h-2.5 w-2.5 text-amber-600" />
-                            <span className="text-[9px] text-muted-foreground">Comisión</span>
+                            <DollarSign className="h-2.5 w-2.5 text-amber-600" />
+                            <span className="text-[9px] text-muted-foreground">Ganancias Est.</span>
                           </div>
                           <p className="text-xs font-bold text-amber-600">
                             {formatCurrency(commissionEstimated)}
