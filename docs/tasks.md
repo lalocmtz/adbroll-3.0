@@ -69,7 +69,7 @@
 
 ## 🔄 PENDIENTE
 
-- [ ] VideoAnalysisModal - Columna de negocio con producto vinculado
+- [x] VideoAnalysisModal - Columna de negocio con producto vinculado ✅
 - [ ] Stripe webhook para comisión de afiliados
 - [ ] Deep links a TikTok Shop
 

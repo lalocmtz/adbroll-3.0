@@ -24,6 +24,14 @@ interface Video {
   analysis_json?: any;
   variants_json?: any;
   processing_status?: string | null;
+  // Product data
+  product?: {
+    producto_nombre?: string | null;
+    commission?: number | null;
+    price?: number | null;
+    revenue_30d?: number | null;
+    producto_url?: string | null;
+  } | null;
 }
 
 interface VideoAnalysisModalOriginalProps {
@@ -62,8 +70,10 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
-  const commissionRate = 6;
-  const commissionEstimated = (video.revenue_mxn || 0) * (commissionRate / 100);
+  // Calculate earning per sale from product data
+  const productPrice = video.product?.price || 0;
+  const commissionRate = video.product?.commission || 6;
+  const earningPerSale = productPrice * (commissionRate / 100);
 
   // Check favorite status on mount
   useEffect(() => {
@@ -249,68 +259,93 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
             </div>
 
             {/* Metrics Below Video */}
-            <div className="p-4 bg-background border-t space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <DollarSign className="h-3 w-3 text-emerald-600" />
-                    <span className="text-[10px] text-muted-foreground">Ingresos</span>
+            <div className="p-3 bg-background border-t space-y-3 overflow-y-auto max-h-[35vh]">
+              {/* Card 1: Video Metrics */}
+              <div className="p-3 rounded-lg bg-muted/50 border space-y-2">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Métricas del Video
+                </h4>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShoppingCart className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Ventas del video</span>
+                    </div>
+                    <span className="text-sm font-semibold">{formatNumber(video.sales)}</span>
                   </div>
-                  <p className="text-sm font-bold text-emerald-600">
-                    {formatCurrency(video.revenue_mxn)}
-                  </p>
-                </div>
-
-                <div className="p-2 rounded-lg bg-muted">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <ShoppingCart className="h-3 w-3 text-foreground" />
-                    <span className="text-[10px] text-muted-foreground">Ventas</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Vistas del video</span>
+                    </div>
+                    <span className="text-sm font-semibold">{formatNumber(video.views)}</span>
                   </div>
-                  <p className="text-sm font-bold text-foreground">
-                    {formatNumber(video.sales)}
-                  </p>
-                </div>
-
-                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <Percent className="h-3 w-3 text-amber-600" />
-                    <span className="text-[10px] text-muted-foreground">Comisión</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+                      <span className="text-xs text-muted-foreground">Comisiones generadas</span>
+                    </div>
+                    <span className="text-sm font-bold text-emerald-600">
+                      {formatCurrency((video.sales || 0) * earningPerSale)}
+                    </span>
                   </div>
-                  <p className="text-sm font-bold text-amber-600">
-                    {formatCurrency(commissionEstimated)}
-                  </p>
-                </div>
-
-                <div className="p-2 rounded-lg bg-muted">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <Eye className="h-3 w-3 text-foreground" />
-                    <span className="text-[10px] text-muted-foreground">Vistas</span>
-                  </div>
-                  <p className="text-sm font-bold text-foreground">
-                    {formatNumber(video.views)}
-                  </p>
                 </div>
               </div>
 
-              {/* Product */}
-              {video.product_name && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
-                  <ShoppingCart className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-primary truncate">
-                    {video.product_name}
-                  </span>
-                </div>
-              )}
-
-              {/* TikTok Button */}
-              <Button
-                variant="outline"
-                className="w-full gap-2"
-                onClick={() => window.open(video.video_url, '_blank')}
-              >
-                <ExternalLink className="h-4 w-4" />
-                Ver en TikTok
-              </Button>
+              {/* Card 2: Product Data */}
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 space-y-2">
+                <h4 className="text-xs font-semibold text-primary uppercase tracking-wide">
+                  Datos del Producto
+                </h4>
+                {video.product ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-xs text-muted-foreground">Nombre</span>
+                      <span className="text-xs font-medium text-right max-w-[180px] truncate" title={video.product.producto_nombre || ''}>
+                        {video.product.producto_nombre || video.product_name || 'Sin nombre'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Percent className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Comisión</span>
+                      </div>
+                      <span className="text-sm font-semibold">{video.product.commission || 0}%</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Ganancia por venta</span>
+                      </div>
+                      <span className="text-sm font-bold text-emerald-600">
+                        {formatCurrency(earningPerSale)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Ingresos 30 días</span>
+                      </div>
+                      <span className="text-sm font-semibold">{formatCurrency(video.product.revenue_30d)}</span>
+                    </div>
+                    
+                    {/* TikTok Shop Button */}
+                    {video.product.producto_url && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="w-full mt-2 gap-2"
+                        onClick={() => window.open(video.product?.producto_url || '', '_blank')}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        Ver en TikTok Shop
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Sin producto asignado</p>
+                )}
+              </div>
             </div>
           </div>
 
