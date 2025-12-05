@@ -49,16 +49,21 @@ export type Database = {
       }
       creators: {
         Row: {
+          avatar_url: string | null
           country: string | null
           created_at: string | null
           creator_handle: string | null
           id: string
           last_import: string | null
+          likes_30d: number | null
           mejor_video_url: string | null
           nombre_completo: string | null
           promedio_roas: number | null
           promedio_visualizaciones: number | null
+          revenue_live: number | null
+          revenue_videos: number | null
           seguidores: number | null
+          tiktok_url: string | null
           total_ingresos_mxn: number | null
           total_ventas: number | null
           total_videos: number | null
@@ -66,16 +71,21 @@ export type Database = {
           usuario_creador: string
         }
         Insert: {
+          avatar_url?: string | null
           country?: string | null
           created_at?: string | null
           creator_handle?: string | null
           id?: string
           last_import?: string | null
+          likes_30d?: number | null
           mejor_video_url?: string | null
           nombre_completo?: string | null
           promedio_roas?: number | null
           promedio_visualizaciones?: number | null
+          revenue_live?: number | null
+          revenue_videos?: number | null
           seguidores?: number | null
+          tiktok_url?: string | null
           total_ingresos_mxn?: number | null
           total_ventas?: number | null
           total_videos?: number | null
@@ -83,16 +93,21 @@ export type Database = {
           usuario_creador: string
         }
         Update: {
+          avatar_url?: string | null
           country?: string | null
           created_at?: string | null
           creator_handle?: string | null
           id?: string
           last_import?: string | null
+          likes_30d?: number | null
           mejor_video_url?: string | null
           nombre_completo?: string | null
           promedio_roas?: number | null
           promedio_visualizaciones?: number | null
+          revenue_live?: number | null
+          revenue_videos?: number | null
           seguidores?: number | null
+          tiktok_url?: string | null
           total_ingresos_mxn?: number | null
           total_ventas?: number | null
           total_videos?: number | null

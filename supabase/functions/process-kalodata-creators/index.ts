@@ -7,15 +7,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Dynamic column mapping for Kalodata creator files
+// Dynamic column mapping for Kalodata LIST_CREATOR files
 const COLUMN_MAPPINGS: Record<string, string[]> = {
   creator_name: ["nombre del creador", "creator name", "creator", "nombre", "name", "nombre completo"],
   username: ["usuario del creador", "username", "handle", "usuario", "@", "creator handle", "tiktok handle"],
-  profile_image: ["profile image", "profile image url", "imagen", "avatar", "foto", "image url", "profile pic", "avatar url"],
+  avatar_url: ["profile image", "profile image url", "imagen", "avatar", "foto", "image url", "profile pic", "avatar url", "creator avatar url"],
   followers: ["seguidores", "followers", "follower count", "total followers"],
-  revenue_30d: ["ingresos(m$)", "ingresos", "revenue", "ingresos totales", "total revenue", "gmv", "total ingresos", "gmv 30d", "ingresos 30d"],
+  revenue_30d: ["ingresos(m$)", "ingresos", "revenue", "ingresos totales", "total revenue", "gmv", "total ingresos", "gmv 30d", "ingresos 30d", "revenue 30d"],
   views_30d: ["visualizaciones", "views", "vistas", "content views", "total views", "vistas de contenido", "video views", "views 30d"],
-  sales_30d: ["ventas", "sales", "orders", "items sold", "artículos vendidos", "total ventas", "total orders", "ventas 30d", "orders 30d"],
+  likes_30d: ["likes", "me gusta", "total likes", "likes 30d", "like count"],
+  revenue_live: ["ingresos en vivo", "live revenue", "revenue live", "gmv live", "ingresos live"],
+  revenue_videos: ["ingresos por video", "video revenue", "revenue videos", "gmv videos", "ingresos videos"],
   tiktok_url: ["enlace de tiktok", "tiktok url", "url", "profile url", "enlace", "link", "creator url", "tiktok link"],
   country: ["country", "país", "region", "location"],
 };
@@ -53,9 +55,9 @@ function parseNumericValue(value: any): number | null {
   
   const str = String(value).replace(/[$,MXN\s%]/gi, "").trim();
   
-  // Handle "M$" suffix (millions)
+  // Handle "M$" or "M" suffix (millions)
   if (str.toLowerCase().includes("m")) {
-    const numPart = parseFloat(str.replace(/[mM]/g, ""));
+    const numPart = parseFloat(str.replace(/[mM$]/g, ""));
     if (!isNaN(numPart)) return numPart * 1000000;
   }
   
@@ -77,6 +79,18 @@ function parseNumericValue(value: any): number | null {
   
   const num = parseFloat(str);
   return isNaN(num) ? null : num;
+}
+
+// Build TikTok URL from username
+function buildTikTokUrl(username: string, existingUrl: string | null): string | null {
+  if (existingUrl && existingUrl.includes("tiktok.com")) {
+    return existingUrl;
+  }
+  if (username) {
+    const cleanUsername = username.replace("@", "").trim();
+    return `https://www.tiktok.com/@${cleanUsername}`;
+  }
+  return null;
 }
 
 serve(async (req) => {
@@ -153,11 +167,13 @@ serve(async (req) => {
     const processedCreators = rows.map((row, index) => {
       const creatorName = findColumnValue(row, "creator_name");
       const username = findColumnValue(row, "username");
-      const profileImage = findColumnValue(row, "profile_image");
+      const avatarUrl = findColumnValue(row, "avatar_url");
       const followers = parseNumericValue(findColumnValue(row, "followers"));
       const revenue30d = parseNumericValue(findColumnValue(row, "revenue_30d"));
       const views30d = parseNumericValue(findColumnValue(row, "views_30d"));
-      const sales30d = parseNumericValue(findColumnValue(row, "sales_30d"));
+      const likes30d = parseNumericValue(findColumnValue(row, "likes_30d"));
+      const revenueLive = parseNumericValue(findColumnValue(row, "revenue_live"));
+      const revenueVideos = parseNumericValue(findColumnValue(row, "revenue_videos"));
       const tiktokUrl = findColumnValue(row, "tiktok_url");
       const country = findColumnValue(row, "country");
 
@@ -171,13 +187,17 @@ serve(async (req) => {
         creator_handle: cleanUsername,
         seguidores: followers ? Math.round(followers) : 0,
         total_ingresos_mxn: revenue30d || 0,
-        total_ventas: sales30d ? Math.round(sales30d) : 0,
+        total_ventas: 0, // Not provided by Kalodata LIST_CREATOR
         total_videos: 0,
         promedio_visualizaciones: views30d ? Math.round(views30d) : 0,
-        promedio_roas: null, // Not used anymore
-        mejor_video_url: profileImage ? String(profileImage).trim() : null, // Store avatar URL here
+        promedio_roas: null,
+        mejor_video_url: null,
+        avatar_url: avatarUrl ? String(avatarUrl).trim() : null,
+        likes_30d: likes30d ? Math.round(likes30d) : 0,
+        revenue_live: revenueLive || 0,
+        revenue_videos: revenueVideos || 0,
+        tiktok_url: buildTikTokUrl(cleanUsername, tiktokUrl ? String(tiktokUrl).trim() : null),
         country: country ? String(country).trim() : null,
-        // Store TikTok profile URL in a way we can extract
         last_import: new Date().toISOString(),
       };
     }).filter(c => c.usuario_creador && c.usuario_creador !== "creator_0");
