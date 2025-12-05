@@ -2,6 +2,9 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
+// Declare EdgeRuntime for TypeScript
+declare const EdgeRuntime: { waitUntil: (promise: Promise<unknown>) => void } | undefined;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -22,12 +25,16 @@ function extractVideoId(url: string): string | null {
   return null;
 }
 
-// Save transcription to database
-async function saveTranscription(videoId: string, transcription: string) {
+// Create Supabase client
+function getSupabaseClient() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  return createClient(supabaseUrl, supabaseKey);
+}
 
+// Save transcription to database
+async function saveTranscription(videoId: string, transcription: string) {
+  const supabase = getSupabaseClient();
   console.log('Saving transcription to DB for video:', videoId);
   
   const { error } = await supabase
@@ -43,247 +50,318 @@ async function saveTranscription(videoId: string, transcription: string) {
   console.log('Transcription saved successfully');
 }
 
+// Save error status to help with debugging
+async function saveError(videoId: string, errorMsg: string) {
+  const supabase = getSupabaseClient();
+  console.error('Transcription failed for video:', videoId, '-', errorMsg);
+}
+
+// Try multiple TikTok download services
+async function extractAudioFromTikTok(tiktokUrl: string): Promise<ArrayBuffer | null> {
+  const videoId = extractVideoId(tiktokUrl);
+  if (!videoId) {
+    console.error('Could not extract video ID from URL');
+    return null;
+  }
+
+  console.log('Extracted TikTok video ID:', videoId);
+  const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+  // Try Service 1: tikwm.com
+  try {
+    console.log('Trying tikwm.com API...');
+    const response = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(tiktokUrl)}`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json', 'User-Agent': userAgent },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.code === 0 && data.data) {
+        // Try video URL first (better audio quality)
+        const mediaUrl = data.data.play || data.data.hdplay || data.data.music;
+        if (mediaUrl) {
+          console.log('tikwm: Got media URL, downloading...');
+          const mediaRes = await fetch(mediaUrl, {
+            headers: { 'User-Agent': userAgent, 'Referer': 'https://www.tiktok.com/' },
+          });
+          if (mediaRes.ok) {
+            const buffer = await mediaRes.arrayBuffer();
+            console.log('tikwm: Downloaded media, size:', buffer.byteLength);
+            if (buffer.byteLength > 1000 && buffer.byteLength <= 25 * 1024 * 1024) {
+              return buffer;
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('tikwm error:', e);
+  }
+
+  // Try Service 2: snaptik.app API
+  try {
+    console.log('Trying snaptik API...');
+    const response = await fetch('https://snaptik.app/abc2.php', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': userAgent,
+        'Origin': 'https://snaptik.app',
+      },
+      body: `url=${encodeURIComponent(tiktokUrl)}&lang=en&token=`,
+    });
+
+    if (response.ok) {
+      const html = await response.text();
+      // Extract video URL from response
+      const urlMatch = html.match(/href="(https:\/\/[^"]+\.mp4[^"]*)"/);
+      if (urlMatch) {
+        const videoUrl = urlMatch[1].replace(/\\u0026/g, '&');
+        console.log('snaptik: Got video URL');
+        const mediaRes = await fetch(videoUrl, { headers: { 'User-Agent': userAgent } });
+        if (mediaRes.ok) {
+          const buffer = await mediaRes.arrayBuffer();
+          console.log('snaptik: Downloaded, size:', buffer.byteLength);
+          if (buffer.byteLength > 1000 && buffer.byteLength <= 25 * 1024 * 1024) {
+            return buffer;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('snaptik error:', e);
+  }
+
+  // Try Service 3: ssstik.io
+  try {
+    console.log('Trying ssstik.io API...');
+    const response = await fetch('https://ssstik.io/abc?url=dl', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': userAgent,
+        'Origin': 'https://ssstik.io',
+        'Referer': 'https://ssstik.io/',
+      },
+      body: `id=${encodeURIComponent(tiktokUrl)}&locale=en&tt=`,
+    });
+
+    if (response.ok) {
+      const html = await response.text();
+      const urlMatch = html.match(/href="(https:\/\/[^"]+)"[^>]*>Without watermark/i) ||
+                       html.match(/href="(https:\/\/[^"]+\.mp4[^"]*)"/);
+      if (urlMatch) {
+        const videoUrl = urlMatch[1];
+        console.log('ssstik: Got video URL');
+        const mediaRes = await fetch(videoUrl, { headers: { 'User-Agent': userAgent } });
+        if (mediaRes.ok) {
+          const buffer = await mediaRes.arrayBuffer();
+          console.log('ssstik: Downloaded, size:', buffer.byteLength);
+          if (buffer.byteLength > 1000 && buffer.byteLength <= 25 * 1024 * 1024) {
+            return buffer;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('ssstik error:', e);
+  }
+
+  // Try Service 4: tikmate API
+  try {
+    console.log('Trying tikmate API...');
+    const response = await fetch('https://api.tikmate.app/api/lookup', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': userAgent 
+      },
+      body: `url=${encodeURIComponent(tiktokUrl)}`,
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && (data.video_url || data.token)) {
+        const videoUrl = data.video_url || `https://tikmate.app/download/${data.token}.mp4`;
+        console.log('tikmate: Got video URL');
+        const mediaRes = await fetch(videoUrl, { headers: { 'User-Agent': userAgent } });
+        if (mediaRes.ok) {
+          const buffer = await mediaRes.arrayBuffer();
+          console.log('tikmate: Downloaded, size:', buffer.byteLength);
+          if (buffer.byteLength > 1000 && buffer.byteLength <= 25 * 1024 * 1024) {
+            return buffer;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('tikmate error:', e);
+  }
+
+  // Try Service 5: musicaldown.com
+  try {
+    console.log('Trying musicaldown API...');
+    const response = await fetch('https://musicaldown.com/download', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': userAgent,
+        'Origin': 'https://musicaldown.com',
+        'Referer': 'https://musicaldown.com/en',
+      },
+      body: `url=${encodeURIComponent(tiktokUrl)}`,
+    });
+
+    if (response.ok) {
+      const html = await response.text();
+      const urlMatch = html.match(/href="(https:\/\/[^"]+\.mp4[^"]*)"/);
+      if (urlMatch) {
+        const videoUrl = urlMatch[1];
+        console.log('musicaldown: Got video URL');
+        const mediaRes = await fetch(videoUrl, { headers: { 'User-Agent': userAgent } });
+        if (mediaRes.ok) {
+          const buffer = await mediaRes.arrayBuffer();
+          console.log('musicaldown: Downloaded, size:', buffer.byteLength);
+          if (buffer.byteLength > 1000 && buffer.byteLength <= 25 * 1024 * 1024) {
+            return buffer;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('musicaldown error:', e);
+  }
+
+  return null;
+}
+
+// Transcribe audio with Whisper
+async function transcribeWithWhisper(audioBuffer: ArrayBuffer): Promise<string | null> {
+  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+  if (!OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  console.log('Sending to Whisper API, buffer size:', audioBuffer.byteLength);
+
+  const formData = new FormData();
+  const blob = new Blob([audioBuffer], { type: 'video/mp4' });
+  formData.append('file', blob, 'video.mp4');
+  formData.append('model', 'whisper-1');
+  formData.append('language', 'es');
+  formData.append('response_format', 'text');
+
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Whisper API error:', response.status, errorText);
+    return null;
+  }
+
+  const transcription = await response.text();
+  console.log('Transcription completed, length:', transcription.length);
+  return transcription;
+}
+
+// Background transcription task
+async function processTranscription(videoId: string, tiktokUrl: string) {
+  console.log('Background task started for video:', videoId);
+  
+  try {
+    // Step 1: Extract audio from TikTok
+    console.log('Step 1: Extracting audio from TikTok...');
+    const audioBuffer = await extractAudioFromTikTok(tiktokUrl);
+    
+    if (!audioBuffer) {
+      console.error('All audio extraction methods failed');
+      await saveError(videoId, 'No se pudo extraer el audio del video');
+      return;
+    }
+
+    // Step 2: Transcribe with Whisper
+    console.log('Step 2: Transcribing with Whisper...');
+    const transcription = await transcribeWithWhisper(audioBuffer);
+    
+    if (!transcription) {
+      console.error('Whisper transcription failed');
+      await saveError(videoId, 'Error en la transcripción');
+      return;
+    }
+
+    // Step 3: Save to database
+    console.log('Step 3: Saving to database...');
+    await saveTranscription(videoId, transcription);
+    
+    console.log('Background task completed successfully');
+  } catch (error: any) {
+    console.error('Background task error:', error);
+    await saveError(videoId, error.message);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { audioBase64, tiktokUrl, videoId } = await req.json();
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const { tiktokUrl, videoId } = await req.json();
 
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY not configured');
+    if (!tiktokUrl || !videoId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing tiktokUrl or videoId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // If audio is provided as base64, use Whisper directly
-    if (audioBase64) {
-      console.log('Transcribing provided audio with Whisper...');
-      
-      const binaryString = atob(audioBase64);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const formData = new FormData();
-      const blob = new Blob([bytes], { type: 'audio/webm' });
-      formData.append('file', blob, 'audio.webm');
-      formData.append('model', 'whisper-1');
-      formData.append('language', 'es');
-      formData.append('response_format', 'text');
+    console.log('Received transcription request for:', tiktokUrl, 'videoId:', videoId);
 
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: formData,
-      });
+    // Check if transcript already exists
+    const supabase = getSupabaseClient();
+    const { data: existing } = await supabase
+      .from('daily_feed')
+      .select('transcripcion_original')
+      .eq('id', videoId)
+      .maybeSingle();
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Whisper API error:', response.status, errorText);
-        throw new Error(`Whisper API error: ${response.status}`);
-      }
-
-      const transcription = await response.text();
-      console.log('Transcription completed successfully');
-
-      // Save to DB if videoId provided
-      if (videoId) {
-        await saveTranscription(videoId, transcription);
-      }
-
+    if (existing?.transcripcion_original) {
+      console.log('Transcript already exists, returning immediately');
       return new Response(
-        JSON.stringify({ transcription }),
+        JSON.stringify({ 
+          status: 'completed',
+          transcription: existing.transcripcion_original 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Try to extract audio from TikTok URL
-    if (tiktokUrl) {
-      console.log('Attempting to extract audio from TikTok URL:', tiktokUrl);
-      
-      const tiktokVideoId = extractVideoId(tiktokUrl);
-      if (!tiktokVideoId) {
-        console.error('Could not extract video ID from URL');
-        return new Response(
-          JSON.stringify({ 
-            transcription: null,
-            message: 'No se pudo extraer el ID del video de la URL.',
-            requiresManualInput: true
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      console.log('Extracted TikTok video ID:', tiktokVideoId);
-
-      // Try tikwm.com API
-      try {
-        console.log('Trying tikwm.com API...');
-        const tikwmResponse = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(tiktokUrl)}`, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          },
-        });
-
-        if (tikwmResponse.ok) {
-          const tikwmData = await tikwmResponse.json();
-          console.log('TikWM response code:', tikwmData.code);
-          
-          if (tikwmData.code === 0 && tikwmData.data) {
-            const audioUrl = tikwmData.data.music || tikwmData.data.play || tikwmData.data.hdplay;
-            
-            if (audioUrl) {
-              console.log('Got media URL, downloading...');
-              
-              const mediaResponse = await fetch(audioUrl, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                  'Referer': 'https://www.tiktok.com/',
-                },
-              });
-
-              if (mediaResponse.ok) {
-                const mediaBuffer = await mediaResponse.arrayBuffer();
-                console.log('Downloaded media, size:', mediaBuffer.byteLength, 'bytes');
-                
-                if (mediaBuffer.byteLength > 25 * 1024 * 1024) {
-                  console.error('Media file too large for Whisper');
-                  return new Response(
-                    JSON.stringify({ 
-                      transcription: null,
-                      message: 'El archivo de audio es demasiado grande para procesar.',
-                      requiresManualInput: true
-                    }),
-                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-                  );
-                }
-
-                const formData = new FormData();
-                const blob = new Blob([mediaBuffer], { type: 'audio/mp3' });
-                formData.append('file', blob, 'audio.mp3');
-                formData.append('model', 'whisper-1');
-                formData.append('language', 'es');
-                formData.append('response_format', 'text');
-
-                console.log('Sending to Whisper API...');
-                const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                  },
-                  body: formData,
-                });
-
-                if (whisperResponse.ok) {
-                  const transcription = await whisperResponse.text();
-                  console.log('Transcription successful, length:', transcription.length);
-
-                  // Save to DB if videoId provided
-                  if (videoId) {
-                    await saveTranscription(videoId, transcription);
-                  }
-
-                  return new Response(
-                    JSON.stringify({ transcription }),
-                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-                  );
-                } else {
-                  const errorText = await whisperResponse.text();
-                  console.error('Whisper API error:', whisperResponse.status, errorText);
-                }
-              } else {
-                console.error('Failed to download media:', mediaResponse.status);
-              }
-            }
-          }
-        }
-      } catch (tikwmError) {
-        console.error('TikWM API error:', tikwmError);
-      }
-
-      // Fallback: try alternative API
-      try {
-        console.log('Trying alternative downloader (tikmate)...');
-        const altResponse = await fetch('https://api.tikmate.app/api/lookup', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          },
-          body: `url=${encodeURIComponent(tiktokUrl)}`,
-        });
-
-        if (altResponse.ok) {
-          const altData = await altResponse.json();
-          
-          if (altData.success && altData.video_url) {
-            console.log('Got video URL from alternative API');
-            
-            const videoResponse = await fetch(altData.video_url, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              },
-            });
-
-            if (videoResponse.ok) {
-              const videoBuffer = await videoResponse.arrayBuffer();
-              
-              if (videoBuffer.byteLength <= 25 * 1024 * 1024) {
-                const formData = new FormData();
-                const blob = new Blob([videoBuffer], { type: 'video/mp4' });
-                formData.append('file', blob, 'video.mp4');
-                formData.append('model', 'whisper-1');
-                formData.append('language', 'es');
-                formData.append('response_format', 'text');
-
-                const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${OPENAI_API_KEY}`,
-                  },
-                  body: formData,
-                });
-
-                if (whisperResponse.ok) {
-                  const transcription = await whisperResponse.text();
-                  console.log('Transcription successful via alternative API');
-
-                  // Save to DB if videoId provided
-                  if (videoId) {
-                    await saveTranscription(videoId, transcription);
-                  }
-
-                  return new Response(
-                    JSON.stringify({ transcription }),
-                    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-                  );
-                }
-              }
-            }
-          }
-        }
-      } catch (altError) {
-        console.error('Alternative API error:', altError);
-      }
+    // Start background processing with waitUntil
+    console.log('Starting background transcription task...');
+    
+    // Use EdgeRuntime.waitUntil for background processing
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
+      EdgeRuntime.waitUntil(processTranscription(videoId, tiktokUrl));
+    } else {
+      // Fallback: fire and forget (don't await to avoid timeout)
+      console.log('EdgeRuntime not available, running in background');
+      processTranscription(videoId, tiktokUrl).catch(console.error);
     }
 
-    // If all methods fail
-    console.log('All automatic transcription methods failed');
-    
+    // Return immediately
     return new Response(
       JSON.stringify({ 
-        transcription: null,
-        message: 'No se pudo extraer el audio automáticamente. Intenta de nuevo más tarde.',
-        requiresManualInput: true
+        status: 'processing',
+        message: 'Transcripción iniciada. El guión estará listo en unos segundos.' 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error: any) {
     console.error('Error in transcribe-video:', error);
     return new Response(
