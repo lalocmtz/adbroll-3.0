@@ -22,8 +22,12 @@ export default {
         'h2': ['24px', { lineHeight: '1.3', fontWeight: '600' }],
         'h3': ['18px', { lineHeight: '1.4', fontWeight: '500' }],
         'body': ['16px', { lineHeight: '1.5', fontWeight: '400' }],
+        'body-mobile': ['17px', { lineHeight: '1.5', fontWeight: '400' }],
         'note': ['14px', { lineHeight: '1.5', fontWeight: '400' }],
         'code': ['14px', { lineHeight: '1.6', fontWeight: '400' }],
+        'card-title': ['15px', { lineHeight: '1.5', fontWeight: '600' }],
+        'card-secondary': ['13px', { lineHeight: '1.5', fontWeight: '400' }],
+        'badge': ['11px', { lineHeight: '1.4', fontWeight: '500' }],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -72,6 +76,8 @@ export default {
           DEFAULT: "hsl(var(--badge-bg))",
           foreground: "hsl(var(--badge-text))",
         },
+        divider: "hsl(var(--divider-color))",
+        "text-secondary": "hsl(var(--text-secondary))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -82,9 +88,11 @@ export default {
       },
       spacing: {
         'card': 'var(--card-padding)',
-        'card-gap': 'var(--card-spacing)',
+        'card-gap': 'var(--card-gap)',
+        'section': 'var(--section-gap)',
       },
       boxShadow: {
+        'card': 'var(--shadow-card)',
         'card-hover': 'var(--shadow-card-hover)',
         'card-active': 'var(--shadow-card-active)',
       },

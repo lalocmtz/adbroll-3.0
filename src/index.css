@@ -90,14 +90,26 @@ All colors MUST be HSL.
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
     --shadow-cta: 0 4px 14px rgba(243, 18, 96, 0.1);
-    --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.08);
     --shadow-card-active: 0 2px 6px rgba(0, 0, 0, 0.1);
 
-    /* Card system */
+    /* Card system - Premium refinements */
     --card-radius: 16px;
     --card-padding: 16px;
+    --card-gap: 24px;
     --card-spacing: 12px;
     --media-radius: 12px;
+    --section-gap: 32px;
+    
+    /* Typography refinements */
+    --text-secondary: 0 0% 54%; /* #8A8A8A */
+    --text-card-title: 15px;
+    --text-card-secondary: 13px;
+    --text-badge: 11px;
+    
+    /* Section divider */
+    --divider-color: 0 0% 92%; /* #EAEAEA */
     
     /* Sidebar system */
     --sidebar-width: 240px;
@@ -269,11 +281,12 @@ All colors MUST be HSL.
 }
 
 @layer components {
-  /* Global Card System */
+  /* Global Card System - Premium */
   .card-global {
     @apply bg-card border border-border transition-all;
     border-radius: var(--card-radius);
     padding: var(--card-padding);
+    box-shadow: var(--shadow-card);
     transition: var(--transition-card);
   }
 
@@ -288,11 +301,44 @@ All colors MUST be HSL.
   .card-premium {
     @apply bg-card border border-border;
     border-radius: var(--card-radius);
+    box-shadow: var(--shadow-card);
     transition: var(--transition-card);
   }
 
   .card-premium:hover {
     box-shadow: var(--shadow-card-hover);
+  }
+
+  /* Card Grid System */
+  .card-grid {
+    display: grid;
+    gap: var(--card-gap);
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (max-width: 1280px) {
+    .card-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .card-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .card-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Section divider */
+  .section-divider {
+    border-top: 1px solid hsl(var(--divider-color));
+    margin-top: var(--section-gap);
+    padding-top: var(--section-gap);
   }
 
   /* Card Media */
@@ -301,26 +347,54 @@ All colors MUST be HSL.
     @apply overflow-hidden;
   }
 
-  /* Labels & Badges */
+  /* Card Typography */
+  .card-title {
+    font-size: var(--text-card-title);
+    font-weight: 600;
+    line-height: 1.5;
+    color: hsl(var(--text-heading));
+  }
+
+  .card-secondary {
+    font-size: var(--text-card-secondary);
+    line-height: 1.5;
+    color: hsl(var(--text-secondary));
+  }
+
+  /* Labels & Badges - Premium */
   .label-gain {
     background-color: hsl(var(--label-gain-bg));
     color: hsl(var(--label-gain-text));
-    @apply text-xs font-semibold px-2 py-1 rounded-md;
+    @apply font-medium px-2 py-1;
+    font-size: var(--text-badge);
+    border-radius: 12px;
   }
 
   .label-alert {
     background-color: hsl(var(--label-alert-bg));
     color: hsl(var(--label-alert-text));
-    @apply text-xs font-semibold px-2 py-1 rounded-md;
+    @apply font-medium px-2 py-1;
+    font-size: var(--text-badge);
+    border-radius: 12px;
   }
 
   .badge-position {
     background: linear-gradient(135deg, hsl(var(--badge-position-from)), hsl(var(--badge-position-to)));
-    @apply text-white text-[13px] font-bold px-2.5 py-1 rounded-full;
+    @apply text-white font-bold px-2.5 py-1;
+    font-size: var(--text-badge);
+    border-radius: 12px;
   }
 
   .badge-position-neutral {
-    @apply bg-background/90 text-foreground border border-border text-[13px] font-bold px-2.5 py-1 rounded-full;
+    @apply bg-background/90 text-foreground border border-border font-bold px-2.5 py-1;
+    font-size: var(--text-badge);
+    border-radius: 12px;
+  }
+
+  .badge-earnings {
+    @apply bg-black/80 text-white font-medium px-2 py-1;
+    font-size: var(--text-badge);
+    border-radius: 12px;
   }
 
   /* Product embed inside card */
