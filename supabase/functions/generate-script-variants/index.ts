@@ -21,11 +21,6 @@ CUERPO:
 CTA:
 [llamado a la acción final - claro y urgente]
 
-DIFERENCIACIÓN POR TIPO:
-- URGENCIA: Enfoca en escasez, tiempo limitado, "últimas unidades", FOMO
-- EMOCIONAL: Enfoca en transformación personal, sentimientos, antes/después
-- COMERCIAL: Enfoca en precio, oferta, descuento, garantía, prueba social
-
 Mantén el español neutro, conversacional y orientado a ventas directas.`;
 
 serve(async (req) => {
@@ -34,7 +29,7 @@ serve(async (req) => {
   }
 
   try {
-    const { originalScript, videoTitle, productName, numVariants = 1, variantType = 'urgencia' } = await req.json();
+    const { originalScript, videoTitle, productName, variantType = 'similar' } = await req.json();
     
     if (!originalScript) {
       throw new Error('Original script is required');
@@ -45,37 +40,54 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log(`Generating ${numVariants} script variant(s) for product: ${productName}...`);
+    console.log(`Generating ${variantType} variant for: ${videoTitle?.substring(0, 30)}...`);
     
-    const variantInstructions = {
-      urgencia: 'Genera una variante enfocada en URGENCIA: escasez, tiempo limitado, últimas unidades disponibles.',
-      emocional: 'Genera una variante enfocada en lo EMOCIONAL: transformación personal, sentimientos, impacto en la vida.',
-      comercial: 'Genera una variante enfocada en lo COMERCIAL: precio especial, oferta irresistible, garantías, prueba social.'
+    const variantInstructions: Record<string, string> = {
+      similar: `Genera una variante SIMILAR al original:
+- Mantén el mismo tono y estructura
+- Usa palabras sinónimas pero conserva la esencia
+- El hook debe ser casi idéntico pero con ligeras variaciones
+- Ideal para probar pequeñas optimizaciones`,
+
+      emocional: `Genera una variante EMOCIONAL:
+- Enfócate en sentimientos y transformación personal
+- Usa palabras que conecten con el corazón: "imagina", "siente", "cambia tu vida"
+- El hook debe apelar a emociones profundas
+- Incluye un antes/después emocional
+- Habla de sueños, metas, bienestar`,
+
+      comercial: `Genera una variante COMERCIAL/URGENTE:
+- Enfócate en precio, oferta y escasez
+- Usa frases como: "últimas unidades", "solo por hoy", "50% de descuento"
+- El hook debe crear FOMO (miedo a perderse algo)
+- Incluye garantías y prueba social
+- Crea urgencia en el CTA`
     };
 
     const userPrompt = `Analiza este guión de TikTok Shop y genera UNA variante optimizada.
 
-TÍTULO: ${videoTitle}
-PRODUCTO: ${productName || 'producto genérico'}
+TÍTULO: ${videoTitle || "Video de TikTok Shop"}
+PRODUCTO: ${productName || "producto promocionado"}
 
 GUIÓN ORIGINAL:
 ${originalScript}
 
-INSTRUCCIÓN: ${variantInstructions[variantType as keyof typeof variantInstructions] || variantInstructions.urgencia}
+INSTRUCCIÓN ESPECÍFICA:
+${variantInstructions[variantType] || variantInstructions.similar}
 
-Usa EXACTAMENTE este formato:
+Responde con el guión completo usando este formato EXACTO:
 
-Producto: ${productName || '[nombre del producto]'}
+Producto: ${productName || "[nombre del producto]"}
 Objetivo del video: [ventas/demostración/tutorial]
 
 HOOK:
-[texto]
+[texto del gancho - primeros 3 segundos, impactante]
 
 CUERPO:
-[texto]
+[desarrollo del contenido]
 
 CTA:
-[texto]`;
+[llamado a la acción final]`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -114,7 +126,7 @@ CTA:
     const data = await response.json();
     const generatedContent = data.choices[0].message.content;
 
-    console.log(`Generated variant successfully`);
+    console.log(`Generated ${variantType} variant successfully`);
 
     return new Response(
       JSON.stringify({ 

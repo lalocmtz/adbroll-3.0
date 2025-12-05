@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +9,6 @@ const corsHeaders = {
 
 // Extract video ID from TikTok URL
 function extractVideoId(url: string): string | null {
-  // Handle various TikTok URL formats
   const patterns = [
     /\/video\/(\d+)/,
     /\/v\/(\d+)/,
@@ -22,13 +22,34 @@ function extractVideoId(url: string): string | null {
   return null;
 }
 
+// Save transcription to database
+async function saveTranscription(videoId: string, transcription: string) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  console.log('Saving transcription to DB for video:', videoId);
+  
+  const { error } = await supabase
+    .from('daily_feed')
+    .update({ transcripcion_original: transcription })
+    .eq('id', videoId);
+
+  if (error) {
+    console.error('Error saving transcription to DB:', error);
+    throw new Error('Failed to save transcription');
+  }
+
+  console.log('Transcription saved successfully');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { audioBase64, tiktokUrl } = await req.json();
+    const { audioBase64, tiktokUrl, videoId } = await req.json();
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
     if (!OPENAI_API_KEY) {
@@ -69,6 +90,11 @@ serve(async (req) => {
       const transcription = await response.text();
       console.log('Transcription completed successfully');
 
+      // Save to DB if videoId provided
+      if (videoId) {
+        await saveTranscription(videoId, transcription);
+      }
+
       return new Response(
         JSON.stringify({ transcription }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -79,8 +105,8 @@ serve(async (req) => {
     if (tiktokUrl) {
       console.log('Attempting to extract audio from TikTok URL:', tiktokUrl);
       
-      const videoId = extractVideoId(tiktokUrl);
-      if (!videoId) {
+      const tiktokVideoId = extractVideoId(tiktokUrl);
+      if (!tiktokVideoId) {
         console.error('Could not extract video ID from URL');
         return new Response(
           JSON.stringify({ 
@@ -92,10 +118,11 @@ serve(async (req) => {
         );
       }
 
-      console.log('Extracted video ID:', videoId);
+      console.log('Extracted TikTok video ID:', tiktokVideoId);
 
-      // Try tikwm.com API (commonly used TikTok downloader)
+      // Try tikwm.com API
       try {
+        console.log('Trying tikwm.com API...');
         const tikwmResponse = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(tiktokUrl)}`, {
           method: 'GET',
           headers: {
@@ -109,13 +136,11 @@ serve(async (req) => {
           console.log('TikWM response code:', tikwmData.code);
           
           if (tikwmData.code === 0 && tikwmData.data) {
-            // Get the video/audio URL - prefer music/audio if available
             const audioUrl = tikwmData.data.music || tikwmData.data.play || tikwmData.data.hdplay;
             
             if (audioUrl) {
               console.log('Got media URL, downloading...');
               
-              // Download the audio/video file
               const mediaResponse = await fetch(audioUrl, {
                 headers: {
                   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -127,7 +152,6 @@ serve(async (req) => {
                 const mediaBuffer = await mediaResponse.arrayBuffer();
                 console.log('Downloaded media, size:', mediaBuffer.byteLength, 'bytes');
                 
-                // Check if file is too large (Whisper has 25MB limit)
                 if (mediaBuffer.byteLength > 25 * 1024 * 1024) {
                   console.error('Media file too large for Whisper');
                   return new Response(
@@ -140,7 +164,6 @@ serve(async (req) => {
                   );
                 }
 
-                // Send to Whisper for transcription
                 const formData = new FormData();
                 const blob = new Blob([mediaBuffer], { type: 'audio/mp3' });
                 formData.append('file', blob, 'audio.mp3');
@@ -161,6 +184,11 @@ serve(async (req) => {
                   const transcription = await whisperResponse.text();
                   console.log('Transcription successful, length:', transcription.length);
 
+                  // Save to DB if videoId provided
+                  if (videoId) {
+                    await saveTranscription(videoId, transcription);
+                  }
+
                   return new Response(
                     JSON.stringify({ transcription }),
                     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -179,9 +207,9 @@ serve(async (req) => {
         console.error('TikWM API error:', tikwmError);
       }
 
-      // Fallback: try alternative API (ssstik-like)
+      // Fallback: try alternative API
       try {
-        console.log('Trying alternative downloader...');
+        console.log('Trying alternative downloader (tikmate)...');
         const altResponse = await fetch('https://api.tikmate.app/api/lookup', {
           method: 'POST',
           headers: {
@@ -226,6 +254,11 @@ serve(async (req) => {
                   const transcription = await whisperResponse.text();
                   console.log('Transcription successful via alternative API');
 
+                  // Save to DB if videoId provided
+                  if (videoId) {
+                    await saveTranscription(videoId, transcription);
+                  }
+
                   return new Response(
                     JSON.stringify({ transcription }),
                     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -240,7 +273,7 @@ serve(async (req) => {
       }
     }
 
-    // If all methods fail, return instructions for manual transcription
+    // If all methods fail
     console.log('All automatic transcription methods failed');
     
     return new Response(

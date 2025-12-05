@@ -1,12 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, DollarSign, ShoppingCart, Percent, Heart, Sparkles } from "lucide-react";
+import { Eye, DollarSign, ShoppingCart, Percent, Heart, Sparkles, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import VideoAnalysisModal from "./VideoAnalysisModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useTranscriptionPolling } from "@/hooks/useTranscriptionPolling";
 
 interface VideoCardProps {
   video: {
@@ -18,7 +19,6 @@ interface VideoCardProps {
     ventas: number;
     visualizaciones: number;
     cpa_mxn: number;
-    
     duracion: string;
     fecha_publicacion: string;
     transcripcion_original: string | null;
@@ -48,9 +48,12 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
   const [productData, setProductData] = useState<ProductData | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [transcriptReady, setTranscriptReady] = useState<string | null>(null);
   const embedRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  const { isPolling, transcript, error, startTranscription, reset } = useTranscriptionPolling();
 
   useEffect(() => {
     // Load TikTok embed script
@@ -60,7 +63,6 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     document.body.appendChild(script);
 
     return () => {
-      // Cleanup script on unmount
       const existingScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
       if (existingScript) {
         existingScript.remove();
@@ -102,6 +104,25 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     loadData();
   }, [video.producto_nombre, video.tiktok_url]);
 
+  // When transcript is ready, open modal
+  useEffect(() => {
+    if (transcript && !showModal) {
+      setTranscriptReady(transcript);
+      setShowModal(true);
+    }
+  }, [transcript]);
+
+  // Handle transcription error
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error de transcripción",
+        description: error,
+        variant: "destructive",
+      });
+    }
+  }, [error]);
+
   // Extract video ID from TikTok URL
   const getVideoId = (url: string) => {
     const match = url.match(/\/video\/(\d+)/);
@@ -129,7 +150,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     }).format(num);
   };
 
-  const commissionRate = productData?.commission || 6; // Default 6% if not specified
+  const commissionRate = productData?.commission || 6;
   const commissionEstimated = video.ingresos_mxn * (commissionRate / 100);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
@@ -159,9 +180,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
         if (error) throw error;
 
         setIsFavorite(false);
-        toast({
-          title: "✓ Eliminado de favoritos",
-        });
+        toast({ title: "✓ Eliminado de favoritos" });
       } else {
         const { data: videoData, error: fetchError } = await supabase
           .from("daily_feed")
@@ -182,9 +201,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
         if (error) throw error;
 
         setIsFavorite(true);
-        toast({
-          title: "✓ Guardado en favoritos",
-        });
+        toast({ title: "✓ Guardado en favoritos" });
       }
     } catch (error: any) {
       console.error("Error toggling favorite:", error);
@@ -196,6 +213,32 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAnalyzeClick = async () => {
+    // If transcript already exists, open modal directly
+    if (video.transcripcion_original) {
+      setTranscriptReady(video.transcripcion_original);
+      setShowModal(true);
+      return;
+    }
+
+    // Otherwise, start transcription process
+    const success = await startTranscription(video.id, video.tiktok_url);
+    
+    if (!success && !transcript) {
+      toast({
+        title: "Error",
+        description: "No se pudo transcribir el video. Intenta de nuevo.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setTranscriptReady(null);
+    reset();
   };
 
   return (
@@ -231,6 +274,13 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             </div>
           </div>
 
+          {/* Loading Overlay when transcribing */}
+          {isPolling && (
+            <div className="absolute inset-0 z-30 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm font-medium text-center px-4">Transcribiendo video...</p>
+            </div>
+          )}
 
           {/* TikTok Official Embed */}
           {videoId ? (
@@ -253,11 +303,11 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
 
         {/* Video Info */}
         <CardContent className="p-2 space-y-2">
-        {/* Title and Creator - Truncated to first 20-25 words */}
-        <div>
-          <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
-            {video.descripcion_video?.split(' ').slice(0, 20).join(' ')}{video.descripcion_video?.split(' ').length > 20 ? '...' : ''}
-          </h3>
+          {/* Title and Creator */}
+          <div>
+            <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
+              {video.descripcion_video?.split(' ').slice(0, 20).join(' ')}{video.descripcion_video?.split(' ').length > 20 ? '...' : ''}
+            </h3>
             <div className="flex items-center justify-between mt-0.5">
               <p className="text-[10px] text-muted-foreground">
                 @{video.creador}
@@ -273,8 +323,6 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
               )}
             </div>
           </div>
-
-
 
           {/* Metrics Grid - 2x2 Compact */}
           <div className="grid grid-cols-2 gap-1.5">
@@ -323,19 +371,32 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
           <Button
             className="w-full h-8 text-xs font-semibold" 
             variant="default"
-            onClick={() => setShowModal(true)}
+            onClick={handleAnalyzeClick}
+            disabled={isPolling}
           >
-            <Sparkles className="h-3 w-3 mr-1.5" />
-            Analizar guion y replicar
+            {isPolling ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                Transcribiendo...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3 w-3 mr-1.5" />
+                Analizar guion y replicar
+              </>
+            )}
           </Button>
         </CardContent>
       </Card>
 
-      <VideoAnalysisModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        video={video}
-      />
+      {showModal && transcriptReady && (
+        <VideoAnalysisModal
+          isOpen={showModal}
+          onClose={handleCloseModal}
+          video={video}
+          transcript={transcriptReady}
+        />
+      )}
     </>
   );
 };
