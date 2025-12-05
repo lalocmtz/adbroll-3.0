@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Database, ArrowLeft, Video, Package, Users, CheckCircle, Download, RefreshCw, AlertCircle, Sparkles, Link, Zap } from "lucide-react";
+import { Upload, ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 
 const Admin = () => {
@@ -15,33 +14,19 @@ const Admin = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [productFile, setProductFile] = useState<File | null>(null);
   const [creatorFile, setCreatorFile] = useState<File | null>(null);
-  const [isUploadingVideos, setIsUploadingVideos] = useState(false);
-  const [isUploadingProducts, setIsUploadingProducts] = useState(false);
-  const [isUploadingCreators, setIsUploadingCreators] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isMatching, setIsMatching] = useState(false);
-  const [matchStats, setMatchStats] = useState({ matched: 0, unmatched: 0, total: 0 });
-const [isMasterProcessing, setIsMasterProcessing] = useState(false);
-  const [masterProgress, setMasterProgress] = useState({ phase: '', current: 0, total: 0, percent: 0 });
-  const [isRebuilding, setIsRebuilding] = useState(false);
-  const [rebuildStats, setRebuildStats] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processPhase, setProcessPhase] = useState("");
+  const [processProgress, setProcessProgress] = useState(0);
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Stats
   const [stats, setStats] = useState({
     videos: 0,
     products: 0,
     creators: 0,
-  });
-
-  // Download stats
-  const [downloadStats, setDownloadStats] = useState({
-    total: 0,
-    downloaded: 0,
-    pending: 0,
-    failed: 0,
+    videosWithProduct: 0,
+    videosDownloaded: 0,
   });
 
   useEffect(() => {
@@ -51,176 +36,24 @@ const [isMasterProcessing, setIsMasterProcessing] = useState(false);
   useEffect(() => {
     if (isFounder) {
       loadStats();
-      loadDownloadStats();
-      loadMatchStats();
     }
   }, [isFounder]);
 
   const loadStats = async () => {
     const [videosRes, productsRes, creatorsRes] = await Promise.all([
-      supabase.from("videos").select("id", { count: "exact", head: true }),
+      supabase.from("videos").select("id, product_id, video_mp4_url"),
       supabase.from("products").select("id", { count: "exact", head: true }),
       supabase.from("creators").select("id", { count: "exact", head: true }),
     ]);
 
+    const videos = videosRes.data || [];
     setStats({
-      videos: videosRes.count || 0,
+      videos: videos.length,
       products: productsRes.count || 0,
       creators: creatorsRes.count || 0,
+      videosWithProduct: videos.filter(v => v.product_id).length,
+      videosDownloaded: videos.filter(v => v.video_mp4_url).length,
     });
-  };
-
-  const loadDownloadStats = async () => {
-    const { data: videos } = await supabase
-      .from("videos")
-      .select("processing_status, video_mp4_url");
-
-    if (videos) {
-      const total = videos.length;
-      const downloaded = videos.filter(v => v.video_mp4_url).length;
-      const pending = videos.filter(v => !v.video_mp4_url && v.processing_status === 'pending').length;
-      const failed = videos.filter(v => 
-        ['download_failed', 'no_mp4_url', 'upload_failed'].includes(v.processing_status || '')
-      ).length;
-
-      setDownloadStats({ total, downloaded, pending, failed });
-    }
-  };
-
-  const loadMatchStats = async () => {
-    const { data: videos } = await supabase
-      .from("videos")
-      .select("id, product_id");
-
-    if (videos) {
-      const total = videos.length;
-      const matched = videos.filter(v => v.product_id).length;
-      const unmatched = total - matched;
-      setMatchStats({ matched, unmatched, total });
-    }
-  };
-
-  const handleSmartMatch = async () => {
-    setIsMatching(true);
-    let totalMatched = 0;
-    let complete = false;
-    
-    try {
-      // Run batches until complete
-      while (!complete) {
-        const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-          body: { batchSize: 50, offset: 0 }
-        });
-
-        if (error) throw error;
-        
-        totalMatched += data.matchedInBatch || 0;
-        complete = data.complete;
-        
-        // Update stats after each batch
-        await loadMatchStats();
-      }
-
-      toast({
-        title: "Matching completado",
-        description: `${totalMatched} videos vinculados exitosamente.`,
-      });
-
-      loadStats();
-    } catch (error: any) {
-      toast({
-        title: "Error en matching",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsMatching(false);
-    }
-  };
-
-  // Master process: Download all videos + Match all products
-  const handleMasterProcess = async () => {
-    setIsMasterProcessing(true);
-    
-    try {
-      // Phase 1: Download all videos
-      const initialPending = downloadStats.pending;
-      setMasterProgress({ phase: 'Descargando videos...', current: 0, total: initialPending, percent: 0 });
-      
-      let downloadedCount = 0;
-      
-      if (initialPending > 0) {
-        while (true) {
-          const { data, error } = await supabase.functions.invoke("download-videos-batch", {
-            body: { batchSize: 5 },
-          });
-
-          if (error) throw error;
-          if (data.processed === 0) break;
-
-          downloadedCount += data.successful || 0;
-          const percent = initialPending > 0 ? Math.round((downloadedCount / initialPending) * 50) : 0;
-          setMasterProgress({ 
-            phase: `Descargando videos... (${downloadedCount}/${initialPending})`, 
-            current: downloadedCount, 
-            total: initialPending, 
-            percent 
-          });
-          
-          await loadDownloadStats();
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-
-      // Phase 2: Match all products
-      const initialUnmatched = matchStats.unmatched;
-      setMasterProgress({ phase: 'Vinculando productos...', current: 0, total: initialUnmatched, percent: 50 });
-      
-      let totalMatched = 0;
-      let matchComplete = false;
-      
-      while (!matchComplete) {
-        const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-          body: { batchSize: 50, offset: 0 }
-        });
-
-        if (error) throw error;
-        
-        totalMatched += data.matchedInBatch || 0;
-        matchComplete = data.complete;
-        
-        const matchPercent = initialUnmatched > 0 ? 50 + Math.round((totalMatched / initialUnmatched) * 50) : 100;
-        setMasterProgress({ 
-          phase: `Vinculando productos... (${totalMatched} vinculados)`, 
-          current: totalMatched, 
-          total: initialUnmatched, 
-          percent: Math.min(matchPercent, 100)
-        });
-        
-        await loadMatchStats();
-      }
-
-      setMasterProgress({ phase: '¡Proceso completado!', current: 0, total: 0, percent: 100 });
-      
-      toast({
-        title: "¡Proceso maestro completado!",
-        description: `${downloadedCount} videos descargados, ${totalMatched} productos vinculados.`,
-      });
-
-      await loadStats();
-      await loadDownloadStats();
-      await loadMatchStats();
-      
-    } catch (error: any) {
-      toast({
-        title: "Error en proceso maestro",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsMasterProcessing(false);
-      setMasterProgress({ phase: '', current: 0, total: 0, percent: 0 });
-    }
   };
 
   const checkFounderRole = async () => {
@@ -257,251 +90,148 @@ const [isMasterProcessing, setIsMasterProcessing] = useState(false);
     }
   };
 
-  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setVideoFile(e.target.files[0]);
-    }
-  };
-
-  const handleProductFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setProductFile(e.target.files[0]);
-    }
-  };
-
-  const handleCreatorFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setCreatorFile(e.target.files[0]);
-    }
-  };
-
-  const handleUploadVideos = async () => {
-    if (!videoFile) return;
-
-    setIsUploadingVideos(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", videoFile);
-
-      const { data, error } = await supabase.functions.invoke("process-kalodata", {
-        body: formData,
-      });
-
-      if (error) throw error;
-
-      const successCount = data.processed || 0;
-
+  // Main process: Import all files → Download videos → Match products
+  const handleProcessAll = async () => {
+    if (!videoFile && !productFile && !creatorFile) {
       toast({
-        title: "¡Videos importados!",
-        description: `${successCount} videos cargados. Iniciando vinculación automática...`,
-      });
-
-      loadStats();
-      loadDownloadStats();
-      setVideoFile(null);
-      
-      // Reset file input
-      const input = document.getElementById('video-file') as HTMLInputElement;
-      if (input) input.value = '';
-
-      // Auto-trigger smart matching
-      setIsMatching(true);
-      toast({ title: "Vinculando productos...", description: "Este proceso puede tardar unos segundos." });
-      
-      const { data: matchData } = await supabase.functions.invoke("auto-match-videos-products");
-      
-      toast({
-        title: "Vinculación completada",
-        description: `${matchData?.matchedCount || 0} videos vinculados con productos.`,
-      });
-      
-      loadMatchStats();
-      
-    } catch (error: any) {
-      toast({
-        title: "Error al procesar videos",
-        description: error.message,
+        title: "Sin archivos",
+        description: "Selecciona al menos un archivo para procesar.",
         variant: "destructive",
       });
-    } finally {
-      setIsUploadingVideos(false);
-      setIsMatching(false);
+      return;
     }
-  };
 
-  const handleUploadProducts = async () => {
-    if (!productFile) return;
+    setIsProcessing(true);
+    setProcessProgress(0);
 
-    setIsUploadingProducts(true);
     try {
-      const formData = new FormData();
-      formData.append("file", productFile);
+      // Step 1: Import Products (if file exists)
+      if (productFile) {
+        setProcessPhase("Importando productos...");
+        setProcessProgress(10);
+        
+        const formData = new FormData();
+        formData.append("file", productFile);
+        
+        const { error } = await supabase.functions.invoke("process-kalodata-products", {
+          body: formData,
+        });
+        if (error) throw new Error(`Error en productos: ${error.message}`);
+        setProductFile(null);
+      }
 
-      const { data, error } = await supabase.functions.invoke("process-kalodata-products", {
-        body: formData,
-      });
+      // Step 2: Import Creators (if file exists)
+      if (creatorFile) {
+        setProcessPhase("Importando creadores...");
+        setProcessProgress(20);
+        
+        const formData = new FormData();
+        formData.append("file", creatorFile);
+        
+        const { error } = await supabase.functions.invoke("process-kalodata-creators", {
+          body: formData,
+        });
+        if (error) throw new Error(`Error en creadores: ${error.message}`);
+        setCreatorFile(null);
+      }
 
-      if (error) throw error;
+      // Step 3: Import Videos (if file exists)
+      if (videoFile) {
+        setProcessPhase("Importando videos...");
+        setProcessProgress(30);
+        
+        const formData = new FormData();
+        formData.append("file", videoFile);
+        
+        const { error } = await supabase.functions.invoke("process-kalodata", {
+          body: formData,
+        });
+        if (error) throw new Error(`Error en videos: ${error.message}`);
+        setVideoFile(null);
+      }
 
-      const successCount = data.processed || 0;
-
-      toast({
-        title: "¡Productos importados!",
-        description: `${successCount} productos cargados. Iniciando vinculación automática...`,
-      });
-
-      loadStats();
-      setProductFile(null);
+      // Step 4: Download pending videos
+      setProcessPhase("Descargando videos de TikTok...");
+      setProcessProgress(40);
       
-      const input = document.getElementById('product-file') as HTMLInputElement;
-      if (input) input.value = '';
-
-      // Auto-trigger smart matching after products upload
-      setIsMatching(true);
-      const { data: matchData } = await supabase.functions.invoke("auto-match-videos-products");
+      let downloadedCount = 0;
+      let continueDownload = true;
       
-      toast({
-        title: "Vinculación completada",
-        description: `${matchData?.matchedCount || 0} videos vinculados con productos.`,
-      });
-      
-      loadMatchStats();
-      
-    } catch (error: any) {
-      toast({
-        title: "Error al procesar productos",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploadingProducts(false);
-      setIsMatching(false);
-    }
-  };
-
-  const handleUploadCreators = async () => {
-    if (!creatorFile) return;
-
-    setIsUploadingCreators(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", creatorFile);
-
-      const { data, error } = await supabase.functions.invoke("process-kalodata-creators", {
-        body: formData,
-      });
-
-      if (error) throw error;
-
-      const successCount = data.processed || 0;
-
-      toast({
-        title: "¡Creadores importados!",
-        description: `${successCount} creadores cargados exitosamente.`,
-      });
-
-      loadStats();
-      setCreatorFile(null);
-      
-      const input = document.getElementById('creator-file') as HTMLInputElement;
-      if (input) input.value = '';
-      
-    } catch (error: any) {
-      toast({
-        title: "Error al procesar creadores",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploadingCreators(false);
-    }
-  };
-
-  const handleDownloadBatch = async () => {
-    setIsDownloading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("download-videos-batch", {
-        body: { batchSize: 5 },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Lote procesado",
-        description: `${data.successful || 0} descargados, ${data.failed || 0} fallidos. Quedan ${data.remaining || 0} pendientes.`,
-      });
-
-      loadDownloadStats();
-      
-    } catch (error: any) {
-      toast({
-        title: "Error al descargar",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleDownloadAll = async () => {
-    setIsDownloading(true);
-    let totalProcessed = 0;
-    let totalSuccess = 0;
-    let totalFailed = 0;
-    
-    try {
-      // Keep downloading batches until no more pending
-      while (true) {
+      while (continueDownload) {
         const { data, error } = await supabase.functions.invoke("download-videos-batch", {
           body: { batchSize: 5 },
         });
-
-        if (error) throw error;
-
-        if (data.processed === 0) {
-          break; // No more videos to process
-        }
-
-        totalProcessed += data.processed || 0;
-        totalSuccess += data.successful || 0;
-        totalFailed += data.failed || 0;
-
-        // Update stats after each batch
-        await loadDownloadStats();
-
-        toast({
-          title: "Progreso de descarga",
-          description: `${totalSuccess} descargados, ${totalFailed} fallidos. Quedan ${data.remaining || 0}...`,
-        });
-
-        // Small delay between batches
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Safety limit - stop after 200 videos
-        if (totalProcessed >= 200) {
-          toast({
-            title: "Límite alcanzado",
-            description: "Descarga pausada después de 200 videos. Haz clic de nuevo para continuar.",
-          });
+        
+        if (error) {
+          console.warn("Download batch error:", error.message);
           break;
+        }
+        
+        if (!data || data.processed === 0 || data.remaining === 0) {
+          continueDownload = false;
+        } else {
+          downloadedCount += data.successful || 0;
+          const progress = 40 + Math.min(30, (downloadedCount / 50) * 30);
+          setProcessProgress(progress);
+          setProcessPhase(`Descargando videos... (${downloadedCount} completados)`);
+          await new Promise(r => setTimeout(r, 500));
+          
+          // Safety limit
+          if (downloadedCount >= 100) break;
         }
       }
 
-      toast({
-        title: "Descarga completada",
-        description: `Total: ${totalSuccess} descargados, ${totalFailed} fallidos.`,
-      });
+      // Step 5: Match all videos with products
+      setProcessPhase("Vinculando videos con productos...");
+      setProcessProgress(75);
       
+      let matchComplete = false;
+      let totalMatched = 0;
+      
+      while (!matchComplete) {
+        const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
+          body: { batchSize: 100, threshold: 0.5 }
+        });
+        
+        if (error) {
+          console.warn("Match error:", error.message);
+          break;
+        }
+        
+        totalMatched += data.matchedInBatch || 0;
+        matchComplete = data.complete;
+        
+        const progress = 75 + Math.min(20, (totalMatched / 100) * 20);
+        setProcessProgress(progress);
+        setProcessPhase(`Vinculando productos... (${totalMatched} vinculados)`);
+      }
+
+      // Done!
+      setProcessProgress(100);
+      setProcessPhase("¡Proceso completado!");
+      
+      toast({
+        title: "¡Proceso completado!",
+        description: `${downloadedCount} videos descargados, ${totalMatched} productos vinculados.`,
+      });
+
+      // Refresh stats
+      await loadStats();
+      
+      // Reset file inputs
+      const inputs = document.querySelectorAll('input[type="file"]') as NodeListOf<HTMLInputElement>;
+      inputs.forEach(input => input.value = '');
+
     } catch (error: any) {
       toast({
-        title: "Error en descarga masiva",
+        title: "Error en el proceso",
         description: error.message,
         variant: "destructive",
       });
     } finally {
-      setIsDownloading(false);
-      loadDownloadStats();
+      setIsProcessing(false);
+      setProcessPhase("");
+      setProcessProgress(0);
     }
   };
 
@@ -515,9 +245,8 @@ const [isMasterProcessing, setIsMasterProcessing] = useState(false);
 
   if (!isFounder) return null;
 
-  const downloadProgress = downloadStats.total > 0 
-    ? (downloadStats.downloaded / downloadStats.total) * 100 
-    : 0;
+  const matchPercent = stats.videos > 0 ? ((stats.videosWithProduct / stats.videos) * 100).toFixed(0) : 0;
+  const downloadPercent = stats.videos > 0 ? ((stats.videosDownloaded / stats.videos) * 100).toFixed(0) : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -527,452 +256,150 @@ const [isMasterProcessing, setIsMasterProcessing] = useState(false);
           <h1 className="text-2xl font-bold text-foreground">Panel de Importación</h1>
           <Button variant="ghost" onClick={() => navigate("/app")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver a Videos
+            Volver
           </Button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Current Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Videos</p>
-                    <p className="text-2xl font-bold">{stats.videos}</p>
-                  </div>
-                  <Video className="h-8 w-8 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Productos</p>
-                    <p className="text-2xl font-bold">{stats.products}</p>
-                  </div>
-                  <Package className="h-8 w-8 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Creadores</p>
-                    <p className="text-2xl font-bold">{stats.creators}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Master Process Button */}
-          <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center text-xl">
-                <Zap className="h-6 w-6 mr-2 text-primary" />
-                Proceso Maestro
-              </CardTitle>
-              <CardDescription>
-                Descarga todos los videos y vincula todos los productos automáticamente
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isMasterProcessing && (
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-foreground">{masterProgress.phase}</span>
-                    <span className="text-muted-foreground">{masterProgress.percent}%</span>
-                  </div>
-                  <Progress value={masterProgress.percent} className="h-3" />
-                  <div className="grid grid-cols-2 gap-4 text-center text-sm">
-                    <div className="bg-background/50 rounded-lg p-2">
-                      <p className="text-muted-foreground">Pendientes descarga</p>
-                      <p className="font-bold text-yellow-500">{downloadStats.pending}</p>
-                    </div>
-                    <div className="bg-background/50 rounded-lg p-2">
-                      <p className="text-muted-foreground">Sin vincular</p>
-                      <p className="font-bold text-yellow-500">{matchStats.unmatched}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <Button 
-                onClick={handleMasterProcess}
-                disabled={isMasterProcessing || isDownloading || isMatching}
-                size="lg"
-                className="w-full h-14 text-lg font-semibold"
-              >
-                {isMasterProcessing ? (
-                  <>
-                    <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                    Procesando... {masterProgress.percent}%
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-5 w-5 mr-2" />
-                    🚀 Procesar Todo (Descargar + Vincular)
-                  </>
-                )}
-              </Button>
-              
-              {!isMasterProcessing && (downloadStats.pending > 0 || matchStats.unmatched > 0) && (
-                <p className="text-xs text-center text-muted-foreground">
-                  {downloadStats.pending} videos por descargar • {matchStats.unmatched} videos por vincular
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* MP4 Download Status */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Download className="h-5 w-5 mr-2" />
-                Estado de Descarga de MP4
-              </CardTitle>
-              <CardDescription>
-                Descarga los videos de TikTok para reproducción local sin embeds
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-4 gap-4 text-center">
+      <main className="container mx-auto px-4 py-8 max-w-3xl">
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{downloadStats.total}</p>
-                  <p className="text-xs text-muted-foreground">Total</p>
+                  <p className="text-xs text-muted-foreground">Videos</p>
+                  <p className="text-xl font-bold">{stats.videos}</p>
+                  <p className="text-xs text-green-600">{downloadPercent}% MP4</p>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-green-500">{downloadStats.downloaded}</p>
-                  <p className="text-xs text-muted-foreground">Descargados</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-yellow-500">{downloadStats.pending}</p>
-                  <p className="text-xs text-muted-foreground">Pendientes</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-red-500">{downloadStats.failed}</p>
-                  <p className="text-xs text-muted-foreground">Fallidos</p>
-                </div>
+                <Video className="h-6 w-6 text-primary" />
               </div>
-
-              <Progress value={downloadProgress} className="h-2" />
-              <p className="text-sm text-muted-foreground text-center">
-                {downloadProgress.toFixed(1)}% completado
-              </p>
-
-              <div className="flex gap-2">
-                <Button 
-                  onClick={handleDownloadBatch} 
-                  disabled={isDownloading || downloadStats.pending === 0}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
-                  Descargar 5 videos
-                </Button>
-                <Button 
-                  onClick={handleDownloadAll} 
-                  disabled={isDownloading || downloadStats.pending === 0}
-                  className="flex-1"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {isDownloading ? "Descargando..." : "Descargar todos"}
-                </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Productos</p>
+                  <p className="text-xl font-bold">{stats.products}</p>
+                  <p className="text-xs text-green-600">{matchPercent}% vinculados</p>
+                </div>
+                <Package className="h-6 w-6 text-primary" />
               </div>
-
-              {downloadStats.failed > 0 && (
-                <div className="flex items-center gap-2 text-sm text-yellow-600 bg-yellow-50 p-3 rounded-lg">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>Algunos videos fallaron. Haz clic en "Descargar todos" para reintentar.</span>
-                </div>
-              )}
             </CardContent>
           </Card>
-
-          {/* Smart Product Matching */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Link className="h-5 w-5 mr-2" />
-                Vinculación Inteligente de Productos
-              </CardTitle>
-              <CardDescription>
-                Vincula automáticamente videos con productos usando matching avanzado con IA
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 text-center">
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{matchStats.total}</p>
-                  <p className="text-xs text-muted-foreground">Total Videos</p>
+                  <p className="text-xs text-muted-foreground">Creadores</p>
+                  <p className="text-xl font-bold">{stats.creators}</p>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-green-500">{matchStats.matched}</p>
-                  <p className="text-xs text-muted-foreground">Con Producto</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-yellow-500">{matchStats.unmatched}</p>
-                  <p className="text-xs text-muted-foreground">Sin Producto</p>
-                </div>
+                <Users className="h-6 w-6 text-primary" />
               </div>
-
-              <Progress 
-                value={matchStats.total > 0 ? (matchStats.matched / matchStats.total) * 100 : 0} 
-                className="h-2" 
-              />
-              <p className="text-sm text-muted-foreground text-center">
-                {matchStats.total > 0 ? ((matchStats.matched / matchStats.total) * 100).toFixed(1) : 0}% vinculados
-              </p>
-
-              <Button 
-                onClick={handleSmartMatch} 
-                disabled={isMatching || matchStats.total === 0}
-                className="w-full"
-              >
-                <Sparkles className={`h-4 w-4 mr-2 ${isMatching ? 'animate-pulse' : ''}`} />
-                {isMatching ? "Vinculando productos..." : "Ejecutar Vinculación Inteligente"}
-              </Button>
-
-              {matchStats.unmatched > 0 && (
-                <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
-                  <Sparkles className="h-4 w-4" />
-                  <span>Haz clic para vincular {matchStats.unmatched} videos con sus productos correspondientes.</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Rebuild Index Section */}
-          <Card className="mb-8 border-2 border-orange-500/20 bg-gradient-to-r from-orange-500/5 to-orange-500/10">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <RefreshCw className="h-5 w-5 mr-2 text-orange-500" />
-                Reconstruir Índice
-              </CardTitle>
-              <CardDescription>
-                Reprocesa todos los matches, categorías, ganancias y métricas derivadas sin necesidad de volver a subir archivos.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {rebuildStats && (
-                <div className="grid grid-cols-3 gap-4 text-center text-sm bg-background/50 rounded-lg p-4">
-                  <div>
-                    <p className="text-muted-foreground">Videos Procesados</p>
-                    <p className="font-bold text-foreground">{rebuildStats.totalVideos}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Vinculados</p>
-                    <p className="font-bold text-green-500">{rebuildStats.videosMatched}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Sin Vincular</p>
-                    <p className="font-bold text-yellow-500">{rebuildStats.videosUnmatched}</p>
-                  </div>
-                </div>
-              )}
-              
-              <Button 
-                onClick={async () => {
-                  setIsRebuilding(true);
-                  setRebuildStats(null);
-                  try {
-                    const { data, error } = await supabase.functions.invoke("rebuild-index");
-                    if (error) throw error;
-                    
-                    setRebuildStats(data.summary);
-                    toast({
-                      title: "¡Índice reconstruido!",
-                      description: data.message,
-                    });
-                    
-                    // Refresh all stats
-                    await Promise.all([loadStats(), loadDownloadStats(), loadMatchStats()]);
-                  } catch (error: any) {
-                    toast({
-                      title: "Error al reconstruir",
-                      description: error.message,
-                      variant: "destructive",
-                    });
-                  } finally {
-                    setIsRebuilding(false);
-                  }
-                }}
-                disabled={isRebuilding || isMasterProcessing}
-                className="w-full bg-orange-500 hover:bg-orange-600"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRebuilding ? 'animate-spin' : ''}`} />
-                {isRebuilding ? "Reconstruyendo índice..." : "🔄 Reconstruir Todo (sin subir archivos)"}
-              </Button>
-
-              <p className="text-xs text-center text-muted-foreground">
-                Recalcula: earning_per_sale, gmv_30d, sales_30d, creator_count, commission_rate y todos los vínculos video-producto
-              </p>
-            </CardContent>
-          </Card>
-
-          <Tabs defaultValue="videos" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="videos">
-                <Video className="h-4 w-4 mr-2" />
-                Videos
-              </TabsTrigger>
-              <TabsTrigger value="products">
-                <Package className="h-4 w-4 mr-2" />
-                Productos
-              </TabsTrigger>
-              <TabsTrigger value="creators">
-                <Users className="h-4 w-4 mr-2" />
-                Creadores
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Videos Tab */}
-            <TabsContent value="videos">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Upload className="h-5 w-5 mr-2" />
-                    Importar Videos (videos.xlsx)
-                  </CardTitle>
-                  <CardDescription>
-                    Sube el archivo Excel con los videos. Se eliminarán los registros actuales y se insertarán todos los nuevos.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="video-file">Archivo Excel (.xlsx)</Label>
-                    <Input
-                      id="video-file"
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleVideoFileChange}
-                    />
-                    {videoFile && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        {videoFile.name}
-                      </p>
-                    )}
-                  </div>
-
-                  <Button 
-                    onClick={handleUploadVideos} 
-                    disabled={!videoFile || isUploadingVideos}
-                    className="w-full"
-                  >
-                    <Database className="h-4 w-4 mr-2" />
-                    {isUploadingVideos ? "Importando..." : "Importar Videos"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Products Tab */}
-            <TabsContent value="products">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Upload className="h-5 w-5 mr-2" />
-                    Importar Productos (productos.xlsx)
-                  </CardTitle>
-                  <CardDescription>
-                    Sube el archivo Excel con los productos. Se eliminarán los registros actuales y se insertarán todos los nuevos.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="product-file">Archivo Excel (.xlsx)</Label>
-                    <Input
-                      id="product-file"
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleProductFileChange}
-                    />
-                    {productFile && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        {productFile.name}
-                      </p>
-                    )}
-                  </div>
-
-                  <Button 
-                    onClick={handleUploadProducts} 
-                    disabled={!productFile || isUploadingProducts}
-                    className="w-full"
-                  >
-                    <Database className="h-4 w-4 mr-2" />
-                    {isUploadingProducts ? "Importando..." : "Importar Productos"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Creators Tab */}
-            <TabsContent value="creators">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Upload className="h-5 w-5 mr-2" />
-                    Importar Creadores (creadores.xlsx)
-                  </CardTitle>
-                  <CardDescription>
-                    Sube el archivo Excel con los creadores. Se eliminarán los registros actuales y se insertarán todos los nuevos.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="creator-file">Archivo Excel (.xlsx)</Label>
-                    <Input
-                      id="creator-file"
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleCreatorFileChange}
-                    />
-                    {creatorFile && (
-                      <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        {creatorFile.name}
-                      </p>
-                    )}
-                  </div>
-
-                  <Button 
-                    onClick={handleUploadCreators} 
-                    disabled={!creatorFile || isUploadingCreators}
-                    className="w-full"
-                  >
-                    <Database className="h-4 w-4 mr-2" />
-                    {isUploadingCreators ? "Importando..." : "Importar Creadores"}
-                  </Button>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-
-          {/* Instructions */}
-          <Card className="mt-6 bg-muted">
-            <CardHeader>
-              <CardTitle className="text-lg">Instrucciones de Importación</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                <li>Cada importación <strong>elimina todos los registros actuales</strong> de esa tabla</li>
-                <li>Lee y valida las columnas del archivo Excel</li>
-                <li>Inserta <strong>todos los registros</strong> del archivo (sin límite de "Top X")</li>
-                <li>Los videos se ordenarán por ingresos, productos y creadores por fecha</li>
-                <li><strong>Después de importar videos</strong>, usa "Descargar todos" para obtener los MP4</li>
-              </ol>
             </CardContent>
           </Card>
         </div>
+
+        {/* File Upload Section */}
+        <Card className="mb-6">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center text-lg">
+              <FileSpreadsheet className="h-5 w-5 mr-2" />
+              Archivos de Kalodata
+            </CardTitle>
+            <CardDescription>
+              Selecciona los archivos Excel exportados de Kalodata
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Videos File */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <Label htmlFor="video-file" className="text-sm font-medium">Videos</Label>
+                <Input
+                  id="video-file"
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                  className="mt-1"
+                  disabled={isProcessing}
+                />
+              </div>
+              {videoFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
+            </div>
+
+            {/* Products File */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <Label htmlFor="product-file" className="text-sm font-medium">Productos</Label>
+                <Input
+                  id="product-file"
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={(e) => setProductFile(e.target.files?.[0] || null)}
+                  className="mt-1"
+                  disabled={isProcessing}
+                />
+              </div>
+              {productFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
+            </div>
+
+            {/* Creators File */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <Label htmlFor="creator-file" className="text-sm font-medium">Creadores</Label>
+                <Input
+                  id="creator-file"
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={(e) => setCreatorFile(e.target.files?.[0] || null)}
+                  className="mt-1"
+                  disabled={isProcessing}
+                />
+              </div>
+              {creatorFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Process Button */}
+        <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+          <CardContent className="pt-6 pb-6 space-y-4">
+            {isProcessing && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium">{processPhase}</span>
+                  <span className="text-muted-foreground">{processProgress}%</span>
+                </div>
+                <Progress value={processProgress} className="h-2" />
+              </div>
+            )}
+            
+            <Button 
+              onClick={handleProcessAll}
+              disabled={isProcessing || (!videoFile && !productFile && !creatorFile)}
+              size="lg"
+              className="w-full h-14 text-lg font-semibold"
+            >
+              {isProcessing ? (
+                <>
+                  <Zap className="h-5 w-5 mr-2 animate-pulse" />
+                  {processPhase || "Procesando..."}
+                </>
+              ) : (
+                <>
+                  <Zap className="h-5 w-5 mr-2" />
+                  🚀 Procesar Todo
+                </>
+              )}
+            </Button>
+
+            <p className="text-xs text-center text-muted-foreground">
+              Importa archivos → Descarga videos → Vincula productos automáticamente
+            </p>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
