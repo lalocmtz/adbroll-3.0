@@ -46,6 +46,7 @@ export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
   const handleMouseEnter = () => {
     setIsHovered(true);
     if (videoRef.current && video.video_mp4_url) {
+      videoRef.current.muted = false;
       videoRef.current.play().catch(() => {});
     }
   };
@@ -55,6 +56,7 @@ export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
+      videoRef.current.muted = true;
     }
   };
 
