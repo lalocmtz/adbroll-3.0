@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DashboardSidebar from "./DashboardSidebar";
+import DashboardFooter from "@/components/DashboardFooter";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -32,9 +33,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
 
         {/* Page content */}
-        <main className="flex-1">
+        <main className="flex-1 pb-16">
           {children}
         </main>
+
+        {/* Fixed Footer */}
+        <div className="fixed bottom-0 left-0 right-0 lg:left-64 z-20">
+          <DashboardFooter />
+        </div>
       </div>
     </div>
   );
