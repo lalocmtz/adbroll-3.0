@@ -50,3 +50,9 @@ verify_jwt = false
 
 [functions.download-videos-batch]
 verify_jwt = false
+
+[functions.generate-hooks]
+verify_jwt = false
+
+[functions.generate-full-script]
+verify_jwt = false
