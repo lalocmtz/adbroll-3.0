@@ -12,11 +12,12 @@ const COLUMN_MAPPINGS: Record<string, string[]> = {
   creator_name: ["nombre del creador", "creator name", "creator", "nombre", "name", "nombre completo"],
   username: ["usuario del creador", "username", "handle", "usuario", "@", "creator handle", "tiktok handle"],
   avatar_url: ["profile image", "profile image url", "imagen", "avatar", "foto", "image url", "profile pic", "avatar url", "creator avatar url"],
-  followers: ["seguidores", "followers", "follower count", "total followers"],
-  revenue_30d: ["ingresos(m$)", "ingresos", "revenue", "ingresos totales", "total revenue", "gmv", "total ingresos", "gmv 30d", "ingresos 30d", "revenue 30d"],
-  views_30d: ["visualizaciones", "views", "vistas", "content views", "total views", "vistas de contenido", "video views", "views 30d"],
-  likes_30d: ["likes", "me gusta", "total likes", "likes 30d", "like count"],
-  revenue_live: ["ingresos en vivo", "live revenue", "revenue live", "gmv live", "ingresos live"],
+  followers: ["seguidores", "followers", "follower count", "total followers", "creator_follower"],
+  revenue_30d: ["ingresos(m$)", "ingresos", "revenue", "ingresos totales", "total revenue", "gmv", "total ingresos", "gmv 30d", "ingresos 30d", "revenue 30d", "creator_income_30d"],
+  views_30d: ["visualizaciones", "views", "vistas", "content views", "total views", "vistas de contenido", "video views", "views 30d", "video_views_30d"],
+  total_live_count: ["lives", "total lives", "live count", "total_live_count", "lives 30d", "transmisiones en vivo", "live streams", "live sessions"],
+  gmv_live: ["gmv live", "gmv_live_m", "ventas live", "live gmv", "gmv por lives", "live sales", "ventas en vivo", "gmv live m", "live revenue"],
+  revenue_live: ["ingresos en vivo", "live revenue", "revenue live", "ingresos live"],
   revenue_videos: ["ingresos por video", "video revenue", "revenue videos", "gmv videos", "ingresos videos"],
   tiktok_url: ["enlace de tiktok", "tiktok url", "url", "profile url", "enlace", "link", "creator url", "tiktok link"],
   country: ["country", "país", "region", "location"],
@@ -267,7 +268,8 @@ serve(async (req) => {
       const followers = parseNumericValue(findColumnValue(row, "followers"));
       const revenue30d = parseNumericValue(findColumnValue(row, "revenue_30d"));
       const views30d = parseNumericValue(findColumnValue(row, "views_30d"));
-      const likes30d = parseNumericValue(findColumnValue(row, "likes_30d"));
+      const totalLiveCount = parseNumericValue(findColumnValue(row, "total_live_count"));
+      const gmvLive = parseNumericValue(findColumnValue(row, "gmv_live"));
       const revenueLive = parseNumericValue(findColumnValue(row, "revenue_live"));
       const revenueVideos = parseNumericValue(findColumnValue(row, "revenue_videos"));
       const tiktokUrl = findColumnValue(row, "tiktok_url");
@@ -275,6 +277,9 @@ serve(async (req) => {
 
       const finalUsername = username || creatorName || `creator_${index + 1}`;
       const cleanUsername = String(finalUsername).replace("@", "").trim();
+
+      // Use gmv_live if available, otherwise fall back to revenue_live
+      const finalGmvLive = gmvLive || revenueLive || 0;
 
       return {
         usuario_creador: cleanUsername,
@@ -288,7 +293,9 @@ serve(async (req) => {
         promedio_roas: null,
         mejor_video_url: null,
         avatar_url: avatarUrl ? String(avatarUrl).trim() : null,
-        likes_30d: likes30d ? Math.round(likes30d) : 0,
+        likes_30d: 0, // Deprecated, keeping for backward compatibility
+        total_live_count: totalLiveCount ? Math.round(totalLiveCount) : 0,
+        gmv_live_mxn: finalGmvLive,
         revenue_live: revenueLive || 0,
         revenue_videos: revenueVideos || 0,
         tiktok_url: buildTikTokUrl(cleanUsername, tiktokUrl ? String(tiktokUrl).trim() : null),

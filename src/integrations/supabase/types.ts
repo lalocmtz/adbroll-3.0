@@ -53,6 +53,7 @@ export type Database = {
           country: string | null
           created_at: string | null
           creator_handle: string | null
+          gmv_live_mxn: number | null
           id: string
           last_import: string | null
           likes_30d: number | null
@@ -65,6 +66,7 @@ export type Database = {
           seguidores: number | null
           tiktok_url: string | null
           total_ingresos_mxn: number | null
+          total_live_count: number | null
           total_ventas: number | null
           total_videos: number | null
           updated_at: string | null
@@ -75,6 +77,7 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           creator_handle?: string | null
+          gmv_live_mxn?: number | null
           id?: string
           last_import?: string | null
           likes_30d?: number | null
@@ -87,6 +90,7 @@ export type Database = {
           seguidores?: number | null
           tiktok_url?: string | null
           total_ingresos_mxn?: number | null
+          total_live_count?: number | null
           total_ventas?: number | null
           total_videos?: number | null
           updated_at?: string | null
@@ -97,6 +101,7 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           creator_handle?: string | null
+          gmv_live_mxn?: number | null
           id?: string
           last_import?: string | null
           likes_30d?: number | null
@@ -109,6 +114,7 @@ export type Database = {
           seguidores?: number | null
           tiktok_url?: string | null
           total_ingresos_mxn?: number | null
+          total_live_count?: number | null
           total_ventas?: number | null
           total_videos?: number | null
           updated_at?: string | null
