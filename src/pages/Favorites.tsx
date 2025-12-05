@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Trash2, ExternalLink, Heart, Video, Package, Users, Play,
-  DollarSign, ShoppingCart, Percent, Eye, TrendingUp, Star, Sparkles
+  DollarSign, ShoppingCart, Percent, Eye, TrendingUp, Star, Sparkles, FileText, Copy, Check
 } from "lucide-react";
 import VideoAnalysisModalOriginal from "@/components/VideoAnalysisModalOriginal";
 import { useNavigate } from "react-router-dom";
@@ -32,6 +32,19 @@ interface FavoriteProduct {
 interface FavoriteCreator {
   id: string;
   item_id: string;
+  created_at: string;
+}
+
+interface FavoriteScript {
+  id: string;
+  script_id: string;
+  script_data: {
+    title?: string;
+    content: string;
+    video_title?: string;
+    variant_type?: string;
+    created_at?: string;
+  };
   created_at: string;
 }
 
@@ -73,7 +86,9 @@ const Favorites = () => {
   const [videos, setVideos] = useState<FavoriteVideo[]>([]);
   const [products, setProducts] = useState<FavoriteProduct[]>([]);
   const [creators, setCreators] = useState<Creator[]>([]);
+  const [scripts, setScripts] = useState<FavoriteScript[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copiedScript, setCopiedScript] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -91,18 +106,24 @@ const Favorites = () => {
         return;
       }
 
-      const [videosRes, productsRes, creatorFavsRes] = await Promise.all([
+      const [videosRes, productsRes, creatorFavsRes, scriptsRes] = await Promise.all([
         supabase.from("favorites_videos").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("favorites_products").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("favorites").select("*").eq("user_id", user.id).eq("item_type", "creator").order("created_at", { ascending: false }),
+        supabase.from("favorites_scripts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       ]);
 
       if (videosRes.error) throw videosRes.error;
       if (productsRes.error) throw productsRes.error;
       if (creatorFavsRes.error) throw creatorFavsRes.error;
+      if (scriptsRes.error) throw scriptsRes.error;
 
       setVideos(videosRes.data || []);
       setProducts(productsRes.data || []);
+      setScripts((scriptsRes.data || []).map(s => ({
+        ...s,
+        script_data: s.script_data as FavoriteScript['script_data']
+      })));
 
       if (creatorFavsRes.data && creatorFavsRes.data.length > 0) {
         const creatorIds = creatorFavsRes.data.map(f => f.item_id);
@@ -167,6 +188,28 @@ const Favorites = () => {
     }
   };
 
+  const handleDeleteScript = async (id: string) => {
+    try {
+      const { error } = await supabase.from("favorites_scripts").delete().eq("id", id);
+      if (error) throw error;
+      setScripts(scripts.filter((s) => s.id !== id));
+      toast({ title: "✓ Guión eliminado de favoritos" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleCopyScript = async (content: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedScript(id);
+      setTimeout(() => setCopiedScript(null), 2000);
+      toast({ title: "✓ Guión copiado" });
+    } catch (error) {
+      toast({ title: "Error al copiar", variant: "destructive" });
+    }
+  };
+
   const getAvatarUrl = (creator: Creator): string => {
     if (creator.avatar_url && creator.avatar_url.startsWith("http")) {
       return creator.avatar_url;
@@ -183,7 +226,7 @@ const Favorites = () => {
     );
   }
 
-  const totalFavorites = videos.length + products.length + creators.length;
+  const totalFavorites = videos.length + products.length + creators.length + scripts.length;
 
   return (
     <div className="pt-5 pb-6 px-4 md:px-6">
@@ -196,18 +239,22 @@ const Favorites = () => {
       </div>
 
       <Tabs defaultValue="videos" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-4 h-9">
+        <TabsList className="grid w-full grid-cols-4 mb-4 h-9">
           <TabsTrigger value="videos" className="flex items-center gap-1.5 text-xs">
             <Video className="h-3.5 w-3.5" />
-            {t("videos")} ({videos.length})
+            <span className="hidden sm:inline">{t("videos")}</span> ({videos.length})
           </TabsTrigger>
           <TabsTrigger value="productos" className="flex items-center gap-1.5 text-xs">
             <Package className="h-3.5 w-3.5" />
-            {t("products")} ({products.length})
+            <span className="hidden sm:inline">{t("products")}</span> ({products.length})
+          </TabsTrigger>
+          <TabsTrigger value="guiones" className="flex items-center gap-1.5 text-xs">
+            <FileText className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Guiones</span> ({scripts.length})
           </TabsTrigger>
           <TabsTrigger value="creadores" className="flex items-center gap-1.5 text-xs">
             <Users className="h-3.5 w-3.5" />
-            {t("creators")} ({creators.length})
+            <span className="hidden sm:inline">{t("creators")}</span> ({creators.length})
           </TabsTrigger>
         </TabsList>
 
@@ -452,6 +499,101 @@ const Favorites = () => {
                         <Play className="h-3.5 w-3.5 mr-1.5" />
                         Ver videos
                       </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* SCRIPTS TAB */}
+        <TabsContent value="guiones" className="mt-4">
+          {scripts.length === 0 ? (
+            <Card className="p-12 text-center">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">No tienes guiones guardados</p>
+              <p className="text-xs text-muted-foreground/70 mt-2">
+                Guarda guiones desde el modal de análisis de video usando el botón ❤️
+              </p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {scripts.map((fav, index) => {
+                const script = fav.script_data;
+                const previewText = script.content?.substring(0, 200) + (script.content?.length > 200 ? "..." : "");
+                
+                return (
+                  <Card key={fav.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <FileText className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {script.variant_type || "Guión"}
+                            </Badge>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              #{index + 1}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 rounded-full"
+                            onClick={() => handleCopyScript(script.content, fav.id)}
+                          >
+                            {copiedScript === fav.id ? (
+                              <Check className="h-3.5 w-3.5 text-green-500" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 rounded-full text-red-500"
+                            onClick={() => handleDeleteScript(fav.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {script.video_title && (
+                        <p className="text-xs font-medium text-foreground line-clamp-1 mb-2">
+                          {script.video_title}
+                        </p>
+                      )}
+
+                      <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                          {previewText}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(fav.created_at).toLocaleDateString('es-MX', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px]"
+                          onClick={() => handleCopyScript(script.content, fav.id)}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copiar guión
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 );
