@@ -56,13 +56,18 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 
 ## 👤 SECCIÓN CREADORES - COMPLETADO
 
-- [x] Mostrar 100 creadores importados
+- [x] Mostrar Top 50 creadores importados
 - [x] Cada tarjeta muestra:
-  - Username y nombre
-  - Seguidores
-  - Vistas totales
-  - Ingresos totales
-  - ROAS
+  - Foto de perfil real (con fallback ui-avatars)
+  - Nombre y @username
+  - Ranking dinámico según filtro
+  - Métricas Fila 1: Ingresos 30D, Seguidores, Views 30D
+  - Métricas Fila 2: Ventas 30D, Comisión estimada (10%)
+  - Botón "Ver perfil" → abre TikTok
+- [x] Sistema de filtros con 4 píldoras (sin buscador):
+  - Más ingresos, Más seguidores, Más views, Más ventas
+- [x] Ordenamiento instantáneo client-side
+- [x] Números formateados (1.2M, 91.2K, etc.)
 
 ---
 

@@ -9,17 +9,15 @@ const corsHeaders = {
 
 // Dynamic column mapping for Kalodata creator files
 const COLUMN_MAPPINGS: Record<string, string[]> = {
-  creator_name: ["creator name", "nombre del creador", "creator", "nombre", "name", "nombre completo"],
-  username: ["username", "handle", "usuario", "usuario del creador", "@", "creator handle", "tiktok handle"],
-  profile_image: ["profile image", "profile image url", "imagen", "avatar", "foto", "image url", "profile pic"],
-  followers: ["followers", "seguidores", "follower count", "total followers"],
-  revenue: ["revenue", "ingresos", "ingresos totales", "total revenue", "gmv", "total ingresos", "ingresos(m$)", "total ingresos (m$)"],
-  views: ["views", "vistas", "content views", "total views", "vistas de contenido", "visualizaciones", "video views"],
-  sales: ["sales", "ventas", "items sold", "artículos vendidos", "total ventas", "orders", "total orders"],
-  conversion_rate: ["conversion rate", "tasa de conversión", "tasa conversión", "creator conversion", "conversion", "tasa de conversión del creador"],
-  tiktok_url: ["tiktok url", "url", "profile url", "enlace", "link", "creator url", "tiktok link"],
+  creator_name: ["nombre del creador", "creator name", "creator", "nombre", "name", "nombre completo"],
+  username: ["usuario del creador", "username", "handle", "usuario", "@", "creator handle", "tiktok handle"],
+  profile_image: ["profile image", "profile image url", "imagen", "avatar", "foto", "image url", "profile pic", "avatar url"],
+  followers: ["seguidores", "followers", "follower count", "total followers"],
+  revenue_30d: ["ingresos(m$)", "ingresos", "revenue", "ingresos totales", "total revenue", "gmv", "total ingresos", "gmv 30d", "ingresos 30d"],
+  views_30d: ["visualizaciones", "views", "vistas", "content views", "total views", "vistas de contenido", "video views", "views 30d"],
+  sales_30d: ["ventas", "sales", "orders", "items sold", "artículos vendidos", "total ventas", "total orders", "ventas 30d", "orders 30d"],
+  tiktok_url: ["enlace de tiktok", "tiktok url", "url", "profile url", "enlace", "link", "creator url", "tiktok link"],
   country: ["country", "país", "region", "location"],
-  videos_count: ["videos", "total videos", "video count", "cantidad de videos"],
 };
 
 // Find matching column value dynamically
@@ -48,12 +46,24 @@ function findColumnValue(row: Record<string, any>, fieldName: string): any {
   return null;
 }
 
-// Parse numeric values safely
+// Parse numeric values safely - handles M$ format from Kalodata
 function parseNumericValue(value: any): number | null {
   if (value === null || value === undefined || value === "") return null;
   if (typeof value === "number") return value;
   
   const str = String(value).replace(/[$,MXN\s%]/gi, "").trim();
+  
+  // Handle "M$" suffix (millions)
+  if (str.toLowerCase().includes("m")) {
+    const numPart = parseFloat(str.replace(/[mM]/g, ""));
+    if (!isNaN(numPart)) return numPart * 1000000;
+  }
+  
+  // Handle "K" suffix (thousands)
+  if (str.toLowerCase().includes("k")) {
+    const numPart = parseFloat(str.replace(/[kK]/g, ""));
+    if (!isNaN(numPart)) return numPart * 1000;
+  }
   
   // Handle ranges
   if (str.includes("-") && !str.startsWith("-")) {
@@ -135,7 +145,8 @@ serve(async (req) => {
     console.log(`Procesando ${rows.length} filas del Excel`);
     
     if (rows.length > 0) {
-      console.log("Columnas detectadas:", Object.keys(rows[0]));
+      console.log("Columnas detectadas:", JSON.stringify(Object.keys(rows[0])));
+      console.log("Primera fila ejemplo:", JSON.stringify(rows[0], null, 2));
     }
 
     // Process each row with dynamic column detection
@@ -144,29 +155,30 @@ serve(async (req) => {
       const username = findColumnValue(row, "username");
       const profileImage = findColumnValue(row, "profile_image");
       const followers = parseNumericValue(findColumnValue(row, "followers"));
-      const revenue = parseNumericValue(findColumnValue(row, "revenue"));
-      const views = parseNumericValue(findColumnValue(row, "views"));
-      const sales = parseNumericValue(findColumnValue(row, "sales"));
-      const conversionRate = parseNumericValue(findColumnValue(row, "conversion_rate"));
+      const revenue30d = parseNumericValue(findColumnValue(row, "revenue_30d"));
+      const views30d = parseNumericValue(findColumnValue(row, "views_30d"));
+      const sales30d = parseNumericValue(findColumnValue(row, "sales_30d"));
       const tiktokUrl = findColumnValue(row, "tiktok_url");
       const country = findColumnValue(row, "country");
-      const videosCount = parseNumericValue(findColumnValue(row, "videos_count"));
 
       // Username is required - try to extract from name if not available
       const finalUsername = username || creatorName || `creator_${index + 1}`;
+      const cleanUsername = String(finalUsername).replace("@", "").trim();
 
       return {
-        usuario_creador: String(finalUsername).replace("@", "").trim(),
-        nombre_completo: creatorName ? String(creatorName).trim() : null,
-        creator_handle: String(finalUsername).replace("@", "").trim(),
-        seguidores: followers ? Math.round(followers) : null,
-        total_ingresos_mxn: revenue || 0,
-        total_ventas: sales ? Math.round(sales) : 0,
-        total_videos: videosCount ? Math.round(videosCount) : 0,
-        promedio_visualizaciones: views ? Math.round(views) : null,
-        promedio_roas: conversionRate, // Store conversion rate here (reusing field)
-        mejor_video_url: tiktokUrl ? String(tiktokUrl).trim() : null,
+        usuario_creador: cleanUsername,
+        nombre_completo: creatorName ? String(creatorName).trim() : cleanUsername,
+        creator_handle: cleanUsername,
+        seguidores: followers ? Math.round(followers) : 0,
+        total_ingresos_mxn: revenue30d || 0,
+        total_ventas: sales30d ? Math.round(sales30d) : 0,
+        total_videos: 0,
+        promedio_visualizaciones: views30d ? Math.round(views30d) : 0,
+        promedio_roas: null, // Not used anymore
+        mejor_video_url: profileImage ? String(profileImage).trim() : null, // Store avatar URL here
         country: country ? String(country).trim() : null,
+        // Store TikTok profile URL in a way we can extract
+        last_import: new Date().toISOString(),
       };
     }).filter(c => c.usuario_creador && c.usuario_creador !== "creator_0");
 

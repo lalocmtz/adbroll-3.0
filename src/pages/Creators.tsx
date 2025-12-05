@@ -3,11 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Video, Search, ShoppingCart, Globe } from "lucide-react";
+import { Users, DollarSign, Eye, ShoppingCart, ExternalLink, Percent } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import DashboardNav from "@/components/DashboardNav";
 import GlobalHeader from "@/components/GlobalHeader";
 import { useToast } from "@/hooks/use-toast";
@@ -20,24 +17,25 @@ interface Creator {
   seguidores: number | null;
   total_ingresos_mxn: number | null;
   total_ventas: number | null;
-  total_videos: number | null;
-  promedio_roas: number | null; // Used for conversion rate
   promedio_visualizaciones: number | null;
-  mejor_video_url: string | null;
+  mejor_video_url: string | null; // Used for avatar URL
   country: string | null;
 }
 
-type SortOption = "revenue" | "followers" | "views" | "sales" | "conversion";
+type SortOption = "revenue" | "followers" | "views" | "sales";
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "revenue", label: "Más ingresos" },
+  { value: "followers", label: "Más seguidores" },
+  { value: "views", label: "Más views" },
+  { value: "sales", label: "Más ventas" },
+];
 
 const Creators = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [creators, setCreators] = useState<Creator[]>([]);
-  const [filteredCreators, setFilteredCreators] = useState<Creator[]>([]);
+  const [sortedCreators, setSortedCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("revenue");
 
   useEffect(() => {
@@ -45,8 +43,8 @@ const Creators = () => {
   }, []);
 
   useEffect(() => {
-    applyFiltersAndSort();
-  }, [creators, searchQuery, sortBy]);
+    applySorting();
+  }, [creators, sortBy]);
 
   const fetchCreators = async () => {
     try {
@@ -69,21 +67,8 @@ const Creators = () => {
     }
   };
 
-  const applyFiltersAndSort = () => {
-    let result = [...creators];
-    
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(c => 
-        c.nombre_completo?.toLowerCase().includes(query) ||
-        c.usuario_creador?.toLowerCase().includes(query) ||
-        c.creator_handle?.toLowerCase().includes(query)
-      );
-    }
-    
-    // Sort
-    result.sort((a, b) => {
+  const applySorting = () => {
+    const result = [...creators].sort((a, b) => {
       switch (sortBy) {
         case "revenue":
           return (b.total_ingresos_mxn || 0) - (a.total_ingresos_mxn || 0);
@@ -93,33 +78,15 @@ const Creators = () => {
           return (b.promedio_visualizaciones || 0) - (a.promedio_visualizaciones || 0);
         case "sales":
           return (b.total_ventas || 0) - (a.total_ventas || 0);
-        case "conversion":
-          return (b.promedio_roas || 0) - (a.promedio_roas || 0);
         default:
           return 0;
       }
     });
-    
-    setFilteredCreators(result);
+    setSortedCreators(result);
   };
 
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null || amount === undefined) return "—";
-    if (amount >= 1000000) {
-      return `$${(amount / 1000000).toFixed(1)}M`;
-    }
-    if (amount >= 1000) {
-      return `$${(amount / 1000).toFixed(1)}K`;
-    }
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatNumber = (num: number | null) => {
-    if (num === null || num === undefined) return "—";
+  const formatNumber = (num: number | null | undefined): string => {
+    if (num === null || num === undefined || num === 0) return "0";
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + "M";
     }
@@ -129,7 +96,39 @@ const Creators = () => {
     return new Intl.NumberFormat("es-MX").format(Math.round(num));
   };
 
-  const getInitials = (name: string | null, handle: string) => {
+  const formatCurrency = (amount: number | null | undefined): string => {
+    if (amount === null || amount === undefined || amount === 0) return "$0";
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(1)}M`;
+    }
+    if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(1)}K`;
+    }
+    return `$${new Intl.NumberFormat("es-MX").format(Math.round(amount))}`;
+  };
+
+  const calculateCommission = (revenue: number | null): string => {
+    if (!revenue || revenue === 0) return "$0";
+    const commission = revenue * 0.10;
+    return formatCurrency(commission);
+  };
+
+  const getAvatarUrl = (creator: Creator): string => {
+    // If mejor_video_url contains an actual image URL (not a TikTok link)
+    if (creator.mejor_video_url && !creator.mejor_video_url.includes('tiktok.com') && !creator.mejor_video_url.includes('kalodata.com')) {
+      return creator.mejor_video_url;
+    }
+    // Generate fallback avatar using ui-avatars
+    const name = encodeURIComponent(creator.nombre_completo || creator.usuario_creador);
+    return `https://ui-avatars.com/api/?name=${name}&background=0D8ABC&color=fff&bold=true&size=128`;
+  };
+
+  const getTikTokUrl = (creator: Creator): string => {
+    const handle = creator.creator_handle || creator.usuario_creador;
+    return `https://www.tiktok.com/@${handle}`;
+  };
+
+  const getInitials = (name: string | null, handle: string): string => {
     if (name) {
       const parts = name.split(" ");
       if (parts.length >= 2) {
@@ -138,11 +137,6 @@ const Creators = () => {
       return name.substring(0, 2).toUpperCase();
     }
     return handle.substring(0, 2).toUpperCase();
-  };
-
-  const handleViewVideos = (creatorHandle: string) => {
-    // Navigate to videos section filtering by this creator
-    navigate(`/app?creator=${encodeURIComponent(creatorHandle)}`);
   };
 
   if (loading) {
@@ -162,83 +156,60 @@ const Creators = () => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-bold mb-2 text-foreground">
-            Creadores Relevantes en TikTok Shop (Top 50)
+            Creadores Top 50 TikTok Shop
           </h1>
           <p className="text-muted-foreground">
-            Los creadores con mejor rendimiento en los últimos 30 días. Datos en tiempo real importados desde Kalodata.
+            Los creadores con mejor rendimiento. Datos importados desde Kalodata.
           </p>
           <Badge variant="secondary" className="mt-2">
             📊 Últimos 30 días
           </Badge>
         </div>
 
-        {/* Filters */}
-        <Card className="mb-6 p-4">
-          <div className="flex flex-wrap gap-4 items-end">
-            {/* Search */}
-            <div className="flex-1 min-w-[200px] space-y-1">
-              <label className="text-xs text-muted-foreground">Buscar</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nombre o @usuario..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            
-            {/* Sort By */}
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Ordenar por</label>
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="revenue">Más ingresos</SelectItem>
-                  <SelectItem value="followers">Más seguidores</SelectItem>
-                  <SelectItem value="views">Más vistas</SelectItem>
-                  <SelectItem value="sales">Más ventas</SelectItem>
-                  <SelectItem value="conversion">Mayor conversión</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Results count */}
-            <div className="text-sm text-muted-foreground">
-              {filteredCreators.length} creadores
-            </div>
-          </div>
-        </Card>
+        {/* Filter Pills */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {SORT_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setSortBy(option.value)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                sortBy === option.value
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+          <span className="ml-auto text-sm text-muted-foreground self-center">
+            {sortedCreators.length} creadores
+          </span>
+        </div>
 
         {/* Creator Cards */}
-        {filteredCreators.length === 0 ? (
+        {sortedCreators.length === 0 ? (
           <Card className="p-12 text-center">
             <Users className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
             <p className="text-muted-foreground text-lg">
-              {creators.length === 0 
-                ? "No hay creadores disponibles. Importa datos desde el panel de administración."
-                : "No hay creadores que coincidan con la búsqueda."}
+              No hay creadores disponibles. Importa datos desde el panel de administración.
             </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredCreators.map((creator, index) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {sortedCreators.map((creator, index) => (
               <Card 
                 key={creator.id} 
-                className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.01] bg-card"
+                className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-card border"
               >
                 <CardContent className="p-4">
-                  {/* Header - Avatar + Name */}
+                  {/* Header - Avatar + Name + Rank */}
                   <div className="flex items-start gap-3 mb-4">
-                    <Avatar className="h-14 w-14 border-2 border-primary/20 ring-2 ring-background">
+                    <Avatar className="h-14 w-14 border-2 border-primary/20 shrink-0">
                       <AvatarImage 
-                        src={creator.mejor_video_url?.includes('tiktok.com') ? undefined : creator.mejor_video_url || undefined} 
+                        src={getAvatarUrl(creator)} 
                         alt={creator.nombre_completo || creator.usuario_creador}
                       />
-                      <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-lg">
+                      <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold">
                         {getInitials(creator.nombre_completo, creator.usuario_creador)}
                       </AvatarFallback>
                     </Avatar>
@@ -247,27 +218,21 @@ const Creators = () => {
                         <h3 className="font-semibold text-foreground line-clamp-1 text-sm">
                           {creator.nombre_completo || creator.usuario_creador}
                         </h3>
-                        <Badge variant="outline" className="shrink-0 text-[10px] h-5">
+                        <Badge variant="outline" className="shrink-0 text-[10px] h-5 bg-primary/10 border-primary/30 text-primary">
                           #{index + 1}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         @{creator.creator_handle || creator.usuario_creador}
                       </p>
-                      {creator.country && (
-                        <Badge variant="secondary" className="mt-1 text-[10px] h-4 px-1.5">
-                          <Globe className="h-2.5 w-2.5 mr-0.5" />
-                          {creator.country}
-                        </Badge>
-                      )}
                     </div>
                   </div>
 
-                  {/* Main Metrics - 3 columns */}
-                  <div className="grid grid-cols-3 gap-2 mb-3">
+                  {/* Primary Metrics Row 1 */}
+                  <div className="grid grid-cols-3 gap-2 mb-2">
                     <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-center">
                       <DollarSign className="h-3 w-3 text-primary mx-auto mb-0.5" />
-                      <p className="text-[10px] text-muted-foreground uppercase">Ingresos</p>
+                      <p className="text-[9px] text-muted-foreground uppercase">Ingresos 30D</p>
                       <p className="text-xs font-bold text-primary">
                         {formatCurrency(creator.total_ingresos_mxn)}
                       </p>
@@ -275,7 +240,7 @@ const Creators = () => {
                     
                     <div className="p-2 rounded-lg bg-secondary/50 border border-border text-center">
                       <Users className="h-3 w-3 text-muted-foreground mx-auto mb-0.5" />
-                      <p className="text-[10px] text-muted-foreground uppercase">Seguidores</p>
+                      <p className="text-[9px] text-muted-foreground uppercase">Seguidores</p>
                       <p className="text-xs font-bold text-foreground">
                         {formatNumber(creator.seguidores)}
                       </p>
@@ -283,57 +248,44 @@ const Creators = () => {
                     
                     <div className="p-2 rounded-lg bg-secondary/50 border border-border text-center">
                       <Eye className="h-3 w-3 text-muted-foreground mx-auto mb-0.5" />
-                      <p className="text-[10px] text-muted-foreground uppercase">Views</p>
+                      <p className="text-[9px] text-muted-foreground uppercase">Views 30D</p>
                       <p className="text-xs font-bold text-foreground">
                         {formatNumber(creator.promedio_visualizaciones)}
                       </p>
                     </div>
                   </div>
 
-                  {/* Secondary Metrics */}
+                  {/* Secondary Metrics Row 2 */}
                   <div className="grid grid-cols-2 gap-2 mb-4">
-                    <div className="flex items-center gap-2 p-2 rounded bg-muted/50">
-                      <ShoppingCart className="h-3 w-3 text-muted-foreground" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Ventas</p>
+                    <div className="flex items-center gap-2 p-2 rounded bg-muted/50 border border-border/50">
+                      <ShoppingCart className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[9px] text-muted-foreground uppercase">Ventas 30D</p>
                         <p className="text-xs font-semibold">{formatNumber(creator.total_ventas)}</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 p-2 rounded bg-muted/50">
-                      <TrendingUp className="h-3 w-3 text-muted-foreground" />
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Conversión</p>
-                        <p className="text-xs font-semibold">
-                          {creator.promedio_roas ? `${creator.promedio_roas.toFixed(1)}%` : "—"}
+                    <div className="flex items-center gap-2 p-2 rounded bg-muted/50 border border-border/50">
+                      <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[9px] text-muted-foreground uppercase">Comisión Est.</p>
+                        <p className="text-xs font-semibold text-green-600">
+                          {calculateCommission(creator.total_ingresos_mxn)}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Footer Buttons */}
-                  <div className="flex gap-2">
-                    {creator.mejor_video_url && creator.mejor_video_url.includes('tiktok.com') && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-xs"
-                        onClick={() => window.open(creator.mejor_video_url!, '_blank')}
-                      >
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Ver Perfil
-                      </Button>
-                    )}
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="flex-1 text-xs"
-                      onClick={() => handleViewVideos(creator.creator_handle || creator.usuario_creador)}
-                    >
-                      <Video className="h-3 w-3 mr-1" />
-                      Ver Videos
-                    </Button>
-                  </div>
+                  {/* Footer Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => window.open(getTikTokUrl(creator), '_blank')}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Ver perfil
+                  </Button>
                 </CardContent>
               </Card>
             ))}
