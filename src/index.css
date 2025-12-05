@@ -99,6 +99,23 @@ All colors MUST be HSL.
     --card-spacing: 12px;
     --media-radius: 12px;
     
+    /* Sidebar system */
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 80px;
+    --sidebar-bg: 0 0% 100%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-separator: 214 32% 91%;
+    --sidebar-padding-x: 20px;
+    --sidebar-padding-y: 24px;
+    --sidebar-item-hover-bg: 336 100% 97%;
+    --sidebar-item-active-bg: 336 100% 97%;
+    --sidebar-item-active-border: 340 91% 51%;
+    --sidebar-icon-default: 215 16% 65%;
+    --sidebar-icon-active: 340 91% 51%;
+    --sidebar-affiliate-bg: 149 80% 96%;
+    --sidebar-affiliate-text: 162 72% 17%;
+    --sidebar-user-bg: 210 40% 98%;
+    
     /* Label colors - Gains */
     --label-gain-bg: 149 80% 90%;
     --label-gain-text: 162 72% 17%;
@@ -186,6 +203,16 @@ All colors MUST be HSL.
     /* Shadows - dark mode */
     --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.2);
     --shadow-cta: 0 4px 14px rgba(243, 18, 96, 0.2);
+
+    /* Sidebar system - dark mode */
+    --sidebar-bg: 222 47% 13%;
+    --sidebar-border: 217 33% 20%;
+    --sidebar-separator: 217 33% 25%;
+    --sidebar-item-hover-bg: 340 30% 20%;
+    --sidebar-item-active-bg: 340 30% 20%;
+    --sidebar-affiliate-bg: 160 30% 15%;
+    --sidebar-affiliate-text: 160 60% 70%;
+    --sidebar-user-bg: 217 33% 17%;
   }
 }
 

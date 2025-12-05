@@ -1,11 +1,10 @@
-import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -13,21 +12,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import {
-  Video,
+  PlayCircle,
   Package,
   Users,
   Heart,
-  Wrench,
   Settings,
   HelpCircle,
-  ChevronRight,
-  Sparkles,
+  ChevronDown,
+  Zap,
   X,
-  Gem,
-  DollarSign,
+  TrendingUp,
+  Coins,
+  Wrench,
 } from "lucide-react";
-import { useEffect } from "react";
 
 interface DashboardSidebarProps {
   open: boolean;
@@ -35,26 +34,18 @@ interface DashboardSidebarProps {
 }
 
 const navItems = [
-  { to: "/app", label: "videos", icon: Video },
-  { to: "/products", label: "products", icon: Package },
-  { to: "/creadores", label: "creators", icon: Users },
-  { to: "/opportunities", label: "opportunities", icon: Gem },
-  { to: "/favorites", label: "favorites", icon: Heart },
-  { to: "/tools", label: "tools", icon: Wrench },
-  { to: "/affiliates", label: "affiliates", icon: DollarSign, subtitle: "gana dinero hoy" },
-  { to: "/settings", label: "settings", icon: Settings },
+  { to: "/app", label: "videos", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle },
+  { to: "/products", label: "products", labelEs: "Productos", labelEn: "Products", icon: Package },
+  { to: "/creadores", label: "creators", labelEs: "Creadores", labelEn: "Creators", icon: Users },
+  { to: "/opportunities", label: "opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp },
+  { to: "/favorites", label: "favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart },
+  { to: "/tools", label: "tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench },
 ];
 
-interface NavItem {
-  to: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  subtitle?: string;
-}
-
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const [userEmail, setUserEmail] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [accountModalOpen, setAccountModalOpen] = useState(false);
@@ -76,11 +67,12 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   };
 
   const handleNavClick = () => {
-    // Close sidebar on mobile after navigation
     if (window.innerWidth < 1024) {
       onClose();
     }
   };
+
+  const isActive = (path: string) => location.pathname === path;
 
   return (
     <>
@@ -95,20 +87,25 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full w-64 bg-card border-r border-border flex flex-col transition-transform duration-300 lg:translate-x-0",
+          "fixed top-0 left-0 z-50 h-full flex flex-col transition-transform duration-300 lg:translate-x-0",
+          "w-[240px] bg-white dark:bg-card border-r",
           open ? "translate-x-0" : "-translate-x-full"
         )}
+        style={{ 
+          borderColor: 'hsl(var(--sidebar-border))',
+          backgroundColor: 'hsl(var(--sidebar-bg))'
+        }}
       >
         {/* Close button for mobile */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 lg:hidden p-1 rounded-md hover:bg-muted"
+          className="absolute top-5 right-4 lg:hidden p-1.5 rounded-md hover:bg-muted transition-colors"
         >
-          <X className="h-5 w-5" />
+          <X className="h-5 w-5 text-muted-foreground" />
         </button>
 
         {/* Logo */}
-        <div className="p-6 pb-4">
+        <div className="px-5 pt-6 pb-4">
           <button
             onClick={() => {
               navigate("/app");
@@ -123,37 +120,124 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-5 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               onClick={handleNavClick}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )
-              }
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 relative",
+                isActive(item.to)
+                  ? "text-primary"
+                  : "text-foreground hover:text-primary"
+              )}
+              style={{
+                backgroundColor: isActive(item.to) ? 'hsl(var(--sidebar-item-active-bg))' : undefined,
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive(item.to)) {
+                  e.currentTarget.style.backgroundColor = 'hsl(var(--sidebar-item-hover-bg))';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive(item.to)) {
+                  e.currentTarget.style.backgroundColor = '';
+                }
+              }}
             >
-              <item.icon className="h-5 w-5" />
-              <div className="flex flex-col">
-                <span>{t(item.label)}</span>
-                {item.subtitle && (
-                  <span className="text-[10px] text-green-600 font-normal -mt-0.5">
-                    {language === "es" ? "💰 gana dinero hoy" : "💰 earn money today"}
-                  </span>
+              {/* Active indicator */}
+              {isActive(item.to) && (
+                <div 
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary"
+                />
+              )}
+              <item.icon 
+                className={cn(
+                  "h-5 w-5 transition-colors",
+                  isActive(item.to) ? "text-primary" : "text-muted-foreground"
                 )}
-              </div>
+              />
+              <span>{language === "es" ? item.labelEs : item.labelEn}</span>
             </NavLink>
           ))}
+
+          {/* Separator */}
+          <div className="py-4">
+            <Separator className="bg-separator" />
+          </div>
+
+          {/* Affiliates special button */}
+          <NavLink
+            to="/affiliates"
+            onClick={handleNavClick}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
+              isActive("/affiliates")
+                ? "text-primary bg-[hsl(var(--sidebar-item-active-bg))]"
+                : "hover:opacity-90"
+            )}
+            style={{
+              backgroundColor: isActive("/affiliates") ? undefined : 'hsl(var(--sidebar-affiliate-bg))',
+              color: isActive("/affiliates") ? undefined : 'hsl(var(--sidebar-affiliate-text))',
+            }}
+          >
+            <Coins 
+              className={cn(
+                "h-5 w-5",
+                isActive("/affiliates") ? "text-primary" : ""
+              )}
+              style={{ color: isActive("/affiliates") ? undefined : 'hsl(var(--sidebar-affiliate-text))' }}
+            />
+            <div className="flex flex-col">
+              <span>{language === "es" ? "Afiliados" : "Affiliates"}</span>
+              <span className="text-[10px] font-normal opacity-80">
+                {language === "es" ? "💰 gana dinero hoy" : "💰 earn money today"}
+              </span>
+            </div>
+          </NavLink>
+
+          {/* Settings */}
+          <NavLink
+            to="/settings"
+            onClick={handleNavClick}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 relative",
+              isActive("/settings")
+                ? "text-primary"
+                : "text-foreground hover:text-primary"
+            )}
+            style={{
+              backgroundColor: isActive("/settings") ? 'hsl(var(--sidebar-item-active-bg))' : undefined,
+            }}
+            onMouseEnter={(e) => {
+              if (!isActive("/settings")) {
+                e.currentTarget.style.backgroundColor = 'hsl(var(--sidebar-item-hover-bg))';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive("/settings")) {
+                e.currentTarget.style.backgroundColor = '';
+              }
+            }}
+          >
+            {isActive("/settings") && (
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary" />
+            )}
+            <Settings 
+              className={cn(
+                "h-5 w-5 transition-colors",
+                isActive("/settings") ? "text-primary" : "text-muted-foreground"
+              )}
+            />
+            <span>{language === "es" ? "Configuración" : "Settings"}</span>
+          </NavLink>
         </nav>
 
         {/* Bottom section */}
-        <div className="p-3 mt-auto space-y-3">
-          <Separator />
+        <div className="px-5 pb-6 pt-3 space-y-3">
+          {/* Separator */}
+          <Separator className="bg-separator" />
 
           {/* Support link */}
           <button
@@ -161,39 +245,28 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
               navigate("/support");
               handleNavClick();
             }}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground w-full transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted-foreground hover:text-primary hover:bg-[hsl(var(--sidebar-item-hover-bg))] w-full transition-all duration-200"
           >
             <HelpCircle className="h-5 w-5" />
             <span>{language === "es" ? "Soporte" : "Support"}</span>
           </button>
 
-          {/* Subscription card */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="font-semibold text-sm">AdBroll Pro</span>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              {language === "es"
-                ? "Accede a todas las herramientas de análisis y guiones IA"
-                : "Access all analytics tools and AI scripts"}
-            </p>
-            <Button
-              size="sm"
-              className="w-full"
-              onClick={() => {
-                // Future: Open billing modal
-                alert(language === "es" ? "Próximamente: Integración de pagos" : "Coming soon: Payment integration");
-              }}
-            >
-              {language === "es" ? "Actualizar plan" : "Upgrade"} – $25/mes
-            </Button>
-          </div>
+          {/* Upgrade Plan CTA */}
+          <Button
+            className="w-full h-11 rounded-xl font-semibold text-sm gap-2 shadow-md hover:shadow-lg transition-all"
+            onClick={() => {
+              alert(language === "es" ? "Próximamente: Integración de pagos" : "Coming soon: Payment integration");
+            }}
+          >
+            <Zap className="h-4 w-4" />
+            {language === "es" ? "Actualizar plan" : "Upgrade"} – $25/mes
+          </Button>
 
           {/* User card */}
           <button
             onClick={() => setAccountModalOpen(true)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted w-full transition-colors"
+            className="flex items-center gap-3 p-3 rounded-xl w-full transition-all duration-200 hover:bg-muted"
+            style={{ backgroundColor: 'hsl(var(--sidebar-user-bg))' }}
           >
             <Avatar className="h-9 w-9 border-2 border-primary/20">
               <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
@@ -201,10 +274,10 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium truncate">{userName}</p>
+              <p className="text-xs font-medium truncate text-foreground">{userName}</p>
               <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
       </aside>
