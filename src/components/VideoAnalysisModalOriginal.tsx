@@ -387,12 +387,73 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
         </button>
 
         <div className="flex flex-col lg:flex-row h-full max-h-[92vh]">
-          {/* Left: Video Player + Metrics */}
-          <div className="w-full lg:w-[420px] bg-muted/30 flex-shrink-0 flex flex-col border-r border-border">
-            {/* Video Card Container */}
-            <div className="p-4 pb-2">
-              <div className="card-premium overflow-hidden">
-                <div className="relative aspect-[9/16] max-h-[45vh] lg:max-h-[55vh] bg-black rounded-xl overflow-hidden">
+          {/* Left: Metrics + Video Player */}
+          <div className="w-full lg:w-[380px] bg-muted/20 flex-shrink-0 flex flex-col border-r border-border p-4 gap-3">
+            {/* Two Cards Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Video Metrics Card */}
+              <div className="card-premium p-3 space-y-2">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <h4 className="text-xs font-semibold text-foreground">Métricas</h4>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Ventas</span>
+                    <span className="text-xs font-bold tabular-nums">{formatNumber(video.sales)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Vistas</span>
+                    <span className="text-xs font-bold tabular-nums">{formatNumber(video.views)}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                    <span className="text-xs text-muted-foreground">Comisiones</span>
+                    <span className="text-xs font-bold text-success tabular-nums">
+                      {formatCurrency((video.sales || 0) * earningPerSale)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product Data Card */}
+              <div className="card-premium p-3 space-y-2 bg-gradient-to-br from-primary/[0.02] to-transparent">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+                    <ShoppingCart className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <h4 className="text-xs font-semibold text-foreground">Producto</h4>
+                </div>
+                
+                {video.product ? (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Comisión</span>
+                      <span className="text-xs font-bold tabular-nums">{video.product.commission || 0}%</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">$/venta</span>
+                      <span className="text-xs font-bold text-success tabular-nums">
+                        {formatCurrency(earningPerSale)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                      <span className="text-xs text-muted-foreground">GMV 30d</span>
+                      <span className="text-xs font-bold tabular-nums">{formatCurrency(video.product.revenue_30d)}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic text-center py-2">Sin producto</p>
+                )}
+              </div>
+            </div>
+
+            {/* Video Card - Centered and Smaller */}
+            <div className="flex-1 flex flex-col items-center justify-center min-h-0">
+              <div className="card-premium overflow-hidden w-full max-w-[280px]">
+                <div className="relative aspect-[9/16] bg-black rounded-xl overflow-hidden">
                   {video.video_mp4_url ? (
                     <video
                       ref={videoRef}
@@ -405,119 +466,27 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
                       poster={video.thumbnail_url || undefined}
                     />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted gap-3">
-                      <Play className="h-12 w-12 text-muted-foreground/40" />
-                      <p className="text-muted-foreground text-sm">Video no disponible</p>
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted gap-2">
+                      <Play className="h-8 w-8 text-muted-foreground/40" />
+                      <p className="text-muted-foreground text-xs">Video no disponible</p>
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Metrics Cards Container */}
-            <ScrollArea className="flex-1 px-4 pb-4">
-              <div className="space-y-3">
-                {/* Video Metrics Card */}
-                <div className="card-premium p-4 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-primary" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-foreground">Métricas del Video</h4>
-                  </div>
-                  
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <div className="flex items-center gap-2.5">
-                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Ventas</span>
-                      </div>
-                      <span className="text-sm font-semibold tabular-nums">{formatNumber(video.sales)}</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <div className="flex items-center gap-2.5">
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Vistas</span>
-                      </div>
-                      <span className="text-sm font-semibold tabular-nums">{formatNumber(video.views)}</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-2.5">
-                        <DollarSign className="h-4 w-4 text-success" />
-                        <span className="text-sm text-muted-foreground">Comisiones generadas</span>
-                      </div>
-                      <span className="text-sm font-bold text-success tabular-nums">
-                        {formatCurrency((video.sales || 0) * earningPerSale)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Product Data Card */}
-                <div className="card-premium p-4 space-y-3 border-primary/20 bg-gradient-to-br from-primary/[0.02] to-transparent">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <ShoppingCart className="h-4 w-4 text-primary" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-foreground">Datos del Producto</h4>
-                  </div>
-                  
-                  {video.product ? (
-                    <div className="space-y-2.5">
-                      <div className="flex items-start justify-between py-2 border-b border-border/50 gap-2">
-                        <span className="text-sm text-muted-foreground flex-shrink-0">Producto</span>
-                        <span 
-                          className="text-sm font-medium text-right truncate max-w-[180px]" 
-                          title={video.product.producto_nombre || ''}
-                        >
-                          {video.product.producto_nombre || video.product_name || 'Sin nombre'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between py-2 border-b border-border/50">
-                        <div className="flex items-center gap-2.5">
-                          <Percent className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Comisión</span>
-                        </div>
-                        <span className="text-sm font-semibold tabular-nums">{video.product.commission || 0}%</span>
-                      </div>
-                      <div className="flex items-center justify-between py-2 border-b border-border/50">
-                        <div className="flex items-center gap-2.5">
-                          <DollarSign className="h-4 w-4 text-success" />
-                          <span className="text-sm text-muted-foreground">Ganancia/venta</span>
-                        </div>
-                        <span className="text-sm font-bold text-success tabular-nums">
-                          {formatCurrency(earningPerSale)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between py-2">
-                        <div className="flex items-center gap-2.5">
-                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">GMV 30 días</span>
-                        </div>
-                        <span className="text-sm font-semibold tabular-nums">{formatCurrency(video.product.revenue_30d)}</span>
-                      </div>
-                      
-                      {/* TikTok Shop Button */}
-                      {video.product.producto_url && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="w-full mt-3 gap-2 h-10 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
-                          onClick={() => window.open(video.product?.producto_url || '', '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          Ver en TikTok Shop
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="py-4 text-center">
-                      <p className="text-sm text-muted-foreground italic">Sin producto asignado</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </ScrollArea>
+            {/* TikTok Shop Button - Bottom */}
+            {video.product?.producto_url && (
+              <Button
+                variant="default"
+                size="sm"
+                className="w-full gap-2 h-9 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
+                onClick={() => window.open(video.product?.producto_url || '', '_blank')}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Ver en TikTok Shop
+              </Button>
+            )}
           </div>
 
           {/* Right: Analysis Content */}
