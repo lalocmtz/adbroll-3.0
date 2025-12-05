@@ -1,44 +1,46 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, ChevronRight } from "lucide-react";
-import VideoCard from "@/components/VideoCard";
+import { Card } from "@/components/ui/card";
+import { ChevronRight, ArrowLeft } from "lucide-react";
+import VideoCardOriginal from "@/components/VideoCardOriginal";
 import DashboardNav from "@/components/DashboardNav";
+import GlobalHeader from "@/components/GlobalHeader";
 import { useToast } from "@/hooks/use-toast";
 
-interface DailyFeedVideo {
+interface Video {
   id: string;
-  rango_fechas: string;
-  descripcion_video: string;
-  duracion: string;
-  creador: string;
-  fecha_publicacion: string;
-  ingresos_mxn: number;
-  ventas: number;
-  visualizaciones: number;
-  gpm_mxn: number | null;
-  cpa_mxn: number;
-  ratio_ads: number | null;
-  coste_publicitario_mxn: number;
-  roas: number;
-  tiktok_url: string;
-  transcripcion_original: string | null;
-  guion_ia: string | null;
-  producto_nombre: string | null;
-  producto_url: string | null;
-  created_at: string;
+  video_url: string;
+  video_mp4_url: string | null;
+  thumbnail_url: string | null;
+  title: string | null;
+  creator_name: string | null;
+  creator_handle: string | null;
+  product_name: string | null;
+  product_id: string | null;
+  sales: number | null;
+  revenue_mxn: number | null;
+  views: number | null;
+  roas: number | null;
+  category: string | null;
+  rank: number | null;
+  transcript: string | null;
+  analysis_json: any;
+  variants_json: any;
+  processing_status: string | null;
 }
 
 const RelatedVideos = () => {
   const { productId, creatorId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [videos, setVideos] = useState<DailyFeedVideo[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [subtitle, setSubtitle] = useState("");
 
   const isProductView = !!productId;
   const isCreatorView = !!creatorId;
@@ -59,65 +61,54 @@ const RelatedVideos = () => {
 
         if (productError) throw productError;
         if (!productData) {
-          toast({
-            title: "Producto no encontrado",
-            variant: "destructive",
-          });
+          toast({ title: "Producto no encontrado", variant: "destructive" });
           navigate("/products");
           return;
         }
 
         setTitle(productData.producto_nombre);
+        setSubtitle("Videos que promocionan este producto");
 
-        // Fetch videos matching product name
+        // Fetch videos matching product
         const { data: videosData, error: videosError } = await supabase
-          .from("daily_feed")
+          .from("videos")
           .select("*")
-          .or(`descripcion_video.ilike.%${productData.producto_nombre}%,producto_nombre.ilike.%${productData.producto_nombre}%`)
-          .order("ingresos_mxn", { ascending: false })
-          .order("ventas", { ascending: false });
+          .or(`product_id.eq.${productId},product_name.ilike.%${productData.producto_nombre}%`)
+          .order("revenue_mxn", { ascending: false, nullsFirst: false });
 
         if (videosError) throw videosError;
         setVideos(videosData || []);
-
-        if (videosData && videosData.length > 0) {
-          setLastUpdate(new Date(videosData[0].created_at));
-        }
 
       } else if (isCreatorView && creatorId) {
         // Fetch creator info
         const { data: creatorData, error: creatorError } = await supabase
           .from("creators")
-          .select("usuario_creador, nombre_completo")
+          .select("usuario_creador, nombre_completo, creator_handle")
           .eq("id", creatorId)
           .maybeSingle();
 
         if (creatorError) throw creatorError;
         if (!creatorData) {
-          toast({
-            title: "Creador no encontrado",
-            variant: "destructive",
-          });
+          toast({ title: "Creador no encontrado", variant: "destructive" });
           navigate("/creadores");
           return;
         }
 
-        setTitle(creatorData.nombre_completo || creatorData.usuario_creador);
+        const creatorName = creatorData.nombre_completo || creatorData.usuario_creador;
+        const creatorHandle = creatorData.creator_handle || creatorData.usuario_creador;
+        
+        setTitle(creatorName);
+        setSubtitle(`@${creatorHandle}`);
 
         // Fetch videos by creator
         const { data: videosData, error: videosError } = await supabase
-          .from("daily_feed")
+          .from("videos")
           .select("*")
-          .eq("creador", creatorData.usuario_creador)
-          .order("ingresos_mxn", { ascending: false })
-          .order("ventas", { ascending: false });
+          .or(`creator_handle.ilike.%${creatorHandle}%,creator_name.ilike.%${creatorName}%`)
+          .order("revenue_mxn", { ascending: false, nullsFirst: false });
 
         if (videosError) throw videosError;
         setVideos(videosData || []);
-
-        if (videosData && videosData.length > 0) {
-          setLastUpdate(new Date(videosData[0].created_at));
-        }
       }
     } catch (error: any) {
       toast({
@@ -130,14 +121,9 @@ const RelatedVideos = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <p className="text-muted-foreground">Cargando videos...</p>
       </div>
     );
@@ -145,22 +131,20 @@ const RelatedVideos = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border sticky top-0 bg-background z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">adbroll</h1>
-          <Button variant="ghost" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Cerrar sesión
-          </Button>
-        </div>
-      </header>
-
-      {/* Navigation */}
+      <GlobalHeader />
       <DashboardNav />
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 md:py-8">
+      <main className="container mx-auto px-4 md:px-6 py-6 max-w-7xl">
+        {/* Back button */}
+        <Button
+          variant="ghost"
+          className="mb-4"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver
+        </Button>
+
         {/* Breadcrumbs */}
         <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
           <Link to="/app" className="hover:text-foreground transition-colors">
@@ -174,44 +158,38 @@ const RelatedVideos = () => {
             {isProductView ? "Productos" : "Creadores"}
           </Link>
           <ChevronRight className="h-4 w-4" />
-          <span className="text-foreground">{title}</span>
+          <span className="text-foreground truncate max-w-[200px]">{title}</span>
         </div>
 
         {/* Title and Info */}
-        <div className="mb-6 md:mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-            Videos de {isProductView ? "Producto" : "Creador"}: {title}
-          </h2>
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge variant="secondary">
-              {videos.length} {videos.length === 1 ? "video" : "videos"}
-            </Badge>
-            {lastUpdate && (
-              <p className="text-sm text-muted-foreground">
-                Última actualización:{" "}
-                {lastUpdate.toLocaleDateString("es-MX", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-            )}
-          </div>
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">
+            {title}
+          </h1>
+          <p className="text-muted-foreground">{subtitle}</p>
+          <Badge variant="secondary" className="mt-2">
+            {videos.length} {videos.length === 1 ? "video" : "videos"}
+          </Badge>
         </div>
 
         {/* Videos Grid */}
         {videos.length === 0 ? (
-          <div className="text-center py-12">
+          <Card className="p-12 text-center">
             <p className="text-muted-foreground text-lg">
               No se encontraron videos relacionados con {title}
             </p>
-          </div>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => navigate(isProductView ? "/products" : "/creadores")}
+            >
+              Volver a {isProductView ? "Productos" : "Creadores"}
+            </Button>
+          </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {videos.map((video, index) => (
-              <VideoCard key={video.id} video={video} ranking={index + 1} />
+              <VideoCardOriginal key={video.id} video={video} ranking={index + 1} />
             ))}
           </div>
         )}

@@ -7,13 +7,23 @@ import { useNavigate } from "react-router-dom";
 
 interface FavoriteButtonProps {
   itemId: string;
-  itemType: "video" | "product";
+  itemType: "video" | "product" | "creator";
   videoUrl?: string; // For videos, we use URL instead of ID
+  itemData?: any; // Full item data to store
   variant?: "default" | "ghost" | "outline";
   size?: "default" | "sm" | "lg" | "icon";
+  showLabel?: boolean;
 }
 
-const FavoriteButton = ({ itemId, itemType, videoUrl, variant = "outline", size = "sm" }: FavoriteButtonProps) => {
+const FavoriteButton = ({ 
+  itemId, 
+  itemType, 
+  videoUrl, 
+  itemData,
+  variant = "outline", 
+  size = "sm",
+  showLabel = true 
+}: FavoriteButtonProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
   const [favoriteId, setFavoriteId] = useState<string | null>(null);
@@ -52,6 +62,20 @@ const FavoriteButton = ({ itemId, itemType, videoUrl, variant = "outline", size 
         setIsFavorite(true);
         setFavoriteId(data.id);
       }
+    } else if (itemType === "creator") {
+      // Use generic favorites table for creators
+      const { data } = await supabase
+        .from("favorites")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("item_type", "creator")
+        .eq("item_id", itemId)
+        .maybeSingle();
+
+      if (data) {
+        setIsFavorite(true);
+        setFavoriteId(data.id);
+      }
     }
   };
 
@@ -79,40 +103,39 @@ const FavoriteButton = ({ itemId, itemType, videoUrl, variant = "outline", size 
             .from("favorites_videos")
             .delete()
             .eq("id", favoriteId);
-
           if (error) throw error;
-        } else {
+        } else if (itemType === "product") {
           const { error } = await supabase
             .from("favorites_products")
             .delete()
             .eq("id", favoriteId);
-
+          if (error) throw error;
+        } else if (itemType === "creator") {
+          const { error } = await supabase
+            .from("favorites")
+            .delete()
+            .eq("id", favoriteId);
           if (error) throw error;
         }
 
         setIsFavorite(false);
         setFavoriteId(null);
-        toast({
-          title: "✓ Eliminado de favoritos",
-        });
+        toast({ title: "✓ Eliminado de favoritos" });
       } else {
         // Add to favorites
         if (itemType === "video" && videoUrl) {
-          // Fetch the full video data
-          const { data: videoData, error: fetchError } = await supabase
-            .from("daily_feed")
+          const { data: videoData } = await supabase
+            .from("videos")
             .select("*")
-            .eq("tiktok_url", videoUrl)
-            .single();
-
-          if (fetchError) throw fetchError;
+            .eq("video_url", videoUrl)
+            .maybeSingle();
 
           const { data, error } = await supabase
             .from("favorites_videos")
             .insert({
               user_id: user.id,
               video_url: videoUrl,
-              video_data: videoData,
+              video_data: videoData || itemData || {},
             })
             .select()
             .single();
@@ -120,21 +143,31 @@ const FavoriteButton = ({ itemId, itemType, videoUrl, variant = "outline", size 
           if (error) throw error;
           setFavoriteId(data.id);
         } else if (itemType === "product") {
-          // Fetch the full product data
-          const { data: productData, error: fetchError } = await supabase
+          const { data: productData } = await supabase
             .from("products")
             .select("*")
             .eq("id", itemId)
-            .single();
-
-          if (fetchError) throw fetchError;
+            .maybeSingle();
 
           const { data, error } = await supabase
             .from("favorites_products")
             .insert({
               user_id: user.id,
               product_id: itemId,
-              product_data: productData,
+              product_data: productData || itemData || {},
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+          setFavoriteId(data.id);
+        } else if (itemType === "creator") {
+          const { data, error } = await supabase
+            .from("favorites")
+            .insert({
+              user_id: user.id,
+              item_type: "creator",
+              item_id: itemId,
             })
             .select()
             .single();
@@ -144,9 +177,7 @@ const FavoriteButton = ({ itemId, itemType, videoUrl, variant = "outline", size 
         }
 
         setIsFavorite(true);
-        toast({
-          title: "✓ Guardado en favoritos",
-        });
+        toast({ title: "✓ Guardado en favoritos" });
       }
     } catch (error: any) {
       console.error("Error toggling favorite:", error);
@@ -168,8 +199,8 @@ const FavoriteButton = ({ itemId, itemType, videoUrl, variant = "outline", size 
       disabled={loading}
       className={isFavorite ? "text-red-500 hover:text-red-600" : ""}
     >
-      <Heart className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
-      {isFavorite ? "Guardado" : "Guardar"}
+      <Heart className={`h-4 w-4 ${showLabel ? 'mr-1' : ''} ${isFavorite ? "fill-current" : ""}`} />
+      {showLabel && (isFavorite ? "Guardado" : "Guardar")}
     </Button>
   );
 };

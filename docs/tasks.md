@@ -92,20 +92,50 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 
 ---
 
-## 🛍 SECCIÓN PRODUCTOS - COMPLETADO
+## 🛍 SECCIÓN PRODUCTOS - COMPLETADO (FASE 2)
 
-- [x] Mostrar Top 20 productos
+- [x] Mostrar todos los productos con paginación (20 por página)
 - [x] Cada tarjeta muestra: Imagen, Nombre, Precio, Comisión %, Categoría
-- [x] Link al producto externo
-- [x] CRUD manual (solo founder)
+- [x] Link al producto externo (TikTok Shop)
+- [x] Sistema de favoritos por usuario
+- [x] Badge de ranking (#1, #2, etc.) con 🔥 para top 5
+- [x] Métricas: Ingresos 30D, Ventas 30D, Precio, Comisión
+- [x] Botón "Ver videos de este producto" → filtra Dashboard por producto
+- [x] UI alineada con tarjetas de videos (misma estética)
 
 ---
 
-## 👤 SECCIÓN CREADORES - COMPLETADO
+## 👤 SECCIÓN CREADORES - COMPLETADO (FASE 2)
 
 - [x] Mostrar Top 50 creadores importados
-- [x] Sistema de filtros
+- [x] Sistema de filtros (pills)
 - [x] Ordenamiento instantáneo
+- [x] Sistema de favoritos por usuario (tabla `favorites`)
+- [x] Badge de ranking con 🔥 para top 5
+- [x] Botón "Ver videos" → filtra Dashboard por creador
+- [x] Botón "Productos" → filtra Products por creador (futuro)
+- [x] Botón "TikTok" → abre perfil externo
+- [x] UI alineada con tarjetas de videos (misma estética)
+
+---
+
+## 💖 SISTEMA DE FAVORITOS - COMPLETADO (FASE 2)
+
+- [x] Videos: tabla `favorites_videos` (video_url, video_data)
+- [x] Productos: tabla `favorites_products` (product_id, product_data)
+- [x] Creadores: tabla `favorites` genérica (item_type="creator", item_id)
+- [x] FavoriteButton componente reutilizable para los 3 tipos
+- [x] Check de favorito al montar componente
+- [x] Toggle sin recargar página
+
+---
+
+## 🔗 NAVEGACIÓN CRUZADA - COMPLETADO (FASE 2)
+
+- [x] Producto → Videos que lo promocionan (query param `productName`)
+- [x] Creador → Videos de ese creador (query param `creator`)
+- [x] Video → Producto asociado (click en mini card de producto)
+- [x] RelatedVideos page actualizada para usar tabla `videos` y VideoCardOriginal
 
 ---
 
@@ -153,4 +183,4 @@ supabase/
 ---
 
 **Última actualización:** Diciembre 2024
-**Estado:** MVP 100% Funcional con arquitectura MP4
+**Estado:** FASE 2 Completada - UI unificada, favoritos extendidos, navegación cruzada
