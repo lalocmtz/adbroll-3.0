@@ -9,20 +9,21 @@ const corsHeaders = {
 
 // Column mapping - maps various possible column names to our internal fields
 const COLUMN_MAPPINGS: Record<string, string[]> = {
-  rank: ["#", "rank", "ranking", "posición"],
+  rank: ["#", "rank", "ranking", "posición", "position"],
   name: ["product name", "nombre del producto", "product", "nombre", "name"],
-  image_url: ["main image", "imagen url", "image", "imagen", "image url", "product image"],
-  product_url: ["product url", "url del producto", "url", "link", "product link"],
+  image_url: ["main image", "imagen url", "image", "imagen", "image url", "product image", "enlace de la imagen"],
+  product_url: ["product url", "url del producto", "url", "link", "product link", "enlace de tiktok", "tiktok url"],
   category_raw: ["category", "categoría", "categoria"],
-  price: ["price (mxn)", "precio (m$)", "precio", "price", "precio mxn"],
-  commission_rate: ["commission %", "comisión %", "commission", "comision", "comisión"],
-  commission_mxn: ["commission (mxn)", "comisión (mxn)", "comision mxn"],
-  gmv_7d: ["gmv 7d", "gmv 7 días", "gmv 7 days", "ingresos 7d", "revenue 7d", "gmv"],
-  gmv_30d: ["gmv 30d", "gmv 30 días", "gmv 30 days", "ingresos 30d", "revenue 30d"],
-  sales_7d: ["orders 7d", "ventas 7d", "sales 7d", "orders 7 days", "pedidos 7d"],
+  price: ["price (mxn)", "precio (m$)", "precio", "price", "precio mxn", "precio medio por unidad(m$)"],
+  commission_rate: ["commission %", "comisión %", "commission", "comision", "comisión", "tasa de comisión", "commission rate"],
+  commission_amount: ["commission (mxn)", "comisión (mxn)", "comision mxn", "commission amount"],
+  revenue_7d: ["gmv 7d", "ingresos 7d", "revenue 7d", "ingresos(m$)", "ingresos"],
+  revenue_30d: ["gmv 30d", "ingresos 30d", "revenue 30d", "gmv"],
+  sales_7d: ["orders 7d", "ventas 7d", "sales 7d", "orders 7 days", "pedidos 7d", "ventas"],
   sales_30d: ["orders 30d", "ventas 30d", "sales 30d", "orders 30 days", "pedidos 30d"],
-  creators_active: ["creators active", "creadores activos", "active creators", "creators"],
-  creator_conversion_rate: ["creator conversion rate", "tasa conversión creadores", "conversion rate", "conversión"],
+  creators_count: ["creators active", "creadores activos", "active creators", "creators", "número de creadores", "creators count"],
+  rating: ["rating", "calificación", "calificaciones del producto", "product rating"],
+  creator_conversion_rate: ["creator conversion rate", "tasa conversión creadores", "conversion rate", "conversión", "tasa de conversión de creadores"],
 };
 
 // Find the matching column name in the row
@@ -55,7 +56,10 @@ function findColumnValue(row: Record<string, any>, fieldName: string): any {
 function parseNumericValue(value: any): number | null {
   if (value === null || value === undefined || value === "") return null;
   
-  const str = String(value).replace(/[$,]/g, "").trim();
+  // If already a number, return it
+  if (typeof value === "number") return value;
+  
+  const str = String(value).replace(/[$,MXN\s]/gi, "").trim();
   
   // Handle ranges - take average
   if (str.includes("-") && !str.startsWith("-")) {
@@ -161,24 +165,24 @@ serve(async (req) => {
       const categoryRaw = findColumnValue(row, "category_raw");
       const price = parseNumericValue(findColumnValue(row, "price"));
       const commissionRate = parseNumericValue(findColumnValue(row, "commission_rate"));
-      let commissionMxn = parseNumericValue(findColumnValue(row, "commission_mxn"));
-      const gmv7d = parseNumericValue(findColumnValue(row, "gmv_7d"));
-      const gmv30d = parseNumericValue(findColumnValue(row, "gmv_30d"));
+      let commissionAmount = parseNumericValue(findColumnValue(row, "commission_amount"));
+      const revenue7d = parseNumericValue(findColumnValue(row, "revenue_7d"));
+      const revenue30d = parseNumericValue(findColumnValue(row, "revenue_30d"));
       const sales7d = parseNumericValue(findColumnValue(row, "sales_7d"));
       const sales30d = parseNumericValue(findColumnValue(row, "sales_30d"));
-      const creatorsActive = parseNumericValue(findColumnValue(row, "creators_active"));
-      const creatorConversionRate = parseNumericValue(findColumnValue(row, "creator_conversion_rate"));
+      const creatorsCount = parseNumericValue(findColumnValue(row, "creators_count"));
+      const rating = parseNumericValue(findColumnValue(row, "rating"));
 
       // Calculate derived values
-      // GMV 7d: use direct value or calculate from 30d
-      const calculatedGmv7d = gmv7d ?? (gmv30d ? gmv30d / 4 : null);
+      // Revenue 7d: use direct value or calculate from 30d
+      const calculatedRevenue7d = revenue7d ?? (revenue30d ? revenue30d / 4 : null);
       
       // Sales 7d: use direct value or calculate from 30d
       const calculatedSales7d = sales7d ?? (sales30d ? Math.round(sales30d / 4) : null);
       
-      // Commission MXN: if not provided, calculate from price and rate
-      if (!commissionMxn && price && commissionRate) {
-        commissionMxn = price * (commissionRate / 100);
+      // Commission amount: if not provided, calculate from price and rate
+      if (!commissionAmount && price && commissionRate) {
+        commissionAmount = price * (commissionRate / 100);
       }
       
       // Extract short category
@@ -186,34 +190,36 @@ serve(async (req) => {
 
       return {
         rank,
-        producto_nombre: name || `Producto ${index + 1}`,
-        imagen_url: imageUrl || null,
-        producto_url: productUrl || null,
-        categoria: categoryShort,
-        precio_mxn: price,
-        price: price,
-        commission: commissionRate,
-        commission_mxn: commissionMxn,
-        total_ingresos_mxn: calculatedGmv7d,
-        total_ventas: calculatedSales7d,
-        creators_active: creatorsActive,
-        creator_conversion_rate: creatorConversionRate,
-        gmv_7d: calculatedGmv7d,
+        name: name || `Producto ${index + 1}`,
+        image_url: imageUrl || null,
+        product_url: productUrl || null,
+        category: categoryShort,
+        price,
+        commission_rate: commissionRate,
+        commission_amount: commissionAmount,
+        revenue_7d: calculatedRevenue7d,
+        revenue_30d: revenue30d,
         sales_7d: calculatedSales7d,
+        creators_count: creatorsCount,
+        rating,
       };
-    }).filter(p => p.producto_nombre); // Filter out products without names
+    }).filter(p => p.name && p.name !== `Producto ${0}`); // Filter out products without names
 
     console.log(`Productos procesados: ${processedProducts.length}`);
 
-    // Sort by GMV 7d (revenue) descending, fallback to sales if no revenue
+    // Sort by revenue 7d descending, fallback to sales if no revenue
     const sortedProducts = processedProducts.sort((a, b) => {
-      const aValue = a.total_ingresos_mxn || a.total_ventas || 0;
-      const bValue = b.total_ingresos_mxn || b.total_ventas || 0;
+      const aValue = a.revenue_7d || a.sales_7d || 0;
+      const bValue = b.revenue_7d || b.sales_7d || 0;
       return bValue - aValue;
     });
 
-    // Take top 20
-    const top20Products = sortedProducts.slice(0, 20);
+    // Take top 20 and assign final ranks
+    const top20Products = sortedProducts.slice(0, 20).map((p, idx) => ({
+      ...p,
+      rank: idx + 1
+    }));
+    
     console.log(`Top 20 productos seleccionados`);
 
     // Delete all existing products
@@ -229,20 +235,28 @@ serve(async (req) => {
       console.log("Productos anteriores eliminados");
     }
 
-    // Insert new products
-    const productsToInsert = top20Products.map((p, idx) => ({
-      producto_nombre: p.producto_nombre,
-      imagen_url: p.imagen_url,
-      producto_url: p.producto_url,
-      categoria: p.categoria,
-      precio_mxn: p.precio_mxn,
+    // Insert new products - map to database column names
+    const productsToInsert = top20Products.map((p) => ({
+      rank: p.rank,
+      producto_nombre: p.name,
+      imagen_url: p.image_url,
+      producto_url: p.product_url,
+      categoria: p.category,
+      precio_mxn: p.price,
       price: p.price,
-      commission: p.commission,
-      total_ingresos_mxn: p.total_ingresos_mxn,
-      total_ventas: p.total_ventas,
+      commission: p.commission_rate,
+      commission_amount: p.commission_amount,
+      revenue_7d: p.revenue_7d,
+      revenue_30d: p.revenue_30d,
+      total_ingresos_mxn: p.revenue_7d, // Keep for backward compatibility
+      sales_7d: p.sales_7d,
+      total_ventas: p.sales_7d, // Keep for backward compatibility
+      creators_count: p.creators_count,
+      rating: p.rating,
     }));
 
     console.log(`Insertando ${productsToInsert.length} productos...`);
+    console.log("Ejemplo producto:", JSON.stringify(productsToInsert[0], null, 2));
 
     const { data: insertedData, error: insertError } = await supabaseServiceClient
       .from("products")
@@ -274,7 +288,7 @@ serve(async (req) => {
         success: true,
         processed: top20Products.length,
         total: rows.length,
-        message: `Se importaron los Top ${top20Products.length} productos de ${rows.length} filas. Auto-matching ejecutado.`,
+        message: `Se importaron los Top ${top20Products.length} productos de ${rows.length} filas.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
