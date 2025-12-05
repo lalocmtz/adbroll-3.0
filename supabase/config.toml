@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.fetch-creator-avatar]
 verify_jwt = false
+
+[functions.analyze-full-script]
+verify_jwt = false

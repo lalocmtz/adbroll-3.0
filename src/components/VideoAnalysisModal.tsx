@@ -5,10 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Heart, Copy, X, ExternalLink, DollarSign, ShoppingCart, Eye, Percent, Package } from "lucide-react";
+import { Sparkles, Heart, Copy, X, ExternalLink, DollarSign, ShoppingCart, Eye, Percent, Package, Zap, Target, Flame, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface VideoAnalysisModalProps {
@@ -31,22 +32,29 @@ interface VideoAnalysisModalProps {
   };
 }
 
-interface ScriptSection {
-  type: 'hook' | 'problema' | 'beneficio' | 'demostracion' | 'cta';
-  content: string;
-  label: string;
-}
-
-interface ScriptAnalysis {
-  sections: ScriptSection[];
-  insights: {
-    funcionamiento: string;
-    angulos: string[];
-    ctaLocation: string;
-    estructura: string;
+interface FullAnalysis {
+  script_original_limpio: string;
+  analisis_guion: {
+    hook_detectado: string;
+    problema: string;
+    beneficios: string;
+    demostracion: string;
+    cta: string;
+    intencion_emocional: string;
     fortalezas: string[];
     debilidades: string[];
-  } | null;
+    oportunidades_mejora: string[];
+  };
+  hooks: {
+    hook_1_similar: string;
+    hook_2_variado: string;
+    hook_3_disruptivo: string;
+  };
+  cuerpo_reescrito: {
+    para_hook_1: string;
+    para_hook_2: string;
+    para_hook_3: string;
+  };
 }
 
 interface ProductOption {
@@ -58,23 +66,22 @@ interface ProductOption {
 }
 
 const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps) => {
-  const [scriptAnalysis, setScriptAnalysis] = useState<ScriptAnalysis>({ sections: [], insights: null });
+  const [fullAnalysis, setFullAnalysis] = useState<FullAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [isGeneratingVariant, setIsGeneratingVariant] = useState(false);
-  const [generatedVariant, setGeneratedVariant] = useState<string>("");
   const [isFavorite, setIsFavorite] = useState(false);
   const [transcription, setTranscription] = useState<string>(video.transcripcion_original || "");
+  const [manualTranscription, setManualTranscription] = useState<string>("");
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<string>("");
   const [customProduct, setCustomProduct] = useState<string>("");
+  const [selectedHook, setSelectedHook] = useState<1 | 2 | 3>(1);
+  const [copiedHook, setCopiedHook] = useState<number | null>(null);
   const embedRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     const initModal = async () => {
-      // Check favorite status
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase
@@ -86,7 +93,6 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
         setIsFavorite(!!data);
       }
 
-      // Load product options
       const { data: products } = await supabase
         .from("products")
         .select("id, producto_nombre, imagen_url, precio_mxn, commission")
@@ -94,7 +100,6 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
       
       if (products) {
         setProductOptions(products);
-        // Pre-select current product if available
         if (video.product_id) {
           setSelectedProduct(video.product_id);
         }
@@ -104,19 +109,10 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
     if (isOpen) {
       initModal();
       
-      // Load TikTok embed script
       const script = document.createElement('script');
       script.src = 'https://www.tiktok.com/embed.js';
       script.async = true;
       document.body.appendChild(script);
-      
-      // Auto-transcribe if no transcription exists
-      if (!video.transcripcion_original && !video.guion_ia) {
-        handleTranscribe();
-      } else {
-        // Auto-analyze script sections when modal opens
-        analyzeScriptSections();
-      }
 
       return () => {
         const existingScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
@@ -127,102 +123,13 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
     }
   }, [isOpen, video.tiktok_url]);
 
-  const handleTranscribe = async () => {
-    setIsTranscribing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('transcribe-video', {
-        body: { tiktokUrl: video.tiktok_url }
-      });
-
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
-
-      setTranscription(data.transcription);
-      
-      // Auto-analyze after transcription
-      setTimeout(() => analyzeScriptSections(data.transcription), 500);
-      
-      toast({
-        title: "✓ Video transcrito",
-        description: "La transcripción está lista.",
-      });
-    } catch (error: any) {
-      console.error("Error transcribing video:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
-
-  const analyzeScriptSections = async (scriptOverride?: string) => {
-    const script = scriptOverride || transcription || video.transcripcion_original || video.guion_ia;
-    if (!script) return;
-
-    setIsAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-script-sections', {
-        body: { script, videoTitle: video.descripcion_video }
-      });
-
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
-
-      setScriptAnalysis(prev => ({ ...prev, sections: data.sections }));
-    } catch (error: any) {
-      console.error("Error analyzing script sections:", error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleAnalyzeInsights = async () => {
-    const script = video.transcripcion_original || video.guion_ia;
-    if (!script) {
+  const handleFullAnalysis = async () => {
+    const scriptToAnalyze = manualTranscription || transcription || video.transcripcion_original || video.guion_ia;
+    
+    if (!scriptToAnalyze) {
       toast({
         title: "No hay guión disponible",
-        description: "No se puede analizar sin un guión.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-script-insights', {
-        body: { script, videoTitle: video.descripcion_video }
-      });
-
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
-
-      setScriptAnalysis(prev => ({ ...prev, insights: data.insights }));
-      
-      toast({
-        title: "✓ Análisis completado",
-        description: "Los insights del guión están listos.",
-      });
-    } catch (error: any) {
-      console.error("Error analyzing insights:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleGenerateVariant = async () => {
-    const originalScript = transcription || video.transcripcion_original || video.guion_ia;
-    if (!originalScript) {
-      toast({
-        title: "No hay guión disponible",
-        description: "No se puede generar variantes sin un guión.",
+        description: "Ingresa la transcripción del video manualmente.",
         variant: "destructive",
       });
       return;
@@ -233,34 +140,35 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
       video.producto_nombre || 
       "producto";
 
-    setIsGeneratingVariant(true);
+    setIsAnalyzing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-script-variants', {
+      const { data, error } = await supabase.functions.invoke('analyze-full-script', {
         body: {
-          originalScript,
+          transcription: scriptToAnalyze,
           videoTitle: video.descripcion_video,
           productName,
-          variantType: 'comercial'
         }
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
 
-      setGeneratedVariant(data.variant);
+      setFullAnalysis(data);
+      setTranscription(data.script_original_limpio || scriptToAnalyze);
+      
       toast({
-        title: "✓ Variante generada",
-        description: "La variante del guión está lista.",
+        title: "✓ Análisis completado",
+        description: "El guión ha sido analizado y las variantes están listas.",
       });
     } catch (error: any) {
-      console.error("Error generating variant:", error);
+      console.error("Error in full analysis:", error);
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
     } finally {
-      setIsGeneratingVariant(false);
+      setIsAnalyzing(false);
     }
   };
 
@@ -313,9 +221,13 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
     }
   };
 
-  const handleCopyScript = async (text: string) => {
+  const handleCopyScript = async (text: string, hookNum?: number) => {
     try {
       await navigator.clipboard.writeText(text);
+      if (hookNum) {
+        setCopiedHook(hookNum);
+        setTimeout(() => setCopiedHook(null), 2000);
+      }
       toast({
         title: "✓ Copiado",
         description: "El guión se copió al portapapeles.",
@@ -329,27 +241,16 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
     }
   };
 
-  const getSectionBadgeColor = (type: string) => {
-    switch (type) {
-      case 'hook': return 'bg-red-500 text-white';
-      case 'problema': return 'bg-orange-500 text-white';
-      case 'beneficio': return 'bg-green-500 text-white';
-      case 'demostracion': return 'bg-blue-500 text-white';
-      case 'cta': return 'bg-purple-500 text-white';
-      default: return 'bg-gray-500 text-white';
-    }
-  };
-
   const getVideoId = (url: string) => {
     const match = url.match(/\/video\/(\d+)/);
     return match ? match[1] : null;
   };
 
   const videoId = getVideoId(video.tiktok_url);
-  const script = transcription || video.transcripcion_original || video.guion_ia || "No hay guión disponible";
+  const script = transcription || video.transcripcion_original || video.guion_ia || "";
   
   const selectedProductData = productOptions.find(p => p.id === selectedProduct);
-  const commissionRate = selectedProductData?.commission || 6; // Default 6% if not specified
+  const commissionRate = selectedProductData?.commission || 6;
   const commissionEstimated = video.ingresos_mxn * (commissionRate / 100);
 
   const formatCurrency = (num: number) => {
@@ -365,6 +266,33 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
     if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
     if (num >= 1000) return (num / 1000).toFixed(1) + "k";
     return new Intl.NumberFormat("es-MX").format(num);
+  };
+
+  const getHookIcon = (hookNum: number) => {
+    switch (hookNum) {
+      case 1: return <Target className="h-4 w-4" />;
+      case 2: return <Zap className="h-4 w-4" />;
+      case 3: return <Flame className="h-4 w-4" />;
+      default: return <Target className="h-4 w-4" />;
+    }
+  };
+
+  const getHookLabel = (hookNum: number) => {
+    switch (hookNum) {
+      case 1: return "Similar al original";
+      case 2: return "Ángulo variado";
+      case 3: return "Disruptivo/Viral";
+      default: return "Hook";
+    }
+  };
+
+  const getHookColor = (hookNum: number) => {
+    switch (hookNum) {
+      case 1: return "bg-blue-500/10 border-blue-500/30 text-blue-600";
+      case 2: return "bg-amber-500/10 border-amber-500/30 text-amber-600";
+      case 3: return "bg-red-500/10 border-red-500/30 text-red-600";
+      default: return "bg-muted";
+    }
   };
 
   return (
@@ -404,7 +332,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">@{video.creador}</p>
             
-            {/* Video Player - Optimized aspect ratio */}
+            {/* Video Player */}
             <div className="relative w-full max-w-[320px] mx-auto">
               <div className="relative aspect-[9/16] bg-muted rounded-lg overflow-hidden">
                 {videoId ? (
@@ -496,224 +424,260 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
             <Tabs defaultValue="script" className="flex-1 flex flex-col">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="script">Script</TabsTrigger>
-                <TabsTrigger value="analizar">Analizar</TabsTrigger>
-                <TabsTrigger value="variante">Variante IA</TabsTrigger>
+                <TabsTrigger value="analisis">Análisis</TabsTrigger>
+                <TabsTrigger value="hooks">Hooks IA</TabsTrigger>
               </TabsList>
 
               {/* Script Tab */}
               <TabsContent value="script" className="flex-1 overflow-y-auto space-y-4 mt-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-semibold">Transcripción del Guion</h3>
-                  <div className="flex gap-2">
-                    {!transcription && !video.transcripcion_original && (
+                <div className="space-y-3">
+                  <Label>Transcripción del Video</Label>
+                  {script ? (
+                    <div className="space-y-2">
+                      <div className="bg-muted p-4 rounded-lg max-h-48 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                          {fullAnalysis?.script_original_limpio || script}
+                        </pre>
+                      </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={handleTranscribe}
-                        disabled={isTranscribing}
-                      >
-                        {isTranscribing ? "Transcribiendo..." : "Transcribir"}
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopyScript(script)}
-                    >
-                      <Copy className="h-3 w-3 mr-2" />
-                      Copiar
-                    </Button>
-                  </div>
-                </div>
-
-                {isTranscribing ? (
-                  <div className="text-center py-8">
-                    <Sparkles className="h-8 w-8 mx-auto mb-2 animate-pulse text-primary" />
-                    <p className="text-sm text-muted-foreground">Transcribiendo video...</p>
-                  </div>
-                ) : isAnalyzing ? (
-                  <div className="text-center py-8">
-                    <Sparkles className="h-8 w-8 mx-auto mb-2 animate-pulse text-primary" />
-                    <p className="text-sm text-muted-foreground">Analizando secciones...</p>
-                  </div>
-                ) : scriptAnalysis.sections.length > 0 ? (
-                  <div className="space-y-3">
-                    {scriptAnalysis.sections.map((section, index) => (
-                      <div key={index} className="border rounded-lg p-3">
-                        <Badge className={`${getSectionBadgeColor(section.type)} mb-2`}>
-                          {section.label}
-                        </Badge>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                          {section.content}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : script && script !== "No hay guión disponible" ? (
-                  <div className="bg-muted p-4 rounded-lg">
-                    <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
-                      {script}
-                    </pre>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      No hay transcripción disponible
-                    </p>
-                    <Button
-                      onClick={handleTranscribe}
-                      disabled={isTranscribing}
-                    >
-                      {isTranscribing ? "Transcribiendo..." : "Transcribir Video"}
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Analizar Tab */}
-              <TabsContent value="analizar" className="flex-1 overflow-y-auto space-y-4 mt-4">
-                {!scriptAnalysis.insights ? (
-                  <div className="text-center py-8">
-                    <Sparkles className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Analiza el guion para obtener insights
-                    </p>
-                    <Button
-                      onClick={handleAnalyzeInsights}
-                      disabled={isAnalyzing}
-                    >
-                      {isAnalyzing ? "Analizando..." : "Analizar Guion"}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-semibold mb-2 text-sm">¿Qué hace que funcione?</h4>
-                      <p className="text-sm text-muted-foreground">{scriptAnalysis.insights.funcionamiento}</p>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-semibold mb-2 text-sm">Ángulos usados</h4>
-                      <ul className="list-disc list-inside space-y-1">
-                        {scriptAnalysis.insights.angulos.map((angulo, i) => (
-                          <li key={i} className="text-sm text-muted-foreground">{angulo}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-semibold mb-2 text-sm">Ubicación del CTA</h4>
-                      <p className="text-sm text-muted-foreground">{scriptAnalysis.insights.ctaLocation}</p>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-semibold mb-2 text-sm">Estructura</h4>
-                      <p className="text-sm text-muted-foreground">{scriptAnalysis.insights.estructura}</p>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-semibold mb-2 text-sm text-green-600">Fortalezas</h4>
-                      <ul className="list-disc list-inside space-y-1">
-                        {scriptAnalysis.insights.fortalezas.map((f, i) => (
-                          <li key={i} className="text-sm text-muted-foreground">{f}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-semibold mb-2 text-sm text-orange-600">Debilidades</h4>
-                      <ul className="list-disc list-inside space-y-1">
-                        {scriptAnalysis.insights.debilidades.map((d, i) => (
-                          <li key={i} className="text-sm text-muted-foreground">{d}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Variante IA Tab */}
-              <TabsContent value="variante" className="flex-1 overflow-y-auto space-y-4 mt-4">
-                {!generatedVariant ? (
-                  <div className="space-y-4">
-                    <div className="space-y-3">
-                      <Label>Seleccionar Producto</Label>
-                      <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Elegir de la lista" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {productOptions.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.producto_nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-background px-2 text-muted-foreground">
-                            O ingresar manualmente
-                          </span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="custom-product">Nombre del Producto</Label>
-                        <Input
-                          id="custom-product"
-                          placeholder="Ej: Crema facial antiedad"
-                          value={customProduct}
-                          onChange={(e) => setCustomProduct(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="text-center pt-4">
-                      <Sparkles className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Genera una variante del guion manteniendo el estilo original
-                      </p>
-                      <Button
-                        onClick={handleGenerateVariant}
-                        disabled={isGeneratingVariant || (!selectedProduct && !customProduct)}
-                        size="lg"
-                        className="w-full"
-                      >
-                        {isGeneratingVariant ? "Generando..." : "Generar Variante"}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <Badge variant="secondary">Variante Generada</Badge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleCopyScript(generatedVariant)}
+                        onClick={() => handleCopyScript(fullAnalysis?.script_original_limpio || script)}
                       >
                         <Copy className="h-3 w-3 mr-2" />
                         Copiar
                       </Button>
                     </div>
-                    <div className="bg-accent/5 border border-accent/10 p-4 rounded-lg">
-                      <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
-                        {generatedVariant}
-                      </pre>
+                  ) : (
+                    <Textarea
+                      placeholder="Pega aquí la transcripción del video de TikTok..."
+                      value={manualTranscription}
+                      onChange={(e) => setManualTranscription(e.target.value)}
+                      className="min-h-[200px] font-mono text-xs"
+                    />
+                  )}
+                </div>
+
+                {/* Product Selection */}
+                <div className="space-y-3 border-t pt-4">
+                  <Label>Producto para las variantes</Label>
+                  <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Elegir de la lista" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {productOptions.map((product) => (
+                        <SelectItem key={product.id} value={product.id}>
+                          {product.producto_nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={handleGenerateVariant}
-                      disabled={isGeneratingVariant}
-                      className="w-full"
-                    >
-                      Generar otra variante
-                    </Button>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        O ingresar manualmente
+                      </span>
+                    </div>
+                  </div>
+
+                  <Input
+                    placeholder="Ej: Crema facial antiedad"
+                    value={customProduct}
+                    onChange={(e) => setCustomProduct(e.target.value)}
+                  />
+                </div>
+
+                <Button
+                  onClick={handleFullAnalysis}
+                  disabled={isAnalyzing || (!script && !manualTranscription)}
+                  size="lg"
+                  className="w-full"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+                      Analizando con GPT-4o-mini...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Analizar guión y generar hooks
+                    </>
+                  )}
+                </Button>
+              </TabsContent>
+
+              {/* Análisis Tab */}
+              <TabsContent value="analisis" className="flex-1 overflow-y-auto space-y-4 mt-4">
+                {!fullAnalysis ? (
+                  <div className="text-center py-8">
+                    <Sparkles className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Primero analiza el guión en la pestaña "Script"
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="border rounded-lg p-3 bg-red-500/5 border-red-500/20">
+                      <h4 className="font-semibold mb-1 text-xs text-red-600">🎯 Hook Detectado</h4>
+                      <p className="text-sm">{fullAnalysis.analisis_guion.hook_detectado}</p>
+                    </div>
+
+                    <div className="border rounded-lg p-3">
+                      <h4 className="font-semibold mb-1 text-xs text-muted-foreground">⚠️ Problema</h4>
+                      <p className="text-sm">{fullAnalysis.analisis_guion.problema}</p>
+                    </div>
+
+                    <div className="border rounded-lg p-3 bg-green-500/5 border-green-500/20">
+                      <h4 className="font-semibold mb-1 text-xs text-green-600">✓ Beneficios</h4>
+                      <p className="text-sm">{fullAnalysis.analisis_guion.beneficios}</p>
+                    </div>
+
+                    <div className="border rounded-lg p-3">
+                      <h4 className="font-semibold mb-1 text-xs text-muted-foreground">📹 Demostración</h4>
+                      <p className="text-sm">{fullAnalysis.analisis_guion.demostracion}</p>
+                    </div>
+
+                    <div className="border rounded-lg p-3 bg-purple-500/5 border-purple-500/20">
+                      <h4 className="font-semibold mb-1 text-xs text-purple-600">🛒 CTA</h4>
+                      <p className="text-sm">{fullAnalysis.analisis_guion.cta}</p>
+                    </div>
+
+                    <div className="border rounded-lg p-3">
+                      <h4 className="font-semibold mb-1 text-xs text-muted-foreground">💭 Intención Emocional</h4>
+                      <p className="text-sm">{fullAnalysis.analisis_guion.intencion_emocional}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="border rounded-lg p-3 bg-green-500/5">
+                        <h4 className="font-semibold mb-2 text-xs text-green-600">Fortalezas</h4>
+                        <ul className="space-y-1">
+                          {fullAnalysis.analisis_guion.fortalezas.map((f, i) => (
+                            <li key={i} className="text-xs text-muted-foreground">• {f}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="border rounded-lg p-3 bg-orange-500/5">
+                        <h4 className="font-semibold mb-2 text-xs text-orange-600">Debilidades</h4>
+                        <ul className="space-y-1">
+                          {fullAnalysis.analisis_guion.debilidades.map((d, i) => (
+                            <li key={i} className="text-xs text-muted-foreground">• {d}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="border rounded-lg p-3 bg-blue-500/5">
+                      <h4 className="font-semibold mb-2 text-xs text-blue-600">💡 Oportunidades de Mejora</h4>
+                      <ul className="space-y-1">
+                        {fullAnalysis.analisis_guion.oportunidades_mejora.map((o, i) => (
+                          <li key={i} className="text-xs text-muted-foreground">• {o}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Hooks IA Tab */}
+              <TabsContent value="hooks" className="flex-1 overflow-y-auto space-y-4 mt-4">
+                {!fullAnalysis ? (
+                  <div className="text-center py-8">
+                    <Sparkles className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Primero analiza el guión en la pestaña "Script"
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Selecciona un hook para ver el guión completo reescrito:
+                    </p>
+
+                    {/* Hook Selection Cards */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1, 2, 3].map((hookNum) => (
+                        <button
+                          key={hookNum}
+                          onClick={() => setSelectedHook(hookNum as 1 | 2 | 3)}
+                          className={`p-3 rounded-lg border text-left transition-all ${
+                            selectedHook === hookNum 
+                              ? getHookColor(hookNum) + " ring-2 ring-offset-2" 
+                              : "bg-muted/50 hover:bg-muted"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            {getHookIcon(hookNum)}
+                            <span className="text-xs font-semibold">Hook {hookNum}</span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            {getHookLabel(hookNum)}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Selected Hook Display */}
+                    <div className={`border rounded-lg p-4 ${getHookColor(selectedHook)}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {getHookLabel(selectedHook)}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleCopyScript(
+                            selectedHook === 1 ? fullAnalysis.hooks.hook_1_similar :
+                            selectedHook === 2 ? fullAnalysis.hooks.hook_2_variado :
+                            fullAnalysis.hooks.hook_3_disruptivo,
+                            selectedHook
+                          )}
+                        >
+                          {copiedHook === selectedHook ? (
+                            <Check className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-sm font-medium">
+                        {selectedHook === 1 && fullAnalysis.hooks.hook_1_similar}
+                        {selectedHook === 2 && fullAnalysis.hooks.hook_2_variado}
+                        {selectedHook === 3 && fullAnalysis.hooks.hook_3_disruptivo}
+                      </p>
+                    </div>
+
+                    {/* Full Rewritten Script */}
+                    <div className="border rounded-lg p-4 bg-muted/30">
+                      <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-semibold text-sm">Guión Completo Reescrito</h4>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCopyScript(
+                            selectedHook === 1 ? fullAnalysis.cuerpo_reescrito.para_hook_1 :
+                            selectedHook === 2 ? fullAnalysis.cuerpo_reescrito.para_hook_2 :
+                            fullAnalysis.cuerpo_reescrito.para_hook_3
+                          )}
+                        >
+                          <Copy className="h-3 w-3 mr-2" />
+                          Copiar guión completo
+                        </Button>
+                      </div>
+                      <div className="bg-background p-4 rounded-lg max-h-64 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                          {selectedHook === 1 && fullAnalysis.cuerpo_reescrito.para_hook_1}
+                          {selectedHook === 2 && fullAnalysis.cuerpo_reescrito.para_hook_2}
+                          {selectedHook === 3 && fullAnalysis.cuerpo_reescrito.para_hook_3}
+                        </pre>
+                      </div>
+                    </div>
                   </div>
                 )}
               </TabsContent>
@@ -723,9 +687,14 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
 
         {/* Bottom Button */}
         <div className="border-t p-4">
-          <Button className="w-full" size="lg">
+          <Button 
+            className="w-full" 
+            size="lg"
+            onClick={handleFullAnalysis}
+            disabled={isAnalyzing || (!script && !manualTranscription)}
+          >
             <Sparkles className="h-4 w-4 mr-2" />
-            Replicar guion
+            {isAnalyzing ? "Analizando..." : "Analizar guión y replicar"}
           </Button>
         </div>
       </DialogContent>

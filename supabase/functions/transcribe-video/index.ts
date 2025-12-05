@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -11,32 +12,65 @@ serve(async (req) => {
   }
 
   try {
-    const { tiktokUrl } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const { audioBase64, tiktokUrl } = await req.json();
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY not configured');
     }
 
-    console.log('Transcribing video from:', tiktokUrl);
+    // If audio is provided as base64, use Whisper
+    if (audioBase64) {
+      console.log('Transcribing audio with Whisper...');
+      
+      // Decode base64 to binary
+      const binaryString = atob(audioBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      // Create form data for Whisper API
+      const formData = new FormData();
+      const blob = new Blob([bytes], { type: 'audio/webm' });
+      formData.append('file', blob, 'audio.webm');
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'es');
+      formData.append('response_format', 'text');
 
-    // Extract TikTok video ID for processing
-    const videoId = tiktokUrl.match(/\/video\/(\d+)/)?.[1] || tiktokUrl;
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Whisper API error:', response.status, errorText);
+        throw new Error(`Whisper API error: ${response.status}`);
+      }
+
+      const transcription = await response.text();
+      console.log('Transcription completed successfully');
+
+      return new Response(
+        JSON.stringify({ transcription }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // If only URL provided, return instructions for manual transcription
+    // (TikTok URLs can't be easily scraped for audio due to their restrictions)
+    console.log('No audio provided, returning instructions');
     
-    // For MVP: Return mock transcription
-    // TODO: Implement actual audio extraction and transcription
-    const mockTranscription = `[Transcripción del video ${videoId}]
-
-Este es un video increíble que demuestra el producto de manera clara y directa.
-
-En los primeros segundos, el creador muestra el producto en acción, destacando sus características principales y beneficios inmediatos.
-
-A mitad del video, incluye testimonios reales y demuestra casos de uso específicos que resuenan con la audiencia.
-
-El cierre es poderoso: llamado a la acción directo con urgencia y escasez para motivar la compra inmediata.`;
-
     return new Response(
-      JSON.stringify({ transcription: mockTranscription }),
+      JSON.stringify({ 
+        transcription: null,
+        message: 'Para transcribir el video, graba el audio del video y súbelo manualmente.',
+        requiresManualInput: true
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
