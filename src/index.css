@@ -41,6 +41,13 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
+    /* Typography colors */
+    --text-heading: 222 47% 11%;
+    --text-subheading: 215 19% 35%;
+    --text-body: 215 25% 27%;
+    --text-muted: 215 16% 47%;
+    --text-code: 217 33% 17%;
+
     /* Premium shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -90,12 +97,49 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1 {
+    @apply text-h1 tracking-tight;
+    color: hsl(var(--text-heading));
+  }
+
+  h2 {
+    @apply text-h2 tracking-tight;
+    color: hsl(var(--text-heading));
+  }
+
+  h3 {
+    @apply text-h3;
+    color: hsl(var(--text-subheading));
+  }
+
+  h4, h5, h6 {
     @apply font-semibold tracking-tight;
+  }
+
+  p {
+    @apply text-body;
+    color: hsl(var(--text-body));
+  }
+
+  small {
+    @apply text-note;
+    color: hsl(var(--text-muted));
+  }
+
+  .text-note {
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 400;
+    color: hsl(var(--text-muted));
+  }
+
+  code, pre {
+    @apply font-mono text-code;
+    color: hsl(var(--text-code));
   }
 }
 
