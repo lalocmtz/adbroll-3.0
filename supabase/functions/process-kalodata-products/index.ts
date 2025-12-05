@@ -7,16 +7,57 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface ProductRow {
-  "Nombre del producto": string;
-  "URL del producto"?: string;
-  "Categoría"?: string;
-  "Precio (M$)"?: number;
-  "Descripción"?: string;
-  "Imagen URL"?: string;
-  "Total Ventas": number;
-  "Total Ingresos (M$)": number;
-  "Promedio ROAS"?: number;
+// Kalodata column mappings - flexible detection
+const COLUMN_MAPPINGS = {
+  productName: ["Nombre del producto", "Product Name", "nombre_producto", "Nombre"],
+  productUrl: ["URL del producto", "Product URL", "URL", "Link"],
+  imageUrl: ["Imagen URL", "Image URL", "Imagen", "Image"],
+  category: ["Categoría", "Category", "Categoria"],
+  price: ["Precio (M$)", "Price (MXN)", "Precio", "Price"],
+  commission: ["Comisión (%)", "Commission (%)", "Comision", "Commission"],
+  revenue7d: ["Ingresos 7 días", "Revenue 7d", "Ingresos últimos 7 días", "7d Revenue"],
+  revenue30d: ["Ingresos 30 días", "Revenue 30d", "Total Ingresos (M$)", "Total Revenue", "Ingresos"],
+  sales7d: ["Ventas 7 días", "Sales 7d", "Ventas últimos 7 días", "7d Sales"],
+  sales30d: ["Ventas 30 días", "Sales 30d", "Total Ventas", "Total Sales", "Ventas"],
+  activeCreators: ["Creadores activos", "Active Creators", "Creadores"],
+  conversionRate: ["% Conversión creadores", "Creator Conversion %", "Conversión"],
+  roas: ["Promedio ROAS", "ROAS", "Avg ROAS"],
+};
+
+// Find column value by trying multiple possible names
+function findColumnValue(row: any, possibleNames: string[]): any {
+  for (const name of possibleNames) {
+    if (row[name] !== undefined && row[name] !== null && row[name] !== "") {
+      return row[name];
+    }
+  }
+  return null;
+}
+
+// Parse numeric value handling ranges like "267.12-289.48"
+function parseNumericValue(value: any): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  
+  const str = String(value).replace(/,/g, "").replace("$", "").replace("%", "").trim();
+  
+  if (str.includes("-")) {
+    const parts = str.split("-");
+    const num1 = parseFloat(parts[0]);
+    const num2 = parseFloat(parts[1]);
+    if (!isNaN(num1) && !isNaN(num2)) {
+      return (num1 + num2) / 2;
+    }
+  }
+  
+  const num = parseFloat(str);
+  return isNaN(num) ? null : num;
+}
+
+// Extract short category from full path "Belleza y cuidado personal > Rizadores" → "Belleza"
+function extractShortCategory(fullCategory: string | null): string | null {
+  if (!fullCategory) return null;
+  const parts = fullCategory.split(">");
+  return parts[0].trim().split(" ")[0]; // First word of first segment
 }
 
 serve(async (req) => {
@@ -80,90 +121,65 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array" });
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows: ProductRow[] = XLSX.utils.sheet_to_json(worksheet);
+    const rows: any[] = XLSX.utils.sheet_to_json(worksheet);
 
     console.log(`Procesando ${rows.length} productos del Excel`);
 
-    // Sort by total revenue and take top entries
-    const topProducts = rows
-      .sort((a, b) => b["Total Ingresos (M$)"] - a["Total Ingresos (M$)"])
-      .slice(0, 50); // Top 50 productos
+    // Process and transform each row
+    const processedProducts = rows.map((row) => {
+      const productName = findColumnValue(row, COLUMN_MAPPINGS.productName);
+      const productUrl = findColumnValue(row, COLUMN_MAPPINGS.productUrl);
+      const imageUrl = findColumnValue(row, COLUMN_MAPPINGS.imageUrl);
+      const fullCategory = findColumnValue(row, COLUMN_MAPPINGS.category);
+      const price = parseNumericValue(findColumnValue(row, COLUMN_MAPPINGS.price));
+      const commission = parseNumericValue(findColumnValue(row, COLUMN_MAPPINGS.commission));
+      const revenue7d = parseNumericValue(findColumnValue(row, COLUMN_MAPPINGS.revenue7d));
+      const revenue30d = parseNumericValue(findColumnValue(row, COLUMN_MAPPINGS.revenue30d));
+      const sales7d = parseNumericValue(findColumnValue(row, COLUMN_MAPPINGS.sales7d));
+      const sales30d = parseNumericValue(findColumnValue(row, COLUMN_MAPPINGS.sales30d));
+      const roas = parseNumericValue(findColumnValue(row, COLUMN_MAPPINGS.roas));
 
-    console.log(`Top ${topProducts.length} productos seleccionados, iniciando UPSERT...`);
-
-    // Map and validate rows with price parsing
-    const validRows = topProducts.map((row) => {
-      // Parse price - handle ranges like "267.12-289.48"
-      let parsedPrice: number | null = null;
-      const precioValue = row["Precio (M$)"];
+      // Calculate derived fields
+      // revenue_last_7_days: if exists use it, otherwise revenue_30d / 4
+      const calculatedRevenue = revenue7d ?? (revenue30d ? revenue30d / 4 : null);
       
-      if (precioValue !== null && precioValue !== undefined) {
-        const precioStr = String(precioValue);
-        if (precioStr.includes("-")) {
-          // It's a range, take the average
-          const parts = precioStr.split("-");
-          const num1 = parseFloat(parts[0]);
-          const num2 = parseFloat(parts[1]);
-          if (!isNaN(num1) && !isNaN(num2)) {
-            parsedPrice = (num1 + num2) / 2;
-          }
-        } else {
-          const num = parseFloat(precioStr);
-          if (!isNaN(num)) {
-            parsedPrice = num;
-          }
-        }
-      }
-
-      // Parse ROAS - handle percentages and ranges
-      let parsedRoas: number | null = null;
-      const roasValue = row["Promedio ROAS"];
+      // sales_last_7_days: if exists use it, otherwise sales_30d / 4
+      const calculatedSales = sales7d ?? (sales30d ? Math.round(sales30d / 4) : null);
       
-      if (roasValue !== null && roasValue !== undefined) {
-        const roasStr = String(roasValue);
-        // Remove % if present and handle ranges
-        let cleanValue = roasStr.replace("%", "").trim();
-        if (cleanValue.includes("-")) {
-          const parts = cleanValue.split("-");
-          const num1 = parseFloat(parts[0]);
-          const num2 = parseFloat(parts[1]);
-          if (!isNaN(num1) && !isNaN(num2)) {
-            parsedRoas = (num1 + num2) / 2;
-          }
-        } else {
-          const num = parseFloat(cleanValue);
-          if (!isNaN(num)) {
-            parsedRoas = num;
-          }
-        }
-      }
+      // Short category
+      const shortCategory = extractShortCategory(fullCategory);
 
       return {
-        producto_nombre: row["Nombre del producto"],
-        producto_url: row["URL del producto"] || null,
-        categoria: row["Categoría"] || null,
-        precio_mxn: parsedPrice,
-        descripcion: row["Descripción"] || null,
-        imagen_url: row["Imagen URL"] || null,
-        total_ventas: row["Total Ventas"] || 0,
-        total_ingresos_mxn: row["Total Ingresos (M$)"] || 0,
-        promedio_roas: parsedRoas,
+        producto_nombre: productName,
+        producto_url: productUrl || null,
+        imagen_url: imageUrl || null,
+        categoria: shortCategory,
+        precio_mxn: price,
+        commission: commission,
+        total_ingresos_mxn: calculatedRevenue,
+        total_ventas: calculatedSales,
+        promedio_roas: roas,
       };
-    });
+    }).filter(p => p.producto_nombre); // Filter out rows without product name
 
-    console.log(`Procesando ${validRows.length} productos con UPSERT...`);
+    // Sort by revenue (desc) and take Top 20
+    const topProducts = processedProducts
+      .sort((a, b) => (b.total_ingresos_mxn || 0) - (a.total_ingresos_mxn || 0))
+      .slice(0, 20);
+
+    console.log(`Top 20 productos seleccionados, iniciando UPSERT...`);
+    console.log(`Procesando ${topProducts.length} productos con UPSERT...`);
 
     // UPSERT products one by one based on product_name + product_url
     let insertedCount = 0;
     let updatedCount = 0;
 
-    for (const product of validRows) {
+    for (const product of topProducts) {
       // Check if product exists by name AND url
       const { data: existing } = await supabaseServiceClient
         .from("products")
         .select("id")
         .eq("producto_nombre", product.producto_nombre)
-        .eq("producto_url", product.producto_url || "")
         .maybeSingle();
 
       if (existing) {
@@ -173,12 +189,14 @@ serve(async (req) => {
           .update({
             precio_mxn: product.precio_mxn,
             price: product.precio_mxn,
+            commission: product.commission,
             total_ingresos_mxn: product.total_ingresos_mxn,
             total_ventas: product.total_ventas,
             promedio_roas: product.promedio_roas,
             categoria: product.categoria,
-            descripcion: product.descripcion,
             imagen_url: product.imagen_url,
+            producto_url: product.producto_url,
+            last_import: new Date().toISOString(),
           })
           .eq("id", existing.id);
 
@@ -191,7 +209,8 @@ serve(async (req) => {
         // INSERT: new product
         const insertData = {
           ...product,
-          price: product.precio_mxn, // Also set price field
+          price: product.precio_mxn,
+          last_import: new Date().toISOString(),
         };
         
         const { error: insertError } = await supabaseServiceClient
@@ -227,8 +246,8 @@ serve(async (req) => {
         inserted: insertedCount,
         updated: updatedCount,
         processed: insertedCount + updatedCount,
-        total: validRows.length,
-        message: `Successfully processed ${insertedCount + updatedCount} products: ${insertedCount} new, ${updatedCount} updated. Auto-matching triggered.`,
+        total: topProducts.length,
+        message: `Top 20 productos procesados: ${insertedCount} nuevos, ${updatedCount} actualizados. Auto-matching activado.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
