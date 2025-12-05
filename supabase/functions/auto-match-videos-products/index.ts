@@ -263,11 +263,12 @@ serve(async (req) => {
 
     console.log(`📦 ${products.length} products ready`);
 
-    // Fetch unmatched videos
+    // Fetch unmatched videos - PRIORITIZE by revenue (top sellers first)
     const { data: videos, error: videosError } = await supabase
       .from('videos')
-      .select('id, title, video_url, product_name, product_id, category')
+      .select('id, title, video_url, product_name, product_id, category, revenue_mxn')
       .is('product_id', null)
+      .order('revenue_mxn', { ascending: false, nullsFirst: false })
       .range(offset, offset + batchSize - 1);
 
     if (videosError) throw new Error(`Videos error: ${videosError.message}`);
