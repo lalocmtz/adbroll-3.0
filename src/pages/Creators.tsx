@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Flame, Video, ShoppingCart, Film, Heart, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -242,15 +240,15 @@ const Creators = () => {
       </div>
 
       {sortedCreators.length === 0 ? (
-        <Card className="p-12 text-center">
+        <div className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-12 text-center shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
           <Users className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
           <p className="text-muted-foreground text-lg">
             No hay creadores disponibles.
           </p>
-        </Card>
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {paginatedCreators.map((creator, pageIndex) => {
               const tiktokUrl = getTikTokUrl(creator);
               const globalIndex = startIndex + pageIndex;
@@ -258,128 +256,128 @@ const Creators = () => {
               const isFav = favorites.has(creator.id);
 
               return (
-                <Card
+                <div
                   key={creator.id}
-                  className="overflow-hidden bg-card border-border rounded-card transition-card hover:shadow-card-hover"
+                  className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 group"
                 >
-                  <CardContent className="p-card">
-                    {/* Header: Avatar + Name + Ranking + Favorite */}
-                    <div className="flex items-start gap-3 mb-card-gap">
-                      <div className="relative">
-                        <Avatar className="h-10 w-10 border-2 border-primary/20 shrink-0 shadow-md">
-                          <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
-                          <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-xs">
-                            {getInitials(creator.nombre_completo, creator.usuario_creador)}
-                          </AvatarFallback>
-                        </Avatar>
-                        {isTop5(globalIndex) && (
-                          <div className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full p-0.5 shadow-lg">
-                            <Flame className="h-2.5 w-2.5 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground line-clamp-1 text-sm">
-                          {creator.nombre_completo || creator.usuario_creador}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">
-                          @{creator.creator_handle || creator.usuario_creador}
-                        </p>
-                        <span className={`inline-block mt-1 ${isTop5(globalIndex) ? 'badge-position text-[11px]' : 'badge-position-neutral text-[11px]'}`}>
-                          #{ranking} {isTop5(globalIndex) && '🔥'}
-                        </span>
-                      </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className={`h-8 w-8 shrink-0 icon-interactive ${isFav ? 'text-destructive' : ''}`}
-                        onClick={(e) => toggleFavorite(creator.id, e)}
-                      >
-                        <Heart className={`h-4 w-4 ${isFav ? 'fill-current' : ''}`} />
-                      </Button>
-                    </div>
-
-                    {/* Secondary Metrics */}
-                    <div className="flex gap-4 mb-card-gap text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="h-3 w-3" />
-                        <span>{formatNumber(creator.seguidores)}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Eye className="h-3 w-3" />
-                        <span>{formatNumber(creator.promedio_visualizaciones)} views</span>
-                      </div>
-                    </div>
-
-                    {/* Primary Revenue Cards */}
-                    <div className="grid grid-cols-2 gap-2 mb-card-gap">
-                      <div className="metric-box-success text-center">
-                        <DollarSign className="h-3 w-3 text-success mx-auto mb-0.5" />
-                        <p className="text-[9px] text-muted-foreground uppercase">GMV Total</p>
-                        <p className="text-sm font-bold text-success">
-                          {formatCurrency(creator.total_ingresos_mxn)}
-                        </p>
-                      </div>
-                      
-                      <div className="metric-box-success text-center">
-                        <TrendingUp className="h-3 w-3 text-success mx-auto mb-0.5" />
-                        <p className="text-[9px] text-muted-foreground uppercase">Comisión Est.</p>
-                        <p className="text-sm font-bold text-success">
-                          {calculateCommission(creator.total_ingresos_mxn)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Activity Metrics */}
-                    <div className="grid grid-cols-3 gap-1.5 mb-card-gap">
-                      <div className="metric-box bg-purple-50 dark:bg-purple-950/30 text-center">
-                        <Video className="h-3 w-3 text-purple-500 mx-auto mb-0.5" />
-                        <p className="text-[8px] text-muted-foreground uppercase">Lives</p>
-                        <p className="text-xs font-bold text-purple-600">
-                          {creator.total_live_count ? formatNumber(creator.total_live_count) : "—"}
-                        </p>
-                      </div>
-                      
-                      <div className="metric-box-muted text-center">
-                        <ShoppingCart className="h-3 w-3 text-foreground mx-auto mb-0.5" />
-                        <p className="text-[8px] text-muted-foreground uppercase">GMV Lives</p>
-                        <p className="text-xs font-bold text-foreground">
-                          {formatCurrency(creator.gmv_live_mxn)}
-                        </p>
-                      </div>
-                      
-                      <div className="metric-box bg-blue-50 dark:bg-blue-950/30 text-center">
-                        <Film className="h-3 w-3 text-blue-600 mx-auto mb-0.5" />
-                        <p className="text-[8px] text-muted-foreground uppercase">GMV Videos</p>
-                        <p className="text-xs font-bold text-blue-600">
-                          {formatCurrency(creator.revenue_videos)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* CTA Buttons */}
-                    <div className="flex gap-2">
-                      <Button
-                        className="flex-1 h-9 text-sm font-semibold"
-                        onClick={() => navigate(`/videos/creator/${creator.id}`)}
-                      >
-                        <Play className="h-4 w-4 mr-1.5" />
-                        Ver videos
-                      </Button>
-                      
-                      {tiktokUrl && (
-                        <Button
-                          variant="outline"
-                          className="h-9 text-sm"
-                          onClick={() => window.open(tiktokUrl, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-1" />
-                          TikTok
-                        </Button>
+                  {/* Header: Avatar + Name + Ranking + Favorite */}
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="relative">
+                      <Avatar className="h-12 w-12 border-2 border-[#F31260]/20 shrink-0 shadow-md transition-transform duration-300 group-hover:scale-[1.02]">
+                        <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
+                        <AvatarFallback className="bg-gradient-to-br from-[#F31260]/80 to-[#F31260] text-white font-bold text-sm">
+                          {getInitials(creator.nombre_completo, creator.usuario_creador)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {isTop5(globalIndex) && (
+                        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full p-1 shadow-lg">
+                          <Flame className="h-3 w-3 text-white" />
+                        </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground line-clamp-1">
+                        {creator.nombre_completo || creator.usuario_creador}
+                      </h3>
+                      <p className="text-[13px] text-[#94A3B8]">
+                        @{creator.creator_handle || creator.usuario_creador}
+                      </p>
+                      <span className={`inline-block mt-1 text-[12px] font-bold px-2 py-0.5 rounded-full ${
+                        isTop5(globalIndex)
+                          ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white'
+                          : 'bg-[#F1F5F9] text-[#0F172A] border border-[#E2E8F0]'
+                      }`}>
+                        #{ranking} {isTop5(globalIndex) && '🔥'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={(e) => toggleFavorite(creator.id, e)}
+                      className="h-9 w-9 rounded-full bg-[#F8FAFC] flex items-center justify-center hover:bg-[#F1F5F9] transition-colors"
+                    >
+                      <Heart className={`h-[18px] w-[18px] transition-colors ${isFav ? 'text-[#F31260] fill-[#F31260]' : 'text-[#CBD5E1] hover:text-[#1E293B]'}`} />
+                    </button>
+                  </div>
+
+                  {/* Secondary Metrics */}
+                  <div className="flex gap-4 mb-3 text-[13px] text-[#94A3B8]">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5 text-[#475569]" />
+                      <span>{formatNumber(creator.seguidores)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Eye className="h-3.5 w-3.5 text-[#475569]" />
+                      <span>{formatNumber(creator.promedio_visualizaciones)} views</span>
+                    </div>
+                  </div>
+
+                  {/* Primary Revenue Cards */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="p-2.5 rounded-xl bg-[#ECFDF5] dark:bg-success/10 text-center">
+                      <DollarSign className="h-4 w-4 text-[#475569] mx-auto mb-1" />
+                      <p className="text-[10px] text-[#94A3B8] uppercase">GMV Total</p>
+                      <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+                        {formatCurrency(creator.total_ingresos_mxn)}
+                      </p>
+                    </div>
+                    
+                    <div className="p-2.5 rounded-xl bg-[#ECFDF5] dark:bg-success/10 text-center">
+                      <TrendingUp className="h-4 w-4 text-[#475569] mx-auto mb-1" />
+                      <p className="text-[10px] text-[#94A3B8] uppercase">Comisión Est.</p>
+                      <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+                        {calculateCommission(creator.total_ingresos_mxn)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Activity Metrics */}
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="p-2 rounded-xl bg-[#F5F3FF] dark:bg-purple-950/30 text-center">
+                      <Video className="h-3.5 w-3.5 text-[#475569] mx-auto mb-0.5" />
+                      <p className="text-[9px] text-[#94A3B8] uppercase">Lives</p>
+                      <p className="text-xs font-bold text-[#0F172A] dark:text-foreground">
+                        {creator.total_live_count ? formatNumber(creator.total_live_count) : "—"}
+                      </p>
+                    </div>
+                    
+                    <div className="p-2 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 text-center">
+                      <ShoppingCart className="h-3.5 w-3.5 text-[#475569] mx-auto mb-0.5" />
+                      <p className="text-[9px] text-[#94A3B8] uppercase">GMV Lives</p>
+                      <p className="text-xs font-bold text-[#0F172A] dark:text-foreground">
+                        {formatCurrency(creator.gmv_live_mxn)}
+                      </p>
+                    </div>
+                    
+                    <div className="p-2 rounded-xl bg-[#F0F9FF] dark:bg-blue-950/30 text-center">
+                      <Film className="h-3.5 w-3.5 text-[#475569] mx-auto mb-0.5" />
+                      <p className="text-[9px] text-[#94A3B8] uppercase">GMV Videos</p>
+                      <p className="text-xs font-bold text-[#0F172A] dark:text-foreground">
+                        {formatCurrency(creator.revenue_videos)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* CTA Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 h-10"
+                      onClick={() => navigate(`/videos/creator/${creator.id}`)}
+                    >
+                      <Play className="h-4 w-4" />
+                      Ver videos
+                    </Button>
+                    
+                    {tiktokUrl && (
+                      <Button
+                        variant="secondary"
+                        className="h-10"
+                        onClick={() => window.open(tiktokUrl, '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        TikTok
+                      </Button>
+                    )}
+                  </div>
+                </div>
               );
             })}
           </div>

@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Package, ExternalLink, DollarSign, Percent, TrendingUp, ShoppingCart, Users, Star, Heart, Play } from "lucide-react";
@@ -247,163 +245,159 @@ const Products = () => {
       </div>
 
       {filteredProducts.length === 0 ? (
-        <Card className="p-12 text-center">
+        <div className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-12 text-center shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
           <Package className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
           <p className="text-muted-foreground text-lg">
             {products.length === 0 
               ? "No hay productos disponibles."
               : "No hay productos que coincidan con los filtros."}
           </p>
-        </Card>
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {paginatedProducts.map((product, index) => {
               const displayRank = (currentPage - 1) * PRODUCTS_PER_PAGE + index + 1;
               const isFav = favorites.has(product.id);
               const isTop5 = displayRank <= 5;
+              const price = product.price || product.precio_mxn || 0;
+              const commissionRate = product.commission || 6;
+              const earningsPerSale = price * (commissionRate / 100);
               
               return (
-                <Card 
-                  key={product.id} 
-                  className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border"
+                <div 
+                  key={product.id}
+                  className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 group"
                 >
-                  <div className="relative aspect-square bg-muted overflow-hidden">
+                  {/* Product Image - 1:1 aspect ratio */}
+                  <div className="relative aspect-square bg-muted rounded-2xl overflow-hidden mb-3">
                     <img
                       src={product.imagen_url || PLACEHOLDER_IMAGE}
                       alt={product.producto_nombre}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
                       }}
                     />
                     
-                    <div className="absolute top-2 left-2 right-2 z-10 flex items-center justify-between">
-                      <Badge 
-                        className={`font-bold text-xs px-2 py-0.5 shadow-lg ${
-                          isTop5 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-background/90 text-foreground border'
-                        }`}
-                      >
+                    {/* Top bar */}
+                    <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between">
+                      <span className={`text-[13px] font-bold px-2.5 py-1 rounded-full shadow-lg ${
+                        isTop5 
+                          ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white' 
+                          : 'bg-white/95 text-[#0F172A] border border-[#E2E8F0]'
+                      }`}>
                         #{displayRank} {isTop5 && '🔥'}
-                      </Badge>
+                      </span>
                       
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         {product.producto_url && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               window.open(product.producto_url!, '_blank');
                             }}
+                            className="h-8 w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </Button>
+                            <ExternalLink className="h-[18px] w-[18px] text-[#CBD5E1] hover:text-[#1E293B] transition-colors" />
+                          </button>
                         )}
                         
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className={`h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90 ${isFav ? 'text-red-500' : ''}`}
+                        <button
                           onClick={(e) => toggleFavorite(product.id, e)}
+                          className="h-8 w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
                         >
-                          <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-current' : ''}`} />
-                        </Button>
+                          <Heart className={`h-[18px] w-[18px] transition-colors ${isFav ? 'text-[#F31260] fill-[#F31260]' : 'text-[#CBD5E1] hover:text-[#1E293B]'}`} />
+                        </button>
                       </div>
                     </div>
                     
+                    {/* Rating badge */}
                     {product.rating && (
-                      <Badge variant="secondary" className="absolute bottom-2 right-2 flex items-center gap-1 text-xs">
+                      <span className="absolute bottom-3 right-3 bg-white/95 text-[#0F172A] text-xs font-medium px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
                         <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                         {product.rating.toFixed(1)}
-                      </Badge>
+                      </span>
                     )}
                     
-                    {/* Earnings per sale badge - bottom left */}
-                    {(() => {
-                      const price = product.price || product.precio_mxn || 0;
-                      const commissionRate = product.commission || 6;
-                      const earningsPerSale = price * (commissionRate / 100);
-                      return earningsPerSale > 0 ? (
-                        <Badge className="absolute bottom-2 left-2 z-10 bg-black text-white text-[10px] font-semibold px-2 py-1 shadow-lg">
-                          💰 Gana {formatCurrency(earningsPerSale)} por venta
-                        </Badge>
-                      ) : null;
-                    })()}
+                    {/* Earnings badge */}
+                    {earningsPerSale > 0 && (
+                      <span className="absolute bottom-3 left-3 z-10 bg-[#EEF2FF] text-[#6366F1] text-xs font-medium px-2 py-1 rounded-md shadow-sm">
+                        💰 Gana {formatCurrency(earningsPerSale)} por venta
+                      </span>
+                    )}
                   </div>
 
-                  <CardContent className="p-2.5 space-y-2">
-                    <h3 className="font-semibold text-xs text-foreground line-clamp-2 min-h-[2rem]">
-                      {product.producto_nombre}
-                    </h3>
-                    
-                    {product.categoria && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                        {product.categoria}
-                      </Badge>
-                    )}
+                  {/* Content */}
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground line-clamp-2 leading-snug">
+                        {product.producto_nombre}
+                      </h3>
+                      {product.categoria && (
+                        <p className="text-[13px] text-[#94A3B8] mt-0.5">{product.categoria}</p>
+                      )}
+                    </div>
 
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
-                        <div className="flex items-center gap-1 mb-0.5">
-                          <TrendingUp className="h-2.5 w-2.5 text-emerald-600" />
-                          <span className="text-[9px] text-muted-foreground">Ingresos 30D</span>
+                    {/* Metrics Grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2.5 rounded-xl bg-[#ECFDF5] dark:bg-success/10">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <TrendingUp className="h-3.5 w-3.5 text-[#475569]" />
+                          <span className="text-[11px] text-[#94A3B8]">Ingresos 30D</span>
                         </div>
-                        <p className="text-xs font-bold text-emerald-600">
+                        <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
                           {formatCurrency(getRevenue(product))}
                         </p>
                       </div>
 
-                      <div className="p-1.5 rounded-md bg-muted">
-                        <div className="flex items-center gap-1 mb-0.5">
-                          <ShoppingCart className="h-2.5 w-2.5 text-foreground" />
-                          <span className="text-[9px] text-muted-foreground">Ventas 30D</span>
+                      <div className="p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <ShoppingCart className="h-3.5 w-3.5 text-[#475569]" />
+                          <span className="text-[11px] text-[#94A3B8]">Ventas 30D</span>
                         </div>
-                        <p className="text-xs font-bold text-foreground">
+                        <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
                           {formatNumber(getSales(product))}
                         </p>
                       </div>
 
-                      <div className="p-1.5 rounded-md bg-muted">
-                        <div className="flex items-center gap-1 mb-0.5">
-                          <DollarSign className="h-2.5 w-2.5 text-foreground" />
-                          <span className="text-[9px] text-muted-foreground">Precio</span>
+                      <div className="p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <DollarSign className="h-3.5 w-3.5 text-[#475569]" />
+                          <span className="text-[11px] text-[#94A3B8]">Precio</span>
                         </div>
-                        <p className="text-xs font-bold text-foreground">
-                          {formatCurrency(product.price || product.precio_mxn)}
+                        <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+                          {formatCurrency(price)}
                         </p>
                       </div>
 
-                      <div className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
-                        <div className="flex items-center gap-1 mb-0.5">
-                          <Percent className="h-2.5 w-2.5 text-amber-600" />
-                          <span className="text-[9px] text-muted-foreground">Comisión</span>
+                      <div className="p-2.5 rounded-xl bg-[#FEF3C7] dark:bg-amber-950/30">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Percent className="h-3.5 w-3.5 text-[#475569]" />
+                          <span className="text-[11px] text-[#94A3B8]">Comisión</span>
                         </div>
-                        <p className="text-xs font-bold text-amber-600">
+                        <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
                           {product.commission ? `${product.commission}%` : "6%"}
                         </p>
                       </div>
                     </div>
 
                     {(product.creators_count || 0) > 0 && (
-                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                        <Users className="h-3 w-3" />
+                      <div className="flex items-center gap-1.5 text-[13px] text-[#94A3B8]">
+                        <Users className="h-3.5 w-3.5 text-[#475569]" />
                         <span>{product.creators_count} creadores activos</span>
                       </div>
                     )}
 
                     <Button
-                      className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
+                      className="w-full h-10"
                       onClick={() => navigate(`/videos/product/${product.id}`)}
                     >
-                      <Play className="h-3.5 w-3.5 mr-1.5" />
+                      <Play className="h-4 w-4" />
                       Ver videos
                     </Button>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })}
           </div>
