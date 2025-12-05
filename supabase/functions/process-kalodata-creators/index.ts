@@ -9,16 +9,16 @@ const corsHeaders = {
 
 // Dynamic column mapping for Kalodata LIST_CREATOR files
 const COLUMN_MAPPINGS: Record<string, string[]> = {
-  creator_name: ["nombre del creador", "creator name", "creator", "nombre", "name", "nombre completo"],
+  creator_name: ["nombre del creador", "creator name", "creator", "nombre", "name", "nombre completo", "nickname"],
   username: ["usuario del creador", "username", "handle", "usuario", "@", "creator handle", "tiktok handle"],
   avatar_url: ["profile image", "profile image url", "imagen", "avatar", "foto", "image url", "profile pic", "avatar url", "creator avatar url"],
   followers: ["seguidores", "followers", "follower count", "total followers", "creator_follower"],
   revenue_30d: ["ingresos(m$)", "ingresos", "revenue", "ingresos totales", "total revenue", "gmv", "total ingresos", "gmv 30d", "ingresos 30d", "revenue 30d", "creator_income_30d"],
-  views_30d: ["visualizaciones", "views", "vistas", "content views", "total views", "vistas de contenido", "video views", "views 30d", "video_views_30d"],
-  total_live_count: ["lives", "total lives", "live count", "total_live_count", "lives 30d", "transmisiones en vivo", "live streams", "live sessions"],
-  gmv_live: ["gmv live", "gmv_live_m", "ventas live", "live gmv", "gmv por lives", "live sales", "ventas en vivo", "gmv live m", "live revenue"],
-  revenue_live: ["ingresos en vivo", "live revenue", "revenue live", "ingresos live"],
-  revenue_videos: ["ingresos por video", "video revenue", "revenue videos", "gmv videos", "ingresos videos"],
+  views_30d: ["visualizaciones", "views", "vistas", "content views", "total views", "vistas de contenido", "video views", "views 30d", "video_views_30d", "vistas 30d"],
+  total_live_count: ["número de transmisiones en vivo", "lives", "total lives", "live count", "total_live_count", "lives 30d", "transmisiones en vivo", "live streams", "live sessions"],
+  gmv_live: ["gmv en vivo(m$)", "gmv live", "gmv_live_m", "ventas live", "live gmv", "gmv por lives", "live sales", "ventas en vivo", "gmv live m", "live revenue"],
+  videos_count: ["número de videos", "videos count", "total videos", "videos", "video count"],
+  gmv_videos: ["gmv por videos(m$)", "gmv por vídeos(m$)", "gmv videos", "video gmv", "gmv por videos", "video sales", "ventas por videos"],
   tiktok_url: ["enlace de tiktok", "tiktok url", "url", "profile url", "enlace", "link", "creator url", "tiktok link"],
   country: ["country", "país", "region", "location"],
 };
@@ -109,7 +109,6 @@ async function scrapeTikTokAvatar(tiktokUrl: string): Promise<string | null> {
 
     const html = await response.text();
     
-    // Try og:image meta tag
     const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i) ||
                          html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:image"/i);
     
@@ -118,7 +117,6 @@ async function scrapeTikTokAvatar(tiktokUrl: string): Promise<string | null> {
       return ogImageMatch[1];
     }
 
-    // Try avatarLarger from JSON
     const avatarLargerMatch = html.match(/"avatarLarger"\s*:\s*"([^"]+)"/);
     if (avatarLargerMatch && avatarLargerMatch[1]) {
       const avatarUrl = avatarLargerMatch[1].replace(/\\u002F/g, "/");
@@ -126,7 +124,6 @@ async function scrapeTikTokAvatar(tiktokUrl: string): Promise<string | null> {
       return avatarUrl;
     }
 
-    // Try avatarThumb
     const avatarThumbMatch = html.match(/"avatarThumb"\s*:\s*"([^"]+)"/);
     if (avatarThumbMatch && avatarThumbMatch[1]) {
       const avatarUrl = avatarThumbMatch[1].replace(/\\u002F/g, "/");
@@ -152,7 +149,6 @@ async function fetchAvatarsInBackground(
   let failCount = 0;
   
   for (const creator of creators) {
-    // Skip if already has avatar URL
     if (creator.avatar_url && creator.avatar_url.startsWith("http")) {
       console.log(`Creator ${creator.id} already has avatar, skipping`);
       continue;
@@ -164,7 +160,6 @@ async function fetchAvatarsInBackground(
     }
     
     try {
-      // Add delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const avatarUrl = await scrapeTikTokAvatar(creator.tiktok_url);
@@ -200,7 +195,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify founder role
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -260,6 +254,18 @@ serve(async (req) => {
       console.log("Columnas detectadas:", JSON.stringify(Object.keys(rows[0])));
     }
 
+    // Validate required fields
+    const missingFields: string[] = [];
+    if (rows.length > 0) {
+      const testRow = rows[0];
+      if (!findColumnValue(testRow, "gmv_live")) missingFields.push("GMV en vivo(M$)");
+      if (!findColumnValue(testRow, "gmv_videos")) missingFields.push("GMV por videos(M$)");
+    }
+
+    if (missingFields.length > 0) {
+      console.warn(`Campos faltantes en el archivo: ${missingFields.join(", ")}`);
+    }
+
     // Process each row with dynamic column detection
     const processedCreators = rows.map((row, index) => {
       const creatorName = findColumnValue(row, "creator_name");
@@ -270,16 +276,13 @@ serve(async (req) => {
       const views30d = parseNumericValue(findColumnValue(row, "views_30d"));
       const totalLiveCount = parseNumericValue(findColumnValue(row, "total_live_count"));
       const gmvLive = parseNumericValue(findColumnValue(row, "gmv_live"));
-      const revenueLive = parseNumericValue(findColumnValue(row, "revenue_live"));
-      const revenueVideos = parseNumericValue(findColumnValue(row, "revenue_videos"));
+      const videosCount = parseNumericValue(findColumnValue(row, "videos_count"));
+      const gmvVideos = parseNumericValue(findColumnValue(row, "gmv_videos"));
       const tiktokUrl = findColumnValue(row, "tiktok_url");
       const country = findColumnValue(row, "country");
 
       const finalUsername = username || creatorName || `creator_${index + 1}`;
       const cleanUsername = String(finalUsername).replace("@", "").trim();
-
-      // Use gmv_live if available, otherwise fall back to revenue_live
-      const finalGmvLive = gmvLive || revenueLive || 0;
 
       return {
         usuario_creador: cleanUsername,
@@ -288,16 +291,16 @@ serve(async (req) => {
         seguidores: followers ? Math.round(followers) : 0,
         total_ingresos_mxn: revenue30d || 0,
         total_ventas: 0,
-        total_videos: 0,
+        total_videos: videosCount ? Math.round(videosCount) : 0,
         promedio_visualizaciones: views30d ? Math.round(views30d) : 0,
         promedio_roas: null,
         mejor_video_url: null,
         avatar_url: avatarUrl ? String(avatarUrl).trim() : null,
-        likes_30d: 0, // Deprecated, keeping for backward compatibility
+        likes_30d: 0,
         total_live_count: totalLiveCount ? Math.round(totalLiveCount) : 0,
-        gmv_live_mxn: finalGmvLive,
-        revenue_live: revenueLive || 0,
-        revenue_videos: revenueVideos || 0,
+        gmv_live_mxn: gmvLive || 0,
+        revenue_live: gmvLive || 0,
+        revenue_videos: gmvVideos || 0,
         tiktok_url: buildTikTokUrl(cleanUsername, tiktokUrl ? String(tiktokUrl).trim() : null),
         country: country ? String(country).trim() : null,
         last_import: new Date().toISOString(),
@@ -349,14 +352,12 @@ serve(async (req) => {
       if (creatorsNeedingAvatars.length > 0) {
         console.log(`Starting background avatar fetch for ${creatorsNeedingAvatars.length} creators`);
         
-        // Use EdgeRuntime.waitUntil for background processing
         const globalRuntime = globalThis as unknown as { EdgeRuntime?: { waitUntil: (promise: Promise<void>) => void } };
         if (globalRuntime.EdgeRuntime?.waitUntil) {
           globalRuntime.EdgeRuntime.waitUntil(
             fetchAvatarsInBackground(creatorsNeedingAvatars, supabaseServiceClient)
           );
         } else {
-          // Fallback: run synchronously for first few creators
           console.log("EdgeRuntime.waitUntil not available, fetching first 5 avatars synchronously");
           fetchAvatarsInBackground(creatorsNeedingAvatars.slice(0, 5), supabaseServiceClient);
         }
@@ -368,7 +369,10 @@ serve(async (req) => {
         success: true,
         processed: top50Creators.length,
         total: rows.length,
-        message: `Se importaron los Top ${top50Creators.length} creadores. Los avatares se están descargando en segundo plano.`,
+        missingFields: missingFields.length > 0 ? missingFields : undefined,
+        message: missingFields.length > 0 
+          ? `Se importaron ${top50Creators.length} creadores. Advertencia: Faltan campos en el archivo: ${missingFields.join(", ")}.`
+          : `Se importaron los Top ${top50Creators.length} creadores. Los avatares se están descargando en segundo plano.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
