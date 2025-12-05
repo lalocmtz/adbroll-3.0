@@ -570,6 +570,42 @@ export type Database = {
         }
         Relationships: []
       }
+      transcription_queue: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          error: string | null
+          id: string
+          status: string | null
+          transcription_text: string | null
+          updated_at: string | null
+          video_id: string
+          video_url: string
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          status?: string | null
+          transcription_text?: string | null
+          updated_at?: string | null
+          video_id: string
+          video_url: string
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          status?: string | null
+          transcription_text?: string | null
+          updated_at?: string | null
+          video_id?: string
+          video_url?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
