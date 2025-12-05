@@ -1,13 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, DollarSign, ShoppingCart, Percent, Heart, Sparkles, Loader2 } from "lucide-react";
+import { Eye, DollarSign, ShoppingCart, Percent, Heart, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import VideoAnalysisModal from "./VideoAnalysisModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useTranscriptionPolling } from "@/hooks/useTranscriptionPolling";
 
 interface VideoCardProps {
   video: {
@@ -48,12 +47,9 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
   const [productData, setProductData] = useState<ProductData | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [transcriptReady, setTranscriptReady] = useState<string | null>(null);
   const embedRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  
-  const { isPolling, transcript, error, status, startTranscription, reset } = useTranscriptionPolling();
 
   useEffect(() => {
     // Load TikTok embed script
@@ -103,25 +99,6 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
 
     loadData();
   }, [video.producto_nombre, video.tiktok_url]);
-
-  // When transcript is ready, open modal
-  useEffect(() => {
-    if (transcript && !showModal) {
-      setTranscriptReady(transcript);
-      setShowModal(true);
-    }
-  }, [transcript]);
-
-  // Handle transcription error
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: "Error de transcripción",
-        description: error,
-        variant: "destructive",
-      });
-    }
-  }, [error]);
 
   // Extract video ID from TikTok URL
   const getVideoId = (url: string) => {
@@ -215,30 +192,13 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     }
   };
 
-  const handleAnalyzeClick = async () => {
-    // If transcript already exists, open modal directly
-    if (video.transcripcion_original) {
-      setTranscriptReady(video.transcripcion_original);
-      setShowModal(true);
-      return;
-    }
-
-    // Otherwise, start transcription process
-    const success = await startTranscription(video.id, video.tiktok_url);
-    
-    if (!success && !transcript) {
-      toast({
-        title: "Error",
-        description: "No se pudo transcribir el video. Intenta de nuevo.",
-        variant: "destructive",
-      });
-    }
+  const handleAnalyzeClick = () => {
+    // Open modal - it handles transcription internally via AssemblyAI
+    setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setTranscriptReady(null);
-    reset();
   };
 
   return (
@@ -273,21 +233,6 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
               </Button>
             </div>
           </div>
-
-          {/* Loading Overlay when transcribing */}
-          {isPolling && (
-            <div className="absolute inset-0 z-30 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm font-medium text-center px-4">
-                {status === 'queued' && 'En cola de procesamiento...'}
-                {status === 'extracting' && 'Extrayendo audio del video...'}
-                {status === 'transcribing' && 'Transcribiendo con IA...'}
-              </p>
-              <p className="text-xs text-muted-foreground text-center px-4">
-                Esto puede tomar hasta 30 segundos
-              </p>
-            </div>
-          )}
 
           {/* TikTok Official Embed */}
           {videoId ? (
@@ -379,31 +324,18 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             className="w-full h-8 text-xs font-semibold" 
             variant="default"
             onClick={handleAnalyzeClick}
-            disabled={isPolling}
           >
-            {isPolling ? (
-              <>
-                <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-                {status === 'extracting' ? 'Extrayendo audio...' : 
-                 status === 'transcribing' ? 'Transcribiendo...' : 
-                 'Procesando...'}
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-3 w-3 mr-1.5" />
-                Analizar guion y replicar
-              </>
-            )}
+            <Sparkles className="h-3 w-3 mr-1.5" />
+            Analizar guion y replicar
           </Button>
         </CardContent>
       </Card>
 
-      {showModal && transcriptReady && (
+      {showModal && (
         <VideoAnalysisModal
           isOpen={showModal}
           onClose={handleCloseModal}
           video={video}
-          transcript={transcriptReady}
         />
       )}
     </>

@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, X, Check, FileText, BarChart3, Wand2, Loader2 } from "lucide-react";
+import { Copy, X, Check, FileText, BarChart3, Wand2, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 
 interface VideoAnalysisModalProps {
   isOpen: boolean;
@@ -15,7 +15,6 @@ interface VideoAnalysisModalProps {
     descripcion_video: string;
     creador: string;
   };
-  transcript: string;
 }
 
 interface Section {
@@ -33,33 +32,37 @@ interface Variants {
   full_variant: string;
 }
 
-const VideoAnalysisModal = ({ isOpen, onClose, video, transcript }: VideoAnalysisModalProps) => {
+const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps) => {
+  const [transcript, setTranscript] = useState<string>("");
   const [sections, setSections] = useState<Section[]>([]);
   const [variants, setVariants] = useState<Variants | null>(null);
+  const [loadingTranscript, setLoadingTranscript] = useState(false);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [loadingVariants, setLoadingVariants] = useState(false);
+  const [transcriptError, setTranscriptError] = useState<string | null>(null);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
-  const [variantsGenerated, setVariantsGenerated] = useState(false);
   const embedRef = useRef<HTMLDivElement>(null);
-  const hasStartedAnalysis = useRef(false);
+  const hasStartedProcess = useRef(false);
   const { toast } = useToast();
 
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
+      setTranscript("");
       setSections([]);
       setVariants(null);
+      setLoadingTranscript(false);
       setLoadingAnalysis(false);
       setLoadingVariants(false);
-      setVariantsGenerated(false);
-      hasStartedAnalysis.current = false;
+      setTranscriptError(null);
+      hasStartedProcess.current = false;
     }
   }, [isOpen]);
 
-  // Auto-trigger analysis when modal opens with transcript
+  // Auto-start transcription when modal opens
   useEffect(() => {
-    if (isOpen && transcript && !hasStartedAnalysis.current) {
-      hasStartedAnalysis.current = true;
+    if (isOpen && !hasStartedProcess.current) {
+      hasStartedProcess.current = true;
       
       // Load TikTok embed
       const script = document.createElement('script');
@@ -67,19 +70,54 @@ const VideoAnalysisModal = ({ isOpen, onClose, video, transcript }: VideoAnalysi
       script.async = true;
       document.body.appendChild(script);
 
-      // Auto-analyze
-      analyzeScript();
+      // Start automatic transcription
+      transcribeVideo();
     }
-  }, [isOpen, transcript]);
+  }, [isOpen]);
 
-  const analyzeScript = async () => {
-    if (!transcript) return;
+  const transcribeVideo = async () => {
+    setLoadingTranscript(true);
+    setTranscriptError(null);
+
+    try {
+      console.log('Starting transcription for:', video.tiktok_url);
+      
+      const { data, error } = await supabase.functions.invoke("transcribe-assemblyai", {
+        body: { 
+          videoUrl: video.tiktok_url,
+          videoId: video.id
+        }
+      });
+
+      if (error) {
+        console.error("Transcription error:", error);
+        setTranscriptError("Error al transcribir el video. Intenta nuevamente.");
+        return;
+      }
+
+      if (data?.transcript) {
+        setTranscript(data.transcript);
+        // Auto-trigger analysis
+        analyzeScript(data.transcript);
+      } else {
+        setTranscriptError("No se pudo obtener la transcripción del video.");
+      }
+    } catch (err: any) {
+      console.error("Transcription error:", err);
+      setTranscriptError(err.message || "Error desconocido al transcribir.");
+    } finally {
+      setLoadingTranscript(false);
+    }
+  };
+
+  const analyzeScript = async (scriptText: string) => {
+    if (!scriptText) return;
     
     setLoadingAnalysis(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("analyze-script-sections", {
-        body: { script: transcript, videoTitle: video.descripcion_video }
+        body: { script: scriptText, videoTitle: video.descripcion_video }
       });
 
       if (error) {
@@ -103,56 +141,54 @@ const VideoAnalysisModal = ({ isOpen, onClose, video, transcript }: VideoAnalysi
   };
 
   const generateVariants = async () => {
-    if (!transcript || variantsGenerated) return;
+    if (!transcript || variants) return;
     
     setLoadingVariants(true);
 
     try {
-      // Generate 3 hooks in parallel
-      const [similarResult, mediumResult, differentResult] = await Promise.all([
-        supabase.functions.invoke("generate-script-variants", {
-          body: { 
-            originalScript: transcript,
-            videoTitle: video.descripcion_video,
-            variantType: "similar"
-          }
-        }),
-        supabase.functions.invoke("generate-script-variants", {
-          body: { 
-            originalScript: transcript,
-            videoTitle: video.descripcion_video,
-            variantType: "emocional"
-          }
-        }),
-        supabase.functions.invoke("generate-script-variants", {
-          body: { 
-            originalScript: transcript,
-            videoTitle: video.descripcion_video,
-            variantType: "comercial"
-          }
-        }),
-      ]);
-
-      // Extract hooks from each variant
-      const extractHook = (variant: string): string => {
-        const hookMatch = variant?.match(/HOOK:\s*([\s\S]*?)(?=CUERPO:|$)/i);
-        return hookMatch ? hookMatch[1].trim() : variant?.split('\n').slice(0, 3).join('\n') || "";
-      };
-
-      setVariants({
-        hooks: {
-          similar: extractHook(similarResult.data?.variant || ""),
-          medium: extractHook(mediumResult.data?.variant || ""),
-          different: extractHook(differentResult.data?.variant || ""),
-        },
-        full_variant: differentResult.data?.variant || "",
+      // Generate 5 variants using a single call
+      const { data, error } = await supabase.functions.invoke("generate-script-variants", {
+        body: { 
+          originalScript: transcript,
+          videoTitle: video.descripcion_video,
+          generateMultiple: true
+        }
       });
 
-      setVariantsGenerated(true);
+      if (error) {
+        console.error("Variants error:", error);
+        toast({
+          title: "Error",
+          description: "No se pudieron generar las variantes",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.variants) {
+        setVariants({
+          hooks: {
+            similar: data.variants[0] || "",
+            medium: data.variants[1] || "",
+            different: data.variants[2] || "",
+          },
+          full_variant: data.variants.slice(3).join('\n\n---\n\n') || data.variants[0] || "",
+        });
+      } else if (data?.variant) {
+        // Fallback for single variant response
+        setVariants({
+          hooks: {
+            similar: data.variant,
+            medium: "",
+            different: "",
+          },
+          full_variant: data.variant,
+        });
+      }
 
       toast({
         title: "✓ Variantes generadas",
-        description: "3 hooks y guión completo listos",
+        description: "5 variantes listas para copiar",
       });
     } catch (err: any) {
       console.error("Variants error:", err);
@@ -289,18 +325,47 @@ const VideoAnalysisModal = ({ isOpen, onClose, video, transcript }: VideoAnalysi
 
               {/* TAB 1 - Script */}
               <TabsContent value="script" className="flex-1 overflow-y-auto">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-medium">Transcripción del Video</h3>
-                    <CopyButton text={transcript} section="transcript" />
+                {loadingTranscript ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Transcribiendo audio del video…</p>
+                    <p className="text-xs text-muted-foreground/70">Esto puede tomar hasta 60 segundos</p>
                   </div>
-                  
-                  <div className="bg-muted/50 p-4 rounded-lg border border-border">
-                    <pre className="text-sm leading-relaxed whitespace-pre-wrap font-mono">
-                      {transcript}
-                    </pre>
+                ) : transcriptError ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-4">
+                    <AlertCircle className="h-10 w-10 text-destructive" />
+                    <p className="text-sm text-destructive text-center">{transcriptError}</p>
+                    <Button 
+                      onClick={() => {
+                        hasStartedProcess.current = false;
+                        transcribeVideo();
+                      }}
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Intentar nuevamente
+                    </Button>
                   </div>
-                </div>
+                ) : transcript ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-sm font-medium">Transcripción del Video</h3>
+                      <CopyButton text={transcript} section="transcript" />
+                    </div>
+                    
+                    <div className="bg-muted/50 p-4 rounded-lg border border-border">
+                      <pre className="text-sm leading-relaxed whitespace-pre-wrap font-mono">
+                        {transcript}
+                      </pre>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <FileText className="h-10 w-10 text-muted-foreground/30" />
+                    <p className="text-sm text-muted-foreground">Esperando transcripción...</p>
+                  </div>
+                )}
               </TabsContent>
 
               {/* TAB 2 - Análisis */}
@@ -313,7 +378,9 @@ const VideoAnalysisModal = ({ isOpen, onClose, video, transcript }: VideoAnalysi
                 ) : sections.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">Cargando análisis...</p>
+                    <p className="text-sm">
+                      {loadingTranscript ? "Esperando transcripción..." : "Cargando análisis..."}
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -346,66 +413,68 @@ const VideoAnalysisModal = ({ isOpen, onClose, video, transcript }: VideoAnalysi
                   <div className="text-center py-12">
                     <Wand2 className="h-10 w-10 mx-auto mb-3 opacity-30 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground mb-4">
-                      Haz clic en esta pestaña para generar variantes
+                      {!transcript ? "Esperando transcripción..." : "Haz clic en esta pestaña para generar variantes"}
                     </p>
-                    <Button onClick={generateVariants} disabled={loadingVariants}>
-                      <Wand2 className="h-4 w-4 mr-2" />
-                      Generar Variantes
-                    </Button>
+                    {transcript && (
+                      <Button onClick={generateVariants} disabled={loadingVariants}>
+                        <Wand2 className="h-4 w-4 mr-2" />
+                        Generar Variantes
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {/* Hook 1 - Similar */}
+                    {/* Variante 1 */}
                     <div className="border border-blue-200 dark:border-blue-900/30 rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20">
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="text-sm font-medium text-blue-700 dark:text-blue-400">
-                          🎯 Hook 1 — Similar
+                          📝 Variante 1
                         </h4>
                         {variants.hooks.similar && (
-                          <CopyButton text={variants.hooks.similar} section="hook1" />
+                          <CopyButton text={variants.hooks.similar} section="variant1" />
                         )}
                       </div>
                       <p className="text-sm whitespace-pre-wrap">{variants.hooks.similar || "No generado"}</p>
                     </div>
 
-                    {/* Hook 2 - Emocional */}
-                    <div className="border border-amber-200 dark:border-amber-900/30 rounded-lg p-4 bg-amber-50/50 dark:bg-amber-950/20">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                          💝 Hook 2 — Emocional
-                        </h4>
-                        {variants.hooks.medium && (
-                          <CopyButton text={variants.hooks.medium} section="hook2" />
-                        )}
+                    {/* Variante 2 */}
+                    {variants.hooks.medium && (
+                      <div className="border border-amber-200 dark:border-amber-900/30 rounded-lg p-4 bg-amber-50/50 dark:bg-amber-950/20">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                            📝 Variante 2
+                          </h4>
+                          <CopyButton text={variants.hooks.medium} section="variant2" />
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{variants.hooks.medium}</p>
                       </div>
-                      <p className="text-sm whitespace-pre-wrap">{variants.hooks.medium || "No generado"}</p>
-                    </div>
+                    )}
 
-                    {/* Hook 3 - Comercial */}
-                    <div className="border border-purple-200 dark:border-purple-900/30 rounded-lg p-4 bg-purple-50/50 dark:bg-purple-950/20">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="text-sm font-medium text-purple-700 dark:text-purple-400">
-                          💰 Hook 3 — Comercial
-                        </h4>
-                        {variants.hooks.different && (
-                          <CopyButton text={variants.hooks.different} section="hook3" />
-                        )}
+                    {/* Variante 3 */}
+                    {variants.hooks.different && (
+                      <div className="border border-purple-200 dark:border-purple-900/30 rounded-lg p-4 bg-purple-50/50 dark:bg-purple-950/20">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="text-sm font-medium text-purple-700 dark:text-purple-400">
+                            📝 Variante 3
+                          </h4>
+                          <CopyButton text={variants.hooks.different} section="variant3" />
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{variants.hooks.different}</p>
                       </div>
-                      <p className="text-sm whitespace-pre-wrap">{variants.hooks.different || "No generado"}</p>
-                    </div>
+                    )}
 
-                    {/* Full Variant */}
-                    <div className="border border-border rounded-lg p-4 bg-muted/30">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="text-sm font-medium">✨ Guión Completo Alternativo</h4>
-                        {variants.full_variant && (
+                    {/* Full Variants */}
+                    {variants.full_variant && (
+                      <div className="border border-border rounded-lg p-4 bg-muted/30">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="text-sm font-medium">✨ Más Variantes</h4>
                           <CopyButton text={variants.full_variant} section="fullvariant" />
-                        )}
+                        </div>
+                        <pre className="text-sm whitespace-pre-wrap font-mono">
+                          {variants.full_variant}
+                        </pre>
                       </div>
-                      <pre className="text-sm whitespace-pre-wrap font-mono">
-                        {variants.full_variant || "No generado"}
-                      </pre>
-                    </div>
+                    )}
                   </div>
                 )}
               </TabsContent>

@@ -18,6 +18,9 @@ verify_jwt = false
 [functions.transcription-worker]
 verify_jwt = false
 
+[functions.transcribe-assemblyai]
+verify_jwt = false
+
 [functions.rewrite-script]
 verify_jwt = false
 
