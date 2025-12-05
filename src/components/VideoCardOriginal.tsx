@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import VideoAnalysisModalOriginal from './VideoAnalysisModalOriginal';
-import { VideoHoverControls } from './VideoHoverControls';
 
 interface Video {
   id: string;
@@ -63,7 +62,6 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
   const [showModal, setShowModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -88,42 +86,24 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
     if (videoRef.current && video.video_mp4_url) {
       videoRef.current.muted = false;
       videoRef.current.volume = 0.7;
-      videoRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {
-          // Autoplay with sound blocked, try muted
-          if (videoRef.current) {
-            videoRef.current.muted = true;
-            videoRef.current.play()
-              .then(() => setIsPlaying(true))
-              .catch(() => {});
-          }
-        });
+      videoRef.current.play().catch(() => {
+        // Autoplay with sound blocked, try muted
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+          videoRef.current.play().catch(() => {});
+        }
+      });
     }
   }, [video.video_mp4_url]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
-    setIsPlaying(false);
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
       videoRef.current.muted = true;
     }
   }, []);
-
-  const handlePlayPause = useCallback(() => {
-    if (!videoRef.current) return;
-    
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      videoRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {});
-    }
-  }, [isPlaying]);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -227,14 +207,6 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                 </div>
               )}
               
-              {/* Hover Controls */}
-              <VideoHoverControls
-                videoRef={videoRef}
-                isVisible={isHovered}
-                onPlayPause={handlePlayPause}
-                isPlaying={isPlaying}
-              />
-
               {earningsPerSale > 0 && (
                 <span className="absolute bottom-3 left-3 z-10 bg-[#EEF2FF] text-[#6366F1] text-xs font-medium px-2 py-1 rounded-md shadow-sm">
                   💰 Gana {formatCurrency(earningsPerSale)} por venta
