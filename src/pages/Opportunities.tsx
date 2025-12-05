@@ -11,16 +11,15 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 
 interface OpportunityReason {
-  high_commission: boolean;
-  high_gmv: boolean;
+  commission_high: boolean;
+  gmv_high: boolean;
   low_competition: boolean;
-  high_earning: boolean;
-  thresholds: {
-    min_commission: number;
-    min_gmv: number;
-    max_creators: number;
-    min_earning: number;
-  };
+  high_profit: boolean;
+  commission_percentile: number;
+  gmv_percentile: number;
+  profit_percentile: number;
+  creators_niche_avg: number;
+  tags: string[] | null;
   summary_text: string | null;
 }
 
@@ -34,39 +33,15 @@ interface OpportunityProduct {
   commission: number | null;
   gmv_30d_calc: number | null;
   creators_active_calc: number | null;
-  opportunity_index: number | null;
+  creators_niche_avg: number | null;
+  io_score: number | null;
   earning_per_sale: number | null;
   is_hidden_gem: boolean | null;
   opportunity_reason: OpportunityReason | null;
-  opportunity_score?: number;
+  commission_percentile: number | null;
+  gmv30d_percentile: number | null;
+  profit_percentile: number | null;
 }
-
-// Calculate weighted opportunity score
-const calculateOpportunityScore = (product: OpportunityProduct): number => {
-  const commission = product.commission || 0;
-  const gmv = product.gmv_30d_calc || 0;
-  const earning = product.earning_per_sale || 0;
-  const creators = product.creators_active_calc || 1;
-  
-  // Weighted formula: prioritize high commission + low competition
-  const commissionWeight = 0.35;
-  const gmvWeight = 0.25;
-  const earningWeight = 0.25;
-  const competitionWeight = 0.15;
-  
-  // Normalize values (rough scaling)
-  const normalizedCommission = Math.min(commission / 30, 1) * 100; // 30% = max
-  const normalizedGmv = Math.min(gmv / 5000000, 1) * 100; // 5M = max
-  const normalizedEarning = Math.min(earning / 200, 1) * 100; // $200 = max
-  const normalizedCompetition = Math.max(0, 100 - (creators / 5)); // Fewer = better
-  
-  return (
-    normalizedCommission * commissionWeight +
-    normalizedGmv * gmvWeight +
-    normalizedEarning * earningWeight +
-    normalizedCompetition * competitionWeight
-  );
-};
 
 const Opportunities = () => {
   const { toast } = useToast();
@@ -83,9 +58,9 @@ const Opportunities = () => {
     try {
       const { data, error } = await supabase
         .from("product_opportunities")
-        .select("id, producto_nombre, producto_url, categoria, imagen_url, precio_mxn, commission, gmv_30d_calc, creators_active_calc, opportunity_index, earning_per_sale, is_hidden_gem, opportunity_reason")
-        .gte("commission", 15)
-        .order("opportunity_index", { ascending: false })
+        .select("id, producto_nombre, producto_url, categoria, imagen_url, precio_mxn, commission, gmv_30d_calc, creators_active_calc, creators_niche_avg, io_score, earning_per_sale, is_hidden_gem, opportunity_reason, commission_percentile, gmv30d_percentile, profit_percentile")
+        .gte("commission", 10)
+        .order("io_score", { ascending: false, nullsFirst: false })
         .limit(50);
 
       if (error) throw error;
@@ -95,23 +70,16 @@ const Opportunities = () => {
         const reason = p.opportunity_reason as unknown as OpportunityReason;
         if (!reason) return false;
         const criteriaCount = [
-          reason.high_commission,
-          reason.high_gmv,
+          reason.commission_high,
+          reason.gmv_high,
           reason.low_competition,
-          reason.high_earning
+          reason.high_profit
         ].filter(Boolean).length;
         return criteriaCount >= 2;
-      }).map((p) => {
-        const product = {
-          ...p,
-          opportunity_reason: p.opportunity_reason as unknown as OpportunityReason
-        } as OpportunityProduct;
-        product.opportunity_score = calculateOpportunityScore(product);
-        return product;
-      });
-
-      // Sort by opportunity_score descending
-      filtered.sort((a, b) => (b.opportunity_score || 0) - (a.opportunity_score || 0));
+      }).map((p) => ({
+        ...p,
+        opportunity_reason: p.opportunity_reason as unknown as OpportunityReason
+      } as OpportunityProduct));
 
       setOpportunities(filtered);
     } catch (error: any) {
@@ -134,83 +102,6 @@ const Opportunities = () => {
       currency: curr,
       maximumFractionDigits: 0,
     }).format(value);
-  };
-
-  const formatNumber = (num: number | null) => {
-    if (num === null) return "-";
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
-  };
-
-  const getReasonTags = (reason: OpportunityReason | null) => {
-    if (!reason) return [];
-    const tags = [];
-    if (reason.high_commission) tags.push(language === "es" ? "Comisión alta" : "High commission");
-    if (reason.high_gmv) tags.push(language === "es" ? "Buenas ventas" : "Good sales");
-    if (reason.low_competition) tags.push(language === "es" ? "Poca competencia" : "Low competition");
-    if (reason.high_earning) tags.push(language === "es" ? "Alta ganancia" : "High earnings");
-    return tags;
-  };
-
-  // Tooltip content for metrics
-  const tooltips = {
-    commission: {
-      es: {
-        title: "Comisión",
-        what: "Porcentaje que recibes por cada venta.",
-        why: "Mayor comisión = más dinero por tu esfuerzo.",
-        impact: "Con 20% de comisión en un producto de $500, ganas $100 por venta."
-      },
-      en: {
-        title: "Commission",
-        what: "Percentage you earn per sale.",
-        why: "Higher commission = more money for your effort.",
-        impact: "With 20% commission on a $500 product, you earn $100 per sale."
-      }
-    },
-    gmv: {
-      es: {
-        title: "GMV 30d",
-        what: "Volumen de ventas totales en los últimos 30 días.",
-        why: "Indica que el producto tiene demanda comprobada.",
-        impact: "Alto GMV = producto que la gente ya está comprando."
-      },
-      en: {
-        title: "GMV 30d",
-        what: "Total sales volume in the last 30 days.",
-        why: "Indicates proven product demand.",
-        impact: "High GMV = product people are already buying."
-      }
-    },
-    creators: {
-      es: {
-        title: "Creadores",
-        what: "Número de creadores promocionando este producto.",
-        why: "Menos creadores = menos competencia para ti.",
-        impact: "Pocos creadores + alto GMV = oportunidad ideal."
-      },
-      en: {
-        title: "Creators",
-        what: "Number of creators promoting this product.",
-        why: "Fewer creators = less competition for you.",
-        impact: "Few creators + high GMV = ideal opportunity."
-      }
-    },
-    earning: {
-      es: {
-        title: "Ganancia por venta",
-        what: "Dinero que recibes cada vez que alguien compra.",
-        why: "Te permite calcular tus ganancias potenciales.",
-        impact: "Si vendes 10 unidades y ganas $50 c/u = $500 en total."
-      },
-      en: {
-        title: "Earnings per sale",
-        what: "Money you receive each time someone buys.",
-        why: "Helps calculate your potential earnings.",
-        impact: "If you sell 10 units at $50 each = $500 total."
-      }
-    }
   };
 
   if (loading) {
@@ -244,17 +135,14 @@ const Opportunities = () => {
           </p>
         </div>
 
-        {/* Educational Mini Block */}
-        <div className="bg-gradient-to-r from-primary/5 to-amber-500/5 border border-primary/10 rounded-xl p-3 mb-5 flex items-start gap-3">
-          <Lightbulb className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[13px] text-foreground font-medium mb-0.5">
-              {language === "es" ? "¿Qué es una oportunidad?" : "What is an opportunity?"}
-            </p>
-            <p className="text-[12px] text-muted-foreground leading-relaxed">
+        {/* Educational Text Above Grid */}
+        <div className="bg-gradient-to-r from-primary/5 to-amber-500/5 border border-primary/10 rounded-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <Lightbulb className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-[13px] text-foreground leading-relaxed">
               {language === "es"
-                ? "Un producto aparece aquí cuando vende muy bien, paga una comisión alta y pocos creadores lo están promocionando. Es tu ventaja competitiva."
-                : "A product appears here when it sells well, pays high commission, and few creators are promoting it. It's your competitive advantage."}
+                ? "Estas oportunidades se detectan por tres factores: alta comisión, fuertes ventas y baja competencia de creadores."
+                : "These opportunities are detected by three factors: high commission, strong sales, and low creator competition."}
             </p>
           </div>
         </div>
@@ -274,154 +162,18 @@ const Opportunities = () => {
             </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {opportunities.map((product, index) => {
-              const reason = product.opportunity_reason;
-              const reasonTags = getReasonTags(reason);
-              
-              return (
-                <Card 
-                  key={product.id} 
-                  className="overflow-hidden hover:shadow-lg transition-all duration-200 group cursor-pointer bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col"
-                  onClick={() => navigate(`/videos/product/${product.id}`)}
-                >
-                  {/* Image */}
-                  <div className="relative aspect-square bg-muted/30">
-                    {product.imagen_url ? (
-                      <img 
-                        src={product.imagen_url} 
-                        alt={product.producto_nombre}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Gem className="h-12 w-12 text-muted-foreground/30" />
-                      </div>
-                    )}
-                    
-                    {/* Score Badge */}
-                    <div className="absolute top-3 left-3">
-                      <Badge 
-                        className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 gap-1 shadow-sm"
-                        title={language === "es" ? "Puntuación de oportunidad" : "Opportunity score"}
-                      >
-                        <TrendingUp className="h-3 w-3" />
-                        {product.opportunity_score?.toFixed(0) || 0}
-                      </Badge>
-                    </div>
-
-                    {/* Rank */}
-                    <div className="absolute top-3 right-3">
-                      <Badge variant="secondary" className="font-bold bg-white/95 text-foreground shadow-sm">
-                        #{index + 1}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-4 flex flex-col flex-1">
-                    {/* Product Name */}
-                    <h3 
-                      className="font-semibold text-[15px] text-foreground truncate mb-1"
-                      title={product.producto_nombre}
-                    >
-                      {product.producto_nombre}
-                    </h3>
-
-                    {/* Category */}
-                    {product.categoria && (
-                      <p className="text-[12px] text-muted-foreground mb-2">{product.categoria}</p>
-                    )}
-
-                    {/* Reason Tags */}
-                    {reasonTags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {reasonTags.map((tag, i) => (
-                          <Badge 
-                            key={i} 
-                            variant="outline" 
-                            className="text-[10px] px-1.5 py-0 h-5 bg-primary/5 border-primary/20 text-primary font-medium"
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Metrics Grid with Tooltips */}
-                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                      <MetricWithTooltip
-                        icon={<Percent className="h-3.5 w-3.5" />}
-                        value={product.commission ? `${product.commission}%` : "-"}
-                        label={language === "es" ? "Comisión" : "Commission"}
-                        colorClass="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30"
-                        tooltip={tooltips.commission[language === "es" ? "es" : "en"]}
-                      />
-                      <MetricWithTooltip
-                        icon={<DollarSign className="h-3.5 w-3.5" />}
-                        value={formatCurrency(product.gmv_30d_calc, currency)}
-                        label="GMV 30d"
-                        colorClass="text-blue-600 bg-blue-50 dark:bg-blue-950/30"
-                        tooltip={tooltips.gmv[language === "es" ? "es" : "en"]}
-                      />
-                      <MetricWithTooltip
-                        icon={<Users className="h-3.5 w-3.5" />}
-                        value={product.creators_active_calc?.toString() || "0"}
-                        label={language === "es" ? "Creadores" : "Creators"}
-                        colorClass="text-purple-600 bg-purple-50 dark:bg-purple-950/30"
-                        tooltip={tooltips.creators[language === "es" ? "es" : "en"]}
-                      />
-                      <MetricWithTooltip
-                        icon={<DollarSign className="h-3.5 w-3.5" />}
-                        value={formatCurrency(product.earning_per_sale, currency)}
-                        label={language === "es" ? "Ganancia" : "Earnings"}
-                        colorClass="text-amber-600 bg-amber-50 dark:bg-amber-950/30"
-                        tooltip={tooltips.earning[language === "es" ? "es" : "en"]}
-                      />
-                    </div>
-
-                    {/* Spacer to push buttons to bottom */}
-                    <div className="flex-1" />
-
-                    {/* Actions - Always at bottom */}
-                    <div className="flex gap-2 mt-auto pt-2">
-                      <Button 
-                        size="sm" 
-                        className="flex-1 h-8 text-xs rounded-lg"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/videos/product/${product.id}`);
-                        }}
-                      >
-                        {language === "es" ? "Ver videos" : "View videos"}
-                      </Button>
-                      
-                      {/* Why Opportunity Modal */}
-                      <WhyOpportunityModal 
-                        product={product} 
-                        language={language} 
-                        currency={currency}
-                        formatCurrency={formatCurrency}
-                      />
-                      
-                      {product.producto_url && (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="h-8 w-8 p-0 rounded-lg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(product.producto_url!, '_blank');
-                          }}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {opportunities.map((product, index) => (
+              <OpportunityCard
+                key={product.id}
+                product={product}
+                index={index}
+                language={language}
+                currency={currency}
+                formatCurrency={formatCurrency}
+                navigate={navigate}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -429,8 +181,215 @@ const Opportunities = () => {
   );
 };
 
-// Metric box with tooltip
-const MetricWithTooltip = ({ 
+// Opportunity Card Component
+const OpportunityCard = ({
+  product,
+  index,
+  language,
+  currency,
+  formatCurrency,
+  navigate
+}: {
+  product: OpportunityProduct;
+  index: number;
+  language: string;
+  currency: string;
+  formatCurrency: (amount: number | null, curr: string) => string;
+  navigate: (path: string) => void;
+}) => {
+  const reason = product.opportunity_reason;
+  const tags = reason?.tags || [];
+
+  // Tooltip content for specific tags
+  const tagTooltips: Record<string, { es: string; en: string }> = {
+    "Comisión alta": {
+      es: `Este producto paga más comisión que el ${Math.round(product.commission_percentile || 60)}% de su categoría.`,
+      en: `This product pays more commission than ${Math.round(product.commission_percentile || 60)}% of its category.`
+    },
+    "Buenas ventas": {
+      es: `Su GMV en los últimos 30 días está dentro del top ${100 - Math.round(product.gmv30d_percentile || 70)}% del nicho.`,
+      en: `Its GMV in the last 30 days is in the top ${100 - Math.round(product.gmv30d_percentile || 70)}% of the niche.`
+    },
+    "Alta ganancia": {
+      es: "Su ganancia por venta es superior al promedio del nicho.",
+      en: "Its earnings per sale is above the niche average."
+    },
+    "Poca competencia": {
+      es: "Menos creadores significa menos competencia: más probabilidad de posicionarte.",
+      en: "Fewer creators means less competition: better chance to position yourself."
+    }
+  };
+
+  return (
+    <Card 
+      className="overflow-hidden hover:shadow-lg transition-all duration-200 group cursor-pointer bg-card rounded-xl border border-border/60 shadow-sm flex flex-col"
+      onClick={() => navigate(`/videos/product/${product.id}`)}
+    >
+      {/* Image Container - 3:4 ratio */}
+      <div className="relative" style={{ aspectRatio: '3/4' }}>
+        {product.imagen_url ? (
+          <img 
+            src={product.imagen_url} 
+            alt={product.producto_nombre}
+            className="w-full h-full object-cover rounded-t-xl transition-transform duration-300 group-hover:scale-[1.02]"
+            style={{ borderRadius: '12px 12px 0 0' }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted/30 rounded-t-xl">
+            <Gem className="h-12 w-12 text-muted-foreground/30" />
+          </div>
+        )}
+        
+        {/* IO Score Badge with Tooltip */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="absolute top-3 left-3">
+              <Badge 
+                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 gap-1.5 shadow-md px-2.5 py-1 text-xs font-semibold"
+              >
+                <TrendingUp className="h-3.5 w-3.5" />
+                IO {product.io_score?.toFixed(0) || 0}
+              </Badge>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-[220px]">
+            <p className="text-xs">
+              {language === "es"
+                ? "Este IO Score refleja crecimiento, ventas y baja competencia del producto."
+                : "This IO Score reflects product growth, sales, and low competition."}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Rank Badge */}
+        <div className="absolute top-3 right-3">
+          <Badge variant="secondary" className="font-bold bg-white/95 text-foreground shadow-sm px-2 py-0.5">
+            #{index + 1}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Content - 24px padding */}
+      <div className="p-6 flex flex-col flex-1 gap-4">
+        {/* Product Name - max 2 lines */}
+        <h3 
+          className="font-semibold text-[15px] text-foreground line-clamp-2 leading-tight"
+          title={product.producto_nombre}
+        >
+          {product.producto_nombre}
+        </h3>
+
+        {/* Category */}
+        {product.categoria && (
+          <p className="text-[12px] text-muted-foreground -mt-2">{product.categoria}</p>
+        )}
+
+        {/* Tags as Bullet List */}
+        {tags.length > 0 && (
+          <ul className="space-y-1.5">
+            {tags.map((tag, i) => {
+              const tooltipText = tagTooltips[tag]?.[language === "es" ? "es" : "en"] || tag;
+              return (
+                <Tooltip key={i}>
+                  <TooltipTrigger asChild>
+                    <li className="flex items-center gap-2 text-[12px] text-muted-foreground cursor-help hover:text-foreground transition-colors">
+                      <span className="text-primary text-[8px]">●</span>
+                      {tag}
+                    </li>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[200px]">
+                    <p className="text-xs">{tooltipText}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </ul>
+        )}
+
+        {/* Metrics Grid - 16px spacing */}
+        <div className="grid grid-cols-2 gap-4">
+          <MetricBox
+            icon={<Percent className="h-3.5 w-3.5" />}
+            value={product.commission ? `${product.commission}%` : "-"}
+            label={language === "es" ? "Comisión" : "Commission"}
+            colorClass="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30"
+            tooltip={language === "es" 
+              ? "Porcentaje que recibes por cada venta. Mayor comisión = más ganancias." 
+              : "Percentage you receive per sale. Higher commission = more earnings."}
+          />
+          <MetricBox
+            icon={<DollarSign className="h-3.5 w-3.5" />}
+            value={formatCurrency(product.gmv_30d_calc, currency)}
+            label="GMV 30d"
+            colorClass="text-blue-600 bg-blue-50 dark:bg-blue-950/30"
+            tooltip={language === "es" 
+              ? "Volumen de ventas en 30 días. Alto GMV = demanda comprobada." 
+              : "Sales volume in 30 days. High GMV = proven demand."}
+          />
+          <MetricBox
+            icon={<Users className="h-3.5 w-3.5" />}
+            value={product.creators_active_calc?.toString() || "0"}
+            label={language === "es" ? "Creadores" : "Creators"}
+            colorClass="text-purple-600 bg-purple-50 dark:bg-purple-950/30"
+            tooltip={language === "es" 
+              ? `Creadores activos (promedio nicho: ${Math.round(product.creators_niche_avg || 0)}). Menos = menos competencia.`
+              : `Active creators (niche avg: ${Math.round(product.creators_niche_avg || 0)}). Fewer = less competition.`}
+          />
+          <MetricBox
+            icon={<DollarSign className="h-3.5 w-3.5" />}
+            value={formatCurrency(product.earning_per_sale, currency)}
+            label={language === "es" ? "Ganancia" : "Earnings"}
+            colorClass="text-amber-600 bg-amber-50 dark:bg-amber-950/30"
+            tooltip={language === "es" 
+              ? "Dinero que ganas por cada venta realizada." 
+              : "Money you earn per sale made."}
+          />
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Actions - uniform at bottom */}
+        <div className="flex gap-2 pt-2">
+          <Button 
+            size="sm" 
+            className="flex-1 h-9 text-xs rounded-lg font-medium"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/videos/product/${product.id}`);
+            }}
+          >
+            {language === "es" ? "Ver videos" : "View videos"}
+          </Button>
+          
+          <WhyOpportunityModal 
+            product={product} 
+            language={language} 
+            currency={currency}
+            formatCurrency={formatCurrency}
+          />
+          
+          {product.producto_url && (
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="h-9 w-9 p-0 rounded-lg"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(product.producto_url!, '_blank');
+              }}
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+// Metric Box Component
+const MetricBox = ({ 
   icon, 
   value, 
   label, 
@@ -441,23 +400,20 @@ const MetricWithTooltip = ({
   value: string; 
   label: string; 
   colorClass: string;
-  tooltip: { title: string; what: string; why: string; impact: string };
+  tooltip: string;
 }) => (
   <Tooltip>
     <TooltipTrigger asChild>
-      <div className={`flex items-center gap-1.5 p-2 rounded-lg cursor-help transition-all hover:ring-1 hover:ring-primary/20 ${colorClass}`}>
+      <div className={`flex items-center gap-2 p-3 rounded-lg cursor-help transition-all hover:ring-1 hover:ring-primary/20 ${colorClass}`}>
         {icon}
         <div className="min-w-0">
-          <p className="font-bold text-[11px] truncate">{value}</p>
-          <p className="text-[9px] text-muted-foreground truncate">{label}</p>
+          <p className="font-bold text-[12px] truncate">{value}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{label}</p>
         </div>
       </div>
     </TooltipTrigger>
-    <TooltipContent side="top" className="max-w-[240px] p-3">
-      <p className="font-semibold text-sm mb-1">{tooltip.title}</p>
-      <p className="text-xs text-muted-foreground mb-1"><strong>Qué es:</strong> {tooltip.what}</p>
-      <p className="text-xs text-muted-foreground mb-1"><strong>Por qué importa:</strong> {tooltip.why}</p>
-      <p className="text-xs text-primary"><strong>Ejemplo:</strong> {tooltip.impact}</p>
+    <TooltipContent side="top" className="max-w-[200px]">
+      <p className="text-xs">{tooltip}</p>
     </TooltipContent>
   </Tooltip>
 );
@@ -477,28 +433,21 @@ const WhyOpportunityModal = ({
   const reason = product.opportunity_reason;
   if (!reason) return null;
 
-  const thresholds = reason.thresholds || {
-    min_commission: 15,
-    min_gmv: 1214245,
-    max_creators: 50,
-    min_earning: 49
-  };
-
   const criteria = [
     {
-      met: reason.high_commission,
+      met: reason.commission_high,
       label: language === "es" ? "Comisión alta" : "High commission",
       current: `${product.commission || 0}%`,
-      threshold: `≥${thresholds.min_commission}%`,
+      threshold: language === "es" ? `Percentil ${Math.round(reason.commission_percentile || 0)}` : `Percentile ${Math.round(reason.commission_percentile || 0)}`,
       tip: language === "es" 
         ? "Ganas más por cada venta realizada." 
         : "You earn more per sale."
     },
     {
-      met: reason.high_gmv,
+      met: reason.gmv_high,
       label: language === "es" ? "GMV alto" : "High GMV",
       current: formatCurrency(product.gmv_30d_calc, currency),
-      threshold: `≥${formatCurrency(thresholds.min_gmv, currency)}`,
+      threshold: language === "es" ? `Percentil ${Math.round(reason.gmv_percentile || 0)}` : `Percentile ${Math.round(reason.gmv_percentile || 0)}`,
       tip: language === "es" 
         ? "El producto tiene demanda comprobada." 
         : "The product has proven demand."
@@ -506,17 +455,17 @@ const WhyOpportunityModal = ({
     {
       met: reason.low_competition,
       label: language === "es" ? "Baja competencia" : "Low competition",
-      current: `${product.creators_active_calc || 0}`,
-      threshold: `≤${thresholds.max_creators}`,
+      current: `${product.creators_active_calc || 0} creadores`,
+      threshold: language === "es" ? `Promedio: ${Math.round(reason.creators_niche_avg || 0)}` : `Average: ${Math.round(reason.creators_niche_avg || 0)}`,
       tip: language === "es" 
         ? "Menos creadores = más visibilidad para ti." 
         : "Fewer creators = more visibility for you."
     },
     {
-      met: reason.high_earning,
+      met: reason.high_profit,
       label: language === "es" ? "Alta ganancia por venta" : "High earnings per sale",
       current: formatCurrency(product.earning_per_sale, currency),
-      threshold: `≥${formatCurrency(thresholds.min_earning, currency)}`,
+      threshold: language === "es" ? `Percentil ${Math.round(reason.profit_percentile || 0)}` : `Percentile ${Math.round(reason.profit_percentile || 0)}`,
       tip: language === "es" 
         ? "Cada venta te genera un buen ingreso." 
         : "Each sale generates good income."
@@ -531,7 +480,7 @@ const WhyOpportunityModal = ({
         <Button 
           size="sm" 
           variant="ghost"
-          className="h-8 w-8 p-0 rounded-lg hover:bg-primary/10"
+          className="h-9 w-9 p-0 rounded-lg hover:bg-primary/10"
           onClick={(e) => e.stopPropagation()}
         >
           <HelpCircle className="h-4 w-4 text-muted-foreground" />
@@ -554,7 +503,7 @@ const WhyOpportunityModal = ({
           {/* Score Badge */}
           <div className="flex items-center gap-2">
             <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
-              Score: {product.opportunity_score?.toFixed(0) || 0}
+              IO Score: {product.io_score?.toFixed(0) || 0}
             </Badge>
             <span className="text-xs text-muted-foreground">
               {language === "es" 
@@ -586,11 +535,9 @@ const WhyOpportunityModal = ({
                       <span className={c.met ? 'text-emerald-600 font-semibold' : 'text-muted-foreground'}>
                         {c.current}
                       </span>
-                      <span className="text-muted-foreground/50">/</span>
-                      <span className="text-muted-foreground">{c.threshold}</span>
                     </div>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">{c.tip}</p>
+                  <p className="text-[11px] text-muted-foreground">{c.threshold} · {c.tip}</p>
                 </div>
               </div>
             ))}
