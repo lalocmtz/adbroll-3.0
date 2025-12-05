@@ -279,7 +279,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             <div className="absolute inset-0 z-30 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm font-medium text-center px-4">
-                {status === 'starting' && 'Iniciando...'}
+                {status === 'queued' && 'En cola de procesamiento...'}
                 {status === 'extracting' && 'Extrayendo audio del video...'}
                 {status === 'transcribing' && 'Transcribiendo con IA...'}
               </p>

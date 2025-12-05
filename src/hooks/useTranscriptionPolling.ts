@@ -1,11 +1,13 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+
+type TranscriptionStatus = 'idle' | 'queued' | 'extracting' | 'transcribing' | 'completed' | 'error';
 
 interface UseTranscriptionPollingResult {
   isPolling: boolean;
   transcript: string | null;
   error: string | null;
-  status: 'idle' | 'starting' | 'extracting' | 'transcribing' | 'completed' | 'error';
+  status: TranscriptionStatus;
   startTranscription: (videoId: string, tiktokUrl: string) => Promise<boolean>;
   reset: () => void;
 }
@@ -14,7 +16,7 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
   const [isPolling, setIsPolling] = useState(false);
   const [transcript, setTranscript] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<'idle' | 'starting' | 'extracting' | 'transcribing' | 'completed' | 'error'>('idle');
+  const [status, setStatus] = useState<TranscriptionStatus>('idle');
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const abortRef = useRef(false);
 
@@ -30,26 +32,63 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
     }
   }, []);
 
-  const pollForTranscript = useCallback(async (videoId: string): Promise<string | null> => {
-    const { data, error } = await supabase
-      .from("daily_feed")
-      .select("transcripcion_original")
-      .eq("id", videoId)
-      .maybeSingle();
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current = true;
+      if (pollingRef.current) {
+        clearTimeout(pollingRef.current);
+      }
+    };
+  }, []);
 
-    if (error) {
-      console.error("Polling error:", error);
+  const pollForTranscript = useCallback(async (videoId: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase
+        .from("daily_feed")
+        .select("transcripcion_original")
+        .eq("id", videoId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Polling error:", error);
+        return null;
+      }
+
+      return data?.transcripcion_original || null;
+    } catch (err) {
+      console.error("Polling fetch error:", err);
       return null;
     }
+  }, []);
 
-    return data?.transcripcion_original || null;
+  const checkQueueStatus = useCallback(async (videoId: string): Promise<{ status: string; error?: string } | null> => {
+    try {
+      const { data, error } = await supabase
+        .from("transcription_queue")
+        .select("status, error")
+        .eq("video_id", videoId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Queue status error:", error);
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Queue status fetch error:", err);
+      return null;
+    }
   }, []);
 
   const startTranscription = useCallback(async (videoId: string, tiktokUrl: string): Promise<boolean> => {
     setIsPolling(true);
     setError(null);
     setTranscript(null);
-    setStatus('starting');
+    setStatus('queued');
     abortRef.current = false;
 
     try {
@@ -63,9 +102,8 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
         return true;
       }
 
-      // Trigger transcription edge function
+      // Trigger transcription (will be queued)
       console.log("Starting transcription for:", tiktokUrl);
-      setStatus('extracting');
       
       const { data, error: transcribeError } = await supabase.functions.invoke("transcribe-video", {
         body: { tiktokUrl, videoId }
@@ -88,20 +126,33 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
         return true;
       }
 
-      // Otherwise, poll the database
+      // Poll for transcript
       console.log("Polling for transcript...");
-      setStatus('transcribing');
+      setStatus('extracting');
       let attempts = 0;
-      const maxAttempts = 60; // 2 minutes max (2 seconds * 60)
+      const maxAttempts = 90; // 3 minutes max (2 seconds * 90)
+      let statusUpdateCount = 0;
 
       return new Promise((resolve) => {
         const poll = async () => {
           if (abortRef.current) {
+            setIsPolling(false);
             resolve(false);
             return;
           }
 
           attempts++;
+          
+          // Update status based on time elapsed
+          if (statusUpdateCount < 3 && attempts > 5) {
+            setStatus('extracting');
+          }
+          if (statusUpdateCount < 3 && attempts > 15) {
+            setStatus('transcribing');
+            statusUpdateCount = 3;
+          }
+
+          // Check transcript in daily_feed
           const transcript = await pollForTranscript(videoId);
 
           if (transcript) {
@@ -113,9 +164,20 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
             return;
           }
 
+          // Check queue status for errors
+          const queueStatus = await checkQueueStatus(videoId);
+          if (queueStatus?.status === 'failed') {
+            console.log("Transcription failed:", queueStatus.error);
+            setError(queueStatus.error || "Error en la transcripción");
+            setIsPolling(false);
+            setStatus('error');
+            resolve(false);
+            return;
+          }
+
           if (attempts >= maxAttempts) {
             console.log("Polling timeout reached");
-            setError("Tiempo de espera agotado. El video puede ser muy largo o no estar disponible.");
+            setError("Tiempo de espera agotado. Intenta de nuevo más tarde.");
             setIsPolling(false);
             setStatus('error');
             resolve(false);
@@ -135,7 +197,7 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
       setStatus('error');
       return false;
     }
-  }, [pollForTranscript]);
+  }, [pollForTranscript, checkQueueStatus]);
 
   return {
     isPolling,
