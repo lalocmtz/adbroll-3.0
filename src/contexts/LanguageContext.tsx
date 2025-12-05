@@ -26,6 +26,7 @@ const translations = {
     creators: "Creadores",
     affiliates: "Afiliados",
     admin: "Admin",
+    tools: "Herramientas",
     
     // Common labels
     revenue: "Ingresos",
@@ -162,6 +163,7 @@ const translations = {
     creators: "Creators",
     affiliates: "Affiliates",
     admin: "Admin",
+    tools: "Tools",
     
     // Common labels
     revenue: "Revenue",

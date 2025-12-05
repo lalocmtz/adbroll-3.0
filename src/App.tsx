@@ -8,6 +8,7 @@ import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -15,6 +16,9 @@ import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Creators from "./pages/Creators";
 import Favorites from "./pages/Favorites";
+import Tools from "./pages/Tools";
+import Settings from "./pages/Settings";
+import Support from "./pages/Support";
 import Admin from "./pages/Admin";
 import RelatedVideos from "./pages/RelatedVideos";
 import FAQ from "./pages/FAQ";
@@ -35,7 +39,9 @@ const ProtectedRoute = ({
   if (!session) return <Navigate to="/login" replace />;
   return (
     <SubscriptionGate>
-      {children}
+      <DashboardLayout>
+        {children}
+      </DashboardLayout>
     </SubscriptionGate>
   );
 };
@@ -84,7 +90,7 @@ const App = () => {
               <Route path="/terms" element={<Terms />} />
               <Route path="/about" element={<About />} />
               
-              {/* Protected routes */}
+              {/* Protected routes with DashboardLayout */}
               <Route
                 path="/app"
                 element={
@@ -114,6 +120,30 @@ const App = () => {
                 element={
                   <ProtectedRoute session={session}>
                     <Favorites />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tools"
+                element={
+                  <ProtectedRoute session={session}>
+                    <Tools />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute session={session}>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/support"
+                element={
+                  <ProtectedRoute session={session}>
+                    <Support />
                   </ProtectedRoute>
                 }
               />

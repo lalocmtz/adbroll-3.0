@@ -6,9 +6,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import VideoCardOriginal from "@/components/VideoCardOriginal";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import DashboardNav from "@/components/DashboardNav";
-import GlobalHeader from "@/components/GlobalHeader";
-import Footer from "@/components/Footer";
 import FilterSidebar from "@/components/FilterSidebar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -206,14 +203,10 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <GlobalHeader />
-      <DashboardNav />
-
-      <main className="container mx-auto px-4 md:px-6 py-2 max-w-7xl flex-1">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-          <h1 className="text-2xl md:text-3xl font-bold">
-            {productFilter 
+    <div className="py-4 px-4 md:px-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+        <h1 className="text-2xl md:text-3xl font-bold">
+          {productFilter
               ? `Videos de: ${productFilter}` 
               : creatorFilter 
               ? `Videos de @${creatorFilter}`
@@ -315,8 +308,6 @@ const Dashboard = () => {
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
         />
-      </main>
-      <Footer />
     </div>
   );
 };

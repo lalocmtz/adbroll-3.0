@@ -11,9 +11,6 @@ import {
   Trash2, ExternalLink, Heart, Video, Package, Users, Play,
   DollarSign, ShoppingCart, Percent, Eye, TrendingUp, Star, Sparkles
 } from "lucide-react";
-import DashboardNav from "@/components/DashboardNav";
-import GlobalHeader from "@/components/GlobalHeader";
-import Footer from "@/components/Footer";
 import VideoAnalysisModalOriginal from "@/components/VideoAnalysisModalOriginal";
 import { useNavigate } from "react-router-dom";
 
@@ -179,13 +176,8 @@ const Favorites = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <GlobalHeader />
-        <DashboardNav />
-        <div className="container mx-auto px-4 py-8 flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">{t("loadingFavorites")}</p>
-        </div>
-        <Footer />
+      <div className="py-8 flex items-center justify-center">
+        <p className="text-muted-foreground">{t("loadingFavorites")}</p>
       </div>
     );
   }
@@ -193,12 +185,9 @@ const Favorites = () => {
   const totalFavorites = videos.length + products.length + creators.length;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <GlobalHeader />
-      <DashboardNav />
-      <main className="container mx-auto px-4 md:px-6 py-6 max-w-7xl flex-1">
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3 text-foreground">
+    <div className="py-4 px-4 md:px-6">
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3 text-foreground">
             <Heart className="h-7 w-7 text-red-500 fill-current" />
             {t("myFavorites")}
           </h1>
@@ -611,8 +600,6 @@ const Favorites = () => {
             )}
           </TabsContent>
         </Tabs>
-      </main>
-      <Footer />
 
       {/* Video Analysis Modal */}
       {selectedVideo && (
