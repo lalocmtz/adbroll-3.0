@@ -8,6 +8,125 @@ const corsHeaders = {
 
 const ASSEMBLYAI_API_KEY = Deno.env.get('ASSEMBLYAI_API_KEY');
 
+// Extract video ID from TikTok URL
+function extractVideoId(url: string): string | null {
+  const match = url.match(/\/video\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+// Try multiple services to get direct video URL
+async function extractDirectVideoUrl(tiktokUrl: string): Promise<string | null> {
+  const videoId = extractVideoId(tiktokUrl);
+  if (!videoId) {
+    console.error('Could not extract video ID from URL:', tiktokUrl);
+    return null;
+  }
+
+  console.log('Extracted video ID:', videoId);
+
+  // Service 1: tikwm.com
+  try {
+    console.log('Trying tikwm.com...');
+    const response = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(tiktokUrl)}&hd=1`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.data?.play) {
+        console.log('tikwm.com success');
+        return data.data.play;
+      }
+      if (data?.data?.hdplay) {
+        console.log('tikwm.com HD success');
+        return data.data.hdplay;
+      }
+    }
+  } catch (e) {
+    console.log('tikwm.com failed:', e);
+  }
+
+  // Service 2: tikcdn.io
+  try {
+    console.log('Trying tikcdn.io...');
+    const response = await fetch('https://tikcdn.io/api/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0'
+      },
+      body: `url=${encodeURIComponent(tiktokUrl)}`
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.video) {
+        console.log('tikcdn.io success');
+        return data.video;
+      }
+    }
+  } catch (e) {
+    console.log('tikcdn.io failed:', e);
+  }
+
+  // Service 3: savetik.co
+  try {
+    console.log('Trying savetik.co...');
+    const response = await fetch(`https://api.savetik.co/api?url=${encodeURIComponent(tiktokUrl)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.result?.video_no_watermark) {
+        console.log('savetik.co success');
+        return data.result.video_no_watermark;
+      }
+    }
+  } catch (e) {
+    console.log('savetik.co failed:', e);
+  }
+
+  // Service 4: tmate.cc
+  try {
+    console.log('Trying tmate.cc...');
+    const response = await fetch(`https://api.tmate.cc/video/${videoId}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.download?.nowm) {
+        console.log('tmate.cc success');
+        return data.download.nowm;
+      }
+    }
+  } catch (e) {
+    console.log('tmate.cc failed:', e);
+  }
+
+  // Service 5: ttdownloader
+  try {
+    console.log('Trying ttdownloader...');
+    const response = await fetch(`https://ttdownloader.com/api?url=${encodeURIComponent(tiktokUrl)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.video_url) {
+        console.log('ttdownloader success');
+        return data.video_url;
+      }
+    }
+  } catch (e) {
+    console.log('ttdownloader failed:', e);
+  }
+
+  console.error('All video extraction services failed');
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -31,7 +150,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Starting AssemblyAI transcription for:', videoUrl);
+    console.log('Starting transcription for TikTok URL:', videoUrl);
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -56,7 +175,23 @@ serve(async (req) => {
       );
     }
 
-    // Step 1: Submit transcription request to AssemblyAI
+    // Step 1: Extract direct video URL from TikTok
+    console.log('Extracting direct video URL...');
+    const directVideoUrl = await extractDirectVideoUrl(videoUrl);
+    
+    if (!directVideoUrl) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'No se pudo extraer el video de TikTok. Intenta con otro video.',
+          details: 'All extraction services failed'
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('Direct video URL obtained:', directVideoUrl.substring(0, 100) + '...');
+
+    // Step 2: Submit transcription request to AssemblyAI with direct video URL
     console.log('Submitting to AssemblyAI...');
     const submitResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
       method: 'POST',
@@ -65,7 +200,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        audio_url: videoUrl,
+        audio_url: directVideoUrl,
         language_code: 'es',
       }),
     });
@@ -83,8 +218,8 @@ serve(async (req) => {
     const transcriptId = submitData.id;
     console.log('AssemblyAI transcript ID:', transcriptId);
 
-    // Step 2: Poll for completion (max 60 seconds with 3s intervals)
-    const maxAttempts = 20;
+    // Step 3: Poll for completion (max 90 seconds with 3s intervals)
+    const maxAttempts = 30;
     let attempts = 0;
     let transcript = null;
 
@@ -122,7 +257,7 @@ serve(async (req) => {
 
     if (!transcript) {
       return new Response(
-        JSON.stringify({ error: 'Transcription timed out after 60 seconds' }),
+        JSON.stringify({ error: 'Transcription timed out after 90 seconds' }),
         { status: 408, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
