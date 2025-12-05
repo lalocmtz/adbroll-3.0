@@ -16,6 +16,9 @@ interface Product {
   total_ingresos_mxn: number | null;
   total_ventas: number | null;
   creators_count: number | null;
+  // Pre-computed for matching
+  normalizedName?: string;
+  keywords?: string[];
 }
 
 interface Video {
@@ -27,118 +30,117 @@ interface Video {
   category: string | null;
 }
 
-// Text normalization
+// Simple text normalization (CPU-light)
 function normalizeText(text: string | null): string {
   if (!text) return '';
   return text
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
     .replace(/[^\w\s]/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-// Levenshtein distance for fuzzy matching
-function levenshteinDistance(s1: string, s2: string): number {
-  const m = s1.length;
-  const n = s2.length;
-  const dp: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+// Extract keywords (words > 3 chars)
+function extractKeywords(text: string): string[] {
+  return text.split(' ').filter(w => w.length > 3);
+}
 
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (s1[i - 1] === s2[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1];
-      } else {
-        dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-      }
-    }
+// FAST: Simple word overlap score (no Levenshtein)
+function quickWordOverlap(words1: string[], words2: string[]): number {
+  if (words1.length === 0 || words2.length === 0) return 0;
+  const set2 = new Set(words2);
+  let matches = 0;
+  for (const w of words1) {
+    if (set2.has(w)) matches++;
   }
-  return dp[m][n];
+  return matches / Math.max(words1.length, words2.length);
 }
 
-function levenshteinSimilarity(s1: string, s2: string): number {
-  if (!s1 || !s2) return 0;
-  const maxLen = Math.max(s1.length, s2.length);
-  if (maxLen === 0) return 1;
-  return 1 - levenshteinDistance(s1, s2) / maxLen;
+// FAST: Check if any keywords match exactly
+function hasKeywordMatch(videoKeywords: string[], productKeywords: string[]): boolean {
+  const productSet = new Set(productKeywords);
+  return videoKeywords.some(k => productSet.has(k));
 }
 
-// Calculate fuzzy match score between video and product
-function calculateFuzzyScore(video: Video, product: Product): number {
-  const videoTitle = normalizeText(video.title);
-  const videoProductName = normalizeText(video.product_name);
-  const productName = normalizeText(product.producto_nombre);
-  const productCategory = normalizeText(product.categoria);
-  const videoCategory = normalizeText(video.category);
+// FAST: Check substring containment
+function hasSubstringMatch(videoText: string, productName: string): boolean {
+  return videoText.includes(productName) || productName.includes(videoText);
+}
+
+// Calculate match score using FAST operations only
+function calculateFastScore(
+  videoTitle: string, 
+  videoTitleKeywords: string[],
+  videoProductName: string,
+  product: Product
+): number {
+  const productName = product.normalizedName || '';
+  const productKeywords = product.keywords || [];
   
   if (!productName) return 0;
   
-  let maxScore = 0;
-  
-  if (videoTitle && productName) {
-    if (videoTitle.includes(productName) || productName.includes(videoTitle)) {
-      maxScore = Math.max(maxScore, 0.85);
-    }
-    
-    const productWords = productName.split(' ').filter(w => w.length > 2);
-    const titleWords = new Set(videoTitle.split(' ').filter(w => w.length > 2));
-    
-    if (productWords.length > 0) {
-      let matchedWords = 0;
-      for (const pw of productWords) {
-        for (const tw of titleWords) {
-          if (pw === tw || levenshteinSimilarity(pw, tw) > 0.8) {
-            matchedWords++;
-            break;
-          }
-        }
-      }
-      const wordScore = matchedWords / productWords.length;
-      maxScore = Math.max(maxScore, wordScore * 0.75);
-    }
-    
-    const stringSimilarity = levenshteinSimilarity(videoTitle.substring(0, 50), productName);
-    maxScore = Math.max(maxScore, stringSimilarity * 0.7);
+  // Check 1: Exact product name match (highest priority)
+  if (videoProductName && videoProductName === productName) {
+    return 1.0;
   }
   
-  if (videoProductName && productName) {
-    if (videoProductName === productName) {
-      maxScore = Math.max(maxScore, 1.0);
-    } else if (videoProductName.includes(productName) || productName.includes(videoProductName)) {
-      maxScore = Math.max(maxScore, 0.9);
-    } else {
-      const similarity = levenshteinSimilarity(videoProductName, productName);
-      maxScore = Math.max(maxScore, similarity * 0.85);
+  // Check 2: Product name substring in video product name
+  if (videoProductName && (videoProductName.includes(productName) || productName.includes(videoProductName))) {
+    return 0.9;
+  }
+  
+  // Check 3: Product name substring in title
+  if (videoTitle && hasSubstringMatch(videoTitle, productName)) {
+    return 0.8;
+  }
+  
+  // Check 4: Keyword overlap with video product name
+  if (videoProductName) {
+    const vpKeywords = extractKeywords(videoProductName);
+    const overlap = quickWordOverlap(vpKeywords, productKeywords);
+    if (overlap >= 0.5) {
+      return 0.7 + (overlap * 0.2);
     }
   }
   
-  if (videoCategory && productCategory && videoCategory === productCategory) {
-    maxScore = Math.min(1.0, maxScore + 0.1);
+  // Check 5: Keyword overlap with title
+  if (videoTitleKeywords.length > 0 && productKeywords.length > 0) {
+    const overlap = quickWordOverlap(videoTitleKeywords, productKeywords);
+    if (overlap >= 0.3) {
+      return 0.5 + (overlap * 0.3);
+    }
   }
   
-  return maxScore;
+  return 0;
 }
 
-// Priority B: Fuzzy matching with score threshold
-function findBestFuzzyMatch(video: Video, products: Product[], threshold: number = 0.55): { product: Product; score: number } | null {
+// Find best match using FAST algorithm
+function findBestFastMatch(
+  video: Video, 
+  products: Product[], 
+  threshold: number
+): { product: Product; score: number } | null {
+  const videoTitle = normalizeText(video.title);
+  const videoTitleKeywords = extractKeywords(videoTitle);
+  const videoProductName = normalizeText(video.product_name);
+  
   let bestMatch: { product: Product; score: number } | null = null;
   
   for (const product of products) {
-    const score = calculateFuzzyScore(video, product);
+    const score = calculateFastScore(videoTitle, videoTitleKeywords, videoProductName, product);
     if (score >= threshold && (!bestMatch || score > bestMatch.score)) {
       bestMatch = { product, score };
+      // If perfect match, stop searching
+      if (score >= 0.95) break;
     }
   }
   
   return bestMatch;
 }
 
-// Priority C: AI matching using OpenAI when fuzzy fails
+// AI matching using OpenAI when fast match fails
 async function findAIMatch(
   video: Video, 
   products: Product[], 
@@ -146,23 +148,22 @@ async function findAIMatch(
 ): Promise<{ product: Product; score: number } | null> {
   if (!openAIKey) return null;
   
-  // Prepare product list for AI (max 25 to fit context and reduce tokens)
-  const productList = products.slice(0, 25).map((p, idx) => ({
+  // Top 20 products by revenue for AI matching
+  const productList = products.slice(0, 20).map((p, idx) => ({
     index: idx,
-    name: p.producto_nombre,
-    category: p.categoria || 'Sin categoría'
+    name: p.producto_nombre
   }));
   
-  const prompt = `VIDEO: "${video.title || 'Sin título'}"
+  const prompt = `VIDEO: "${video.title || video.product_name || 'Sin título'}"
 
 PRODUCTOS:
 ${productList.map(p => `${p.index}. ${p.name}`).join('\n')}
 
-¿Qué producto coincide? Responde SOLO con el número o NONE:`;
+¿Producto? Responde SOLO número o NONE:`;
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout per AI call
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -172,10 +173,8 @@ ${productList.map(p => `${p.index}. ${p.name}`).join('\n')}
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 5,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 3,
         temperature: 0,
       }),
       signal: controller.signal,
@@ -183,10 +182,7 @@ ${productList.map(p => `${p.index}. ${p.name}`).join('\n')}
 
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      console.error('OpenAI API error:', response.status);
-      return null;
-    }
+    if (!response.ok) return null;
 
     const data = await response.json();
     const answer = data.choices?.[0]?.message?.content?.trim();
@@ -200,13 +196,10 @@ ${productList.map(p => `${p.index}. ${p.name}`).join('\n')}
       return null;
     }
     
-    const matchedProduct = products[productIndex];
-    console.log(`🤖 AI matched video to "${matchedProduct.producto_nombre}"`);
+    console.log(`🤖 AI: "${products[productIndex].producto_nombre}"`);
+    return { product: products[productIndex], score: 0.75 };
     
-    return { product: matchedProduct, score: 0.75 };
-    
-  } catch (error) {
-    console.error('AI matching error:', error);
+  } catch {
     return null;
   }
 }
@@ -217,7 +210,7 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
-  const MAX_EXECUTION_TIME = 8000; // 8 seconds max (leave buffer before 10s limit)
+  const MAX_EXECUTION_TIME = 7000; // 7 seconds
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -225,46 +218,50 @@ serve(async (req) => {
     const openAIKey = Deno.env.get('OPENAI_API_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let batchSize = 50;
+    let batchSize = 20; // Default smaller batch
     let offset = 0;
-    let threshold = 0.55;
-    let useAI = true;
+    let threshold = 0.5;
+    let useAI = false;
     
     try {
       const body = await req.json();
-      batchSize = body.batchSize || 50;
+      batchSize = Math.min(body.batchSize || 20, 30); // Cap at 30
       offset = body.offset || 0;
-      threshold = body.threshold || 0.55;
-      useAI = body.useAI !== false;
+      threshold = body.threshold || 0.5;
+      useAI = body.useAI === true;
     } catch {
       // Use defaults
     }
 
-    // CRITICAL: Reduce batch size significantly when AI is enabled
+    // Even smaller batch with AI
     if (useAI && openAIKey) {
-      batchSize = Math.min(batchSize, 10); // Max 10 videos per batch with AI
+      batchSize = Math.min(batchSize, 5);
     }
 
-    console.log(`🔄 Auto-Matcher V3: offset=${offset}, batchSize=${batchSize}, threshold=${threshold}, AI=${useAI && !!openAIKey}`);
+    console.log(`🔄 Matcher: offset=${offset}, batch=${batchSize}, AI=${useAI && !!openAIKey}`);
 
-    // Fetch ALL products
-    const { data: products, error: productsError } = await supabase
+    // Fetch products and pre-compute normalized names
+    const { data: rawProducts, error: productsError } = await supabase
       .from('products')
       .select('id, producto_nombre, producto_url, categoria, price, commission, total_ingresos_mxn, total_ventas, creators_count')
       .order('total_ingresos_mxn', { ascending: false, nullsFirst: false });
 
-    if (productsError) {
-      throw new Error(`Error fetching products: ${productsError.message}`);
-    }
-
-    if (!products || products.length === 0) {
+    if (productsError) throw new Error(`Products error: ${productsError.message}`);
+    if (!rawProducts?.length) {
       return new Response(
-        JSON.stringify({ message: 'No products found', matched: 0, complete: true }),
+        JSON.stringify({ message: 'No products', matched: 0, complete: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`📦 Found ${products.length} products for matching`);
+    // Pre-compute normalized names and keywords ONCE
+    const products: Product[] = rawProducts.map(p => ({
+      ...p,
+      normalizedName: normalizeText(p.producto_nombre),
+      keywords: extractKeywords(normalizeText(p.producto_nombre))
+    }));
+
+    console.log(`📦 ${products.length} products ready`);
 
     // Fetch unmatched videos
     const { data: videos, error: videosError } = await supabase
@@ -273,41 +270,31 @@ serve(async (req) => {
       .is('product_id', null)
       .range(offset, offset + batchSize - 1);
 
-    if (videosError) {
-      throw new Error(`Error fetching videos: ${videosError.message}`);
-    }
+    if (videosError) throw new Error(`Videos error: ${videosError.message}`);
 
     const { count: totalUnmatched } = await supabase
       .from('videos')
       .select('id', { count: 'exact', head: true })
       .is('product_id', null);
 
-    if (!videos || videos.length === 0) {
+    if (!videos?.length) {
       return new Response(
-        JSON.stringify({ 
-          message: 'No more unmatched videos', 
-          matched: 0, 
-          complete: true,
-          totalUnmatched: 0
-        }),
+        JSON.stringify({ message: 'No unmatched videos', matched: 0, complete: true, totalUnmatched: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`🎬 Processing ${videos.length} unmatched videos...`);
+    console.log(`🎬 Processing ${videos.length} videos...`);
 
     let matchedCount = 0;
-    let directMatches = 0;
     let fuzzyMatches = 0;
     let aiMatches = 0;
-    let noMatches = 0;
     let processedCount = 0;
     let timedOut = false;
 
     for (const video of videos) {
-      // Check if we're running out of time
       if (Date.now() - startTime > MAX_EXECUTION_TIME) {
-        console.log(`⏱️ Timeout approaching, stopping at ${processedCount} videos`);
+        console.log(`⏱️ Timeout at ${processedCount}`);
         timedOut = true;
         break;
       }
@@ -317,23 +304,20 @@ serve(async (req) => {
       let matchScore = 0;
       let matchType = 'none';
 
-      // Priority B: Fuzzy matching (fast, no API call)
-      const fuzzyResult = findBestFuzzyMatch(video, products, threshold);
-      if (fuzzyResult) {
-        matchedProduct = fuzzyResult.product;
-        matchScore = fuzzyResult.score;
+      // Fast matching
+      const fastResult = findBestFastMatch(video, products, threshold);
+      if (fastResult) {
+        matchedProduct = fastResult.product;
+        matchScore = fastResult.score;
         matchType = 'fuzzy';
       }
 
-      // Priority C: AI matching (only if fuzzy failed and AI enabled)
+      // AI matching if enabled and fast failed
       if (!matchedProduct && useAI && openAIKey) {
-        // Check time again before making AI call
         if (Date.now() - startTime > MAX_EXECUTION_TIME - 2000) {
-          console.log(`⏱️ Not enough time for AI call, skipping`);
           timedOut = true;
           break;
         }
-
         const aiResult = await findAIMatch(video, products, openAIKey);
         if (aiResult) {
           matchedProduct = aiResult.product;
@@ -347,7 +331,7 @@ serve(async (req) => {
         if (matchType === 'fuzzy') fuzzyMatches++;
         else if (matchType === 'ai') aiMatches++;
 
-        const { error: updateError } = await supabase
+        await supabase
           .from('videos')
           .update({
             product_id: matchedProduct.id,
@@ -359,14 +343,7 @@ serve(async (req) => {
             ai_match_attempted_at: new Date().toISOString(),
           })
           .eq('id', video.id);
-        
-        if (updateError) {
-          console.error(`Error updating video ${video.id}:`, updateError.message);
-        } else {
-          console.log(`✓ Matched "${matchedProduct.producto_nombre}" (${matchType}, ${matchScore.toFixed(2)})`);
-        }
       } else {
-        noMatches++;
         await supabase
           .from('videos')
           .update({
@@ -380,35 +357,27 @@ serve(async (req) => {
     const remainingUnmatched = Math.max(0, (totalUnmatched || 0) - matchedCount);
     const complete = !timedOut && videos.length < batchSize;
 
-    console.log(`✅ Done: ${matchedCount}/${processedCount} matched (${fuzzyMatches} fuzzy, ${aiMatches} AI)`);
+    console.log(`✅ ${matchedCount}/${processedCount} matched (${fuzzyMatches} fast, ${aiMatches} AI)`);
 
     return new Response(
       JSON.stringify({
         success: true,
         batchProcessed: processedCount,
         matchedInBatch: matchedCount,
-        directMatches,
         fuzzyMatches,
         aiMatches,
-        noMatches,
         remainingUnmatched,
         complete,
         timedOut,
         nextOffset: complete ? null : offset + processedCount,
-        threshold,
         aiEnabled: useAI && !!openAIKey,
         executionTimeMs: Date.now() - startTime,
-        message: complete 
-          ? `Complete! ${matchedCount} matched (${aiMatches} via AI)`
-          : timedOut
-            ? `Timeout: ${matchedCount} matched, continue from offset ${offset + processedCount}`
-            : `Batch: ${matchedCount} matched, ${remainingUnmatched} remaining`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error in auto-match-videos-products:', errorMessage);
+    console.error('Error:', errorMessage);
     return new Response(
       JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
