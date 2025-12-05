@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Eye, ShoppingCart, DollarSign, Play } from 'lucide-react';
 import { VideoAnalysisModalNew } from './VideoAnalysisModalNew';
+import { VideoHoverControls } from './VideoHoverControls';
 
 interface Video {
   id: string;
@@ -41,27 +42,53 @@ function formatCurrency(num: number | null | undefined): string {
 export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
-    setIsMuted(false);
     if (videoRef.current && video.video_mp4_url) {
-      videoRef.current.play().catch(() => {});
+      videoRef.current.muted = false;
+      videoRef.current.volume = 0.7;
+      videoRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {
+          // Autoplay with sound blocked, try muted
+          if (videoRef.current) {
+            videoRef.current.muted = true;
+            videoRef.current.play()
+              .then(() => setIsPlaying(true))
+              .catch(() => {});
+          }
+        });
     }
-  };
+  }, [video.video_mp4_url]);
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
-    setIsMuted(true);
+    setIsPlaying(false);
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
+      videoRef.current.muted = true;
     }
-  };
+  }, []);
+
+  const handlePlayPause = useCallback(() => {
+    if (!videoRef.current) return;
+    
+    if (isPlaying) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      videoRef.current.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {});
+    }
+  }, [isPlaying]);
 
   const handleClick = () => {
+    if (!isHovered) return; // Only open modal if not clicking controls
     setShowModal(true);
   };
 
@@ -82,7 +109,7 @@ export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
               ref={videoRef}
               src={video.video_mp4_url}
               className="w-full h-full object-cover"
-              muted={isMuted}
+              muted
               loop
               playsInline
               poster={video.thumbnail_url || undefined}
@@ -107,9 +134,17 @@ export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
             {isTop5 && '🔥'} #{ranking}
           </Badge>
 
+          {/* Video Hover Controls */}
+          <VideoHoverControls
+            videoRef={videoRef}
+            isVisible={isHovered}
+            onPlayPause={handlePlayPause}
+            isPlaying={isPlaying}
+          />
+
           {/* Hover Overlay */}
           <div 
-            className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent transition-opacity duration-300 ${
+            className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 pointer-events-none ${
               isHovered ? 'opacity-100' : 'opacity-0'
             }`}
           >
