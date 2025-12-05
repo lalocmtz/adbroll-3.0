@@ -321,6 +321,18 @@ const Products = () => {
                         {product.rating.toFixed(1)}
                       </Badge>
                     )}
+                    
+                    {/* Earnings per sale badge - bottom left */}
+                    {(() => {
+                      const price = product.price || product.precio_mxn || 0;
+                      const commissionRate = product.commission || 6;
+                      const earningsPerSale = price * (commissionRate / 100);
+                      return earningsPerSale > 0 ? (
+                        <Badge className="absolute bottom-2 left-2 z-10 bg-black text-white text-[10px] font-semibold px-2 py-1 shadow-lg">
+                          💰 Gana {formatCurrency(earningsPerSale)} por venta
+                        </Badge>
+                      ) : null;
+                    })()}
                   </div>
 
                   <CardContent className="p-2.5 space-y-2">
