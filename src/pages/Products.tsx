@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Package, ExternalLink, DollarSign, Percent, TrendingUp, ShoppingCart, Users, Star, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Package, ExternalLink, DollarSign, Percent, TrendingUp, ShoppingCart, Users, Star, Filter, ChevronLeft, ChevronRight, Heart, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import DashboardNav from "@/components/DashboardNav";
 import GlobalHeader from "@/components/GlobalHeader";
@@ -36,10 +37,12 @@ type SortOption = "revenue_30d" | "sales_30d" | "commission" | "creators_count" 
 
 const Products = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   
   // Filters
   const [sortBy, setSortBy] = useState<SortOption>("revenue_30d");
@@ -52,6 +55,7 @@ const Products = () => {
 
   useEffect(() => {
     fetchProducts();
+    fetchFavorites();
   }, []);
 
   useEffect(() => {
@@ -82,6 +86,66 @@ const Products = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFavorites = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("favorites_products")
+      .select("product_id")
+      .eq("user_id", user.id);
+
+    if (data) {
+      setFavorites(new Set(data.map(f => f.product_id)));
+    }
+  };
+
+  const toggleFavorite = async (productId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({ title: "Inicia sesión", description: "Debes iniciar sesión para guardar favoritos" });
+      navigate("/login");
+      return;
+    }
+
+    const isFav = favorites.has(productId);
+    
+    try {
+      if (isFav) {
+        const { error } = await supabase
+          .from("favorites_products")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("product_id", productId);
+        if (error) throw error;
+        
+        setFavorites(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(productId);
+          return newSet;
+        });
+        toast({ title: "✓ Eliminado de favoritos" });
+      } else {
+        const product = products.find(p => p.id === productId);
+        const { error } = await supabase
+          .from("favorites_products")
+          .insert({
+            user_id: user.id,
+            product_id: productId,
+            product_data: product || {},
+          });
+        if (error) throw error;
+        
+        setFavorites(prev => new Set([...prev, productId]));
+        toast({ title: "✓ Guardado en favoritos" });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
@@ -128,7 +192,7 @@ const Products = () => {
     });
     
     setFilteredProducts(result);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   const formatCurrency = (num: number | null) => {
@@ -164,7 +228,7 @@ const Products = () => {
   };
 
   const getSales = (product: Product): number | null => {
-    return product.sales_7d || product.total_ventas; // sales_7d actually contains 30d data
+    return product.sales_7d || product.total_ventas;
   };
 
   // Pagination
@@ -187,9 +251,9 @@ const Products = () => {
       <GlobalHeader />
       <DashboardNav />
 
-      <main className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
+      <main className="container mx-auto px-4 md:px-6 py-6 max-w-7xl">
         <div className="mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2 text-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-foreground">
             Productos TikTok Shop
           </h1>
           <p className="text-muted-foreground">
@@ -286,17 +350,19 @@ const Products = () => {
           </Card>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {paginatedProducts.map((product, index) => {
                 const displayRank = (currentPage - 1) * PRODUCTS_PER_PAGE + index + 1;
+                const isFav = favorites.has(product.id);
+                const isTop5 = displayRank <= 5;
                 
                 return (
                   <Card 
                     key={product.id} 
-                    className="overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] bg-card"
+                    className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-card border-border"
                   >
                     {/* Product Image */}
-                    <div className="relative aspect-square bg-muted">
+                    <div className="relative aspect-square bg-muted overflow-hidden">
                       <img
                         src={product.imagen_url || PLACEHOLDER_IMAGE}
                         alt={product.producto_nombre}
@@ -305,20 +371,58 @@ const Products = () => {
                           (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
                         }}
                       />
-                      <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground font-bold">
-                        #{displayRank}
-                      </Badge>
+                      
+                      {/* Top Icons Bar */}
+                      <div className="absolute top-2 left-2 right-2 z-10 flex items-center justify-between">
+                        <Badge 
+                          className={`font-bold text-xs px-2 py-0.5 shadow-lg ${
+                            isTop5 
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'bg-background/90 text-foreground border'
+                          }`}
+                        >
+                          #{displayRank} {isTop5 && '🔥'}
+                        </Badge>
+                        
+                        <div className="flex items-center gap-1.5">
+                          {product.producto_url && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(product.producto_url!, '_blank');
+                              }}
+                              title="Ver en TikTok Shop"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          )}
+                          
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className={`h-8 w-8 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90 ${isFav ? 'text-red-500' : ''}`}
+                            onClick={(e) => toggleFavorite(product.id, e)}
+                            title={isFav ? "Quitar de favoritos" : "Agregar a favoritos"}
+                          >
+                            <Heart className={`h-4 w-4 ${isFav ? 'fill-current' : ''}`} />
+                          </Button>
+                        </div>
+                      </div>
+                      
                       {product.rating && (
-                        <Badge variant="secondary" className="absolute top-2 right-2 flex items-center gap-1">
+                        <Badge variant="secondary" className="absolute bottom-2 right-2 flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                           {product.rating.toFixed(1)}
                         </Badge>
                       )}
                     </div>
 
-                    <CardContent className="p-4 space-y-3">
+                    <CardContent className="p-3 space-y-2">
                       {/* Product Name */}
-                      <h3 className="font-semibold text-foreground line-clamp-1" title={product.producto_nombre}>
+                      <h3 className="font-semibold text-sm text-foreground line-clamp-2 min-h-[2.5rem]" title={product.producto_nombre}>
                         {product.producto_nombre}
                       </h3>
                       
@@ -329,75 +433,65 @@ const Products = () => {
                         </Badge>
                       )}
 
-                      {/* Metrics Grid */}
+                      {/* Metrics Grid - 2x2 */}
                       <div className="grid grid-cols-2 gap-2">
-                        {/* Revenue 30d - Ingresos */}
-                        <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                        <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
                           <div className="flex items-center gap-1 mb-0.5">
-                            <TrendingUp className="h-3 w-3 text-primary" />
-                            <span className="text-[10px] text-muted-foreground uppercase">Ingresos 30D</span>
+                            <TrendingUp className="h-3 w-3 text-emerald-600" />
+                            <span className="text-[10px] text-muted-foreground">Ingresos 30D</span>
                           </div>
-                          <p className="text-sm font-bold text-primary">
+                          <p className="text-sm font-bold text-emerald-600">
                             {formatCurrency(getRevenue(product))}
                           </p>
                         </div>
 
-                        {/* Sales 30d - Ventas */}
-                        <div className="p-2 rounded-lg bg-accent/10 border border-accent/20">
+                        <div className="p-2 rounded-lg bg-muted">
                           <div className="flex items-center gap-1 mb-0.5">
-                            <ShoppingCart className="h-3 w-3 text-accent-foreground" />
-                            <span className="text-[10px] text-muted-foreground uppercase">Ventas 30D</span>
+                            <ShoppingCart className="h-3 w-3 text-foreground" />
+                            <span className="text-[10px] text-muted-foreground">Ventas 30D</span>
                           </div>
                           <p className="text-sm font-bold text-foreground">
                             {formatNumber(getSales(product))}
                           </p>
                         </div>
 
-                        {/* Price */}
-                        <div className="p-2 rounded-lg bg-secondary/50 border border-border">
+                        <div className="p-2 rounded-lg bg-muted">
                           <div className="flex items-center gap-1 mb-0.5">
-                            <DollarSign className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-[10px] text-muted-foreground uppercase">Precio</span>
+                            <DollarSign className="h-3 w-3 text-foreground" />
+                            <span className="text-[10px] text-muted-foreground">Precio</span>
                           </div>
                           <p className="text-sm font-bold text-foreground">
                             {formatCurrency(product.price || product.precio_mxn)}
                           </p>
                         </div>
 
-                        {/* Commission */}
-                        <div className="p-2 rounded-lg bg-secondary/50 border border-border">
+                        <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
                           <div className="flex items-center gap-1 mb-0.5">
-                            <Percent className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-[10px] text-muted-foreground uppercase">Comisión</span>
+                            <Percent className="h-3 w-3 text-amber-600" />
+                            <span className="text-[10px] text-muted-foreground">Comisión</span>
                           </div>
-                          <p className="text-sm font-bold text-foreground">
-                            {product.commission ? `${product.commission}%` : "6%"} 
-                            <span className="text-xs font-normal text-muted-foreground ml-1">
-                              ({formatCurrency(getCommissionAmount(product))})
-                            </span>
+                          <p className="text-sm font-bold text-amber-600">
+                            {product.commission ? `${product.commission}%` : "6%"}
                           </p>
                         </div>
                       </div>
 
                       {/* Creators count */}
                       {product.creators_count && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Users className="h-4 w-4" />
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Users className="h-3 w-3" />
                           <span>{formatNumber(product.creators_count)} creadores activos</span>
                         </div>
                       )}
 
-                      {/* CTA Button */}
-                      {product.producto_url && (
-                        <Button
-                          variant="default"
-                          className="w-full"
-                          onClick={() => window.open(product.producto_url!, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          Ver en TikTok Shop
-                        </Button>
-                      )}
+                      {/* CTA Button - Ver Videos */}
+                      <Button
+                        className="w-full h-9 text-sm font-semibold bg-primary hover:bg-primary/90"
+                        onClick={() => navigate(`/app?productName=${encodeURIComponent(product.producto_nombre)}`)}
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        Ver videos de este producto
+                      </Button>
                     </CardContent>
                   </Card>
                 );
