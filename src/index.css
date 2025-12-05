@@ -90,8 +90,29 @@ All colors MUST be HSL.
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
     --shadow-cta: 0 4px 14px rgba(243, 18, 96, 0.1);
+    --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow-card-active: 0 2px 6px rgba(0, 0, 0, 0.1);
+
+    /* Card system */
+    --card-radius: 16px;
+    --card-padding: 16px;
+    --card-spacing: 12px;
+    --media-radius: 12px;
+    
+    /* Label colors - Gains */
+    --label-gain-bg: 149 80% 90%;
+    --label-gain-text: 162 72% 17%;
+    
+    /* Label colors - Alert/Trend */
+    --label-alert-bg: 48 96% 89%;
+    --label-alert-text: 32 81% 29%;
+    
+    /* Label colors - Position badge gradient */
+    --badge-position-from: 340 91% 51%;
+    --badge-position-to: 338 89% 45%;
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-card: all 200ms ease-in-out;
   }
 
   .dark {
@@ -221,10 +242,97 @@ All colors MUST be HSL.
 }
 
 @layer components {
-  .card-premium {
-    @apply bg-card rounded-xl border border-border shadow-md hover:shadow-xl transition-all duration-300;
+  /* Global Card System */
+  .card-global {
+    @apply bg-card border border-border transition-all;
+    border-radius: var(--card-radius);
+    padding: var(--card-padding);
+    transition: var(--transition-card);
   }
 
+  .card-global:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .card-global:active {
+    box-shadow: var(--shadow-card-active);
+  }
+
+  .card-premium {
+    @apply bg-card border border-border;
+    border-radius: var(--card-radius);
+    transition: var(--transition-card);
+  }
+
+  .card-premium:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  /* Card Media */
+  .card-media {
+    border-radius: var(--media-radius);
+    @apply overflow-hidden;
+  }
+
+  /* Labels & Badges */
+  .label-gain {
+    background-color: hsl(var(--label-gain-bg));
+    color: hsl(var(--label-gain-text));
+    @apply text-xs font-semibold px-2 py-1 rounded-md;
+  }
+
+  .label-alert {
+    background-color: hsl(var(--label-alert-bg));
+    color: hsl(var(--label-alert-text));
+    @apply text-xs font-semibold px-2 py-1 rounded-md;
+  }
+
+  .badge-position {
+    background: linear-gradient(135deg, hsl(var(--badge-position-from)), hsl(var(--badge-position-to)));
+    @apply text-white text-[13px] font-bold px-2.5 py-1 rounded-full;
+  }
+
+  .badge-position-neutral {
+    @apply bg-background/90 text-foreground border border-border text-[13px] font-bold px-2.5 py-1 rounded-full;
+  }
+
+  /* Product embed inside card */
+  .card-product-embed {
+    @apply p-2.5 rounded-lg border;
+    background-color: hsl(210 40% 98%);
+    border-color: hsl(214 32% 91%);
+  }
+
+  .dark .card-product-embed {
+    background-color: hsl(217 33% 17%);
+    border-color: hsl(217 33% 25%);
+  }
+
+  /* Metric box */
+  .metric-box {
+    @apply p-2 rounded-lg;
+  }
+
+  .metric-box-success {
+    @apply metric-box;
+    background-color: hsl(var(--success-muted));
+    border: 1px solid hsl(var(--success) / 0.2);
+  }
+
+  .metric-box-muted {
+    @apply metric-box bg-muted;
+  }
+
+  /* Icon interactions */
+  .icon-interactive {
+    @apply text-muted-foreground transition-colors duration-200;
+  }
+
+  .icon-interactive:hover {
+    @apply text-primary;
+  }
+
+  /* Glass effect */
   .glass-effect {
     @apply bg-background/80 backdrop-blur-md border border-border/50;
   }

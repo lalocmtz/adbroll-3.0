@@ -260,11 +260,11 @@ const Creators = () => {
               return (
                 <Card
                   key={creator.id}
-                  className="overflow-hidden transition-all duration-300 hover:shadow-lg bg-card border-border"
+                  className="overflow-hidden bg-card border-border rounded-card transition-card hover:shadow-card-hover"
                 >
-                  <CardContent className="p-3">
+                  <CardContent className="p-card">
                     {/* Header: Avatar + Name + Ranking + Favorite */}
-                    <div className="flex items-start gap-2.5 mb-2.5">
+                    <div className="flex items-start gap-3 mb-card-gap">
                       <div className="relative">
                         <Avatar className="h-10 w-10 border-2 border-primary/20 shrink-0 shadow-md">
                           <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
@@ -274,113 +274,106 @@ const Creators = () => {
                         </Avatar>
                         {isTop5(globalIndex) && (
                           <div className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full p-0.5 shadow-lg">
-                            <Flame className="h-2 w-2 text-white" />
+                            <Flame className="h-2.5 w-2.5 text-white" />
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-foreground line-clamp-1 text-xs">
+                        <h3 className="font-semibold text-foreground line-clamp-1 text-sm">
                           {creator.nombre_completo || creator.usuario_creador}
                         </h3>
-                        <p className="text-[10px] text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           @{creator.creator_handle || creator.usuario_creador}
                         </p>
-                        <Badge
-                          variant="outline"
-                          className={`mt-0.5 text-[10px] font-bold px-1.5 py-0 ${
-                            isTop5(globalIndex)
-                              ? "bg-gradient-to-r from-orange-500/10 to-red-500/10 border-orange-500/30 text-orange-600"
-                              : "bg-primary/10 border-primary/30 text-primary"
-                          }`}
-                        >
+                        <span className={`inline-block mt-1 ${isTop5(globalIndex) ? 'badge-position text-[11px]' : 'badge-position-neutral text-[11px]'}`}>
                           #{ranking} {isTop5(globalIndex) && '🔥'}
-                        </Badge>
+                        </span>
                       </div>
                       <Button
                         size="icon"
                         variant="ghost"
-                        className={`h-7 w-7 shrink-0 ${isFav ? 'text-red-500' : ''}`}
+                        className={`h-8 w-8 shrink-0 icon-interactive ${isFav ? 'text-destructive' : ''}`}
                         onClick={(e) => toggleFavorite(creator.id, e)}
                       >
-                        <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-current' : ''}`} />
+                        <Heart className={`h-4 w-4 ${isFav ? 'fill-current' : ''}`} />
                       </Button>
                     </div>
 
                     {/* Secondary Metrics */}
-                    <div className="flex gap-3 mb-2.5 text-[10px] text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-2.5 w-2.5" />
+                    <div className="flex gap-4 mb-card-gap text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="h-3 w-3" />
                         <span>{formatNumber(creator.seguidores)}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Eye className="h-2.5 w-2.5" />
+                      <div className="flex items-center gap-1.5">
+                        <Eye className="h-3 w-3" />
                         <span>{formatNumber(creator.promedio_visualizaciones)} views</span>
                       </div>
                     </div>
 
                     {/* Primary Revenue Cards */}
-                    <div className="grid grid-cols-2 gap-1.5 mb-2.5">
-                      <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50 text-center">
-                        <DollarSign className="h-2.5 w-2.5 text-emerald-600 mx-auto mb-0.5" />
-                        <p className="text-[8px] text-muted-foreground uppercase">GMV Total</p>
-                        <p className="text-xs font-bold text-emerald-600">
+                    <div className="grid grid-cols-2 gap-2 mb-card-gap">
+                      <div className="metric-box-success text-center">
+                        <DollarSign className="h-3 w-3 text-success mx-auto mb-0.5" />
+                        <p className="text-[9px] text-muted-foreground uppercase">GMV Total</p>
+                        <p className="text-sm font-bold text-success">
                           {formatCurrency(creator.total_ingresos_mxn)}
                         </p>
                       </div>
                       
-                      <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50 text-center">
-                        <TrendingUp className="h-2.5 w-2.5 text-emerald-600 mx-auto mb-0.5" />
-                        <p className="text-[8px] text-muted-foreground uppercase">Comisión Est.</p>
-                        <p className="text-xs font-bold text-emerald-600">
+                      <div className="metric-box-success text-center">
+                        <TrendingUp className="h-3 w-3 text-success mx-auto mb-0.5" />
+                        <p className="text-[9px] text-muted-foreground uppercase">Comisión Est.</p>
+                        <p className="text-sm font-bold text-success">
                           {calculateCommission(creator.total_ingresos_mxn)}
                         </p>
                       </div>
                     </div>
 
                     {/* Activity Metrics */}
-                    <div className="grid grid-cols-3 gap-1 mb-2.5">
-                      <div className="p-1 rounded-md bg-purple-50 dark:bg-purple-950/30 text-center">
-                        <Video className="h-2.5 w-2.5 text-purple-500 mx-auto mb-0.5" />
-                        <p className="text-[7px] text-muted-foreground uppercase">Lives</p>
-                        <p className="text-[10px] font-bold text-purple-600">
+                    <div className="grid grid-cols-3 gap-1.5 mb-card-gap">
+                      <div className="metric-box bg-purple-50 dark:bg-purple-950/30 text-center">
+                        <Video className="h-3 w-3 text-purple-500 mx-auto mb-0.5" />
+                        <p className="text-[8px] text-muted-foreground uppercase">Lives</p>
+                        <p className="text-xs font-bold text-purple-600">
                           {creator.total_live_count ? formatNumber(creator.total_live_count) : "—"}
                         </p>
                       </div>
                       
-                      <div className="p-1 rounded-md bg-muted text-center">
-                        <ShoppingCart className="h-2.5 w-2.5 text-foreground mx-auto mb-0.5" />
-                        <p className="text-[7px] text-muted-foreground uppercase">GMV Lives</p>
-                        <p className="text-[10px] font-bold text-foreground">
+                      <div className="metric-box-muted text-center">
+                        <ShoppingCart className="h-3 w-3 text-foreground mx-auto mb-0.5" />
+                        <p className="text-[8px] text-muted-foreground uppercase">GMV Lives</p>
+                        <p className="text-xs font-bold text-foreground">
                           {formatCurrency(creator.gmv_live_mxn)}
                         </p>
                       </div>
                       
-                      <div className="p-1 rounded-md bg-blue-50 dark:bg-blue-950/30 text-center">
-                        <Film className="h-2.5 w-2.5 text-blue-600 mx-auto mb-0.5" />
-                        <p className="text-[7px] text-muted-foreground uppercase">GMV Videos</p>
-                        <p className="text-[10px] font-bold text-blue-600">
+                      <div className="metric-box bg-blue-50 dark:bg-blue-950/30 text-center">
+                        <Film className="h-3 w-3 text-blue-600 mx-auto mb-0.5" />
+                        <p className="text-[8px] text-muted-foreground uppercase">GMV Videos</p>
+                        <p className="text-xs font-bold text-blue-600">
                           {formatCurrency(creator.revenue_videos)}
                         </p>
                       </div>
                     </div>
 
-                    {/* CTA Buttons - Simplified to 2 */}
-                    <div className="flex gap-1.5">
+                    {/* CTA Buttons */}
+                    <div className="flex gap-2">
                       <Button
-                        className="flex-1 h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        className="flex-1 h-9 text-sm font-semibold"
                         onClick={() => navigate(`/videos/creator/${creator.id}`)}
                       >
-                        <Play className="h-3.5 w-3.5 mr-1.5" />
+                        <Play className="h-4 w-4 mr-1.5" />
                         Ver videos
                       </Button>
                       
                       {tiktokUrl && (
                         <Button
                           variant="outline"
-                          className="h-8 text-xs"
+                          className="h-9 text-sm"
                           onClick={() => window.open(tiktokUrl, '_blank')}
                         >
-                          <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                          <ExternalLink className="h-4 w-4 mr-1" />
                           TikTok
                         </Button>
                       )}
