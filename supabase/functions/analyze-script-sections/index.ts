@@ -5,6 +5,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to extract JSON from markdown code blocks
+function extractJSON(content: string): string {
+  // Remove markdown code blocks if present
+  let cleaned = content.trim();
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.slice(7);
+  } else if (cleaned.startsWith('```')) {
+    cleaned = cleaned.slice(3);
+  }
+  if (cleaned.endsWith('```')) {
+    cleaned = cleaned.slice(0, -3);
+  }
+  return cleaned.trim();
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,7 +33,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('Analyzing script sections for:', videoTitle);
+    console.log('Analyzing script sections for:', videoTitle?.substring(0, 50));
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -40,47 +55,45 @@ Debes identificar y extraer estas secciones:
 4. Demostración (Cómo se usa o funciona)
 5. CTA (Call to action)
 
-IMPORTANTE: Responde SOLO con JSON válido en este formato exacto:
-{
-  "sections": [
-    {
-      "type": "hook",
-      "label": "Hook",
-      "content": "texto del hook extraído"
-    },
-    {
-      "type": "problema",
-      "label": "Problema",
-      "content": "texto del problema"
-    }
-  ]
-}
-
-No agregues texto adicional, solo el JSON.`
+Responde ÚNICAMENTE con JSON válido (sin markdown, sin backticks) en este formato:
+{"sections":[{"type":"hook","label":"Hook","content":"texto"},{"type":"problema","label":"Problema","content":"texto"}]}`
           },
           {
             role: 'user',
-            content: `Analiza este guion de video de TikTok Shop y extrae sus secciones:\n\nTítulo: ${videoTitle}\n\nGuion:\n${script}`
+            content: `Analiza este guion de TikTok Shop:\n\n${script}`
           }
         ],
       }),
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Límite de solicitudes excedido. Intenta de nuevo en un momento.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'Créditos insuficientes. Contacta al administrador.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       const errorText = await response.text();
       console.error('AI gateway error:', response.status, errorText);
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
     const data = await response.json();
-    const content = data.choices[0].message.content;
+    const content = data.choices[0]?.message?.content || '';
     
-    console.log('Raw AI response:', content);
+    console.log('Raw AI response length:', content.length);
 
     // Parse JSON from response
     let sections;
     try {
-      const parsed = JSON.parse(content);
+      const cleanedContent = extractJSON(content);
+      const parsed = JSON.parse(cleanedContent);
       sections = parsed.sections || [];
     } catch (e) {
       console.error('Failed to parse AI response as JSON:', e);

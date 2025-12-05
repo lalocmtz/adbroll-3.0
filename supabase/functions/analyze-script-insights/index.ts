@@ -5,6 +5,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to extract JSON from markdown code blocks
+function extractJSON(content: string): string {
+  let cleaned = content.trim();
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.slice(7);
+  } else if (cleaned.startsWith('```')) {
+    cleaned = cleaned.slice(3);
+  }
+  if (cleaned.endsWith('```')) {
+    cleaned = cleaned.slice(0, -3);
+  }
+  return cleaned.trim();
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,7 +32,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    console.log('Analyzing script insights for:', videoTitle);
+    console.log('Analyzing script insights for:', videoTitle?.substring(0, 50));
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -31,45 +45,47 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Eres un experto en análisis de guiones de TikTok Shop. Analiza el guion y proporciona insights profundos.
+            content: `Eres un experto en análisis de guiones de TikTok Shop. Analiza el guion y proporciona insights.
 
-IMPORTANTE: Responde SOLO con JSON válido en este formato exacto:
-{
-  "insights": {
-    "funcionamiento": "Explicación de por qué este guion funciona (1-2 oraciones)",
-    "angulos": ["ángulo 1", "ángulo 2", "ángulo 3"],
-    "ctaLocation": "Descripción de dónde está el CTA y cómo se presenta",
-    "estructura": "Tipo de estructura usada (ej: PAS, AIDA, etc.)",
-    "fortalezas": ["fortaleza 1", "fortaleza 2", "fortaleza 3"],
-    "debilidades": ["debilidad 1", "debilidad 2"]
-  }
-}
-
-No agregues texto adicional, solo el JSON.`
+Responde ÚNICAMENTE con JSON válido (sin markdown, sin backticks) en este formato:
+{"insights":{"funcionamiento":"por qué funciona","angulos":["ángulo1","ángulo2"],"ctaLocation":"ubicación del CTA","estructura":"tipo de estructura","fortalezas":["f1","f2"],"debilidades":["d1","d2"]}}`
           },
           {
             role: 'user',
-            content: `Analiza este guion de video de TikTok Shop y proporciona insights:\n\nTítulo: ${videoTitle}\n\nGuion:\n${script}`
+            content: `Analiza este guion de TikTok Shop:\n\n${script}`
           }
         ],
       }),
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'Límite de solicitudes excedido. Intenta de nuevo en un momento.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: 'Créditos insuficientes. Contacta al administrador.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       const errorText = await response.text();
       console.error('AI gateway error:', response.status, errorText);
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
     const data = await response.json();
-    const content = data.choices[0].message.content;
+    const content = data.choices[0]?.message?.content || '';
     
-    console.log('Raw AI response:', content);
+    console.log('Raw AI response length:', content.length);
 
     // Parse JSON from response
     let insights;
     try {
-      const parsed = JSON.parse(content);
+      const cleanedContent = extractJSON(content);
+      const parsed = JSON.parse(cleanedContent);
       insights = parsed.insights;
     } catch (e) {
       console.error('Failed to parse AI response as JSON:', e);

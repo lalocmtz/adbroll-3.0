@@ -1,14 +1,11 @@
 import { NavLink } from "./NavLink";
-import { Video, Package, TrendingUp, Star, Users as UsersIcon, DollarSign } from "lucide-react";
+import { Video, Package, Users as UsersIcon } from "lucide-react";
 
 const DashboardNav = () => {
   const navItems = [
     { to: "/app", label: "Videos", icon: Video },
     { to: "/products", label: "Productos", icon: Package },
-    { to: "/opportunities", label: "Oportunidades", icon: TrendingUp },
-    { to: "/favorites", label: "Favoritos", icon: Star },
     { to: "/creadores", label: "Creadores", icon: UsersIcon },
-    { to: "/afiliados", label: "Afiliados", icon: DollarSign },
   ];
 
   return (
