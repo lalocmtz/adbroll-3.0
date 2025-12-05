@@ -76,14 +76,19 @@ El MVP de AdBroll está 100% funcional con las siguientes características:
 
 - [x] Mostrar 100 videos ordenados por ingresos (desc)
 - [x] Tarjetas con hover-autoplay de videos MP4
-- [x] Overlay con métricas al hacer hover
+- [x] Grid 4 columnas limpio sin métricas duplicadas
 - [x] Filtros por categoría
 - [x] Ordenamiento por ingresos/ventas
 - [x] Paginación funcional
+- [x] Sistema de favoritos por usuario (tabla favorites_videos)
+- [x] Check de favorito al montar componente
+- [x] Producto asociado clickeable en tarjeta
 - [x] Modal de análisis con 3 pestañas:
-  - Script (transcripción completa)
-  - Análisis (Hook, Cuerpo, CTA)
-  - Variantes IA (3 hooks + variante del cuerpo)
+  - Script (transcripción completa con botón copiar)
+  - Análisis (Hook, Cuerpo, CTA con colores distintivos)
+  - Variantes IA (3 variantes completas: hook + cuerpo + CTA)
+- [x] Métricas en modal: Ingresos, Ventas, Comisión, Vistas
+- [x] Favoritos persistentes en modal
 
 ---
 

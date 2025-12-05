@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Heart, Sparkles, DollarSign, ShoppingCart, Percent, Eye, Play } from 'lucide-react';
+import { Heart, Sparkles, DollarSign, ShoppingCart, Percent, Eye, Play, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -60,6 +60,25 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
 
   const commissionRate = 6; // Default 6%
   const commissionEstimated = (video.revenue_mxn || 0) * (commissionRate / 100);
+
+  // Check if video is in favorites on mount
+  useEffect(() => {
+    const checkFavoriteStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from('favorites_videos')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('video_url', video.video_url)
+        .maybeSingle();
+
+      setIsFavorite(!!data);
+    };
+
+    checkFavoriteStatus();
+  }, [video.video_url]);
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -135,6 +154,15 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
     window.open(video.video_url, '_blank');
   };
 
+  const navigateToProduct = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (video.product_id) {
+      navigate(`/products?id=${video.product_id}`);
+    } else if (video.product_name) {
+      navigate(`/products?name=${encodeURIComponent(video.product_name)}`);
+    }
+  };
+
   const isTop5 = ranking <= 5;
 
   return (
@@ -167,10 +195,9 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                 variant="ghost"
                 className="h-8 w-8 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
                 onClick={openTikTok}
+                title="Ver en TikTok"
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-                </svg>
+                <ExternalLink className="h-4 w-4" />
               </Button>
 
               {/* Favorite Icon */}
@@ -180,6 +207,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                 className={`h-8 w-8 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90 ${isFavorite ? 'text-red-500' : ''}`}
                 onClick={handleToggleFavorite}
                 disabled={loading}
+                title={isFavorite ? "Quitar de favoritos" : "Agregar a favoritos"}
               >
                 <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
               </Button>
@@ -214,16 +242,6 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
               </div>
             </div>
           )}
-
-          {/* Bottom right metrics overlay on video */}
-          <div className="absolute bottom-2 right-2 z-10 flex flex-col items-end gap-1 text-white text-xs font-medium">
-            <span className="bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded">
-              {formatNumber(video.views)}
-            </span>
-            <span className="bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded">
-              {formatNumber(video.sales)}
-            </span>
-          </div>
         </div>
 
         {/* Video Info */}
@@ -233,27 +251,31 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
             <h3 className="text-sm font-semibold text-foreground line-clamp-2 leading-tight min-h-[2.5rem]">
               {video.title || 'Video TikTok Shop'}
             </h3>
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">
-                @{video.creator_handle || video.creator_name || 'creator'}
-              </p>
-              {video.product_name ? (
-                <p className="text-[10px] text-primary font-medium truncate max-w-[100px]">
-                  {video.product_name}
-                </p>
-              ) : (
-                <p className="text-[10px] text-muted-foreground italic">
-                  Sin producto
-                </p>
-              )}
-            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              @{video.creator_handle || video.creator_name || 'creator'}
+            </p>
           </div>
+
+          {/* Product Association */}
+          {video.product_name && (
+            <button
+              onClick={navigateToProduct}
+              className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
+            >
+              <div className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <ShoppingCart className="h-3 w-3 text-primary" />
+              </div>
+              <span className="text-xs text-primary font-medium truncate">
+                {video.product_name}
+              </span>
+            </button>
+          )}
 
           {/* Metrics Grid - 2x2 */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded-lg bg-primary/5 border border-primary/10">
+            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
               <div className="flex items-center gap-1 mb-0.5">
-                <DollarSign className="h-3 w-3 text-primary" />
+                <DollarSign className="h-3 w-3 text-emerald-600" />
                 <span className="text-[10px] text-muted-foreground">Ingresos</span>
               </div>
               <p className="text-sm font-bold text-emerald-600">
@@ -271,7 +293,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
               </p>
             </div>
 
-            <div className="p-2 rounded-lg bg-accent/5 border border-accent/10">
+            <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
               <div className="flex items-center gap-1 mb-0.5">
                 <Percent className="h-3 w-3 text-amber-600" />
                 <span className="text-[10px] text-muted-foreground">Comisión</span>
