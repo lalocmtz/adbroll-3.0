@@ -172,7 +172,9 @@ const Admin = () => {
     }
   };
 
-  // AI-powered matching
+  // AI-powered matching with auto-retry on timeout
+  const [aiMatchProgress, setAiMatchProgress] = useState<string>("");
+  
   const handleAIMatch = async () => {
     if (stats.pendingMatch === 0) {
       toast({ title: "Todo vinculado", description: "No hay videos pendientes." });
@@ -180,15 +182,30 @@ const Admin = () => {
     }
 
     setIsAIMatching(true);
+    setAiMatchProgress("Iniciando...");
     let totalMatched = 0;
     let fuzzyTotal = 0;
     let aiTotal = 0;
+    let batchCount = 0;
+    let currentOffset = 0;
 
     try {
       let complete = false;
-      while (!complete) {
+      let maxRetries = 100; // Safety limit
+      
+      while (!complete && maxRetries > 0) {
+        maxRetries--;
+        batchCount++;
+        
+        setAiMatchProgress(`Lote ${batchCount}: procesando desde offset ${currentOffset}...`);
+        
         const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-          body: { batchSize: 50, threshold: 0.5, useAI: true } // With AI fallback
+          body: { 
+            batchSize: 10, // Small batches for AI
+            offset: currentOffset,
+            threshold: 0.5, 
+            useAI: true 
+          }
         });
 
         if (error) throw error;
@@ -196,17 +213,37 @@ const Admin = () => {
         totalMatched += data.matchedInBatch || 0;
         fuzzyTotal += data.fuzzyMatches || 0;
         aiTotal += data.aiMatches || 0;
-        complete = data.complete;
+        
+        // Update progress
+        const remaining = data.remainingUnmatched || 0;
+        setAiMatchProgress(`Lote ${batchCount}: ${totalMatched} vinculados (${aiTotal} IA), ${remaining} pendientes`);
+        
+        // Check if complete or need to continue
+        if (data.complete) {
+          complete = true;
+        } else if (data.timedOut && data.nextOffset !== null) {
+          // Continue from where we left off
+          currentOffset = data.nextOffset;
+          // Small delay between batches to avoid overwhelming
+          await new Promise(r => setTimeout(r, 300));
+        } else if (data.nextOffset !== null) {
+          currentOffset = data.nextOffset;
+        } else {
+          complete = true;
+        }
       }
 
       setLastMatchStats({ fuzzy: fuzzyTotal, ai: aiTotal, total: totalMatched });
       saveLastSync();
+      setAiMatchProgress("");
+      
       toast({
         title: "Vinculación IA completada",
-        description: `${totalMatched} videos vinculados (${fuzzyTotal} fuzzy, ${aiTotal} IA).`,
+        description: `${totalMatched} videos vinculados en ${batchCount} lotes (${fuzzyTotal} fuzzy, ${aiTotal} IA).`,
       });
       await loadStats();
     } catch (error: any) {
+      setAiMatchProgress("");
       toast({
         title: "Error",
         description: error.message,
@@ -214,6 +251,7 @@ const Admin = () => {
       });
     } finally {
       setIsAIMatching(false);
+      setAiMatchProgress("");
     }
   };
 
@@ -502,8 +540,16 @@ const Admin = () => {
               </Button>
             </div>
 
+            {/* AI Matching Progress */}
+            {isAIMatching && aiMatchProgress && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 border border-purple-200">
+                <div className="animate-spin h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full" />
+                <p className="text-sm text-purple-800">{aiMatchProgress}</p>
+              </div>
+            )}
+
             {/* Last Match Stats */}
-            {lastMatchStats && lastMatchStats.total > 0 && (
+            {!isAIMatching && lastMatchStats && lastMatchStats.total > 0 && (
               <div className="flex items-center gap-4 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
                 <span>Último match:</span>
                 <span className="text-foreground font-medium">{lastMatchStats.total} total</span>
