@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, X, Check, FileText, BarChart3, Wand2, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Copy, X, Check, FileText, BarChart3, Wand2, Loader2, AlertCircle, RefreshCw, Heart } from "lucide-react";
 
 interface VideoAnalysisModalProps {
   isOpen: boolean;
@@ -41,6 +41,8 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
   const [loadingVariants, setLoadingVariants] = useState(false);
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  const [savedScripts, setSavedScripts] = useState<Set<string>>(new Set());
+  const [savingScript, setSavingScript] = useState<string | null>(null);
   const embedRef = useRef<HTMLDivElement>(null);
   const hasStartedProcess = useRef(false);
   const { toast } = useToast();
@@ -55,6 +57,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
       setLoadingAnalysis(false);
       setLoadingVariants(false);
       setTranscriptError(null);
+      setSavedScripts(new Set());
       hasStartedProcess.current = false;
     }
   }, [isOpen]);
@@ -74,6 +77,50 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
       transcribeVideo();
     }
   }, [isOpen]);
+
+  const saveScriptToFavorites = async (content: string, variantType: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ 
+          title: "Inicia sesión", 
+          description: "Debes iniciar sesión para guardar guiones",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setSavingScript(variantType);
+      
+      // Generate a unique script_id
+      const scriptId = crypto.randomUUID();
+      
+      const { error } = await supabase.from("favorites_scripts").insert({
+        user_id: user.id,
+        script_id: scriptId,
+        script_data: {
+          content,
+          video_title: video.descripcion_video,
+          variant_type: variantType,
+          created_at: new Date().toISOString()
+        }
+      });
+
+      if (error) throw error;
+
+      setSavedScripts(prev => new Set([...prev, variantType]));
+      toast({ title: "✓ Guión guardado en favoritos" });
+    } catch (error: any) {
+      console.error("Error saving script:", error);
+      toast({ 
+        title: "Error", 
+        description: "No se pudo guardar el guión",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingScript(null);
+    }
+  };
 
   const transcribeVideo = async () => {
     setLoadingTranscript(true);
@@ -231,6 +278,24 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
         <Check className="h-3.5 w-3.5 text-green-500" />
       ) : (
         <Copy className="h-3.5 w-3.5" />
+      )}
+    </Button>
+  );
+
+  const SaveButton = ({ text, variantType }: { text: string; variantType: string }) => (
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={() => saveScriptToFavorites(text, variantType)}
+      disabled={savedScripts.has(variantType) || savingScript === variantType}
+      className="h-7 w-7 p-0"
+    >
+      {savedScripts.has(variantType) ? (
+        <Heart className="h-3.5 w-3.5 text-red-500 fill-red-500" />
+      ) : savingScript === variantType ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Heart className="h-3.5 w-3.5 text-muted-foreground hover:text-red-500" />
       )}
     </Button>
   );
@@ -431,7 +496,10 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                           📝 Variante 1
                         </h4>
                         {variants.hooks.similar && (
-                          <CopyButton text={variants.hooks.similar} section="variant1" />
+                          <div className="flex items-center gap-1">
+                            <SaveButton text={variants.hooks.similar} variantType="Variante 1" />
+                            <CopyButton text={variants.hooks.similar} section="variant1" />
+                          </div>
                         )}
                       </div>
                       <p className="text-sm whitespace-pre-wrap">{variants.hooks.similar || "No generado"}</p>
@@ -444,7 +512,10 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                           <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400">
                             📝 Variante 2
                           </h4>
-                          <CopyButton text={variants.hooks.medium} section="variant2" />
+                          <div className="flex items-center gap-1">
+                            <SaveButton text={variants.hooks.medium} variantType="Variante 2" />
+                            <CopyButton text={variants.hooks.medium} section="variant2" />
+                          </div>
                         </div>
                         <p className="text-sm whitespace-pre-wrap">{variants.hooks.medium}</p>
                       </div>
@@ -457,7 +528,10 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                           <h4 className="text-sm font-medium text-purple-700 dark:text-purple-400">
                             📝 Variante 3
                           </h4>
-                          <CopyButton text={variants.hooks.different} section="variant3" />
+                          <div className="flex items-center gap-1">
+                            <SaveButton text={variants.hooks.different} variantType="Variante 3" />
+                            <CopyButton text={variants.hooks.different} section="variant3" />
+                          </div>
                         </div>
                         <p className="text-sm whitespace-pre-wrap">{variants.hooks.different}</p>
                       </div>
@@ -468,7 +542,10 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                       <div className="border border-border rounded-lg p-4 bg-muted/30">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="text-sm font-medium">✨ Más Variantes</h4>
-                          <CopyButton text={variants.full_variant} section="fullvariant" />
+                          <div className="flex items-center gap-1">
+                            <SaveButton text={variants.full_variant} variantType="Variante Completa" />
+                            <CopyButton text={variants.full_variant} section="fullvariant" />
+                          </div>
                         </div>
                         <pre className="text-sm whitespace-pre-wrap font-mono">
                           {variants.full_variant}
