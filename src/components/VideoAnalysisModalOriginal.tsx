@@ -377,15 +377,7 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden p-0 gap-0 animate-scale-in">
-        {/* Custom Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 z-50 rounded-full p-2 bg-background/80 backdrop-blur-sm border border-border hover:bg-muted transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
+      <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden p-0 gap-0 animate-scale-in [&>button]:hidden">
         <div className="flex flex-col lg:flex-row h-full max-h-[92vh]">
           {/* Left: Metrics + Video Player */}
           <div className="w-full lg:w-[380px] bg-muted/20 flex-shrink-0 flex flex-col border-r border-border p-4 gap-3">
@@ -494,25 +486,35 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
             {/* Header */}
             <div className="p-5 border-b border-border flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-semibold line-clamp-2 text-foreground leading-snug">
+                <h2 className="text-lg font-semibold line-clamp-2 text-foreground leading-snug pr-2">
                   {video.title || 'Análisis de Video'}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   @{video.creator_handle || video.creator_name || 'creator'}
                 </p>
               </div>
-              <Button
-                size="icon"
-                variant="outline"
-                onClick={handleToggleFavorite}
-                className={`flex-shrink-0 rounded-xl transition-all ${
-                  isFavorite 
-                    ? "bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive hover:text-white" 
-                    : "hover:border-destructive/30 hover:text-destructive"
-                }`}
-              >
-                <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-              </Button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={handleToggleFavorite}
+                  className={`rounded-xl h-9 w-9 transition-all ${
+                    isFavorite 
+                      ? "bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive hover:text-white" 
+                      : "hover:border-destructive/30 hover:text-destructive"
+                  }`}
+                >
+                  <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={onClose}
+                  className="rounded-xl h-9 w-9 hover:bg-muted"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Tabs Content */}
