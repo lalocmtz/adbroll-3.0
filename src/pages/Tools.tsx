@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Copy, Loader2, Zap, PenTool, Check, AlertCircle, CheckCircle2 } from "lucide-react";
+import { FileText, Copy, Loader2, Zap, PenTool, Check, AlertCircle, CheckCircle2, Link2, RotateCcw } from "lucide-react";
 import { DataSubtitle } from "@/components/FilterPills";
 import {
   Select,
@@ -267,163 +267,166 @@ const Tools = () => {
       <DataSubtitle />
 
       {/* 1. Script Extractor Tool - Premium Hero Section */}
-      <Card className="p-6 md:p-8">
+      <div className="bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] border border-border/50 overflow-hidden">
         {/* Idle State - Hero Input */}
         {extractorState === "idle" && (
-          <div className="text-center space-y-5">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-2">
-              <FileText className="h-7 w-7 text-primary" />
+          <div className="px-6 py-10 md:px-10 md:py-14 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#ED4C84]/10 mb-5">
+              <FileText className="h-8 w-8 text-[#ED4C84]" />
             </div>
-            <div>
-              <h2 className="text-xl font-semibold mb-1">
-                {language === "es" ? "Extractor de Guiones" : "Script Extractor"}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {language === "es"
-                  ? "Extrae la transcripción de videos de TikTok con un click."
-                  : "Extract TikTok video transcriptions with one click."}
-              </p>
-            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+              {language === "es" ? "Extractor de Guiones" : "Script Extractor"}
+            </h2>
+            <p className="text-muted-foreground max-w-md mx-auto mb-8">
+              {language === "es"
+                ? "Pega un link de TikTok y extrae el guión en segundos."
+                : "Paste a TikTok link and extract the script in seconds."}
+            </p>
             
-            <div className="max-w-lg mx-auto space-y-3">
-              <Input
-                placeholder={language === "es" ? "Pega aquí un enlace de TikTok..." : "Paste a TikTok link here..."}
-                value={videoUrl}
-                onChange={(e) => {
-                  setVideoUrl(e.target.value);
-                  setExtractorError(null);
-                }}
-                className="h-12 text-base px-4 text-center placeholder:text-muted-foreground/60"
-              />
+            <div className="max-w-xl mx-auto space-y-4">
+              {/* Modern Input with Icon */}
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <Link2 className="h-5 w-5 text-muted-foreground/50" />
+                </div>
+                <Input
+                  placeholder={language === "es" ? "Pega aquí un enlace de TikTok..." : "Paste a TikTok link here..."}
+                  value={videoUrl}
+                  onChange={(e) => {
+                    setVideoUrl(e.target.value);
+                    setExtractorError(null);
+                  }}
+                  className="h-14 text-base pl-12 pr-4 rounded-xl border-2 border-border/60 focus:border-[#ED4C84] focus:ring-[#ED4C84]/20 placeholder:text-muted-foreground/50 transition-all"
+                />
+              </div>
               
+              {/* Error Banner */}
               {extractorError === "invalid_url" && (
-                <div className="flex items-center justify-center gap-2 text-destructive text-sm">
-                  <AlertCircle className="h-4 w-4" />
+                <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{getErrorMessage("invalid_url")}</span>
                 </div>
               )}
               
-              <Button 
+              {/* Primary CTA Button */}
+              <button 
                 onClick={handleExtract} 
-                size="lg"
-                className="w-full h-12 text-base font-semibold"
+                className="w-full h-14 text-base font-semibold text-white bg-[#ED4C84] hover:bg-[#d93d73] rounded-xl transition-all duration-200 shadow-[0_4px_14px_rgba(237,76,132,0.35)] hover:shadow-[0_6px_20px_rgba(237,76,132,0.45)] hover:-translate-y-0.5 flex items-center justify-center gap-2"
               >
-                <FileText className="h-5 w-5 mr-2" />
+                <FileText className="h-5 w-5" />
                 {language === "es" ? "Extraer Guión" : "Extract Script"}
-              </Button>
+              </button>
             </div>
           </div>
         )}
 
         {/* Loading State */}
         {extractorState === "loading" && (
-          <div className="text-center py-10 space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/5">
-              <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <div className="px-6 py-16 md:py-20 text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#ED4C84]/5 mb-6">
+              <div className="w-12 h-12 rounded-full border-3 border-[#ED4C84]/20 border-t-[#ED4C84] animate-spin" />
             </div>
-            <div>
-              <p className="text-base font-medium">
-                {language === "es" ? "Extrayendo guión..." : "Extracting script..."}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {language === "es" ? "Esto puede tomar unos segundos." : "This may take a few seconds."}
-              </p>
-            </div>
+            <p className="text-lg font-medium text-foreground">
+              {language === "es" ? "Extrayendo guión..." : "Extracting script..."}
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              {language === "es" ? "Esto puede tomar unos segundos." : "This may take a few seconds."}
+            </p>
           </div>
         )}
 
         {/* Error State */}
         {extractorState === "error" && extractorError && (
-          <div className="text-center py-8 space-y-4">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10">
-              <AlertCircle className="h-7 w-7 text-destructive" />
+          <div className="px-6 py-14 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-5">
+              <AlertCircle className="h-8 w-8 text-red-500" />
             </div>
-            <div>
-              <p className="text-base font-medium text-destructive">
-                {getErrorMessage(extractorError)}
-              </p>
-            </div>
-            <Button variant="outline" onClick={resetExtractor} className="mt-2">
+            <p className="text-lg font-medium text-red-600 mb-2">
+              {language === "es" ? "Error al extraer" : "Extraction error"}
+            </p>
+            <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+              {getErrorMessage(extractorError)}
+            </p>
+            <button 
+              onClick={resetExtractor} 
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border-2 border-border hover:border-[#ED4C84] text-sm font-medium transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
               {language === "es" ? "Intentar de nuevo" : "Try again"}
-            </Button>
+            </button>
           </div>
         )}
 
-        {/* Success State - Result */}
+        {/* Success State - Result Panel */}
         {extractorState === "success" && transcript && (
-          <div className="space-y-4">
+          <div className="p-6 md:p-8">
             {/* Header with success indicator */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-md bg-green-500/10">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-50">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                 </div>
-                <h3 className="text-sm font-semibold">
+                <h3 className="text-lg font-semibold text-foreground">
                   {language === "es" ? "Transcripción extraída" : "Transcript extracted"}
                 </h3>
               </div>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <button 
                   onClick={handleCopyTranscript}
-                  className="h-8 text-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#F7F7F7] hover:bg-[#EEEEEE] text-sm font-medium transition-colors"
                 >
                   {transcriptCopied ? (
-                    <Check className="h-3.5 w-3.5 mr-1.5 text-green-500" />
+                    <Check className="h-4 w-4 text-emerald-500" />
                   ) : (
-                    <Copy className="h-3.5 w-3.5 mr-1.5" />
+                    <Copy className="h-4 w-4 text-muted-foreground" />
                   )}
                   {transcriptCopied 
                     ? (language === "es" ? "Copiado" : "Copied")
                     : (language === "es" ? "Copiar" : "Copy")
                   }
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                </button>
+                <button 
                   onClick={resetExtractor}
-                  className="h-8 text-xs"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-[#F7F7F7] text-sm font-medium text-muted-foreground transition-colors"
                 >
+                  <RotateCcw className="h-4 w-4" />
                   {language === "es" ? "Nuevo" : "New"}
-                </Button>
+                </button>
               </div>
             </div>
             
-            {/* Transcript Content */}
-            <Card className="bg-muted/30 border">
-              <ScrollArea className="h-[200px] md:h-[250px]">
-                <div className="p-4">
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap font-mono">
+            {/* Transcript Content Box */}
+            <div className="bg-[#F7F7F7] rounded-xl border border-border/30 overflow-hidden">
+              <ScrollArea className="h-[220px] md:h-[280px]">
+                <div className="p-5">
+                  <p className="text-sm leading-7 text-foreground whitespace-pre-wrap">
                     {transcript}
                   </p>
                 </div>
               </ScrollArea>
-            </Card>
+            </div>
 
             {/* Structured Script Sections */}
             {structuredScript && structuredScript.length > 0 && (
-              <div className="space-y-3 pt-2">
-                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <div className="mt-6 space-y-4">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {language === "es" ? "Estructura del guión" : "Script structure"}
                 </h4>
-                <div className="grid gap-2">
+                <div className="grid gap-3">
                   {structuredScript.map((section: any, idx: number) => (
-                    <div key={idx} className="p-3 rounded-lg bg-background border hover:border-primary/30 transition-colors">
+                    <div key={idx} className="p-4 rounded-xl bg-white border border-border/60 hover:border-[#ED4C84]/40 transition-colors group">
                       <div className="flex justify-between items-start gap-2">
-                        <span className="text-xs font-medium text-primary">
+                        <span className="text-sm font-semibold text-[#ED4C84]">
                           {getSectionEmoji(section.type)} {section.label}
                         </span>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <button 
                           onClick={() => handleCopy(section.content)} 
-                          className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
+                          className="p-1.5 rounded-lg hover:bg-[#F7F7F7] opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
                       </div>
-                      <p className="text-sm mt-1.5 text-muted-foreground leading-relaxed">{section.content}</p>
+                      <p className="text-sm mt-2 text-muted-foreground leading-relaxed">{section.content}</p>
                     </div>
                   ))}
                 </div>
@@ -431,7 +434,7 @@ const Tools = () => {
             )}
           </div>
         )}
-      </Card>
+      </div>
 
       {/* 2. Hook Generator */}
       <Card className="p-4">
