@@ -42,6 +42,7 @@ interface Video {
     commission: number | null;
     price: number | null;
     precio_mxn: number | null;
+    categoria: string | null;
   } | null;
 }
 
@@ -80,13 +81,14 @@ const Dashboard = () => {
   }, [productFilter, creatorFilter, sortOrder, selectedCategory]);
 
   const fetchCategories = async () => {
+    // Get categories from products table (productos have categories, not videos directly)
     const { data } = await supabase
-      .from("videos")
-      .select("category")
-      .not("category", "is", null);
+      .from("products")
+      .select("categoria")
+      .not("categoria", "is", null);
     
     if (data) {
-      const uniqueCategories = [...new Set(data.map(v => v.category).filter(Boolean))] as string[];
+      const uniqueCategories = [...new Set(data.map(p => p.categoria).filter(Boolean))] as string[];
       setCategories(uniqueCategories.sort());
     }
   };
@@ -115,18 +117,14 @@ const Dashboard = () => {
             total_ingresos_mxn,
             commission,
             price,
-            precio_mxn
+            precio_mxn,
+            categoria
           )
         `, { count: "exact" })
         .not("video_mp4_url", "is", null)  // Must be downloaded
         .not("product_id", "is", null);     // Must have product assigned
 
-      // Apply category filter
-      if (selectedCategory && selectedCategory !== "all") {
-        query = query.eq("category", selectedCategory);
-      }
-
-      // Apply sorting
+      // Apply sorting first (before category filter which happens client-side)
       if (sortOrder === "revenue") {
         query = query.order("revenue_mxn", { ascending: false });
       } else if (sortOrder === "sales") {
@@ -134,11 +132,8 @@ const Dashboard = () => {
       } else if (sortOrder === "views") {
         query = query.order("views", { ascending: false });
       } else if (sortOrder === "earnings") {
-        // Earnings = revenue * 0.06 (6% commission), so same as revenue order
         query = query.order("revenue_mxn", { ascending: false });
       }
-
-      query = query.range(from, to);
 
       if (productFilter) {
         query = query.ilike("product_name", `%${productFilter}%`);
@@ -152,8 +147,17 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      setVideos(data || []);
-      setTotalCount(Math.min(count || 0, MAX_VIDEOS));
+      // Filter by category client-side (since category is in the joined product)
+      let filteredData = data || [];
+      if (selectedCategory && selectedCategory !== "all") {
+        filteredData = filteredData.filter(v => v.product?.categoria === selectedCategory);
+      }
+
+      // Apply pagination after filtering
+      const paginatedData = filteredData.slice(from, to + 1);
+      
+      setVideos(paginatedData);
+      setTotalCount(Math.min(filteredData.length, MAX_VIDEOS));
     } catch (error: any) {
       toast({
         title: "Error al cargar videos",
