@@ -7,8 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Package, ExternalLink, DollarSign, Percent, TrendingUp, ShoppingCart, Users, Star, Filter, ChevronLeft, ChevronRight, Heart, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import DashboardNav from "@/components/DashboardNav";
-import GlobalHeader from "@/components/GlobalHeader";
 import { useToast } from "@/hooks/use-toast";
 
 interface Product {
@@ -247,15 +245,11 @@ const Products = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <GlobalHeader />
-      <DashboardNav />
-
-      <main className="container mx-auto px-4 md:px-6 py-6 max-w-7xl">
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-foreground">
-            Productos TikTok Shop
-          </h1>
+    <div className="py-4 px-4 md:px-6">
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-foreground">
+          Productos TikTok Shop
+        </h1>
           <p className="text-muted-foreground">
             Los productos más rentables para promocionar como creador
           </p>
@@ -528,7 +522,6 @@ const Products = () => {
             )}
           </>
         )}
-      </main>
     </div>
   );
 };

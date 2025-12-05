@@ -6,8 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Flame, Video, ShoppingCart, Film, ChevronLeft, ChevronRight, Heart, Play, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import DashboardNav from "@/components/DashboardNav";
-import GlobalHeader from "@/components/GlobalHeader";
 import { useToast } from "@/hooks/use-toast";
 
 interface Creator {
@@ -228,16 +226,12 @@ const Creators = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <GlobalHeader />
-      <DashboardNav />
-
-      <main className="container mx-auto px-4 md:px-6 py-6 max-w-7xl">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-foreground">
-            Creadores Top 50 TikTok Shop
-          </h1>
+    <div className="py-4 px-4 md:px-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-foreground">
+          Creadores Top 50 TikTok Shop
+        </h1>
           <p className="text-muted-foreground">Los creadores con mejor rendimiento en los últimos 30 días.</p>
           <Badge variant="secondary" className="mt-2">
             📊 Datos actualizados · Últimos 30 días
@@ -457,7 +451,6 @@ const Creators = () => {
             )}
           </>
         )}
-      </main>
     </div>
   );
 };
