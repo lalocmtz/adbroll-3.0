@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Gem, TrendingUp, Users, DollarSign, Percent, ExternalLink, Check, X, Sparkles, Target, HelpCircle, Lightbulb, Info } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Gem, TrendingUp, Users, DollarSign, Percent, ExternalLink, Check, X, Sparkles, Target, HelpCircle, Lightbulb } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
+import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 
 interface OpportunityReason {
   commission_high: boolean;
@@ -43,12 +45,30 @@ interface OpportunityProduct {
   profit_percentile: number | null;
 }
 
+type SortOption = "io_score" | "commission" | "gmv_30d_calc" | "earning_per_sale";
+
+const SORT_OPTIONS_ES = [
+  { value: "io_score", label: "IO Score" },
+  { value: "commission", label: "Más comisión" },
+  { value: "gmv_30d_calc", label: "Más GMV" },
+  { value: "earning_per_sale", label: "Más ganancia" },
+];
+
+const SORT_OPTIONS_EN = [
+  { value: "io_score", label: "IO Score" },
+  { value: "commission", label: "Highest commission" },
+  { value: "gmv_30d_calc", label: "Highest GMV" },
+  { value: "earning_per_sale", label: "Highest earnings" },
+];
+
 const Opportunities = () => {
   const { toast } = useToast();
   const { language, currency } = useLanguage();
   const navigate = useNavigate();
   const [opportunities, setOpportunities] = useState<OpportunityProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<SortOption>("io_score");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchOpportunities();
@@ -61,7 +81,7 @@ const Opportunities = () => {
         .select("id, producto_nombre, producto_url, categoria, imagen_url, precio_mxn, commission, gmv_30d_calc, creators_active_calc, creators_niche_avg, io_score, earning_per_sale, is_hidden_gem, opportunity_reason, commission_percentile, gmv30d_percentile, profit_percentile")
         .gte("commission", 10)
         .order("io_score", { ascending: false, nullsFirst: false })
-        .limit(50);
+        .limit(100);
 
       if (error) throw error;
 
@@ -94,6 +114,39 @@ const Opportunities = () => {
     }
   };
 
+  // Get unique categories
+  const categories = useMemo(() => {
+    return [...new Set(opportunities.map(p => p.categoria).filter(Boolean))] as string[];
+  }, [opportunities]);
+
+  // Filter and sort opportunities
+  const filteredOpportunities = useMemo(() => {
+    let result = [...opportunities];
+
+    // Apply category filter
+    if (categoryFilter !== "all") {
+      result = result.filter(p => p.categoria === categoryFilter);
+    }
+
+    // Apply sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "io_score":
+          return (b.io_score || 0) - (a.io_score || 0);
+        case "commission":
+          return (b.commission || 0) - (a.commission || 0);
+        case "gmv_30d_calc":
+          return (b.gmv_30d_calc || 0) - (a.gmv_30d_calc || 0);
+        case "earning_per_sale":
+          return (b.earning_per_sale || 0) - (a.earning_per_sale || 0);
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [opportunities, categoryFilter, sortBy]);
+
   const formatCurrency = (amount: number | null, curr: string = "MXN") => {
     if (amount === null) return "-";
     const value = curr === "USD" ? amount / 20 : amount;
@@ -103,6 +156,8 @@ const Opportunities = () => {
       maximumFractionDigits: 0,
     }).format(value);
   };
+
+  const sortOptions = language === "es" ? SORT_OPTIONS_ES : SORT_OPTIONS_EN;
 
   if (loading) {
     return (
@@ -120,22 +175,36 @@ const Opportunities = () => {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="pt-5 pb-6 px-4 md:px-6">
-        {/* Header */}
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Target className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-semibold text-foreground">
-              {language === "es" ? "Oportunidades" : "Opportunities"}
-            </h1>
-          </div>
-          <p className="text-[13px] text-muted-foreground leading-relaxed max-w-2xl">
-            {language === "es" 
-              ? "Productos con comisión alta, ventas fuertes y baja competencia. Actualizado diariamente."
-              : "Products with high commission, strong sales, and low competition. Updated daily."}
-          </p>
+        {/* Minimal header */}
+        <DataSubtitle />
+
+        {/* Filter Pills */}
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <FilterPills
+            options={sortOptions}
+            value={sortBy}
+            onChange={(v) => setSortBy(v as SortOption)}
+          />
+          
+          {/* Category Dropdown */}
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-auto h-8 text-xs px-3 rounded-full border-border/50 bg-muted/60">
+              <SelectValue placeholder={language === "es" ? "Categoría" : "Category"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{language === "es" ? "Todas las categorías" : "All categories"}</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <span className="text-xs text-muted-foreground ml-auto">
+            {filteredOpportunities.length} {language === "es" ? "oportunidades" : "opportunities"}
+          </span>
         </div>
 
-        {/* Educational Text Above Grid */}
+        {/* Educational Text */}
         <div className="bg-gradient-to-r from-primary/5 to-amber-500/5 border border-primary/10 rounded-xl p-4 mb-6">
           <div className="flex items-start gap-3">
             <Lightbulb className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -147,7 +216,7 @@ const Opportunities = () => {
           </div>
         </div>
 
-        {opportunities.length === 0 ? (
+        {filteredOpportunities.length === 0 ? (
           <Card className="p-12 text-center rounded-2xl border-dashed">
             <Gem className="h-16 w-16 text-muted-foreground/30 mb-4 mx-auto" />
             <p className="text-muted-foreground mb-2">
@@ -163,7 +232,7 @@ const Opportunities = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {opportunities.map((product, index) => (
+            {filteredOpportunities.map((product, index) => (
               <OpportunityCard
                 key={product.id}
                 product={product}
