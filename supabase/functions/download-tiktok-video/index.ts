@@ -32,9 +32,9 @@ serve(async (req) => {
     console.log(`[download-tiktok-video] Processing video: ${videoId}`);
     console.log(`[download-tiktok-video] TikTok URL: ${tiktokUrl}`);
 
-    // Call RapidAPI to get direct MP4 URL
+    // Call RapidAPI to get direct MP4 URL - correct endpoint is /media with videoUrl param
     const rapidApiResponse = await fetch(
-      `https://tiktok-video-downloader-api.p.rapidapi.com/v1/getvideo?url=${encodeURIComponent(tiktokUrl)}`,
+      `https://tiktok-video-downloader-api.p.rapidapi.com/media?videoUrl=${encodeURIComponent(tiktokUrl)}`,
       {
         method: 'GET',
         headers: {
@@ -56,8 +56,9 @@ serve(async (req) => {
     const rapidApiData = await rapidApiResponse.json();
     console.log(`[download-tiktok-video] RapidAPI response:`, JSON.stringify(rapidApiData));
 
-    // Extract MP4 URL from response - handle different response structures
-    let mp4Url = rapidApiData.video_url || 
+    // Extract MP4 URL from response - API returns downloadUrl
+    let mp4Url = rapidApiData.downloadUrl || 
+                 rapidApiData.video_url || 
                  rapidApiData.data?.play || 
                  rapidApiData.data?.wmplay ||
                  rapidApiData.data?.hdplay ||
