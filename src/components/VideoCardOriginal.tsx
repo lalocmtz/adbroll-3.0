@@ -225,30 +225,23 @@ const VideoCardOriginal = ({
               @{video.creator_handle || video.creator_name || 'creator'}
             </p>
           </div>
-          {/* Product Association - Highlighted */}
-          {video.product || video.product_name ? <button onClick={navigateToProduct} className="w-full rounded-lg bg-slate-800 dark:bg-slate-900 hover:bg-slate-700 dark:hover:bg-slate-800 transition-all text-left shadow-sm overflow-hidden group/product">
-              <div className="flex items-center gap-2.5 p-2.5">
-                {video.product?.imagen_url ? <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-11 h-11 rounded-md object-cover flex-shrink-0 border border-slate-600" /> : <div className="w-11 h-11 rounded-md bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <ShoppingCart className="h-5 w-5 text-primary" />
-                  </div>}
-                <div className="flex-1 min-w-0">
-                  <span className="text-[11px] text-white font-medium line-clamp-2 leading-tight block">
-                    {video.product?.producto_nombre || video.product_name}
-                  </span>
-                  <div className="flex items-center gap-2 mt-1">
-                    {video.product?.total_ingresos_mxn && <span className="text-[10px] text-slate-400">
-                        GMV: {formatCurrency(video.product.total_ingresos_mxn)}
-                      </span>}
-                    {commissionRate > 0 && <Badge className="text-[9px] px-1.5 py-0 h-4 bg-emerald-500/20 text-emerald-400 border-0">
-                        {commissionRate}% comisión
-                      </Badge>}
-                  </div>
-                </div>
+
+          {/* Product Association with Badge - Highlighted */}
+          {video.product || video.product_name ? <button onClick={navigateToProduct} className="flex items-center gap-2 w-full p-2.5 rounded-lg bg-slate-800 dark:bg-slate-900 hover:bg-slate-700 dark:hover:bg-slate-800 transition-colors text-left shadow-sm">
+              {video.product?.imagen_url ? <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-10 h-10 rounded object-cover flex-shrink-0 border border-slate-600" /> : <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <ShoppingCart className="h-5 w-5 text-primary" />
+                </div>}
+              <div className="flex-1 min-w-0">
+                <span className="text-xs text-white font-medium line-clamp-2 leading-tight">
+                  {video.product?.producto_nombre || video.product_name}
+                </span>
+                {video.product?.total_ingresos_mxn && <span className="text-[10px] text-slate-400">
+                    GMV: {formatCurrency(video.product.total_ingresos_mxn)}
+                  </span>}
               </div>
-              <div className="flex items-center justify-center gap-1.5 py-1.5 bg-primary/90 group-hover/product:bg-primary transition-colors">
-                <Eye className="h-3 w-3 text-white" />
-                <span className="text-[10px] font-medium text-white">Ver detalles del producto</span>
-              </div>
+              <Badge variant="secondary" className="text-[9px] px-1.5 py-0.5 h-auto shrink-0 bg-white/10 text-white hover:bg-white/20 border-0">
+                Ver producto →
+              </Badge>
             </button> : <div className="flex items-center gap-2 w-full p-2 rounded-lg bg-muted/30 text-left">
               <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
