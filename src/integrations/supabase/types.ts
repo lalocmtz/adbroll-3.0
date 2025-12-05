@@ -800,6 +800,7 @@ export type Database = {
           creators_count: number | null
           currency: string | null
           descripcion: string | null
+          earning_per_sale: number | null
           gmv_30d_calc: number | null
           gmv_30d_mxn: number | null
           gmv_7d_mxn: number | null
@@ -811,6 +812,7 @@ export type Database = {
           last_import: string | null
           last_imported_from_kalodata_at: string | null
           opportunity_index: number | null
+          opportunity_reason: Json | null
           precio_mxn: number | null
           price: number | null
           producto_nombre: string | null
@@ -825,80 +827,6 @@ export type Database = {
           total_ingresos_mxn: number | null
           total_ventas: number | null
           updated_at: string | null
-        }
-        Insert: {
-          categoria?: string | null
-          commission?: number | null
-          commission_amount?: number | null
-          commission_percent_calc?: never
-          created_at?: string | null
-          creators_active_30d?: number | null
-          creators_active_calc?: never
-          creators_count?: number | null
-          currency?: string | null
-          descripcion?: string | null
-          gmv_30d_calc?: never
-          gmv_30d_mxn?: number | null
-          gmv_7d_mxn?: number | null
-          id?: string | null
-          imagen_url?: string | null
-          is_hidden?: boolean | null
-          is_hidden_gem?: never
-          is_opportunity?: boolean | null
-          last_import?: string | null
-          last_imported_from_kalodata_at?: string | null
-          opportunity_index?: never
-          precio_mxn?: number | null
-          price?: number | null
-          producto_nombre?: string | null
-          producto_url?: string | null
-          promedio_roas?: number | null
-          rank?: number | null
-          rating?: number | null
-          revenue_30d?: number | null
-          revenue_7d?: number | null
-          sales_7d?: number | null
-          tiktok_product_id?: string | null
-          total_ingresos_mxn?: number | null
-          total_ventas?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          categoria?: string | null
-          commission?: number | null
-          commission_amount?: number | null
-          commission_percent_calc?: never
-          created_at?: string | null
-          creators_active_30d?: number | null
-          creators_active_calc?: never
-          creators_count?: number | null
-          currency?: string | null
-          descripcion?: string | null
-          gmv_30d_calc?: never
-          gmv_30d_mxn?: number | null
-          gmv_7d_mxn?: number | null
-          id?: string | null
-          imagen_url?: string | null
-          is_hidden?: boolean | null
-          is_hidden_gem?: never
-          is_opportunity?: boolean | null
-          last_import?: string | null
-          last_imported_from_kalodata_at?: string | null
-          opportunity_index?: never
-          precio_mxn?: number | null
-          price?: number | null
-          producto_nombre?: string | null
-          producto_url?: string | null
-          promedio_roas?: number | null
-          rank?: number | null
-          rating?: number | null
-          revenue_30d?: number | null
-          revenue_7d?: number | null
-          sales_7d?: number | null
-          tiktok_product_id?: string | null
-          total_ingresos_mxn?: number | null
-          total_ventas?: number | null
-          updated_at?: string | null
         }
         Relationships: []
       }
