@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 
@@ -15,10 +15,13 @@ const Admin = () => {
   const [productFile, setProductFile] = useState<File | null>(null);
   const [creatorFile, setCreatorFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isMatching, setIsMatching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [processPhase, setProcessPhase] = useState("");
   const [processProgress, setProcessProgress] = useState(0);
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastSync, setLastSync] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [stats, setStats] = useState({
@@ -27,10 +30,14 @@ const Admin = () => {
     creators: 0,
     videosWithProduct: 0,
     videosDownloaded: 0,
+    pendingMatch: 0,
   });
 
   useEffect(() => {
     checkFounderRole();
+    // Load last sync from localStorage
+    const saved = localStorage.getItem("adbroll_last_sync");
+    if (saved) setLastSync(saved);
   }, []);
 
   useEffect(() => {
@@ -40,20 +47,28 @@ const Admin = () => {
   }, [isFounder]);
 
   const loadStats = async () => {
-    const [videosRes, productsRes, creatorsRes] = await Promise.all([
-      supabase.from("videos").select("id, product_id, video_mp4_url"),
-      supabase.from("products").select("id", { count: "exact", head: true }),
-      supabase.from("creators").select("id", { count: "exact", head: true }),
-    ]);
+    setIsRefreshing(true);
+    try {
+      const [videosRes, productsRes, creatorsRes] = await Promise.all([
+        supabase.from("videos").select("id, product_id, video_mp4_url"),
+        supabase.from("products").select("id", { count: "exact", head: true }),
+        supabase.from("creators").select("id", { count: "exact", head: true }),
+      ]);
 
-    const videos = videosRes.data || [];
-    setStats({
-      videos: videos.length,
-      products: productsRes.count || 0,
-      creators: creatorsRes.count || 0,
-      videosWithProduct: videos.filter(v => v.product_id).length,
-      videosDownloaded: videos.filter(v => v.video_mp4_url).length,
-    });
+      const videos = videosRes.data || [];
+      const withProduct = videos.filter(v => v.product_id).length;
+      
+      setStats({
+        videos: videos.length,
+        products: productsRes.count || 0,
+        creators: creatorsRes.count || 0,
+        videosWithProduct: withProduct,
+        videosDownloaded: videos.filter(v => v.video_mp4_url).length,
+        pendingMatch: videos.length - withProduct,
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const checkFounderRole = async () => {
@@ -87,6 +102,55 @@ const Admin = () => {
       navigate("/app");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveLastSync = () => {
+    const now = new Date().toLocaleString("es-MX", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+    localStorage.setItem("adbroll_last_sync", now);
+    setLastSync(now);
+  };
+
+  // Match only pending videos
+  const handleMatchPending = async () => {
+    if (stats.pendingMatch === 0) {
+      toast({ title: "Todo vinculado", description: "No hay videos pendientes." });
+      return;
+    }
+
+    setIsMatching(true);
+    let totalMatched = 0;
+
+    try {
+      let complete = false;
+      while (!complete) {
+        const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
+          body: { batchSize: 100, threshold: 0.5 }
+        });
+
+        if (error) throw error;
+        
+        totalMatched += data.matchedInBatch || 0;
+        complete = data.complete;
+      }
+
+      saveLastSync();
+      toast({
+        title: "Vinculación completada",
+        description: `${totalMatched} videos vinculados con productos.`,
+      });
+      await loadStats();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsMatching(false);
     }
   };
 
@@ -176,7 +240,6 @@ const Admin = () => {
           setProcessPhase(`Descargando videos... (${downloadedCount} completados)`);
           await new Promise(r => setTimeout(r, 500));
           
-          // Safety limit
           if (downloadedCount >= 100) break;
         }
       }
@@ -209,13 +272,13 @@ const Admin = () => {
       // Done!
       setProcessProgress(100);
       setProcessPhase("¡Proceso completado!");
+      saveLastSync();
       
       toast({
         title: "¡Proceso completado!",
         description: `${downloadedCount} videos descargados, ${totalMatched} productos vinculados.`,
       });
 
-      // Refresh stats
       await loadStats();
       
       // Reset file inputs
@@ -262,6 +325,34 @@ const Admin = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-3xl">
+        {/* Last Sync & Quick Actions */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>Última sincronización: {lastSync || "Nunca"}</span>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadStats}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Actualizar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMatchPending}
+              disabled={isMatching || stats.pendingMatch === 0}
+            >
+              <Link2 className={`h-4 w-4 mr-1 ${isMatching ? 'animate-pulse' : ''}`} />
+              {isMatching ? "Vinculando..." : `Vincular (${stats.pendingMatch})`}
+            </Button>
+          </div>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <Card>
@@ -309,7 +400,7 @@ const Admin = () => {
               Archivos de Kalodata
             </CardTitle>
             <CardDescription>
-              Selecciona los archivos Excel exportados de Kalodata
+              Sube archivos nuevos o actualizaciones de datos existentes
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -360,6 +451,10 @@ const Admin = () => {
               </div>
               {creatorFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
             </div>
+
+            <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+              💡 Los archivos actualizan datos existentes sin duplicar registros (upsert inteligente)
+            </p>
           </CardContent>
         </Card>
 
@@ -396,7 +491,7 @@ const Admin = () => {
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
-              Importa archivos → Descarga videos → Vincula productos automáticamente
+              Importa → Descarga MP4 → Vincula productos automáticamente
             </p>
           </CardContent>
         </Card>
