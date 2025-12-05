@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.generate-full-script]
 verify_jwt = false
+
+[functions.rebuild-index]
+verify_jwt = false
