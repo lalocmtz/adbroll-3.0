@@ -48,6 +48,25 @@ All colors MUST be HSL.
     --text-muted: 215 16% 47%;
     --text-code: 217 33% 17%;
 
+    /* Button colors - TikTok aligned */
+    --btn-primary: 340 91% 51%;
+    --btn-primary-hover: 338 89% 45%;
+    --btn-primary-shadow: 340 91% 51%;
+    
+    --btn-secondary: 204 94% 94%;
+    --btn-secondary-text: 199 98% 39%;
+    --btn-secondary-border: 199 95% 87%;
+    --btn-secondary-hover: 199 95% 87%;
+    --btn-secondary-hover-text: 199 96% 32%;
+    
+    --btn-danger: 0 93% 94%;
+    --btn-danger-text: 0 73% 42%;
+    --btn-danger-hover: 0 91% 82%;
+    --btn-danger-hover-text: 0 62% 31%;
+    
+    --btn-link: 217 91% 60%;
+    --btn-link-hover: 217 91% 53%;
+
     /* Premium shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
