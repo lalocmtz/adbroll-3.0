@@ -4,7 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, X, Check, FileText, BarChart3, Wand2, Loader2, AlertCircle, RefreshCw, Heart } from "lucide-react";
+import { Copy, X, Check, FileText, BarChart3, Wand2, Loader2, AlertCircle, RefreshCw, Heart, ChevronDown, ChevronUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface VideoAnalysisModalProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [savedScripts, setSavedScripts] = useState<Set<string>>(new Set());
   const [savingScript, setSavingScript] = useState<string | null>(null);
+  const [generatorOpen, setGeneratorOpen] = useState(true);
   const embedRef = useRef<HTMLDivElement>(null);
   const hasStartedProcess = useRef(false);
   const { toast } = useToast();
@@ -58,6 +60,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
       setLoadingVariants(false);
       setTranscriptError(null);
       setSavedScripts(new Set());
+      setGeneratorOpen(true);
       hasStartedProcess.current = false;
     }
   }, [isOpen]);
@@ -233,6 +236,9 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
         });
       }
 
+      // Auto-collapse generator section
+      setGeneratorOpen(false);
+      
       toast({
         title: "✓ Variantes generadas",
         description: "5 variantes listas para copiar",
@@ -416,7 +422,10 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <h3 className="text-sm font-medium">Transcripción del Video</h3>
-                      <CopyButton text={transcript} section="transcript" />
+                      <div className="flex items-center gap-1">
+                        <SaveButton text={transcript} variantType="Transcripción Original" />
+                        <CopyButton text={transcript} section="transcript" />
+                      </div>
                     </div>
                     
                     <div className="bg-muted/50 p-4 rounded-lg border border-border">
@@ -474,21 +483,55 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Generando variantes con IA...</p>
                   </div>
-                ) : !variants ? (
-                  <div className="text-center py-12">
-                    <Wand2 className="h-10 w-10 mx-auto mb-3 opacity-30 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {!transcript ? "Esperando transcripción..." : "Haz clic en esta pestaña para generar variantes"}
-                    </p>
-                    {transcript && (
-                      <Button onClick={generateVariants} disabled={loadingVariants}>
-                        <Wand2 className="h-4 w-4 mr-2" />
-                        Generar Variantes
-                      </Button>
-                    )}
-                  </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    {/* Collapsible Generator Section */}
+                    <Collapsible open={generatorOpen} onOpenChange={setGeneratorOpen}>
+                      <div className="border border-primary/20 rounded-lg bg-primary/5">
+                        <CollapsibleTrigger asChild>
+                          <button className="w-full p-4 flex items-center justify-between hover:bg-primary/10 transition-colors rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Wand2 className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="text-left">
+                                <h4 className="text-sm font-semibold">Generador de Variantes IA</h4>
+                                <p className="text-xs text-muted-foreground">
+                                  {variants ? "Variantes generadas • Clic para expandir" : "Crea guiones optimizados basados en este video"}
+                                </p>
+                              </div>
+                            </div>
+                            {generatorOpen ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <div className="px-4 pb-4">
+                            {!transcript ? (
+                              <p className="text-sm text-muted-foreground text-center py-4">
+                                Esperando transcripción...
+                              </p>
+                            ) : (
+                              <Button 
+                                onClick={generateVariants} 
+                                disabled={loadingVariants}
+                                className="w-full bg-primary hover:bg-primary/90"
+                              >
+                                <Wand2 className="h-4 w-4 mr-2" />
+                                Generar Variantes IA
+                              </Button>
+                            )}
+                          </div>
+                        </CollapsibleContent>
+                      </div>
+                    </Collapsible>
+
+                    {/* Generated Variants */}
+                    {variants && (
+                      <div className="space-y-3">
                     {/* Variante 1 */}
                     <div className="border border-blue-200 dark:border-blue-900/30 rounded-lg p-4 bg-blue-50/50 dark:bg-blue-950/20">
                       <div className="flex justify-between items-start mb-2">
@@ -550,6 +593,8 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                         <pre className="text-sm whitespace-pre-wrap font-mono">
                           {variants.full_variant}
                         </pre>
+                      </div>
+                    )}
                       </div>
                     )}
                   </div>
