@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Database, ArrowLeft, Video, Package, Users, CheckCircle, Download, RefreshCw, AlertCircle, Sparkles, Link } from "lucide-react";
+import { Upload, Database, ArrowLeft, Video, Package, Users, CheckCircle, Download, RefreshCw, AlertCircle, Sparkles, Link, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -21,6 +21,8 @@ const Admin = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [matchStats, setMatchStats] = useState({ matched: 0, unmatched: 0, total: 0 });
+  const [isMasterProcessing, setIsMasterProcessing] = useState(false);
+  const [masterProgress, setMasterProgress] = useState({ phase: '', current: 0, total: 0, percent: 0 });
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -138,6 +140,91 @@ const Admin = () => {
       });
     } finally {
       setIsMatching(false);
+    }
+  };
+
+  // Master process: Download all videos + Match all products
+  const handleMasterProcess = async () => {
+    setIsMasterProcessing(true);
+    
+    try {
+      // Phase 1: Download all videos
+      const initialPending = downloadStats.pending;
+      setMasterProgress({ phase: 'Descargando videos...', current: 0, total: initialPending, percent: 0 });
+      
+      let downloadedCount = 0;
+      
+      if (initialPending > 0) {
+        while (true) {
+          const { data, error } = await supabase.functions.invoke("download-videos-batch", {
+            body: { batchSize: 5 },
+          });
+
+          if (error) throw error;
+          if (data.processed === 0) break;
+
+          downloadedCount += data.successful || 0;
+          const percent = initialPending > 0 ? Math.round((downloadedCount / initialPending) * 50) : 0;
+          setMasterProgress({ 
+            phase: `Descargando videos... (${downloadedCount}/${initialPending})`, 
+            current: downloadedCount, 
+            total: initialPending, 
+            percent 
+          });
+          
+          await loadDownloadStats();
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      // Phase 2: Match all products
+      const initialUnmatched = matchStats.unmatched;
+      setMasterProgress({ phase: 'Vinculando productos...', current: 0, total: initialUnmatched, percent: 50 });
+      
+      let totalMatched = 0;
+      let matchComplete = false;
+      
+      while (!matchComplete) {
+        const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
+          body: { batchSize: 50, offset: 0 }
+        });
+
+        if (error) throw error;
+        
+        totalMatched += data.matchedInBatch || 0;
+        matchComplete = data.complete;
+        
+        const matchPercent = initialUnmatched > 0 ? 50 + Math.round((totalMatched / initialUnmatched) * 50) : 100;
+        setMasterProgress({ 
+          phase: `Vinculando productos... (${totalMatched} vinculados)`, 
+          current: totalMatched, 
+          total: initialUnmatched, 
+          percent: Math.min(matchPercent, 100)
+        });
+        
+        await loadMatchStats();
+      }
+
+      setMasterProgress({ phase: '¡Proceso completado!', current: 0, total: 0, percent: 100 });
+      
+      toast({
+        title: "¡Proceso maestro completado!",
+        description: `${downloadedCount} videos descargados, ${totalMatched} productos vinculados.`,
+      });
+
+      await loadStats();
+      await loadDownloadStats();
+      await loadMatchStats();
+      
+    } catch (error: any) {
+      toast({
+        title: "Error en proceso maestro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsMasterProcessing(false);
+      setMasterProgress({ phase: '', current: 0, total: 0, percent: 0 });
     }
   };
 
@@ -489,6 +576,65 @@ const Admin = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Master Process Button */}
+          <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center text-xl">
+                <Zap className="h-6 w-6 mr-2 text-primary" />
+                Proceso Maestro
+              </CardTitle>
+              <CardDescription>
+                Descarga todos los videos y vincula todos los productos automáticamente
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isMasterProcessing && (
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-foreground">{masterProgress.phase}</span>
+                    <span className="text-muted-foreground">{masterProgress.percent}%</span>
+                  </div>
+                  <Progress value={masterProgress.percent} className="h-3" />
+                  <div className="grid grid-cols-2 gap-4 text-center text-sm">
+                    <div className="bg-background/50 rounded-lg p-2">
+                      <p className="text-muted-foreground">Pendientes descarga</p>
+                      <p className="font-bold text-yellow-500">{downloadStats.pending}</p>
+                    </div>
+                    <div className="bg-background/50 rounded-lg p-2">
+                      <p className="text-muted-foreground">Sin vincular</p>
+                      <p className="font-bold text-yellow-500">{matchStats.unmatched}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <Button 
+                onClick={handleMasterProcess}
+                disabled={isMasterProcessing || isDownloading || isMatching}
+                size="lg"
+                className="w-full h-14 text-lg font-semibold"
+              >
+                {isMasterProcessing ? (
+                  <>
+                    <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                    Procesando... {masterProgress.percent}%
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-5 w-5 mr-2" />
+                    🚀 Procesar Todo (Descargar + Vincular)
+                  </>
+                )}
+              </Button>
+              
+              {!isMasterProcessing && (downloadStats.pending > 0 || matchStats.unmatched > 0) && (
+                <p className="text-xs text-center text-muted-foreground">
+                  {downloadStats.pending} videos por descargar • {matchStats.unmatched} videos por vincular
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* MP4 Download Status */}
           <Card className="mb-8">
