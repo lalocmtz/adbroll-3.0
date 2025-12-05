@@ -8,11 +8,12 @@ import { Label } from '@/components/ui/label';
 import { 
   Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, 
   DollarSign, ShoppingCart, Percent, Eye, FlaskConical, X, Sparkles,
-  TrendingUp, Save, Play, Volume2, Maximize2
+  TrendingUp, Save, Play, Volume2, Maximize2, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface GeneratedVariant {
   hook: string;
@@ -88,6 +89,7 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
   const [variantCount, setVariantCount] = useState<number>(2);
   const [changeLevel, setChangeLevel] = useState<'light' | 'medium' | 'aggressive'>('medium');
   const [generatedVariants, setGeneratedVariants] = useState<GeneratedVariant[]>([]);
+  const [generatorOpen, setGeneratorOpen] = useState(true);
 
   // Calculate earning per sale from product data
   const productPrice = video.product?.price || 0;
@@ -281,6 +283,7 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
 
       if (data?.variants && data.variants.length > 0) {
         setGeneratedVariants(data.variants);
+        setGeneratorOpen(false); // Auto-collapse generator after generating
         toast({
           title: '✅ Variantes generadas',
           description: `${data.variants.length} variante(s) lista(s) para usar`,
@@ -663,101 +666,117 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
 
                       {/* Variants Tab */}
                       <TabsContent value="variants" className="mt-0 h-full flex flex-col animate-fade-in">
-                        {/* Control Panel */}
-                        <div className="card-premium p-5 mb-4 bg-gradient-to-br from-primary/[0.02] via-background to-accent/[0.02]">
-                          <div className="flex items-center gap-3 mb-5">
-                            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
-                              <FlaskConical className="h-5 w-5 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-base text-foreground">Generador de Variantes IA</h3>
-                              <p className="text-xs text-muted-foreground">Crea guiones optimizados basados en este video</p>
-                            </div>
-                          </div>
-
-                          <div className="grid sm:grid-cols-2 gap-5">
-                            {/* Quantity Selector */}
-                            <div>
-                              <Label className="text-xs font-medium text-muted-foreground mb-2.5 block uppercase tracking-wider">
-                                Cantidad de variantes
-                              </Label>
-                              <div className="flex gap-2">
-                                {[1, 2, 3].map((num) => (
-                                  <Button
-                                    key={num}
-                                    size="sm"
-                                    variant={variantCount === num ? 'default' : 'outline'}
-                                    className={`flex-1 h-10 rounded-xl transition-all ${
-                                      variantCount === num ? 'shadow-sm' : ''
-                                    }`}
-                                    onClick={() => setVariantCount(num)}
-                                  >
-                                    {num}
-                                  </Button>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Change Level */}
-                            <div>
-                              <Label className="text-xs font-medium text-muted-foreground mb-2.5 block uppercase tracking-wider">
-                                Nivel de cambio
-                              </Label>
-                              <RadioGroup
-                                value={changeLevel}
-                                onValueChange={(v) => setChangeLevel(v as 'light' | 'medium' | 'aggressive')}
-                                className="flex gap-3"
-                              >
-                                {[
-                                  { value: 'light', label: 'Ligero', emoji: '🌱' },
-                                  { value: 'medium', label: 'Medio', emoji: '🔥' },
-                                  { value: 'aggressive', label: 'Agresivo', emoji: '🚀' }
-                                ].map(({ value, label, emoji }) => (
-                                  <div key={value} className="flex items-center">
-                                    <RadioGroupItem value={value} id={value} className="peer sr-only" />
-                                    <Label 
-                                      htmlFor={value} 
-                                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer transition-all text-sm ${
-                                        changeLevel === value 
-                                          ? 'border-primary bg-primary/10 text-primary font-medium' 
-                                          : 'border-border bg-background hover:border-primary/30'
-                                      }`}
-                                    >
-                                      <span>{emoji}</span>
-                                      <span className="hidden sm:inline">{label}</span>
-                                    </Label>
+                        {/* Collapsible Control Panel */}
+                        <Collapsible open={generatorOpen} onOpenChange={setGeneratorOpen} className="mb-4">
+                          <div className="card-premium bg-gradient-to-br from-primary/[0.02] via-background to-accent/[0.02]">
+                            <CollapsibleTrigger asChild>
+                              <button className="w-full p-5 flex items-center justify-between hover:bg-primary/5 transition-colors rounded-xl">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
+                                    <FlaskConical className="h-5 w-5 text-white" />
                                   </div>
-                                ))}
-                              </RadioGroup>
-                            </div>
+                                  <div className="text-left">
+                                    <h3 className="font-semibold text-base text-foreground">Generador de Variantes IA</h3>
+                                    <p className="text-xs text-muted-foreground">
+                                      {generatedVariants.length > 0 ? `${generatedVariants.length} variante(s) generada(s) • Clic para expandir` : 'Crea guiones optimizados basados en este video'}
+                                    </p>
+                                  </div>
+                                </div>
+                                {generatorOpen ? (
+                                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                                ) : (
+                                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                                )}
+                              </button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div className="px-5 pb-5">
+                                <div className="grid sm:grid-cols-2 gap-5">
+                                  {/* Quantity Selector */}
+                                  <div>
+                                    <Label className="text-xs font-medium text-muted-foreground mb-2.5 block uppercase tracking-wider">
+                                      Cantidad de variantes
+                                    </Label>
+                                    <div className="flex gap-2">
+                                      {[1, 2, 3].map((num) => (
+                                        <Button
+                                          key={num}
+                                          size="sm"
+                                          variant={variantCount === num ? 'default' : 'outline'}
+                                          className={`flex-1 h-10 rounded-xl transition-all ${
+                                            variantCount === num ? 'shadow-sm' : ''
+                                          }`}
+                                          onClick={() => setVariantCount(num)}
+                                        >
+                                          {num}
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Change Level */}
+                                  <div>
+                                    <Label className="text-xs font-medium text-muted-foreground mb-2.5 block uppercase tracking-wider">
+                                      Nivel de cambio
+                                    </Label>
+                                    <RadioGroup
+                                      value={changeLevel}
+                                      onValueChange={(v) => setChangeLevel(v as 'light' | 'medium' | 'aggressive')}
+                                      className="flex gap-3"
+                                    >
+                                      {[
+                                        { value: 'light', label: 'Ligero', emoji: '🌱' },
+                                        { value: 'medium', label: 'Medio', emoji: '🔥' },
+                                        { value: 'aggressive', label: 'Agresivo', emoji: '🚀' }
+                                      ].map(({ value, label, emoji }) => (
+                                        <div key={value} className="flex items-center">
+                                          <RadioGroupItem value={value} id={value} className="peer sr-only" />
+                                          <Label 
+                                            htmlFor={value} 
+                                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border cursor-pointer transition-all text-sm ${
+                                              changeLevel === value 
+                                                ? 'border-primary bg-primary/10 text-primary font-medium' 
+                                                : 'border-border bg-background hover:border-primary/30'
+                                            }`}
+                                          >
+                                            <span>{emoji}</span>
+                                            <span className="hidden sm:inline">{label}</span>
+                                          </Label>
+                                        </div>
+                                      ))}
+                                    </RadioGroup>
+                                  </div>
+                                </div>
+
+                                {/* Generate Button */}
+                                <Button
+                                  onClick={generateVariants}
+                                  disabled={isGeneratingVariants || !transcript}
+                                  className="w-full mt-5 h-11 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
+                                  size="lg"
+                                >
+                                  {isGeneratingVariants ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Generando variantes...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Sparkles className="h-4 w-4 mr-2" />
+                                      Generar Variantes IA
+                                    </>
+                                  )}
+                                </Button>
+
+                                {!transcript && (
+                                  <p className="text-xs text-muted-foreground mt-3 text-center bg-muted/50 py-2 rounded-lg">
+                                    ⚠️ Primero genera la transcripción en la pestaña Script
+                                  </p>
+                                )}
+                              </div>
+                            </CollapsibleContent>
                           </div>
-
-                          {/* Generate Button */}
-                          <Button
-                            onClick={generateVariants}
-                            disabled={isGeneratingVariants || !transcript}
-                            className="w-full mt-5 h-11 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
-                            size="lg"
-                          >
-                            {isGeneratingVariants ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Generando variantes...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Generar Variantes IA
-                              </>
-                            )}
-                          </Button>
-
-                          {!transcript && (
-                            <p className="text-xs text-muted-foreground mt-3 text-center bg-muted/50 py-2 rounded-lg">
-                              ⚠️ Primero genera la transcripción en la pestaña Script
-                            </p>
-                          )}
-                        </div>
+                        </Collapsible>
 
                         {/* Scrollable Variants Container */}
                         <ScrollArea className="flex-1">
