@@ -152,17 +152,18 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
         </motion.div>
       </div>
 
-      {/* Animated Image Marquee - Large cards with infinite scroll */}
+      {/* Animated Image Marquee - Tightly packed cards with infinite scroll */}
       <div 
         className="absolute bottom-0 left-0 right-0 flex items-end justify-center overflow-hidden"
         style={{
-          height: '55vh',
-          maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)',
+          height: '58vh',
+          maskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
         }}
       >
         <motion.div
-          className="flex gap-4 md:gap-6"
+          className="flex"
+          style={{ gap: '12px' }}
           animate={{
             x: ["-50%", "0%"],
           }}
@@ -170,7 +171,7 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
             x: {
               repeat: Infinity,
               repeatType: "loop",
-              duration: 80,
+              duration: 90,
               ease: "linear",
             },
           }}
@@ -180,15 +181,15 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
               key={index}
               className="relative flex-shrink-0 transition-transform duration-300 hover:scale-[1.02] hover:-translate-y-2"
               style={{
-                width: 'clamp(280px, 22vw, 380px)',
-                height: 'clamp(420px, 48vh, 620px)',
+                width: 'clamp(260px, 20vw, 340px)',
+                height: 'clamp(400px, 50vh, 580px)',
                 transform: `rotate(${(index % 2 === 0 ? -1 : 1.5)}deg)`,
               }}
             >
               <img
                 src={src}
                 alt={`Showcase image ${index + 1}`}
-                className="w-full h-full object-contain drop-shadow-2xl"
+                className="w-full h-full object-contain drop-shadow-xl"
               />
             </div>
           ))}
