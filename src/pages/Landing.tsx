@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,65 @@ import { AnimatedMarqueeHero } from "@/components/ui/hero-3";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { FeatureSteps } from "@/components/ui/feature-section";
+import { TestimonialsColumn } from "@/components/ui/testimonials-columns-1";
 import { supabase } from "@/integrations/supabase/client";
+
+const testimonials = [
+  {
+    text: "Adbroll me hizo pasar de adivinar qué productos grabar a saber exactamente qué vende. Ahora mis videos generan ventas todos los días.",
+    image: "https://randomuser.me/api/portraits/women/11.jpg",
+    name: "María Delgado",
+    role: "Creadora de TikTok Shop",
+  },
+  {
+    text: "Subo mis videos a Adbroll y en segundos tengo guiones virales listos para grabar. Me ahorra horas y me duplicó mis comisiones.",
+    image: "https://randomuser.me/api/portraits/men/21.jpg",
+    name: "Luis Hernández",
+    role: "Creador & Afiliado",
+  },
+  {
+    text: "Antes probaba productos al azar. Con Adbroll solo promociono lo que ya está vendiendo. Mis ingresos son mucho más constantes.",
+    image: "https://randomuser.me/api/portraits/women/32.jpg",
+    name: "Fernanda Ruiz",
+    role: "Creadora en TikTok",
+  },
+  {
+    text: "La parte de análisis de guiones es una locura. Adbroll me explica por qué un video funciona y cómo replicarlo. Es como tener un equipo creativo 24/7.",
+    image: "https://randomuser.me/api/portraits/men/45.jpg",
+    name: "Carlos Rivas",
+    role: "Creador UGC",
+  },
+  {
+    text: "La sección de oportunidades me ayudó a encontrar productos con alta comisión y baja competencia. Subí mi ganancia por venta un 60%.",
+    image: "https://randomuser.me/api/portraits/women/41.jpg",
+    name: "Andrea Soto",
+    role: "Vendedora en TikTok Shop",
+  },
+  {
+    text: "Desde que uso Adbroll, cada video que hago tiene intención, estructura y estrategia. Esto dejó de ser suerte y se volvió un sistema.",
+    image: "https://randomuser.me/api/portraits/men/51.jpg",
+    name: "Diego Morales",
+    role: "Creador de Contenido",
+  },
+  {
+    text: "El extractor de guiones me permite ver lo que realmente dicen los videos virales. Gracias a eso ahora sé exactamente qué copiar y mejorar.",
+    image: "https://randomuser.me/api/portraits/men/66.jpg",
+    name: "Raúl Castillo",
+    role: "Afiliado",
+  },
+  {
+    text: "Adbroll es la herramienta que todos los creadores estaban esperando. Me ayudó a dejar de procrastinar y empezar a ganar dinero diario.",
+    image: "https://randomuser.me/api/portraits/women/67.jpg",
+    name: "Ariana Mendoza",
+    role: "Creadora Principiante",
+  },
+  {
+    text: "Con Adbroll ya no tengo bloqueos creativos. Todos mis videos salen de aquí, y mi cuenta está creciendo más rápido que nunca.",
+    image: "https://randomuser.me/api/portraits/women/77.jpg",
+    name: "Cassandra Torres",
+    role: "Creadora de TikTok Shop",
+  },
+];
 
 // Import mockups
 import mockupDashboard from "@/assets/mockup-dashboard.png";
@@ -351,51 +410,28 @@ const Landing = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 md:py-32 landing-section-alt">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="badge-landing-light mb-4">Testimonios</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Lo que dicen los creadores
+      <section className="bg-background my-20 relative">
+        <div className="container z-10 mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            viewport={{ once: true }}
+            className="flex flex-col items-center justify-center max-w-[540px] mx-auto"
+          >
+            <Badge className="badge-landing-light mb-4">Testimonios reales</Badge>
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tighter mt-5 text-center">
+              Creadores que cambiaron su juego con Adbroll
             </h2>
-          </div>
+            <p className="text-center mt-5 text-muted-foreground">
+              Historias de cómo miles de creadores están generando ventas con estrategia, no suerte.
+            </p>
+          </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              {
-                quote: "Dejé de grabar videos a ciegas. Ahora sé qué funciona.",
-                author: "Carlos M.",
-                role: "Creador TikTok Shop",
-              },
-              {
-                quote: "Mis ventas crecieron gracias a las oportunidades de alto payout.",
-                author: "María L.",
-                role: "Afiliada",
-              },
-              {
-                quote: "Vale cada peso. Me ahorra horas y aumenta mi conversión.",
-                author: "Diego R.",
-                role: "Content Creator",
-              },
-            ].map((item, index) => (
-              <Card key={index} className="card-landing-light">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-foreground mb-4 italic">"{item.quote}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                    {item.author[0]}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">{item.author}</p>
-                    <p className="text-muted-foreground text-xs">{item.role}</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
+          <div className="flex justify-center gap-6 mt-10 [mask-image:linear-gradient(to_bottom,transparent,black_25%,black_75%,transparent)] max-h-[740px] overflow-hidden">
+            <TestimonialsColumn testimonials={testimonials.slice(0, 3)} duration={15} />
+            <TestimonialsColumn testimonials={testimonials.slice(3, 6)} className="hidden md:block" duration={19} />
+            <TestimonialsColumn testimonials={testimonials.slice(6, 9)} className="hidden lg:block" duration={17} />
           </div>
         </div>
       </section>
