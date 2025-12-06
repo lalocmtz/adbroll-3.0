@@ -365,10 +365,11 @@ const Landing = () => {
             </p>
           </div>
           
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <NativeVideoPlayer
               videoUrl="https://gcntnilurlulejwwtpaa.supabase.co/storage/v1/object/public/assets/landing-video-1765059331622.mov"
-              className="shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)]"
+              className="shadow-[0_40px_100px_-25px_rgba(0,0,0,0.25)]"
+              autoPlayOnScroll
             />
           </div>
 
