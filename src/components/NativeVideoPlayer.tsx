@@ -16,23 +16,23 @@ export const NativeVideoPlayer = ({
   autoPlayOnScroll = false,
 }: NativeVideoPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Autoplay on scroll into view
+  // Autoplay on scroll into view (always starts muted for browser compatibility)
   useEffect(() => {
     if (!autoPlayOnScroll || hasAutoPlayed) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAutoPlayed && videoRef.current) {
-          // Try to play with audio
-          videoRef.current.muted = false;
-          setIsMuted(false);
+          // Start muted for reliable autoplay
+          videoRef.current.muted = true;
+          setIsMuted(true);
           
           videoRef.current.play()
             .then(() => {
@@ -40,20 +40,7 @@ export const NativeVideoPlayer = ({
               setHasStarted(true);
               setHasAutoPlayed(true);
             })
-            .catch(() => {
-              // If autoplay with audio fails (browser policy), try muted
-              if (videoRef.current) {
-                videoRef.current.muted = true;
-                setIsMuted(true);
-                videoRef.current.play()
-                  .then(() => {
-                    setIsPlaying(true);
-                    setHasStarted(true);
-                    setHasAutoPlayed(true);
-                  })
-                  .catch(console.error);
-              }
-            });
+            .catch(console.error);
         }
       },
       { threshold: 0.5 }
@@ -73,29 +60,20 @@ export const NativeVideoPlayer = ({
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
-      // Try to play with audio
-      videoRef.current.muted = false;
-      setIsMuted(false);
-      
       videoRef.current.play()
         .then(() => {
           setIsPlaying(true);
           setHasStarted(true);
         })
-        .catch(() => {
-          // Fallback to muted if browser blocks audio
-          if (videoRef.current) {
-            videoRef.current.muted = true;
-            setIsMuted(true);
-            videoRef.current.play()
-              .then(() => {
-                setIsPlaying(true);
-                setHasStarted(true);
-              })
-              .catch(console.error);
-          }
-        });
+        .catch(console.error);
     }
+  };
+
+  const enableAudio = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!videoRef.current) return;
+    videoRef.current.muted = false;
+    setIsMuted(false);
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -128,20 +106,20 @@ export const NativeVideoPlayer = ({
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
     >
-      {/* Video Element */}
+      {/* Video Element with loop */}
       <video
         ref={videoRef}
         src={videoUrl}
         poster={posterUrl}
         muted={isMuted}
+        loop
         playsInline
         preload="metadata"
         className="w-full h-full object-cover"
-        onEnded={() => setIsPlaying(false)}
       />
 
-      {/* Play Button Overlay (shown when not started or paused) */}
-      {(!hasStarted || !isPlaying) && (
+      {/* Play Button Overlay (shown when not started) */}
+      {!hasStarted && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition-opacity duration-300">
           <button
             className={cn(
@@ -158,7 +136,29 @@ export const NativeVideoPlayer = ({
         </div>
       )}
 
-      {/* Controls Bar (shown on hover when playing) */}
+      {/* Enable Audio Button (shown when playing but muted) */}
+      {hasStarted && isPlaying && isMuted && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <button
+            onClick={enableAudio}
+            className={cn(
+              "pointer-events-auto",
+              "flex items-center gap-3 px-8 py-4 rounded-full",
+              "bg-white/95 text-foreground",
+              "shadow-[0_8px_30px_rgba(0,0,0,0.15)]",
+              "transform transition-all duration-300",
+              "hover:scale-105 hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)]",
+              "focus:outline-none focus:ring-4 focus:ring-primary/30",
+              "animate-pulse"
+            )}
+          >
+            <Volume2 className="h-6 w-6 text-primary" />
+            <span className="font-semibold text-lg">Activar sonido</span>
+          </button>
+        </div>
+      )}
+
+      {/* Controls Bar (shown on hover) */}
       {hasStarted && (
         <div
           className={cn(
