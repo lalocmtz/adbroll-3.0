@@ -49,39 +49,7 @@ const Landing = () => {
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get("ref");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
-  const [videoThumbnails, setVideoThumbnails] = useState<string[]>([]);
-
-  // Fetch top videos for hero marquee
-  useEffect(() => {
-    const fetchTopVideos = async () => {
-      const { data } = await supabase
-        .from("videos")
-        .select("thumbnail_url, video_mp4_url")
-        .not("thumbnail_url", "is", null)
-        .order("revenue_mxn", { ascending: false })
-        .limit(12);
-
-      if (data && data.length > 0) {
-        const thumbnails = data
-          .map(v => v.thumbnail_url)
-          .filter(Boolean) as string[];
-        setVideoThumbnails(thumbnails);
-      } else {
-        // Fallback placeholder images
-        setVideoThumbnails([
-          "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=600&fit=crop",
-          "https://images.unsplash.com/photo-1616469829581-73993eb86b02?w=400&h=600&fit=crop",
-          "https://images.unsplash.com/photo-1596558450268-9c27524ba856?w=400&h=600&fit=crop",
-          "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&h=600&fit=crop",
-          "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400&h=600&fit=crop",
-          "https://images.unsplash.com/photo-1556742111-a301076d9d18?w=400&h=600&fit=crop",
-          "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=600&fit=crop",
-          "https://images.unsplash.com/photo-1560343090-f0409e92791a?w=400&h=600&fit=crop",
-        ]);
-      }
-    };
-    fetchTopVideos();
-  }, []);
+  // No longer need to fetch video thumbnails - using static hero cards
 
   const handleRegister = () => {
     navigate("/register" + (refCode ? `?ref=${refCode}` : ""));
@@ -111,26 +79,23 @@ const Landing = () => {
       </header>
 
       {/* Hero Section with Animated Marquee */}
-      {videoThumbnails.length > 0 && (
-        <AnimatedMarqueeHero
-          tagline="🔥 +10,000 creadores ya usan AdBroll"
-          title={
-            <>
-              De creador improvisado a{" "}
-              <span className="text-gradient">vendedor estratégico</span> en TikTok Shop
-            </>
-          }
-          description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA."
-          ctaText="Empezar gratis"
-          ctaSecondaryText="Ver cómo funciona"
-          images={videoThumbnails}
-          onCtaClick={handleRegister}
-          onCtaSecondaryClick={() => {
-            const howItWorks = document.getElementById('how-it-works');
-            howItWorks?.scrollIntoView({ behavior: 'smooth' });
-          }}
-        />
-      )}
+      <AnimatedMarqueeHero
+        tagline="🔥 +10,000 creadores ya usan AdBroll"
+        title={
+          <>
+            De creador improvisado a{" "}
+            <span className="text-gradient">vendedor estratégico</span> en TikTok Shop
+          </>
+        }
+        description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA."
+        ctaText="Empezar gratis"
+        ctaSecondaryText="Ver cómo funciona"
+        onCtaClick={handleRegister}
+        onCtaSecondaryClick={() => {
+          const howItWorks = document.getElementById('how-it-works');
+          howItWorks?.scrollIntoView({ behavior: 'smooth' });
+        }}
+      />
 
       {/* How it Works */}
       <section id="how-it-works" className="py-20 md:py-32 landing-section-alt">
