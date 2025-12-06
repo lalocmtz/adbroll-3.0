@@ -156,15 +156,15 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
         </motion.div>
       </div>
 
-      {/* Animated Image Marquee - Full width, larger cards with shadows */}
-      <div className="absolute bottom-0 left-0 w-full h-[420px] md:h-[520px] flex items-end justify-center overflow-hidden">
+      {/* Animated Image Marquee - Floating cards with transparent backgrounds */}
+      <div className="absolute bottom-0 left-0 w-full h-[500px] md:h-[620px] flex items-end justify-center overflow-hidden">
         <motion.div
-          className="flex gap-8 pb-8"
+          className="flex gap-10 pb-4"
           animate={{
             x: ["-33.33%", "0%"],
             transition: {
               ease: "linear",
-              duration: 80,
+              duration: 120,
               repeat: Infinity,
             },
           }}
@@ -172,17 +172,17 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
           {heroImages.map((src, index) => (
             <div
               key={index}
-              className="relative w-[280px] md:w-[340px] h-[380px] md:h-[460px] flex-shrink-0"
+              className="relative w-[320px] md:w-[380px] h-[440px] md:h-[540px] flex-shrink-0 transition-transform hover:scale-105"
               style={{
-                transform: `rotate(${(index % 2 === 0 ? -3 : 4)}deg)`,
+                transform: `rotate(${(index % 2 === 0 ? -2 : 3)}deg)`,
               }}
             >
               <img
                 src={src}
                 alt={`Video viral ${index + 1}`}
-                className="w-full h-full object-contain rounded-3xl shadow-2xl drop-shadow-2xl"
+                className="w-full h-full object-contain"
                 style={{
-                  filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25)) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15))',
+                  filter: 'drop-shadow(0 30px 60px rgba(0, 0, 0, 0.35)) drop-shadow(0 15px 30px rgba(0, 0, 0, 0.2)) drop-shadow(0 5px 15px rgba(0, 0, 0, 0.1))',
                 }}
               />
             </div>
