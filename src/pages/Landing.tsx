@@ -264,12 +264,11 @@ const Landing = () => {
       <section className="py-20 md:py-32">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="badge-landing-light mb-4">Vista previa</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Descubre lo que te espera dentro
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
+              De 0 ventas a miles de pesos en comisiones
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Mira cómo funciona AdBroll en menos de 2 minutos
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              En menos de 1 minuto verás cómo encontrar oportunidades y transformarlas en dinero
             </p>
           </div>
 
