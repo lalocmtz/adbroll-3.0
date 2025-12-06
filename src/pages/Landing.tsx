@@ -4,38 +4,8 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  ArrowRight,
-  Play,
-  Sparkles,
-  TrendingUp,
-  FileText,
-  DollarSign,
-  Clock,
-  Lock,
-  Eye,
-  Zap,
-  Star,
-  Check,
-  X,
-  Gift,
-  Shield,
-  Brain,
-  Coins,
-  BarChart3,
-  Wand2,
-  Search,
-  Target,
-  ChevronRight,
-  Users,
-  MousePointer,
-} from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { ArrowRight, Play, Sparkles, TrendingUp, FileText, DollarSign, Clock, Lock, Eye, Zap, Star, Check, X, Gift, Shield, Brain, Coins, BarChart3, Wand2, Search, Target, ChevronRight, Users, MousePointer } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import { AnimatedMarqueeHero } from "@/components/ui/hero-3";
 import { TextShimmer } from "@/components/ui/text-shimmer";
@@ -45,63 +15,52 @@ import { TestimonialsColumn } from "@/components/ui/testimonials-columns-1";
 import { OnboardingChecklist } from "@/components/ui/onboarding-checklist";
 import { supabase } from "@/integrations/supabase/client";
 import previewThumbnail from "@/assets/preview-thumbnail.png";
-
-const testimonials = [
-  {
-    text: "Adbroll me hizo pasar de adivinar qué productos grabar a saber exactamente qué vende. Ahora mis videos generan ventas todos los días.",
-    image: "https://randomuser.me/api/portraits/women/11.jpg",
-    name: "María Delgado",
-    role: "Creadora de TikTok Shop",
-  },
-  {
-    text: "Subo mis videos a Adbroll y en segundos tengo guiones virales listos para grabar. Me ahorra horas y me duplicó mis comisiones.",
-    image: "https://randomuser.me/api/portraits/men/21.jpg",
-    name: "Luis Hernández",
-    role: "Creador & Afiliado",
-  },
-  {
-    text: "Antes probaba productos al azar. Con Adbroll solo promociono lo que ya está vendiendo. Mis ingresos son mucho más constantes.",
-    image: "https://randomuser.me/api/portraits/women/32.jpg",
-    name: "Fernanda Ruiz",
-    role: "Creadora en TikTok",
-  },
-  {
-    text: "La parte de análisis de guiones es una locura. Adbroll me explica por qué un video funciona y cómo replicarlo. Es como tener un equipo creativo 24/7.",
-    image: "https://randomuser.me/api/portraits/men/45.jpg",
-    name: "Carlos Rivas",
-    role: "Creador UGC",
-  },
-  {
-    text: "La sección de oportunidades me ayudó a encontrar productos con alta comisión y baja competencia. Subí mi ganancia por venta un 60%.",
-    image: "https://randomuser.me/api/portraits/women/41.jpg",
-    name: "Andrea Soto",
-    role: "Vendedora en TikTok Shop",
-  },
-  {
-    text: "Desde que uso Adbroll, cada video que hago tiene intención, estructura y estrategia. Esto dejó de ser suerte y se volvió un sistema.",
-    image: "https://randomuser.me/api/portraits/men/51.jpg",
-    name: "Diego Morales",
-    role: "Creador de Contenido",
-  },
-  {
-    text: "El extractor de guiones me permite ver lo que realmente dicen los videos virales. Gracias a eso ahora sé exactamente qué copiar y mejorar.",
-    image: "https://randomuser.me/api/portraits/men/66.jpg",
-    name: "Raúl Castillo",
-    role: "Afiliado",
-  },
-  {
-    text: "Adbroll es la herramienta que todos los creadores estaban esperando. Me ayudó a dejar de procrastinar y empezar a ganar dinero diario.",
-    image: "https://randomuser.me/api/portraits/women/67.jpg",
-    name: "Ariana Mendoza",
-    role: "Creadora Principiante",
-  },
-  {
-    text: "Con Adbroll ya no tengo bloqueos creativos. Todos mis videos salen de aquí, y mi cuenta está creciendo más rápido que nunca.",
-    image: "https://randomuser.me/api/portraits/women/77.jpg",
-    name: "Cassandra Torres",
-    role: "Creadora de TikTok Shop",
-  },
-];
+const testimonials = [{
+  text: "Adbroll me hizo pasar de adivinar qué productos grabar a saber exactamente qué vende. Ahora mis videos generan ventas todos los días.",
+  image: "https://randomuser.me/api/portraits/women/11.jpg",
+  name: "María Delgado",
+  role: "Creadora de TikTok Shop"
+}, {
+  text: "Subo mis videos a Adbroll y en segundos tengo guiones virales listos para grabar. Me ahorra horas y me duplicó mis comisiones.",
+  image: "https://randomuser.me/api/portraits/men/21.jpg",
+  name: "Luis Hernández",
+  role: "Creador & Afiliado"
+}, {
+  text: "Antes probaba productos al azar. Con Adbroll solo promociono lo que ya está vendiendo. Mis ingresos son mucho más constantes.",
+  image: "https://randomuser.me/api/portraits/women/32.jpg",
+  name: "Fernanda Ruiz",
+  role: "Creadora en TikTok"
+}, {
+  text: "La parte de análisis de guiones es una locura. Adbroll me explica por qué un video funciona y cómo replicarlo. Es como tener un equipo creativo 24/7.",
+  image: "https://randomuser.me/api/portraits/men/45.jpg",
+  name: "Carlos Rivas",
+  role: "Creador UGC"
+}, {
+  text: "La sección de oportunidades me ayudó a encontrar productos con alta comisión y baja competencia. Subí mi ganancia por venta un 60%.",
+  image: "https://randomuser.me/api/portraits/women/41.jpg",
+  name: "Andrea Soto",
+  role: "Vendedora en TikTok Shop"
+}, {
+  text: "Desde que uso Adbroll, cada video que hago tiene intención, estructura y estrategia. Esto dejó de ser suerte y se volvió un sistema.",
+  image: "https://randomuser.me/api/portraits/men/51.jpg",
+  name: "Diego Morales",
+  role: "Creador de Contenido"
+}, {
+  text: "El extractor de guiones me permite ver lo que realmente dicen los videos virales. Gracias a eso ahora sé exactamente qué copiar y mejorar.",
+  image: "https://randomuser.me/api/portraits/men/66.jpg",
+  name: "Raúl Castillo",
+  role: "Afiliado"
+}, {
+  text: "Adbroll es la herramienta que todos los creadores estaban esperando. Me ayudó a dejar de procrastinar y empezar a ganar dinero diario.",
+  image: "https://randomuser.me/api/portraits/women/67.jpg",
+  name: "Ariana Mendoza",
+  role: "Creadora Principiante"
+}, {
+  text: "Con Adbroll ya no tengo bloqueos creativos. Todos mis videos salen de aquí, y mi cuenta está creciendo más rápido que nunca.",
+  image: "https://randomuser.me/api/portraits/women/77.jpg",
+  name: "Cassandra Torres",
+  role: "Creadora de TikTok Shop"
+}];
 
 // Import mockups
 import mockupDashboard from "@/assets/mockup-dashboard.png";
@@ -121,39 +80,35 @@ import step3Variants from "@/assets/step-3-variants.png";
 const VideoSection = () => {
   const videoRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.3 }
-    );
-
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+      }
+    }, {
+      threshold: 0.3
+    });
     if (videoRef.current) {
       observer.observe(videoRef.current);
     }
-
     return () => observer.disconnect();
   }, []);
-
-  return (
-    <div ref={videoRef} className="max-w-6xl mx-auto rounded-2xl overflow-hidden shadow-2xl">
-      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-        <iframe 
-          src={`https://www.youtube.com/embed/HGpMS4iOyCo?vq=hd1080&hd=1${isVisible ? '&autoplay=1&mute=1' : ''}`}
-          frameBorder="0" 
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-        />
+  return <div ref={videoRef} className="max-w-6xl mx-auto rounded-2xl overflow-hidden shadow-2xl">
+      <div style={{
+      position: 'relative',
+      paddingBottom: '56.25%',
+      height: 0
+    }}>
+        <iframe src={`https://www.youtube.com/embed/HGpMS4iOyCo?vq=hd1080&hd=1${isVisible ? '&autoplay=1&mute=1' : ''}`} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%'
+      }} />
       </div>
-    </div>
-  );
+    </div>;
 };
-
 const Landing = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -164,13 +119,10 @@ const Landing = () => {
   const handleRegister = () => {
     navigate("/register" + (refCode ? `?ref=${refCode}` : ""));
   };
-
   const handlePreviewClick = () => {
     navigate("/register" + (refCode ? `?ref=${refCode}` : ""));
   };
-
-  return (
-    <div className="min-h-screen landing-light text-foreground overflow-hidden">
+  return <div className="min-h-screen landing-light text-foreground overflow-hidden">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -189,26 +141,18 @@ const Landing = () => {
       </header>
 
       {/* Hero Section with Animated Marquee */}
-      <AnimatedMarqueeHero
-        tagline="🔥 +10,000 creadores ya usan AdBroll"
-        title={
-          <>
+      <AnimatedMarqueeHero tagline="🔥 +10,000 creadores ya usan AdBroll" title={<>
             De creador improvisado a{" "}
             <TextShimmer duration={2.5} spread={3} className="text-gradient font-bold">
               vendedor estratégico
             </TextShimmer>{" "}
             en <TypingAnimation text="TikTok Shop" duration={120} className="whitespace-nowrap" />
-          </>
-        }
-        description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA."
-        ctaText="Empezar gratis"
-        ctaSecondaryText="Ver cómo funciona"
-        onCtaClick={handleRegister}
-        onCtaSecondaryClick={() => {
-          const howItWorks = document.getElementById('how-it-works');
-          howItWorks?.scrollIntoView({ behavior: 'smooth' });
-        }}
-      />
+          </>} description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA." ctaText="Empezar gratis" ctaSecondaryText="Ver cómo funciona" onCtaClick={handleRegister} onCtaSecondaryClick={() => {
+      const howItWorks = document.getElementById('how-it-works');
+      howItWorks?.scrollIntoView({
+        behavior: 'smooth'
+      });
+    }} />
 
       {/* How it Works */}
       <section id="how-it-works" className="py-16 md:py-24 landing-section-alt">
@@ -219,39 +163,25 @@ const Landing = () => {
             </h2>
           </div>
           
-          <FeatureSteps
-            features={[
-              {
-                step: "1",
-                title: "Qué está funcionando hoy",
-                content: "Encuentra los videos con más ventas y sus productos vinculados.",
-                image: step1Dashboard,
-              },
-              {
-                step: "2",
-                title: "Toma el guion viral y adáptalo",
-                content: "Nuestra IA te lo da listo para grabar y optimizar.",
-                image: step2Analysis,
-              },
-              {
-                step: "3",
-                title: "Graba. Publica. Cobra.",
-                content: "Monetiza como creador sin tener que adivinar.",
-                image: step3Variants,
-              },
-            ]}
-            title="De grabar al azar → a ganar estratégicamente en 3 pasos"
-            subtitle="Descubre qué está vendiendo hoy, replica con IA y cobra como creador desde el día uno."
-            autoPlayInterval={4000}
-            className="py-0"
-          />
+          <FeatureSteps features={[{
+          step: "1",
+          title: "Qué está funcionando hoy",
+          content: "Encuentra los videos con más ventas y sus productos vinculados.",
+          image: step1Dashboard
+        }, {
+          step: "2",
+          title: "Toma el guion viral y adáptalo",
+          content: "Nuestra IA te lo da listo para grabar y optimizar.",
+          image: step2Analysis
+        }, {
+          step: "3",
+          title: "Graba. Publica. Cobra.",
+          content: "Monetiza como creador sin tener que adivinar.",
+          image: step3Variants
+        }]} title="De grabar al azar → a ganar estratégicamente en 3 pasos" subtitle="Descubre qué está vendiendo hoy, replica con IA y cobra como creador desde el día uno." autoPlayInterval={4000} className="py-0" />
 
           <div className="text-center mt-8">
-            <Button
-              size="lg"
-              className="bg-primary hover:bg-primary-hover btn-glow"
-              onClick={handleRegister}
-            >
+            <Button size="lg" className="bg-primary hover:bg-primary-hover btn-glow" onClick={handleRegister}>
               Empieza Gratis
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
@@ -261,38 +191,7 @@ const Landing = () => {
 
       {/* Interactive Preview (Paywall) */}
       {/* Interactive Preview (Paywall) */}
-      <section className="py-20 md:py-32">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
-              De 0 ventas a miles de pesos en comisiones
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              En menos de 1 minuto verás cómo encontrar oportunidades y transformarlas en dinero
-            </p>
-          </div>
-
-          {/* YouTube Video Embed with Autoplay on Scroll */}
-          <VideoSection />
-
-          {/* Onboarding Checklist */}
-          <div className="mt-16">
-            <OnboardingChecklist
-              title="¿Y si crear contenido rentable fuera así de claro?"
-              description="Mira cómo AdBroll transforma la forma en que los creadores venden en TikTok Shop."
-              items={[
-                { id: 1, text: "Encuentra productos virales con alta comisión y baja competencia" },
-                { id: 2, text: "Analiza videos ganadores y sus guiones desglosados" },
-                { id: 3, text: "Genera variantes listas para grabar con IA" },
-                { id: 4, text: "Aprende qué funciona con datos reales (no suposiciones)" },
-                { id: 5, text: "Monetiza desde el día 1, incluso si estás empezando" },
-              ]}
-              videoThumbnailUrl={previewThumbnail}
-              videoUrl="https://www.youtube.com/embed/HGpMS4iOyCo"
-            />
-          </div>
-        </div>
-      </section>
+      
 
       {/* Comparison Section */}
       <section className="py-20 md:py-32 landing-section-alt">
@@ -312,19 +211,12 @@ const Landing = () => {
                 </span>
               </div>
               <ul className="space-y-5 mt-4">
-                {[
-                  "Pierdes horas buscando ideas sin claridad",
-                  "Grabas videos que no conectan ni venden",
-                  "No sabes si lo que haces dará resultados",
-                  "Terminas frustrado, sin ventas y con dudas",
-                ].map((item, index) => (
-                  <li key={index} className="flex items-start gap-3">
+                {["Pierdes horas buscando ideas sin claridad", "Grabas videos que no conectan ni venden", "No sabes si lo que haces dará resultados", "Terminas frustrado, sin ventas y con dudas"].map((item, index) => <li key={index} className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
                       <X className="h-4 w-4 text-red-500" />
                     </span>
                     <span className="text-foreground/80">{item}</span>
-                  </li>
-                ))}
+                  </li>)}
               </ul>
             </div>
 
@@ -336,19 +228,12 @@ const Landing = () => {
                 </span>
               </div>
               <ul className="space-y-5 mt-4">
-                {[
-                  "Sabes qué productos y guiones están generando ventas",
-                  "Solo grabas lo que ya está validado por datos",
-                  "Empiezas a ganar más rápido y sin adivinar",
-                  "Tienes claridad, motivación y resultados reales",
-                ].map((item, index) => (
-                  <li key={index} className="flex items-start gap-3">
+                {["Sabes qué productos y guiones están generando ventas", "Solo grabas lo que ya está validado por datos", "Empiezas a ganar más rápido y sin adivinar", "Tienes claridad, motivación y resultados reales"].map((item, index) => <li key={index} className="flex items-start gap-3">
                     <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
                       <Check className="h-4 w-4 text-green-500" />
                     </span>
                     <span className="text-foreground/80">{item}</span>
-                  </li>
-                ))}
+                  </li>)}
               </ul>
             </div>
           </div>
@@ -380,17 +265,22 @@ const Landing = () => {
                   </span>
                 </p>
                 <ul className="space-y-3 mb-6">
-                  {[
-                    { icon: "🧠", text: "Transcribe automáticamente cualquier video" },
-                    { icon: "🔍", text: "Identifica el gancho, cuerpo y cierre que vende" },
-                    { icon: "💸", text: "Detecta patrones de venta comprobados" },
-                    { icon: "✨", text: "Te da variantes optimizadas para maximizar vistas y conversiones" }
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm">
+                  {[{
+                  icon: "🧠",
+                  text: "Transcribe automáticamente cualquier video"
+                }, {
+                  icon: "🔍",
+                  text: "Identifica el gancho, cuerpo y cierre que vende"
+                }, {
+                  icon: "💸",
+                  text: "Detecta patrones de venta comprobados"
+                }, {
+                  icon: "✨",
+                  text: "Te da variantes optimizadas para maximizar vistas y conversiones"
+                }].map((item, i) => <li key={i} className="flex items-center gap-3 text-sm">
                       <span className="text-lg">{item.icon}</span>
                       <span>{item.text}</span>
-                    </li>
-                  ))}
+                    </li>)}
                 </ul>
                 <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover btn-glow">
                   Probar ahora
@@ -404,11 +294,7 @@ const Landing = () => {
                     <div className="mockup-browser-dot bg-yellow-400" />
                     <div className="mockup-browser-dot bg-green-400" />
                   </div>
-                  <img 
-                    src={mockupScriptAnalysis} 
-                    alt="Análisis de Scripts con IA" 
-                    className="w-full"
-                  />
+                  <img src={mockupScriptAnalysis} alt="Análisis de Scripts con IA" className="w-full" />
                 </div>
               </div>
             </div>
@@ -424,11 +310,7 @@ const Landing = () => {
                     <div className="mockup-browser-dot bg-yellow-400" />
                     <div className="mockup-browser-dot bg-green-400" />
                   </div>
-                  <img 
-                    src={mockupOpportunities} 
-                    alt="Oportunidades de Productos" 
-                    className="w-full"
-                  />
+                  <img src={mockupOpportunities} alt="Oportunidades de Productos" className="w-full" />
                 </div>
               </div>
               <div>
@@ -443,17 +325,22 @@ const Landing = () => {
                   </span>
                 </p>
                 <ul className="space-y-3 mb-6">
-                  {[
-                    { icon: "📊", text: "Detecta productos con poca competencia y alta comisión" },
-                    { icon: "🧠", text: "Calcula el potencial de cada producto por ti" },
-                    { icon: "💰", text: "Comisiones del 15-30% por venta" },
-                    { icon: "🚀", text: "Solo muestra oportunidades con alto potencial de ganancias" }
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm">
+                  {[{
+                  icon: "📊",
+                  text: "Detecta productos con poca competencia y alta comisión"
+                }, {
+                  icon: "🧠",
+                  text: "Calcula el potencial de cada producto por ti"
+                }, {
+                  icon: "💰",
+                  text: "Comisiones del 15-30% por venta"
+                }, {
+                  icon: "🚀",
+                  text: "Solo muestra oportunidades con alto potencial de ganancias"
+                }].map((item, i) => <li key={i} className="flex items-center gap-3 text-sm">
                       <span className="text-lg">{item.icon}</span>
                       <span>{item.text}</span>
-                    </li>
-                  ))}
+                    </li>)}
                 </ul>
                 <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover btn-glow">
                   Ver oportunidades
@@ -468,13 +355,19 @@ const Landing = () => {
       {/* Testimonials */}
       <section className="bg-background my-20 relative">
         <div className="container z-10 mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-            viewport={{ once: true }}
-            className="flex flex-col items-center justify-center max-w-[540px] mx-auto"
-          >
+          <motion.div initial={{
+          opacity: 0,
+          y: 20
+        }} whileInView={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          duration: 0.8,
+          delay: 0.1,
+          ease: [0.16, 1, 0.3, 1]
+        }} viewport={{
+          once: true
+        }} className="flex flex-col items-center justify-center max-w-[540px] mx-auto">
             <Badge className="badge-landing-light mb-4">Testimonios reales</Badge>
             <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tighter mt-5 text-center">
               Creadores que cambiaron su juego con Adbroll
@@ -506,66 +399,79 @@ const Landing = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              {
-                name: "FREE",
-                price: 0,
-                description: "Perfecto para explorar",
-                features: [
-                  { text: "Feed limitado", included: true },
-                  { text: "Scripts limitados", included: true },
-                  { text: "Oportunidades bloqueadas", included: false },
-                  { text: "Variantes IA", included: false },
-                  { text: "Análisis IA", included: false },
-                ],
-                cta: "Empieza",
-                highlighted: false,
-              },
-              {
-                name: "CREATOR",
-                price: 29,
-                description: "Para creadores que escalan",
-                badge: "Más popular",
-                features: [
-                  { text: "Todo lo del free", included: true },
-                  { text: "Scripts ilimitados", included: true },
-                  { text: "Variantes IA", included: true },
-                  { text: "Oportunidades parciales", included: true },
-                  { text: "Panel de afiliados", included: true },
-                ],
-                cta: "Elegir plan",
-                highlighted: true,
-              },
-              {
-                name: "STUDIO",
-                price: 49,
-                description: "Para equipos y agencias",
-                badge: "Más completo",
-                features: [
-                  { text: "Todo ilimitado", included: true },
-                  { text: "Datos completos", included: true },
-                  { text: "Oportunidades pro", included: true },
-                  { text: "Prioridad en análisis", included: true },
-                  { text: "Soporte premium", included: true },
-                ],
-                cta: "Elegir plan",
-                highlighted: false,
-              },
-            ].map((plan, index) => (
-              <Card
-                key={index}
-                className={`relative p-6 flex flex-col transition-all duration-300 ${
-                  plan.highlighted
-                    ? "card-landing-light-featured md:scale-105"
-                    : "card-landing-light"
-                }`}
-              >
-                {plan.badge && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white">
+            {[{
+            name: "FREE",
+            price: 0,
+            description: "Perfecto para explorar",
+            features: [{
+              text: "Feed limitado",
+              included: true
+            }, {
+              text: "Scripts limitados",
+              included: true
+            }, {
+              text: "Oportunidades bloqueadas",
+              included: false
+            }, {
+              text: "Variantes IA",
+              included: false
+            }, {
+              text: "Análisis IA",
+              included: false
+            }],
+            cta: "Empieza",
+            highlighted: false
+          }, {
+            name: "CREATOR",
+            price: 29,
+            description: "Para creadores que escalan",
+            badge: "Más popular",
+            features: [{
+              text: "Todo lo del free",
+              included: true
+            }, {
+              text: "Scripts ilimitados",
+              included: true
+            }, {
+              text: "Variantes IA",
+              included: true
+            }, {
+              text: "Oportunidades parciales",
+              included: true
+            }, {
+              text: "Panel de afiliados",
+              included: true
+            }],
+            cta: "Elegir plan",
+            highlighted: true
+          }, {
+            name: "STUDIO",
+            price: 49,
+            description: "Para equipos y agencias",
+            badge: "Más completo",
+            features: [{
+              text: "Todo ilimitado",
+              included: true
+            }, {
+              text: "Datos completos",
+              included: true
+            }, {
+              text: "Oportunidades pro",
+              included: true
+            }, {
+              text: "Prioridad en análisis",
+              included: true
+            }, {
+              text: "Soporte premium",
+              included: true
+            }],
+            cta: "Elegir plan",
+            highlighted: false
+          }].map((plan, index) => <Card key={index} className={`relative p-6 flex flex-col transition-all duration-300 ${plan.highlighted ? "card-landing-light-featured md:scale-105" : "card-landing-light"}`}>
+                {plan.badge && <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white">
                     <Star className="h-3 w-3 mr-1" />
                     {plan.badge}
-                  </Badge>
-                )}
+                  </Badge>}
 
                 <div className="text-center mb-6 pt-2">
                   <h3 className="text-lg font-bold mb-1">{plan.name}</h3>
@@ -579,32 +485,18 @@ const Landing = () => {
                 </div>
 
                 <ul className="space-y-3 mb-6 flex-grow">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      {feature.included ? (
-                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                      ) : (
-                        <X className="h-4 w-4 text-muted-foreground/30 flex-shrink-0" />
-                      )}
+                  {plan.features.map((feature, i) => <li key={i} className="flex items-center gap-2 text-sm">
+                      {feature.included ? <Check className="h-4 w-4 text-green-500 flex-shrink-0" /> : <X className="h-4 w-4 text-muted-foreground/30 flex-shrink-0" />}
                       <span className={feature.included ? "" : "text-muted-foreground/60"}>
                         {feature.text}
                       </span>
-                    </li>
-                  ))}
+                    </li>)}
                 </ul>
 
-                <Button
-                  className={`w-full ${
-                    plan.highlighted
-                      ? "bg-primary hover:bg-primary-hover"
-                      : "bg-muted hover:bg-muted/80 text-foreground"
-                  }`}
-                  onClick={handleRegister}
-                >
+                <Button className={`w-full ${plan.highlighted ? "bg-primary hover:bg-primary-hover" : "bg-muted hover:bg-muted/80 text-foreground"}`} onClick={handleRegister}>
                   {plan.cta}
                 </Button>
-              </Card>
-            ))}
+              </Card>)}
           </div>
         </div>
       </section>
@@ -621,45 +513,32 @@ const Landing = () => {
 
           <div className="max-w-3xl mx-auto">
             <Accordion type="single" collapsible className="space-y-4">
-              {[
-                {
-                  question: "¿Qué tan precisos son los datos?",
-                  answer: "Nuestros datos provienen directamente de Kalodata, la fuente más confiable para métricas de TikTok Shop. Actualizamos los rankings y videos diariamente para darte información real y actualizada.",
-                },
-                {
-                  question: "¿Qué incluye el plan gratuito?",
-                  answer: "El plan gratuito te da acceso limitado al feed de videos, extracción de 1 script por día, y una vista previa de las oportunidades. Es perfecto para probar la plataforma antes de comprometerte.",
-                },
-                {
-                  question: "¿Puedo ganar dinero recomendando AdBroll?",
-                  answer: "¡Sí! Con nuestro programa de afiliados ganas el 30% de comisión recurrente por cada usuario que se suscriba con tu código. Puedes generar tu código desde el panel de configuración.",
-                },
-                {
-                  question: "¿Funciona para México y USA?",
-                  answer: "Actualmente nos enfocamos en TikTok Shop México con datos en MXN. Pronto expandiremos a USA y otros mercados.",
-                },
-                {
-                  question: "¿Puedo cancelar cuando quiera?",
-                  answer: "Absolutamente. No hay contratos ni compromisos a largo plazo. Puedes cancelar tu suscripción en cualquier momento desde tu panel de configuración.",
-                },
-                {
-                  question: "¿Necesito experiencia previa?",
-                  answer: "No. AdBroll está diseñado tanto para creadores nuevos como experimentados. La IA te guía en cada paso, desde encontrar videos hasta generar tus propios guiones optimizados.",
-                },
-              ].map((item, index) => (
-                <AccordionItem
-                  key={index}
-                  value={`item-${index}`}
-                  className="card-landing-light border-border data-[state=open]:border-primary/30 transition-colors px-6"
-                >
+              {[{
+              question: "¿Qué tan precisos son los datos?",
+              answer: "Nuestros datos provienen directamente de Kalodata, la fuente más confiable para métricas de TikTok Shop. Actualizamos los rankings y videos diariamente para darte información real y actualizada."
+            }, {
+              question: "¿Qué incluye el plan gratuito?",
+              answer: "El plan gratuito te da acceso limitado al feed de videos, extracción de 1 script por día, y una vista previa de las oportunidades. Es perfecto para probar la plataforma antes de comprometerte."
+            }, {
+              question: "¿Puedo ganar dinero recomendando AdBroll?",
+              answer: "¡Sí! Con nuestro programa de afiliados ganas el 30% de comisión recurrente por cada usuario que se suscriba con tu código. Puedes generar tu código desde el panel de configuración."
+            }, {
+              question: "¿Funciona para México y USA?",
+              answer: "Actualmente nos enfocamos en TikTok Shop México con datos en MXN. Pronto expandiremos a USA y otros mercados."
+            }, {
+              question: "¿Puedo cancelar cuando quiera?",
+              answer: "Absolutamente. No hay contratos ni compromisos a largo plazo. Puedes cancelar tu suscripción en cualquier momento desde tu panel de configuración."
+            }, {
+              question: "¿Necesito experiencia previa?",
+              answer: "No. AdBroll está diseñado tanto para creadores nuevos como experimentados. La IA te guía en cada paso, desde encontrar videos hasta generar tus propios guiones optimizados."
+            }].map((item, index) => <AccordionItem key={index} value={`item-${index}`} className="card-landing-light border-border data-[state=open]:border-primary/30 transition-colors px-6">
                   <AccordionTrigger className="hover:text-primary py-4 text-left">
                     {item.question}
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground pb-4">
                     {item.answer}
                   </AccordionContent>
-                </AccordionItem>
-              ))}
+                </AccordionItem>)}
             </Accordion>
           </div>
         </div>
@@ -676,11 +555,7 @@ const Landing = () => {
             <p className="text-lg md:text-xl mb-8 text-muted-foreground max-w-2xl mx-auto">
               Únete a los creadores que están aumentando sus ventas con datos reales y scripts probados.
             </p>
-            <Button
-              size="lg"
-              className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover btn-glow"
-              onClick={handleRegister}
-            >
+            <Button size="lg" className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover btn-glow" onClick={handleRegister}>
               Empieza Gratis
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
@@ -723,10 +598,10 @@ const Landing = () => {
               </p>
               <div className="flex gap-4">
                 <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/></svg>
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z" /></svg>
                 </a>
                 <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" /></svg>
                 </a>
               </div>
             </div>
@@ -736,10 +611,7 @@ const Landing = () => {
 
       {/* Mobile Sticky CTA */}
       <div className="mobile-sticky-cta">
-        <Button 
-          className="w-full bg-primary hover:bg-primary-hover text-lg py-6" 
-          onClick={handleRegister}
-        >
+        <Button className="w-full bg-primary hover:bg-primary-hover text-lg py-6" onClick={handleRegister}>
           Empieza Gratis
           <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
@@ -747,8 +619,6 @@ const Landing = () => {
 
       {/* Pricing Modal */}
       <PricingModal open={pricingModalOpen} onOpenChange={setPricingModalOpen} />
-    </div>
-  );
+    </div>;
 };
-
 export default Landing;
