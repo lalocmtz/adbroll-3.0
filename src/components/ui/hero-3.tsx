@@ -4,13 +4,26 @@ import React from "react";
 import { motion, Variants } from "framer-motion";
 import { cn } from "@/lib/utils";
 
+// Import hero card images
+import heroCard1 from "@/assets/hero-card-1.png";
+import heroCard2 from "@/assets/hero-card-2.png";
+import heroCard3 from "@/assets/hero-card-3.png";
+import heroCard4 from "@/assets/hero-card-4.png";
+import heroCard5 from "@/assets/hero-card-5.png";
+import heroCard6 from "@/assets/hero-card-6.png";
+import heroCard7 from "@/assets/hero-card-7.png";
+import heroCard8 from "@/assets/hero-card-8.png";
+
+// Static hero card images
+const HERO_CARDS = [heroCard1, heroCard2, heroCard3, heroCard4, heroCard5, heroCard6, heroCard7, heroCard8];
+
 interface AnimatedMarqueeHeroProps {
   tagline: string;
   title: React.ReactNode;
   description: string;
   ctaText: string;
   ctaSecondaryText?: string;
-  images: string[];
+  images?: string[]; // Optional - will use static cards if not provided
   className?: string;
   onCtaClick?: () => void;
   onCtaSecondaryClick?: () => void;
@@ -56,13 +69,13 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
     show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100, damping: 20 } },
   };
 
-  // Duplicate images for a seamless loop
-  const duplicatedImages = [...images, ...images];
+  // Use static hero cards - duplicate for seamless infinite scroll
+  const heroImages = [...HERO_CARDS, ...HERO_CARDS, ...HERO_CARDS];
 
   return (
     <section
       className={cn(
-        "relative w-full min-h-screen overflow-hidden bg-background flex flex-col items-center justify-center text-center px-4 pt-24 pb-8",
+        "relative w-full min-h-screen overflow-hidden bg-background flex flex-col items-center justify-center text-center px-4",
         className
       )}
     >
@@ -70,7 +83,8 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
       <div className="landing-hero-glow landing-hero-glow-pink" />
       <div className="landing-hero-glow landing-hero-glow-blue" />
 
-      <div className="z-10 flex flex-col items-center max-w-4xl mx-auto">
+      {/* Main content - centered vertically */}
+      <div className="z-10 flex flex-col items-center max-w-4xl mx-auto pt-20 pb-8">
         {/* Tagline */}
         <motion.div
           initial="hidden"
@@ -142,38 +156,32 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
         </motion.div>
       </div>
 
-      {/* Animated Image Marquee */}
-      <div className="absolute bottom-0 left-0 w-full h-[35%] md:h-[40%] [mask-image:linear-gradient(to_bottom,transparent,black_15%,black_85%,transparent)]">
+      {/* Animated Image Marquee - Full width, larger cards */}
+      <div className="absolute bottom-0 left-0 w-full h-[320px] md:h-[400px] [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)]">
         <motion.div
-          className="flex gap-4 absolute bottom-8"
+          className="flex gap-6 absolute bottom-4"
           animate={{
             x: ["-50%", "0%"],
             transition: {
               ease: "linear",
-              duration: 30,
+              duration: 40,
               repeat: Infinity,
             },
           }}
         >
-          {duplicatedImages.map((src, index) => (
+          {heroImages.map((src, index) => (
             <div
               key={index}
-              className="relative aspect-[9/16] h-48 md:h-64 flex-shrink-0"
+              className="relative w-[200px] md:w-[260px] h-[280px] md:h-[360px] flex-shrink-0"
               style={{
-                transform: `rotate(${(index % 2 === 0 ? -3 : 4)}deg)`,
+                transform: `rotate(${(index % 2 === 0 ? -2 : 3)}deg)`,
               }}
             >
               <img
                 src={src}
                 alt={`Video viral ${index + 1}`}
-                className="w-full h-full object-cover rounded-2xl shadow-xl border border-border/50"
+                className="w-full h-full object-cover object-top rounded-2xl shadow-xl border border-border/30"
               />
-              {/* Play button overlay */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/20 rounded-2xl">
-                <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
-                  <div className="w-0 h-0 border-l-[16px] border-l-primary border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent ml-1" />
-                </div>
-              </div>
             </div>
           ))}
         </motion.div>
