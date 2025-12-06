@@ -88,6 +88,9 @@
 - [x] VideoAnalysisModal - Integración IA real para variantes (FASE 3) ✅
 - [x] VideoAnalysisModal - Rediseño premium completo (FASE 4) ✅
 - [x] VideoAnalysisModal - Guardar variantes a favoritos ✅
+- [x] Página /pricing con 3 planes (FREE, CREATOR, STUDIO) ✅
+- [x] Detección automática código referido en /pricing ✅
+- [x] FAQ en página de precios ✅
 - [ ] Stripe webhook para comisión de afiliados
 - [ ] Deep links a TikTok Shop
 

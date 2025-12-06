@@ -45,9 +45,9 @@ const Landing = () => {
               size="lg" 
               variant="outline"
               className="text-lg px-8 py-6 h-auto"
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/pricing")}
             >
-              Ya tengo cuenta
+              Ver planes
             </Button>
           </div>
         </div>
