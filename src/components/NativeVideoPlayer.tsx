@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,11 +16,55 @@ export const NativeVideoPlayer = ({
   autoPlayOnScroll = false,
 }: NativeVideoPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Autoplay on scroll into view
+  useEffect(() => {
+    if (!autoPlayOnScroll || hasAutoPlayed) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAutoPlayed && videoRef.current) {
+          // Try to play with audio
+          videoRef.current.muted = false;
+          setIsMuted(false);
+          
+          videoRef.current.play()
+            .then(() => {
+              setIsPlaying(true);
+              setHasStarted(true);
+              setHasAutoPlayed(true);
+            })
+            .catch(() => {
+              // If autoplay with audio fails (browser policy), try muted
+              if (videoRef.current) {
+                videoRef.current.muted = true;
+                setIsMuted(true);
+                videoRef.current.play()
+                  .then(() => {
+                    setIsPlaying(true);
+                    setHasStarted(true);
+                    setHasAutoPlayed(true);
+                  })
+                  .catch(console.error);
+              }
+            });
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [autoPlayOnScroll, hasAutoPlayed]);
 
   const handlePlayClick = () => {
     if (!videoRef.current) return;
@@ -29,9 +73,28 @@ export const NativeVideoPlayer = ({
       videoRef.current.pause();
       setIsPlaying(false);
     } else {
-      videoRef.current.play();
-      setIsPlaying(true);
-      setHasStarted(true);
+      // Try to play with audio
+      videoRef.current.muted = false;
+      setIsMuted(false);
+      
+      videoRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+          setHasStarted(true);
+        })
+        .catch(() => {
+          // Fallback to muted if browser blocks audio
+          if (videoRef.current) {
+            videoRef.current.muted = true;
+            setIsMuted(true);
+            videoRef.current.play()
+              .then(() => {
+                setIsPlaying(true);
+                setHasStarted(true);
+              })
+              .catch(console.error);
+          }
+        });
     }
   };
 
@@ -82,7 +145,7 @@ export const NativeVideoPlayer = ({
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition-opacity duration-300">
           <button
             className={cn(
-              "w-20 h-20 rounded-full flex items-center justify-center",
+              "w-24 h-24 rounded-full flex items-center justify-center",
               "bg-primary text-primary-foreground",
               "shadow-[0_8px_30px_rgba(243,18,96,0.4)]",
               "transform transition-all duration-300",
@@ -90,7 +153,7 @@ export const NativeVideoPlayer = ({
               "focus:outline-none focus:ring-4 focus:ring-primary/30"
             )}
           >
-            <Play className="h-8 w-8 ml-1" fill="currentColor" />
+            <Play className="h-10 w-10 ml-1" fill="currentColor" />
           </button>
         </div>
       )}
