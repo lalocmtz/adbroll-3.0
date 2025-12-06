@@ -40,6 +40,20 @@
 - [x] Página dedicada `/affiliates` con estadísticas
 - [x] Menú lateral con "gana dinero hoy"
 
+### 4.1 SISTEMA DE REFERIDOS V2 (Diciembre 2024)
+- [x] **Planes actualizados** - FREE (0), CREATOR ($29), STUDIO ($49)
+- [x] **Profiles ampliado** - plan, currency, marketplace, language, referral_code_used
+- [x] **affiliate_codes** - Códigos únicos por usuario con generación automática
+- [x] **affiliate_referrals** - Tracking de referidos por código
+- [x] **affiliate_discounts** - Descuento 50% primer mes si llegan por referido
+- [x] **affiliate_payouts** - Estructura para comisiones (30% afiliado, 10% agencia)
+- [x] **affiliate_agencies** - Estructura para agencias
+- [x] **affiliate_agency_assignments** - Asignación creadores a agencias
+- [x] **Register.tsx** - Campo código referido opcional + validación en tiempo real
+- [x] **Settings.tsx** - Crear/ver código afiliado + aplicar código referido
+- [x] **PricingCard.tsx** - Precios tachados con descuento + banner verde
+- [x] **useReferralCode.ts** - Hook completo para gestión de códigos
+
 ### 5. SEGURIDAD
 - [x] Vista con `security_invoker = true`
 - [x] Funciones con `search_path = public`

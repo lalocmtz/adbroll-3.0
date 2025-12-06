@@ -1,26 +1,51 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Gift } from "lucide-react";
 
 const Register = () => {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
+  const [referralValid, setReferralValid] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Validate referral code on change
+  useEffect(() => {
+    const validateCode = async () => {
+      if (!referralCode || referralCode.length < 4) {
+        setReferralValid(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("affiliate_codes")
+        .select("id")
+        .eq("code", referralCode.toUpperCase())
+        .maybeSingle();
+
+      setReferralValid(!!data);
+    };
+
+    const timeout = setTimeout(validateCode, 500);
+    return () => clearTimeout(timeout);
+  }, [referralCode]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -33,9 +58,19 @@ const Register = () => {
 
       if (error) throw error;
 
+      // If referral code is valid, apply it
+      if (referralCode && referralValid && signUpData.user) {
+        await supabase.rpc("apply_referral_code", {
+          p_user_id: signUpData.user.id,
+          p_code: referralCode,
+        });
+      }
+
       toast({
         title: "¡Cuenta creada!",
-        description: "Redirigiendo al dashboard...",
+        description: referralValid
+          ? "Descuento de 50% aplicado al primer mes 🎉"
+          : "Redirigiendo al dashboard...",
       });
 
       setTimeout(() => navigate("/app"), 1000);
@@ -55,7 +90,7 @@ const Register = () => {
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="text-center mb-4">
-            <h1 
+            <h1
               className="text-3xl font-bold mb-2 cursor-pointer hover:text-primary transition-colors"
               onClick={() => navigate("/")}
             >
@@ -102,6 +137,38 @@ const Register = () => {
                 minLength={6}
               />
             </div>
+
+            {/* Referral Code Input */}
+            <div className="space-y-2">
+              <Label htmlFor="referralCode" className="flex items-center gap-2">
+                <Gift className="h-4 w-4 text-primary" />
+                Código de referido (opcional)
+              </Label>
+              <Input
+                id="referralCode"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="ABC123"
+                className={
+                  referralValid === true
+                    ? "border-green-500 focus-visible:ring-green-500"
+                    : referralValid === false
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                }
+              />
+              {referralValid === true && (
+                <p className="text-sm text-green-600 flex items-center gap-1">
+                  🎉 Código válido - ¡50% off en tu primer mes!
+                </p>
+              )}
+              {referralValid === false && (
+                <p className="text-sm text-red-600">
+                  Código no válido
+                </p>
+              )}
+            </div>
+
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Creando cuenta..." : "Crear cuenta gratuita"}
             </Button>
