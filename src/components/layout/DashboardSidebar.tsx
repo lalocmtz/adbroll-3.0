@@ -27,6 +27,7 @@ import {
   Wrench,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
+import logoDark from "@/assets/logo-dark.png";
 
 interface DashboardSidebarProps {
   open: boolean;
@@ -112,11 +113,9 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
               navigate("/app");
               handleNavClick();
             }}
-            className="flex items-center gap-2"
+            className="flex items-center"
           >
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              adbroll
-            </h1>
+            <img src={logoDark} alt="adbroll" className="h-8" />
           </button>
         </div>
 
