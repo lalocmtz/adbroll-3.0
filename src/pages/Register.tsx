@@ -70,10 +70,17 @@ const Register = () => {
         title: "¡Cuenta creada!",
         description: referralValid
           ? "Descuento de 50% aplicado al primer mes 🎉"
-          : "Redirigiendo al dashboard...",
+          : "Redirigiendo a los planes...",
       });
 
-      setTimeout(() => navigate("/app"), 1000);
+      // Redirect to pricing page with referral code if valid
+      const redirect = searchParams.get("redirect");
+      if (redirect) {
+        setTimeout(() => navigate(redirect), 1000);
+      } else {
+        const refParam = referralCode && referralValid ? `?ref=${referralCode}` : "";
+        setTimeout(() => navigate(`/pricing${refParam}`), 1000);
+      }
     } catch (error: any) {
       toast({
         title: "Error al registrarse",

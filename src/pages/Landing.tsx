@@ -2,11 +2,18 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, BarChart3, FileText, Trophy, Sparkles, TrendingUp, Zap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import GlobalHeader from "@/components/GlobalHeader";
+import LandingPricing from "@/components/LandingPricing";
 
 const Landing = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get("ref");
+
+  const handleRegister = () => {
+    navigate("/register" + (refCode ? `?ref=${refCode}` : ""));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
@@ -36,16 +43,16 @@ const Landing = () => {
             <Button 
               size="lg" 
               className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl transition-all"
-              onClick={() => navigate("/register")}
+              onClick={handleRegister}
             >
-              Crear cuenta gratuita
+              Empieza gratis
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
               size="lg" 
               variant="outline"
               className="text-lg px-8 py-6 h-auto"
-              onClick={() => navigate("/pricing")}
+              onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Ver planes
             </Button>
@@ -190,6 +197,9 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <LandingPricing />
+
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-16 md:py-24">
         <Card className="max-w-4xl mx-auto p-8 md:p-16 text-center bg-gradient-to-r from-primary to-accent text-primary-foreground border-0 shadow-2xl">
@@ -204,9 +214,9 @@ const Landing = () => {
             size="lg" 
             variant="secondary"
             className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl"
-            onClick={() => navigate("/register")}
+            onClick={handleRegister}
           >
-            Crear cuenta gratuita
+            Empieza gratis
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </Card>

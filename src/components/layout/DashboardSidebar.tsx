@@ -26,6 +26,7 @@ import {
   Coins,
   Wrench,
 } from "lucide-react";
+import PricingModal from "@/components/PricingModal";
 
 interface DashboardSidebarProps {
   open: boolean;
@@ -48,6 +49,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   const [userEmail, setUserEmail] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -267,9 +269,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
               variant="outline"
               size="sm"
               className="w-full h-8 text-xs rounded-lg"
-              onClick={() => {
-                alert(language === "es" ? "Próximamente: Planes disponibles" : "Coming soon: Available plans");
-              }}
+              onClick={() => setPricingModalOpen(true)}
             >
               {language === "es" ? "Ver planes" : "View plans"}
             </Button>
@@ -350,6 +350,9 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
           </Tabs>
         </DialogContent>
       </Dialog>
+
+      {/* Pricing Modal */}
+      <PricingModal open={pricingModalOpen} onOpenChange={setPricingModalOpen} />
     </>
   );
 };
