@@ -42,7 +42,9 @@ import { TextShimmer } from "@/components/ui/text-shimmer";
 import { TypingAnimation } from "@/components/ui/typing-animation";
 import { FeatureSteps } from "@/components/ui/feature-section";
 import { TestimonialsColumn } from "@/components/ui/testimonials-columns-1";
+import { OnboardingChecklist } from "@/components/ui/onboarding-checklist";
 import { supabase } from "@/integrations/supabase/client";
+import previewThumbnail from "@/assets/preview-thumbnail.png";
 
 const testimonials = [
   {
@@ -258,6 +260,7 @@ const Landing = () => {
       </section>
 
       {/* Interactive Preview (Paywall) */}
+      {/* Interactive Preview (Paywall) */}
       <section className="py-20 md:py-32">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -272,6 +275,23 @@ const Landing = () => {
 
           {/* YouTube Video Embed with Autoplay on Scroll */}
           <VideoSection />
+
+          {/* Onboarding Checklist */}
+          <div className="mt-16">
+            <OnboardingChecklist
+              title="¿Y si crear contenido rentable fuera así de claro?"
+              description="Mira cómo AdBroll transforma la forma en que los creadores venden en TikTok Shop."
+              items={[
+                { id: 1, text: "Encuentra productos virales con alta comisión y baja competencia" },
+                { id: 2, text: "Analiza videos ganadores y sus guiones desglosados" },
+                { id: 3, text: "Genera variantes listas para grabar con IA" },
+                { id: 4, text: "Aprende qué funciona con datos reales (no suposiciones)" },
+                { id: 5, text: "Monetiza desde el día 1, incluso si estás empezando" },
+              ]}
+              videoThumbnailUrl={previewThumbnail}
+              videoUrl="https://www.youtube.com/embed/HGpMS4iOyCo"
+            />
+          </div>
         </div>
       </section>
 
