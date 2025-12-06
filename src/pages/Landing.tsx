@@ -13,6 +13,7 @@ import { TypingAnimation } from "@/components/ui/typing-animation";
 import { FeatureSteps } from "@/components/ui/feature-section";
 import { TestimonialsColumn } from "@/components/ui/testimonials-columns-1";
 import { OnboardingChecklist } from "@/components/ui/onboarding-checklist";
+import { NativeVideoPlayer } from "@/components/NativeVideoPlayer";
 import { supabase } from "@/integrations/supabase/client";
 import previewThumbnail from "@/assets/preview-thumbnail.png";
 const testimonials = [{
@@ -348,6 +349,34 @@ const Landing = () => {
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Video Demo Section */}
+      <section className="py-20 md:py-32 landing-section-alt">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12 max-w-3xl mx-auto">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground">
+              30 segundos que pueden cambiar cómo ganas dinero online
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Mira cómo funciona AdBroll por dentro y descubre cómo cientos de creadores están generando ingresos sin adivinar, sin complicaciones y sin ser expertos.
+            </p>
+          </div>
+          
+          <div className="max-w-4xl mx-auto">
+            <NativeVideoPlayer
+              videoUrl="https://gcntnilurlulejwwtpaa.supabase.co/storage/v1/object/public/assets/landing-video-1765059331622.mov"
+              className="shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)]"
+            />
+          </div>
+
+          <div className="text-center mt-10">
+            <Button size="lg" className="bg-primary hover:bg-primary-hover btn-glow" onClick={handleRegister}>
+              Empieza Gratis
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </div>
       </section>
