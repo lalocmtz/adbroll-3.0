@@ -112,7 +112,7 @@ const Landing = () => {
       <section id="how-it-works" className="py-16 md:py-24 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
-            <TextShimmer duration={2.5} spread={3} className="text-lg font-medium text-gradient">
+            <TextShimmer duration={2.5} spread={3} className="text-xl md:text-2xl font-semibold text-gradient">
               ¿Cómo funciona?
             </TextShimmer>
           </div>
