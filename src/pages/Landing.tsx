@@ -114,7 +114,7 @@ const Landing = () => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <button onClick={() => navigate("/")} className="flex items-center">
-            <img src={logoDark} alt="adbroll" className="h-8" />
+            <img src={logoDark} alt="adbroll" className="h-10" />
           </button>
           <div className="flex items-center gap-3">
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => navigate("/login")}>
@@ -602,7 +602,7 @@ const Landing = () => {
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-4 gap-8 mb-8">
               <div className="md:col-span-2">
-                <img src={logoDark} alt="adbroll" className="h-8 mb-4" />
+                <img src={logoDark} alt="adbroll" className="h-10 mb-4" />
                 <p className="text-muted-foreground text-sm mb-4">
                   La herramienta definitiva para creadores de TikTok Shop.
                 </p>
