@@ -166,67 +166,20 @@ const Landing = () => {
               Descubre lo que te espera dentro
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Haz clic para desbloquear acceso completo
+              Mira cómo funciona AdBroll en menos de 2 minutos
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              {
-                icon: TrendingUp,
-                title: "Videos que están vendiendo hoy",
-                description: "Top 100 videos con mayores ingresos en TikTok Shop",
-                blurred: true,
-              },
-              {
-                icon: FileText,
-                title: "Extractor de Scripts con IA",
-                description: "Transcribe y analiza cualquier video automáticamente",
-                blurred: false,
-              },
-              {
-                icon: Target,
-                title: "Oportunidades de Productos",
-                description: "Productos con alta comisión y baja competencia",
-                blurred: true,
-              },
-            ].map((item, index) => (
-              <button
-                key={index}
-                onClick={handlePreviewClick}
-                className="group relative text-left"
-              >
-                <Card className="card-landing-light h-full overflow-hidden">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="feature-icon-container flex-shrink-0">
-                      <item.icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-1">{item.title}</h3>
-                      <p className="text-muted-foreground text-sm">{item.description}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Blurred content placeholder */}
-                  <div className={`mt-4 space-y-2 ${item.blurred ? 'blur-paywall' : ''}`}>
-                    <div className="h-3 bg-muted rounded w-full" />
-                    <div className="h-3 bg-muted rounded w-4/5" />
-                    <div className="h-3 bg-muted rounded w-3/5" />
-                    <div className="h-8 bg-muted/50 rounded mt-4" />
-                  </div>
-
-                  {/* Unlock overlay */}
-                  {item.blurred && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/60 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="px-4 py-2 bg-primary text-white rounded-full text-sm font-medium flex items-center gap-2 shadow-lg">
-                        <Lock className="h-4 w-4" />
-                        Desbloquear
-                      </span>
-                    </div>
-                  )}
-                </Card>
-              </button>
-            ))}
+          {/* Loom Video Embed */}
+          <div className="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-2xl">
+            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+              <iframe 
+                src="https://www.loom.com/embed/5626491c6f5f47b6a074ac1baa2fd537" 
+                frameBorder="0" 
+                allowFullScreen
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+              />
+            </div>
           </div>
         </div>
       </section>
