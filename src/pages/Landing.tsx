@@ -39,12 +39,18 @@ import PricingModal from "@/components/PricingModal";
 import { AnimatedMarqueeHero } from "@/components/ui/hero-3";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 import { TypingAnimation } from "@/components/ui/typing-animation";
+import { FeatureSteps } from "@/components/ui/feature-section";
 import { supabase } from "@/integrations/supabase/client";
 
 // Import mockups
 import mockupDashboard from "@/assets/mockup-dashboard.png";
 import mockupScriptAnalysis from "@/assets/mockup-script-analysis.png";
 import mockupOpportunities from "@/assets/mockup-opportunities.png";
+
+// Import step images
+import step1Dashboard from "@/assets/step-1-dashboard.png";
+import step2Analysis from "@/assets/step-2-analysis.png";
+import step3Variants from "@/assets/step-3-variants.png";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -103,58 +109,40 @@ const Landing = () => {
       />
 
       {/* How it Works */}
-      <section id="how-it-works" className="py-20 md:py-32 landing-section-alt">
+      <section id="how-it-works" className="py-16 md:py-24 landing-section-alt">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
+          <div className="text-center mb-8">
             <Badge className="badge-landing-light mb-4">Cómo funciona</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              3 pasos simples para vender más
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              De la inspiración a la acción en minutos, no horas
-            </p>
           </div>
+          
+          <FeatureSteps
+            features={[
+              {
+                step: "1",
+                title: "Qué está funcionando hoy",
+                content: "Ve los videos con más ventas y productos conectados.",
+                image: step1Dashboard,
+              },
+              {
+                step: "2",
+                title: "Toma el guion viral y adáptalo",
+                content: "Nuestra IA te lo da listo para grabar.",
+                image: step2Analysis,
+              },
+              {
+                step: "3",
+                title: "Graba. Publica. Cobra.",
+                content: "Monetiza como creador desde el día uno.",
+                image: step3Variants,
+              },
+            ]}
+            title="Convierte ideas en ingresos en 3 pasos"
+            subtitle="De la inspiración a tu primer dólar con IA, sin grabar al azar ni perder tiempo."
+            autoPlayInterval={4000}
+            className="py-0"
+          />
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                step: 1,
-                icon: Search,
-                title: "Explora videos que venden hoy",
-                description: "AdBroll analiza TikTok Shop y te muestra los videos que generan ventas reales.",
-              },
-              {
-                step: 2,
-                icon: FileText,
-                title: "Analiza y replica en segundos",
-                description: "Extrae scripts, análisis, ganancias por venta y productos vinculados.",
-              },
-              {
-                step: 3,
-                icon: Wand2,
-                title: "Crea contenido que vende",
-                description: "Genera variantes de guiones con IA y publica contenido optimizado.",
-              },
-            ].map((item, index) => (
-              <div key={index} className="relative">
-                <Card className="card-landing-light h-full text-center">
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold shadow-lg">
-                    {item.step}
-                  </div>
-                  <div className="pt-6">
-                    <div className="feature-icon-container mx-auto mb-4">
-                      <item.icon className="h-7 w-7 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                    <p className="text-muted-foreground text-sm">{item.description}</p>
-                  </div>
-                </Card>
-                {index < 2 && <div className="step-connector" />}
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-12">
+          <div className="text-center mt-8">
             <Button
               size="lg"
               className="bg-primary hover:bg-primary-hover btn-glow"
