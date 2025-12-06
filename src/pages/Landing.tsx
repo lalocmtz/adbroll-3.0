@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,6 +51,43 @@ import mockupOpportunities from "@/assets/mockup-opportunities.png";
 import step1Dashboard from "@/assets/step-1-dashboard.png";
 import step2Analysis from "@/assets/step-2-analysis.png";
 import step3Variants from "@/assets/step-3-variants.png";
+
+// Video Section Component with Autoplay on Scroll
+const VideoSection = () => {
+  const videoRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (videoRef.current) {
+      observer.observe(videoRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={videoRef} className="max-w-6xl mx-auto rounded-2xl overflow-hidden shadow-2xl">
+      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+        <iframe 
+          src={`https://www.youtube.com/embed/HGpMS4iOyCo?vq=hd1080&hd=1${isVisible ? '&autoplay=1&mute=1' : ''}`}
+          frameBorder="0" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+        />
+      </div>
+    </div>
+  );
+};
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -170,18 +207,8 @@ const Landing = () => {
             </p>
           </div>
 
-          {/* Loom Video Embed */}
-          <div className="max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-2xl">
-            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-              <iframe 
-                src="https://www.youtube.com/embed/HGpMS4iOyCo" 
-                frameBorder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-              />
-            </div>
-          </div>
+          {/* YouTube Video Embed with Autoplay on Scroll */}
+          <VideoSection />
         </div>
       </section>
 
