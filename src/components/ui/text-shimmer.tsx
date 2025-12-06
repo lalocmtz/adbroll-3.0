@@ -13,7 +13,7 @@ interface TextShimmerProps {
 
 export function TextShimmer({
   children,
-  as: Component = 'p',
+  as: Component = 'span',
   className,
   duration = 2,
   spread = 2,
@@ -27,7 +27,7 @@ export function TextShimmer({
   return (
     <MotionComponent
       className={cn(
-        'relative inline-block bg-[length:250%_100%,auto] bg-clip-text',
+        'relative inline bg-[length:250%_100%,auto] bg-clip-text',
         'text-transparent [--base-color:#F31260] [--base-gradient-color:#3B82F6]',
         '[--bg:linear-gradient(90deg,#0000_calc(50%-var(--spread)),var(--base-gradient-color),#0000_calc(50%+var(--spread)))] [background-repeat:no-repeat,padding-box]',
         className
