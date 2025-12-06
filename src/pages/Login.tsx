@@ -43,8 +43,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center landing-gradient p-4">
-      <Card className="w-full max-w-md bg-white/5 backdrop-blur-md border-white/10">
+    <div className="min-h-screen flex items-center justify-center landing-light p-4">
+      <Card className="w-full max-w-md card-landing-light">
         <CardHeader>
           <div className="text-center mb-4">
             <h1 
@@ -54,15 +54,15 @@ const Login = () => {
               adbroll
             </h1>
           </div>
-          <CardTitle className="text-white">Bienvenido de vuelta</CardTitle>
-          <CardDescription className="text-white/60">
+          <CardTitle>Bienvenido de vuelta</CardTitle>
+          <CardDescription>
             Inicia sesión para ver los videos ganadores
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-white/80">Email</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -70,11 +70,10 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tu@email.com"
                 required
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-white/80">Contraseña</Label>
+              <Label htmlFor="password">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
@@ -82,13 +81,12 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
               />
             </div>
             <Button type="submit" className="w-full bg-primary hover:bg-primary-hover" disabled={isLoading}>
               {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
             </Button>
-            <p className="text-sm text-center text-white/60">
+            <p className="text-sm text-center text-muted-foreground">
               ¿No tienes cuenta?{" "}
               <Link to="/register" className="text-primary hover:underline">
                 Regístrate gratis

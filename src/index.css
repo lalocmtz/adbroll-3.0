@@ -442,21 +442,43 @@ All colors MUST be HSL.
     text-wrap: balance;
   }
 
-  /* Landing page premium styles */
-  .landing-gradient {
-    background: linear-gradient(135deg, hsl(260 100% 4%) 0%, hsl(240 50% 8%) 50%, hsl(280 50% 8%) 100%);
+  /* Landing page premium styles - LIGHT THEME */
+  .landing-light {
+    background: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 20% 97%) 100%);
   }
 
-  .landing-gradient-section {
-    background: linear-gradient(180deg, hsl(260 50% 6%) 0%, hsl(260 100% 4%) 100%);
+  .landing-section-alt {
+    background: hsl(220 20% 97%);
+  }
+
+  .landing-hero-glow {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .landing-hero-glow-pink {
+    background: hsl(var(--primary) / 0.3);
+    top: -200px;
+    right: -100px;
+  }
+
+  .landing-hero-glow-blue {
+    background: hsl(var(--accent) / 0.3);
+    bottom: -200px;
+    left: -100px;
   }
 
   .glow-primary {
-    box-shadow: 0 0 60px -12px hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 60px -12px hsl(var(--primary) / 0.4);
   }
 
   .glow-accent {
-    box-shadow: 0 0 60px -12px hsl(var(--accent) / 0.5);
+    box-shadow: 0 0 60px -12px hsl(var(--accent) / 0.4);
   }
 
   .blur-paywall {
@@ -465,25 +487,99 @@ All colors MUST be HSL.
     user-select: none;
   }
 
-  .card-landing {
-    @apply border border-white/10 rounded-2xl p-6;
-    background: linear-gradient(135deg, hsl(260 30% 12%) 0%, hsl(260 30% 8%) 100%);
+  .card-landing-light {
+    @apply bg-white border border-border rounded-2xl p-6;
+    box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
   }
 
-  .card-landing-hover:hover {
-    @apply border-primary/50;
-    box-shadow: 0 0 40px -12px hsl(var(--primary) / 0.3);
+  .card-landing-light:hover {
+    box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
   }
 
-  .badge-landing {
+  .card-landing-light-featured {
+    @apply card-landing-light border-primary;
+    box-shadow: 0 4px 24px -4px hsl(var(--primary) / 0.15), 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .badge-landing-light {
     @apply px-3 py-1.5 rounded-full text-xs font-medium;
-    background: hsl(var(--primary) / 0.15);
+    background: hsl(var(--primary) / 0.1);
     color: hsl(var(--primary));
   }
 
   .text-gradient {
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+  }
+
+  .text-gradient-alt {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(340 91% 51%), hsl(250 91% 60%));
+  }
+
+  /* Mockup container with browser chrome */
+  .mockup-browser {
+    @apply bg-white rounded-2xl overflow-hidden border border-border;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  }
+
+  .mockup-browser-bar {
+    @apply flex items-center gap-2 px-4 py-3 border-b border-border bg-muted;
+  }
+
+  .mockup-browser-dot {
+    @apply w-3 h-3 rounded-full;
+  }
+
+  /* Floating elements animation */
+  .float-element {
+    animation: float-gentle 6s ease-in-out infinite;
+  }
+
+  @keyframes float-gentle {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(1deg); }
+  }
+
+  /* Step connector line */
+  .step-connector {
+    @apply hidden md:block absolute top-1/2 left-full w-full h-0.5;
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.3), transparent);
+  }
+
+  /* Premium button glow */
+  .btn-glow {
+    position: relative;
+    overflow: visible;
+  }
+
+  .btn-glow::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+    filter: blur(12px);
+  }
+
+  .btn-glow:hover::before {
+    opacity: 0.5;
+  }
+
+  /* Feature icon container */
+  .feature-icon-container {
+    @apply w-14 h-14 rounded-xl flex items-center justify-center;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--accent) / 0.1));
+  }
+
+  /* Mobile sticky CTA */
+  .mobile-sticky-cta {
+    @apply fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-border z-50 md:hidden;
   }
 
   /* Animations */

@@ -32,15 +32,21 @@ import {
   Search,
   Target,
   ChevronRight,
+  Users,
+  MousePointer,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
+
+// Import mockups
+import mockupDashboard from "@/assets/mockup-dashboard.png";
+import mockupScriptAnalysis from "@/assets/mockup-script-analysis.png";
+import mockupOpportunities from "@/assets/mockup-opportunities.png";
 
 const Landing = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get("ref");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const handleRegister = () => {
     navigate("/register" + (refCode ? `?ref=${refCode}` : ""));
@@ -51,18 +57,18 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen landing-gradient text-white overflow-hidden">
+    <div className="min-h-screen landing-light text-foreground overflow-hidden">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 glass-effect border-b border-white/10">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <button onClick={() => navigate("/")} className="text-2xl font-bold">
             <span className="text-gradient">adbroll</span>
           </button>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10" onClick={() => navigate("/login")}>
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => navigate("/login")}>
               Iniciar sesión
             </Button>
-            <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover">
+            <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover btn-glow">
               Empieza Gratis
             </Button>
           </div>
@@ -70,25 +76,24 @@ const Landing = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
-        </div>
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
+        {/* Background glows */}
+        <div className="landing-hero-glow landing-hero-glow-pink" />
+        <div className="landing-hero-glow landing-hero-glow-blue" />
         
         <div className="container mx-auto px-4 relative">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             {/* Mini badges */}
             <div className="flex flex-wrap justify-center gap-3 opacity-0 animate-fade-in-up">
-              <span className="badge-landing flex items-center gap-1.5">
+              <span className="badge-landing-light flex items-center gap-1.5">
                 <Shield className="h-3.5 w-3.5" />
                 Sin riesgo — cancela cuando quieras
               </span>
-              <span className="badge-landing flex items-center gap-1.5">
+              <span className="badge-landing-light flex items-center gap-1.5">
                 <Brain className="h-3.5 w-3.5" />
                 IA integrada
               </span>
-              <span className="badge-landing flex items-center gap-1.5">
+              <span className="badge-landing-light flex items-center gap-1.5">
                 <Coins className="h-3.5 w-3.5" />
                 Gana dinero recomendando AdBroll
               </span>
@@ -101,7 +106,7 @@ const Landing = () => {
             </h1>
 
             {/* Subtitle */}
-            <p className="text-lg md:text-xl text-white/70 max-w-3xl mx-auto opacity-0 animate-fade-in-up animation-delay-200">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto opacity-0 animate-fade-in-up animation-delay-200">
               Descubre los videos que están generando miles de dólares en TikTok Shop, extrae sus guiones y replica su éxito hoy mismo.
             </p>
 
@@ -109,7 +114,7 @@ const Landing = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4 opacity-0 animate-fade-in-up animation-delay-300">
               <Button
                 size="lg"
-                className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover glow-primary transition-all"
+                className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover btn-glow transition-all"
                 onClick={handleRegister}
               >
                 Empieza Gratis
@@ -118,7 +123,7 @@ const Landing = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-lg px-8 py-6 h-auto border-white/20 text-white hover:bg-white/10"
+                className="text-lg px-8 py-6 h-auto border-border text-foreground hover:bg-muted"
                 onClick={() => setPricingModalOpen(true)}
               >
                 Ver Planes
@@ -126,34 +131,34 @@ const Landing = () => {
             </div>
           </div>
 
-          {/* Mockup placeholder */}
-          <div className="mt-16 max-w-5xl mx-auto opacity-0 animate-fade-in-up animation-delay-400">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-t from-[hsl(260,100%,4%)] via-transparent to-transparent z-10 pointer-events-none" />
-              <Card className="card-landing p-4 md:p-8 overflow-hidden animate-float">
-                <div className="aspect-video bg-gradient-to-br from-white/5 to-white/0 rounded-xl flex items-center justify-center border border-white/10">
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto">
-                      <Play className="h-8 w-8 text-primary" />
-                    </div>
-                    <p className="text-white/60 text-sm">Preview del Dashboard</p>
-                  </div>
-                </div>
-              </Card>
+          {/* Hero Mockup - Dashboard Preview */}
+          <div className="mt-16 max-w-6xl mx-auto opacity-0 animate-fade-in-up animation-delay-400">
+            <div className="mockup-browser float-element">
+              <div className="mockup-browser-bar">
+                <div className="mockup-browser-dot bg-red-400" />
+                <div className="mockup-browser-dot bg-yellow-400" />
+                <div className="mockup-browser-dot bg-green-400" />
+                <span className="ml-4 text-xs text-muted-foreground">app.adbroll.com</span>
+              </div>
+              <img 
+                src={mockupDashboard} 
+                alt="AdBroll Dashboard - Videos que venden en TikTok Shop" 
+                className="w-full"
+              />
             </div>
           </div>
         </div>
       </section>
 
       {/* How it Works */}
-      <section className="py-20 md:py-32 landing-gradient-section">
+      <section className="py-20 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="badge-landing mb-4">Cómo funciona</Badge>
+            <Badge className="badge-landing-light mb-4">Cómo funciona</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               3 pasos simples para vender más
             </h2>
-            <p className="text-white/60 max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               De la inspiración a la acción en minutos, no horas
             </p>
           </div>
@@ -180,18 +185,19 @@ const Landing = () => {
               },
             ].map((item, index) => (
               <div key={index} className="relative">
-                <Card className="card-landing card-landing-hover h-full text-center transition-all duration-300">
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">
+                <Card className="card-landing-light h-full text-center">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold shadow-lg">
                     {item.step}
                   </div>
                   <div className="pt-6">
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <div className="feature-icon-container mx-auto mb-4">
                       <item.icon className="h-7 w-7 text-primary" />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2 text-white">{item.title}</h3>
-                    <p className="text-white/60 text-sm">{item.description}</p>
+                    <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                    <p className="text-muted-foreground text-sm">{item.description}</p>
                   </div>
                 </Card>
+                {index < 2 && <div className="step-connector" />}
               </div>
             ))}
           </div>
@@ -199,7 +205,7 @@ const Landing = () => {
           <div className="text-center mt-12">
             <Button
               size="lg"
-              className="bg-primary hover:bg-primary-hover"
+              className="bg-primary hover:bg-primary-hover btn-glow"
               onClick={handleRegister}
             >
               Empieza Gratis
@@ -213,11 +219,11 @@ const Landing = () => {
       <section className="py-20 md:py-32">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="badge-landing mb-4">Vista previa</Badge>
+            <Badge className="badge-landing-light mb-4">Vista previa</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Descubre lo que te espera dentro
             </h2>
-            <p className="text-white/60 max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               Haz clic para desbloquear acceso completo
             </p>
           </div>
@@ -246,31 +252,31 @@ const Landing = () => {
               <button
                 key={index}
                 onClick={handlePreviewClick}
-                className="group relative"
+                className="group relative text-left"
               >
-                <Card className="card-landing card-landing-hover h-full text-left transition-all duration-300 overflow-hidden">
+                <Card className="card-landing-light h-full overflow-hidden">
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <div className="feature-icon-container flex-shrink-0">
                       <item.icon className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white mb-1">{item.title}</h3>
-                      <p className="text-white/60 text-sm">{item.description}</p>
+                      <h3 className="font-semibold mb-1">{item.title}</h3>
+                      <p className="text-muted-foreground text-sm">{item.description}</p>
                     </div>
                   </div>
                   
                   {/* Blurred content placeholder */}
                   <div className={`mt-4 space-y-2 ${item.blurred ? 'blur-paywall' : ''}`}>
-                    <div className="h-3 bg-white/10 rounded w-full" />
-                    <div className="h-3 bg-white/10 rounded w-4/5" />
-                    <div className="h-3 bg-white/10 rounded w-3/5" />
-                    <div className="h-8 bg-white/5 rounded mt-4" />
+                    <div className="h-3 bg-muted rounded w-full" />
+                    <div className="h-3 bg-muted rounded w-4/5" />
+                    <div className="h-3 bg-muted rounded w-3/5" />
+                    <div className="h-8 bg-muted/50 rounded mt-4" />
                   </div>
 
                   {/* Unlock overlay */}
                   {item.blurred && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="px-4 py-2 bg-primary rounded-full text-sm font-medium flex items-center gap-2">
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="px-4 py-2 bg-primary text-white rounded-full text-sm font-medium flex items-center gap-2 shadow-lg">
                         <Lock className="h-4 w-4" />
                         Desbloquear
                       </span>
@@ -284,10 +290,10 @@ const Landing = () => {
       </section>
 
       {/* Benefits */}
-      <section className="py-20 md:py-32 landing-gradient-section">
+      <section className="py-20 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="badge-landing mb-4">Beneficios</Badge>
+            <Badge className="badge-landing-light mb-4">Beneficios</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Por qué AdBroll cambia el juego
             </h2>
@@ -311,12 +317,12 @@ const Landing = () => {
                 description: "Scripts automáticos, análisis y tendencias listas para usar. De 0 a contenido en minutos.",
               },
             ].map((item, index) => (
-              <Card key={index} className="card-landing card-landing-hover transition-all duration-300">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-6">
+              <Card key={index} className="card-landing-light">
+                <div className="feature-icon-container mb-6">
                   <item.icon className="h-7 w-7 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-white">{item.title}</h3>
-                <p className="text-white/60">{item.description}</p>
+                <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                <p className="text-muted-foreground">{item.description}</p>
               </Card>
             ))}
           </div>
@@ -327,40 +333,101 @@ const Landing = () => {
       <section className="py-20 md:py-32">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="badge-landing mb-4">Dentro de AdBroll</Badge>
+            <Badge className="badge-landing-light mb-4">Dentro de AdBroll</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Datos reales. IA integrada. Resultados más rápidos.
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {[
-              { title: "Dashboard de Videos", icon: Play },
-              { title: "Analizar y Replicar", icon: Wand2 },
-              { title: "Oportunidades de Productos", icon: Target },
-              { title: "Extractor de Scripts", icon: FileText },
-              { title: "Generador de Variantes", icon: Sparkles },
-              { title: "Panel de Afiliados", icon: Coins },
-            ].map((item, index) => (
-              <Card key={index} className="card-landing card-landing-hover transition-all duration-300 group cursor-pointer" onClick={handlePreviewClick}>
-                <div className="aspect-video bg-gradient-to-br from-white/5 to-white/0 rounded-lg flex items-center justify-center border border-white/10 mb-4 group-hover:border-primary/30 transition-colors">
-                  <item.icon className="h-10 w-10 text-white/30 group-hover:text-primary transition-colors" />
+          {/* Feature 1: Script Analysis */}
+          <div className="max-w-6xl mx-auto mb-20">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div className="order-2 lg:order-1">
+                <Badge className="badge-landing-light mb-4">Análisis de Scripts</Badge>
+                <h3 className="text-2xl md:text-3xl font-bold mb-4">
+                  Extrae y analiza guiones en segundos
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  Nuestra IA transcribe el audio, identifica la estructura (Hook, Cuerpo, CTA) y te muestra exactamente qué hace que cada video venda.
+                </p>
+                <ul className="space-y-3 mb-6">
+                  {["Transcripción automática con IA", "Análisis de estructura del script", "Identificación de patrones de venta", "Generación de variantes optimizadas"].map((item, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm">
+                      <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover btn-glow">
+                  Probar ahora
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+              <div className="order-1 lg:order-2">
+                <div className="mockup-browser float-element">
+                  <div className="mockup-browser-bar">
+                    <div className="mockup-browser-dot bg-red-400" />
+                    <div className="mockup-browser-dot bg-yellow-400" />
+                    <div className="mockup-browser-dot bg-green-400" />
+                  </div>
+                  <img 
+                    src={mockupScriptAnalysis} 
+                    alt="Análisis de Scripts con IA" 
+                    className="w-full"
+                  />
                 </div>
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-white">{item.title}</h3>
-                  <ChevronRight className="h-5 w-5 text-white/40 group-hover:text-primary transition-colors" />
+              </div>
+            </div>
+          </div>
+
+          {/* Feature 2: Product Opportunities */}
+          <div className="max-w-6xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <div className="mockup-browser float-element">
+                  <div className="mockup-browser-bar">
+                    <div className="mockup-browser-dot bg-red-400" />
+                    <div className="mockup-browser-dot bg-yellow-400" />
+                    <div className="mockup-browser-dot bg-green-400" />
+                  </div>
+                  <img 
+                    src={mockupOpportunities} 
+                    alt="Oportunidades de Productos" 
+                    className="w-full"
+                  />
                 </div>
-              </Card>
-            ))}
+              </div>
+              <div>
+                <Badge className="badge-landing-light mb-4">Oportunidades</Badge>
+                <h3 className="text-2xl md:text-3xl font-bold mb-4">
+                  Encuentra productos con alta comisión y baja competencia
+                </h3>
+                <p className="text-muted-foreground mb-6">
+                  Nuestro algoritmo analiza comisiones, ventas y competencia para mostrarte las mejores oportunidades de mercado.
+                </p>
+                <ul className="space-y-3 mb-6">
+                  {["Índice de oportunidad calculado con IA", "Comisiones del 15-30% por venta", "Productos con menos de 50 creadores activos", "Ganancias estimadas por cada venta"].map((item, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm">
+                      <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover btn-glow">
+                  Ver oportunidades
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 md:py-32 landing-gradient-section">
+      <section className="py-20 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="badge-landing mb-4">Testimonios</Badge>
+            <Badge className="badge-landing-light mb-4">Testimonios</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Lo que dicen los creadores
             </h2>
@@ -384,20 +451,20 @@ const Landing = () => {
                 role: "Content Creator",
               },
             ].map((item, index) => (
-              <Card key={index} className="card-landing">
+              <Card key={index} className="card-landing-light">
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-primary text-primary" />
+                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                   ))}
                 </div>
-                <p className="text-white/80 mb-4 italic">"{item.quote}"</p>
+                <p className="text-foreground mb-4 italic">"{item.quote}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
                     {item.author[0]}
                   </div>
                   <div>
-                    <p className="font-semibold text-white text-sm">{item.author}</p>
-                    <p className="text-white/50 text-xs">{item.role}</p>
+                    <p className="font-semibold text-sm">{item.author}</p>
+                    <p className="text-muted-foreground text-xs">{item.role}</p>
                   </div>
                 </div>
               </Card>
@@ -410,11 +477,11 @@ const Landing = () => {
       <section id="pricing" className="py-20 md:py-32">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="badge-landing mb-4">Planes</Badge>
+            <Badge className="badge-landing-light mb-4">Planes</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Elige tu plan
             </h2>
-            <p className="text-white/60 max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               Si vienes con código de referido, obtienes <span className="text-primary font-semibold">50% OFF</span> tu primer mes.
             </p>
           </div>
@@ -470,8 +537,8 @@ const Landing = () => {
                 key={index}
                 className={`relative p-6 flex flex-col transition-all duration-300 ${
                   plan.highlighted
-                    ? "card-landing border-primary glow-primary md:scale-105"
-                    : "card-landing card-landing-hover"
+                    ? "card-landing-light-featured md:scale-105"
+                    : "card-landing-light"
                 }`}
               >
                 {plan.badge && (
@@ -482,13 +549,13 @@ const Landing = () => {
                 )}
 
                 <div className="text-center mb-6 pt-2">
-                  <h3 className="text-lg font-bold text-white mb-1">{plan.name}</h3>
-                  <p className="text-white/50 text-sm mb-4">{plan.description}</p>
+                  <h3 className="text-lg font-bold mb-1">{plan.name}</h3>
+                  <p className="text-muted-foreground text-sm mb-4">{plan.description}</p>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-4xl font-bold text-white">
+                    <span className="text-4xl font-bold">
                       {plan.price === 0 ? "Gratis" : `$${plan.price}`}
                     </span>
-                    {plan.price > 0 && <span className="text-white/50">/mes</span>}
+                    {plan.price > 0 && <span className="text-muted-foreground">/mes</span>}
                   </div>
                 </div>
 
@@ -498,9 +565,9 @@ const Landing = () => {
                       {feature.included ? (
                         <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                       ) : (
-                        <X className="h-4 w-4 text-white/30 flex-shrink-0" />
+                        <X className="h-4 w-4 text-muted-foreground/30 flex-shrink-0" />
                       )}
-                      <span className={feature.included ? "text-white/80" : "text-white/40"}>
+                      <span className={feature.included ? "" : "text-muted-foreground/60"}>
                         {feature.text}
                       </span>
                     </li>
@@ -511,7 +578,7 @@ const Landing = () => {
                   className={`w-full ${
                     plan.highlighted
                       ? "bg-primary hover:bg-primary-hover"
-                      : "bg-white/10 hover:bg-white/20 text-white"
+                      : "bg-muted hover:bg-muted/80 text-foreground"
                   }`}
                   onClick={handleRegister}
                 >
@@ -524,10 +591,10 @@ const Landing = () => {
       </section>
 
       {/* FAQ */}
-      <section className="py-20 md:py-32 landing-gradient-section">
+      <section className="py-20 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="badge-landing mb-4">FAQ</Badge>
+            <Badge className="badge-landing-light mb-4">FAQ</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Preguntas frecuentes
             </h2>
@@ -564,12 +631,12 @@ const Landing = () => {
                 <AccordionItem
                   key={index}
                   value={`item-${index}`}
-                  className="card-landing border-white/10 data-[state=open]:border-primary/30 transition-colors px-6"
+                  className="card-landing-light border-border data-[state=open]:border-primary/30 transition-colors px-6"
                 >
-                  <AccordionTrigger className="text-white hover:text-primary py-4 text-left">
+                  <AccordionTrigger className="hover:text-primary py-4 text-left">
                     {item.question}
                   </AccordionTrigger>
-                  <AccordionContent className="text-white/60 pb-4">
+                  <AccordionContent className="text-muted-foreground pb-4">
                     {item.answer}
                   </AccordionContent>
                 </AccordionItem>
@@ -582,17 +649,17 @@ const Landing = () => {
       {/* CTA Section */}
       <section className="py-20 md:py-32">
         <div className="container mx-auto px-4">
-          <Card className="max-w-4xl mx-auto p-8 md:p-16 text-center border-0 bg-gradient-to-r from-primary/20 to-accent/20 backdrop-blur-sm">
+          <Card className="max-w-4xl mx-auto p-8 md:p-16 text-center border-0 bg-gradient-to-r from-primary/10 to-accent/10">
             <Zap className="h-12 w-12 mx-auto mb-6 text-primary" />
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
               ¿Listo para vender más en TikTok Shop?
             </h2>
-            <p className="text-lg md:text-xl mb-8 text-white/70 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl mb-8 text-muted-foreground max-w-2xl mx-auto">
               Únete a los creadores que están aumentando sus ventas con datos reales y scripts probados.
             </p>
             <Button
               size="lg"
-              className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover glow-primary"
+              className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover btn-glow"
               onClick={handleRegister}
             >
               Empieza Gratis
@@ -603,13 +670,13 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-12">
+      <footer className="border-t border-border py-12 bg-white">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="grid md:grid-cols-4 gap-8 mb-8">
               <div className="md:col-span-2">
                 <h3 className="text-2xl font-bold text-gradient mb-2">adbroll</h3>
-                <p className="text-white/50 text-sm mb-4">
+                <p className="text-muted-foreground text-sm mb-4">
                   La herramienta definitiva para creadores de TikTok Shop.
                 </p>
                 <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover">
@@ -617,29 +684,29 @@ const Landing = () => {
                 </Button>
               </div>
               <div>
-                <h4 className="font-semibold text-white mb-4">Legal</h4>
+                <h4 className="font-semibold mb-4">Legal</h4>
                 <ul className="space-y-2 text-sm">
-                  <li><button onClick={() => navigate("/terms")} className="text-white/50 hover:text-white transition-colors">Términos y Condiciones</button></li>
-                  <li><button onClick={() => navigate("/privacy")} className="text-white/50 hover:text-white transition-colors">Política de Privacidad</button></li>
+                  <li><button onClick={() => navigate("/terms")} className="text-muted-foreground hover:text-foreground transition-colors">Términos y Condiciones</button></li>
+                  <li><button onClick={() => navigate("/privacy")} className="text-muted-foreground hover:text-foreground transition-colors">Política de Privacidad</button></li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-white mb-4">Soporte</h4>
+                <h4 className="font-semibold mb-4">Soporte</h4>
                 <ul className="space-y-2 text-sm">
-                  <li><button onClick={() => navigate("/support")} className="text-white/50 hover:text-white transition-colors">Centro de Ayuda</button></li>
-                  <li><a href="mailto:contacto@adbroll.com" className="text-white/50 hover:text-white transition-colors">contacto@adbroll.com</a></li>
+                  <li><button onClick={() => navigate("/support")} className="text-muted-foreground hover:text-foreground transition-colors">Centro de Ayuda</button></li>
+                  <li><a href="mailto:contacto@adbroll.com" className="text-muted-foreground hover:text-foreground transition-colors">contacto@adbroll.com</a></li>
                 </ul>
               </div>
             </div>
-            <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-white/40">
+            <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-sm text-muted-foreground">
                 © 2025 adbroll. Todos los derechos reservados.
               </p>
               <div className="flex gap-4">
-                <a href="#" className="text-white/40 hover:text-white transition-colors">
+                <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/></svg>
                 </a>
-                <a href="#" className="text-white/40 hover:text-white transition-colors">
+                <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                   <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
                 </a>
               </div>
@@ -647,6 +714,17 @@ const Landing = () => {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Sticky CTA */}
+      <div className="mobile-sticky-cta">
+        <Button 
+          className="w-full bg-primary hover:bg-primary-hover text-lg py-6" 
+          onClick={handleRegister}
+        >
+          Empieza Gratis
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
+      </div>
 
       {/* Pricing Modal */}
       <PricingModal open={pricingModalOpen} onOpenChange={setPricingModalOpen} />
