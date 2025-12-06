@@ -10,6 +10,7 @@ import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, Re
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
+import { AssetUploader } from "@/components/AssetUploader";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -697,6 +698,9 @@ const Admin = () => {
             </p>
           </CardContent>
         </Card>
+
+        {/* Asset Uploader */}
+        <AssetUploader />
 
         {/* Pending Links Section */}
         {stats.pendingMatch > 0 && (
