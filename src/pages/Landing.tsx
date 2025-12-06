@@ -211,10 +211,10 @@ const Landing = () => {
       {/* How it Works */}
       <section id="how-it-works" className="py-16 md:py-24 landing-section-alt">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <TextShimmer duration={2.5} spread={3} className="text-xl md:text-2xl font-semibold text-gradient">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground">
               ¿Cómo funciona?
-            </TextShimmer>
+            </h2>
           </div>
           
           <FeatureSteps
@@ -222,24 +222,24 @@ const Landing = () => {
               {
                 step: "1",
                 title: "Qué está funcionando hoy",
-                content: "Ve los videos con más ventas y productos conectados.",
+                content: "Encuentra los videos con más ventas y sus productos vinculados.",
                 image: step1Dashboard,
               },
               {
                 step: "2",
                 title: "Toma el guion viral y adáptalo",
-                content: "Nuestra IA te lo da listo para grabar.",
+                content: "Nuestra IA te lo da listo para grabar y optimizar.",
                 image: step2Analysis,
               },
               {
                 step: "3",
                 title: "Graba. Publica. Cobra.",
-                content: "Monetiza como creador desde el día uno.",
+                content: "Monetiza como creador sin tener que adivinar.",
                 image: step3Variants,
               },
             ]}
-            title="Convierte ideas en ingresos en 3 pasos"
-            subtitle="De la inspiración a tu primer dólar con IA, sin grabar al azar ni perder tiempo."
+            title="De grabar al azar → a ganar estratégicamente en 3 pasos"
+            subtitle="Descubre qué está vendiendo hoy, replica con IA y cobra como creador desde el día uno."
             autoPlayInterval={4000}
             className="py-0"
           />
