@@ -156,15 +156,15 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
         </motion.div>
       </div>
 
-      {/* Animated Image Marquee - Floating cards with transparent backgrounds */}
-      <div className="absolute bottom-0 left-0 w-full h-[500px] md:h-[620px] flex items-end justify-center overflow-hidden">
+      {/* Animated Image Marquee - Floating cards on white background */}
+      <div className="absolute bottom-0 left-0 w-full h-[520px] md:h-[640px] flex items-end justify-center overflow-hidden bg-white">
         <motion.div
-          className="flex gap-10 pb-4"
+          className="flex gap-8 pb-6"
           animate={{
             x: ["-33.33%", "0%"],
             transition: {
               ease: "linear",
-              duration: 120,
+              duration: 100,
               repeat: Infinity,
             },
           }}
@@ -172,18 +172,15 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
           {heroImages.map((src, index) => (
             <div
               key={index}
-              className="relative w-[320px] md:w-[380px] h-[440px] md:h-[540px] flex-shrink-0 transition-transform hover:scale-105"
+              className="relative w-[300px] md:w-[360px] h-[480px] md:h-[580px] flex-shrink-0 transition-transform hover:scale-[1.02]"
               style={{
-                transform: `rotate(${(index % 2 === 0 ? -2 : 3)}deg)`,
+                transform: `rotate(${(index % 2 === 0 ? -1.5 : 2)}deg)`,
               }}
             >
               <img
                 src={src}
                 alt={`Video viral ${index + 1}`}
                 className="w-full h-full object-contain"
-                style={{
-                  filter: 'drop-shadow(0 30px 60px rgba(0, 0, 0, 0.35)) drop-shadow(0 15px 30px rgba(0, 0, 0, 0.2)) drop-shadow(0 5px 15px rgba(0, 0, 0, 0.1))',
-                }}
               />
             </div>
           ))}
