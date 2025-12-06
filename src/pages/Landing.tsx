@@ -84,7 +84,8 @@ const Landing = () => {
         title={
           <>
             De creador improvisado a{" "}
-            <span className="text-gradient">vendedor estratégico</span> en TikTok Shop
+            <span className="text-gradient">vendedor estratégico</span> en{" "}
+            <span className="whitespace-nowrap">TikTok Shop</span>
           </>
         }
         description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA."
