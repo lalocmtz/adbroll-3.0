@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,6 +36,8 @@ import {
   MousePointer,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
+import { AnimatedMarqueeHero } from "@/components/ui/hero-3";
+import { supabase } from "@/integrations/supabase/client";
 
 // Import mockups
 import mockupDashboard from "@/assets/mockup-dashboard.png";
@@ -47,6 +49,39 @@ const Landing = () => {
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get("ref");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [videoThumbnails, setVideoThumbnails] = useState<string[]>([]);
+
+  // Fetch top videos for hero marquee
+  useEffect(() => {
+    const fetchTopVideos = async () => {
+      const { data } = await supabase
+        .from("videos")
+        .select("thumbnail_url, video_mp4_url")
+        .not("thumbnail_url", "is", null)
+        .order("revenue_mxn", { ascending: false })
+        .limit(12);
+
+      if (data && data.length > 0) {
+        const thumbnails = data
+          .map(v => v.thumbnail_url)
+          .filter(Boolean) as string[];
+        setVideoThumbnails(thumbnails);
+      } else {
+        // Fallback placeholder images
+        setVideoThumbnails([
+          "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=600&fit=crop",
+          "https://images.unsplash.com/photo-1616469829581-73993eb86b02?w=400&h=600&fit=crop",
+          "https://images.unsplash.com/photo-1596558450268-9c27524ba856?w=400&h=600&fit=crop",
+          "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&h=600&fit=crop",
+          "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400&h=600&fit=crop",
+          "https://images.unsplash.com/photo-1556742111-a301076d9d18?w=400&h=600&fit=crop",
+          "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=600&fit=crop",
+          "https://images.unsplash.com/photo-1560343090-f0409e92791a?w=400&h=600&fit=crop",
+        ]);
+      }
+    };
+    fetchTopVideos();
+  }, []);
 
   const handleRegister = () => {
     navigate("/register" + (refCode ? `?ref=${refCode}` : ""));
@@ -75,83 +110,30 @@ const Landing = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
-        {/* Background glows */}
-        <div className="landing-hero-glow landing-hero-glow-pink" />
-        <div className="landing-hero-glow landing-hero-glow-blue" />
-        
-        <div className="container mx-auto px-4 relative">
-          <div className="max-w-4xl mx-auto text-center space-y-8">
-            {/* Mini badges */}
-            <div className="flex flex-wrap justify-center gap-3 opacity-0 animate-fade-in-up">
-              <span className="badge-landing-light flex items-center gap-1.5">
-                <Shield className="h-3.5 w-3.5" />
-                Sin riesgo — cancela cuando quieras
-              </span>
-              <span className="badge-landing-light flex items-center gap-1.5">
-                <Brain className="h-3.5 w-3.5" />
-                IA integrada
-              </span>
-              <span className="badge-landing-light flex items-center gap-1.5">
-                <Coins className="h-3.5 w-3.5" />
-                Gana dinero recomendando AdBroll
-              </span>
-            </div>
-
-            {/* Headline */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight opacity-0 animate-fade-in-up animation-delay-100">
-              La herramienta que usan los creadores para encontrar videos que venden y{" "}
-              <span className="text-gradient">replicarlos en minutos</span>
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto opacity-0 animate-fade-in-up animation-delay-200">
-              Descubre los videos que están generando miles de dólares en TikTok Shop, extrae sus guiones y replica su éxito hoy mismo.
-            </p>
-
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4 opacity-0 animate-fade-in-up animation-delay-300">
-              <Button
-                size="lg"
-                className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover btn-glow transition-all"
-                onClick={handleRegister}
-              >
-                Empieza Gratis
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-lg px-8 py-6 h-auto border-border text-foreground hover:bg-muted"
-                onClick={() => setPricingModalOpen(true)}
-              >
-                Ver Planes
-              </Button>
-            </div>
-          </div>
-
-          {/* Hero Mockup - Dashboard Preview */}
-          <div className="mt-16 max-w-6xl mx-auto opacity-0 animate-fade-in-up animation-delay-400">
-            <div className="mockup-browser float-element">
-              <div className="mockup-browser-bar">
-                <div className="mockup-browser-dot bg-red-400" />
-                <div className="mockup-browser-dot bg-yellow-400" />
-                <div className="mockup-browser-dot bg-green-400" />
-                <span className="ml-4 text-xs text-muted-foreground">app.adbroll.com</span>
-              </div>
-              <img 
-                src={mockupDashboard} 
-                alt="AdBroll Dashboard - Videos que venden en TikTok Shop" 
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Hero Section with Animated Marquee */}
+      {videoThumbnails.length > 0 && (
+        <AnimatedMarqueeHero
+          tagline="🔥 +10,000 creadores ya usan AdBroll"
+          title={
+            <>
+              De creador improvisado a{" "}
+              <span className="text-gradient">vendedor estratégico</span> en TikTok Shop
+            </>
+          }
+          description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA."
+          ctaText="Empezar gratis"
+          ctaSecondaryText="Ver cómo funciona"
+          images={videoThumbnails}
+          onCtaClick={handleRegister}
+          onCtaSecondaryClick={() => {
+            const howItWorks = document.getElementById('how-it-works');
+            howItWorks?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
+      )}
 
       {/* How it Works */}
-      <section className="py-20 md:py-32 landing-section-alt">
+      <section id="how-it-works" className="py-20 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <Badge className="badge-landing-light mb-4">Cómo funciona</Badge>
