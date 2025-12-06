@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import { AnimatedMarqueeHero } from "@/components/ui/hero-3";
+import { TextShimmer } from "@/components/ui/text-shimmer";
 import { supabase } from "@/integrations/supabase/client";
 
 // Import mockups
@@ -84,8 +85,10 @@ const Landing = () => {
         title={
           <>
             De creador improvisado a{" "}
-            <span className="text-gradient">vendedor estratégico</span> en{" "}
-            <span className="whitespace-nowrap">TikTok Shop</span>
+            <TextShimmer duration={2.5} spread={3} className="text-gradient font-bold">
+              vendedor estratégico
+            </TextShimmer>{" "}
+            en <span className="whitespace-nowrap">TikTok Shop</span>
           </>
         }
         description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA."
