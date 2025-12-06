@@ -15,8 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings as SettingsIcon, User, Globe, LogOut, Crown } from "lucide-react";
+import { Settings as SettingsIcon, User, Globe, LogOut, Crown, Gift, Copy, Check } from "lucide-react";
 import { DataSubtitle } from "@/components/FilterPills";
+import { useReferralCode, PLANS } from "@/hooks/useReferralCode";
+import { ReferralDiscountBanner } from "@/components/PricingCard";
 
 interface SubscriptionData {
   status: string;
@@ -31,6 +33,17 @@ const Settings = () => {
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [newReferralCode, setNewReferralCode] = useState("");
+
+  const {
+    affiliateCode,
+    referralCodeUsed,
+    loading: referralLoading,
+    createAffiliateCode,
+    applyReferralCode,
+    refetch,
+  } = useReferralCode();
 
   useEffect(() => {
     const getUser = async () => {
@@ -38,14 +51,14 @@ const Settings = () => {
       if (user?.email) {
         setUserEmail(user.email);
         setUserName(user.user_metadata?.full_name || user.email.split("@")[0]);
-        
+
         // Fetch subscription data
         const { data: subData } = await supabase
           .from("subscriptions")
           .select("status, price_usd, renew_at")
           .eq("user_id", user.id)
           .maybeSingle();
-        
+
         if (subData) {
           setSubscription(subData);
         }
@@ -57,6 +70,57 @@ const Settings = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
+  };
+
+  const handleCreateAffiliateCode = async () => {
+    const { code, error } = await createAffiliateCode();
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: language === "es" ? "¡Código creado!" : "Code created!",
+        description: `${language === "es" ? "Tu código:" : "Your code:"} ${code}`,
+      });
+      refetch();
+    }
+  };
+
+  const handleApplyReferralCode = async () => {
+    if (!newReferralCode) return;
+
+    const { success, error } = await applyReferralCode(newReferralCode);
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: language === "es" ? "¡Código aplicado!" : "Code applied!",
+        description:
+          language === "es"
+            ? "50% de descuento en tu primer mes"
+            : "50% off your first month",
+      });
+      setNewReferralCode("");
+      refetch();
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({
+      title: language === "es" ? "Copiado" : "Copied",
+      description:
+        language === "es" ? "Código copiado al portapapeles" : "Code copied to clipboard",
+    });
   };
 
   return (
@@ -79,6 +143,8 @@ const Settings = () => {
         </p>
       </div>
 
+      <ReferralDiscountBanner />
+
       <div className="space-y-5">
         {/* Plan Status */}
         <Card className="p-5 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
@@ -94,10 +160,16 @@ const Settings = () => {
                 <span className="text-lg font-bold">
                   {subscription?.status === "active" ? "Adbroll Pro" : "Free"}
                 </span>
-                <Badge variant={subscription?.status === "active" ? "default" : "secondary"}>
-                  {subscription?.status === "active" 
-                    ? (language === "es" ? "Activo" : "Active")
-                    : (language === "es" ? "Inactivo" : "Inactive")}
+                <Badge
+                  variant={subscription?.status === "active" ? "default" : "secondary"}
+                >
+                  {subscription?.status === "active"
+                    ? language === "es"
+                      ? "Activo"
+                      : "Active"
+                    : language === "es"
+                    ? "Inactivo"
+                    : "Inactive"}
                 </Badge>
               </div>
               {subscription?.status === "active" && subscription.renew_at && (
@@ -115,6 +187,117 @@ const Settings = () => {
             )}
           </div>
         </Card>
+
+        {/* Affiliate Code Section */}
+        <Card className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <Gift className="h-5 w-5 text-primary" />
+            <h2 className="font-semibold">
+              {language === "es" ? "Tu Código de Afiliado" : "Your Affiliate Code"}
+            </h2>
+          </div>
+
+          {affiliateCode ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {language === "es"
+                  ? "Comparte tu código y gana comisiones cuando otros se suscriban."
+                  : "Share your code and earn commissions when others subscribe."}
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={affiliateCode.code}
+                  readOnly
+                  className="font-mono text-lg font-bold"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => copyToClipboard(affiliateCode.code)}
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={`${window.location.origin}/register?ref=${affiliateCode.code}`}
+                  readOnly
+                  className="text-sm text-muted-foreground"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    copyToClipboard(
+                      `${window.location.origin}/register?ref=${affiliateCode.code}`
+                    )
+                  }
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {language === "es"
+                  ? "Crea tu código único para compartir y ganar comisiones."
+                  : "Create your unique code to share and earn commissions."}
+              </p>
+              <Button onClick={handleCreateAffiliateCode} disabled={referralLoading}>
+                <Gift className="h-4 w-4 mr-2" />
+                {language === "es" ? "Crear código" : "Create code"}
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        {/* Apply Referral Code Section (only if user doesn't have one) */}
+        {!referralCodeUsed && (
+          <Card className="p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <Gift className="h-5 w-5 text-muted-foreground" />
+              <h2 className="font-semibold">
+                {language === "es" ? "Aplicar Código de Referido" : "Apply Referral Code"}
+              </h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              {language === "es"
+                ? "¿Tienes un código de un amigo? Aplícalo para obtener 50% de descuento en tu primer mes."
+                : "Have a friend's code? Apply it to get 50% off your first month."}
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                value={newReferralCode}
+                onChange={(e) => setNewReferralCode(e.target.value.toUpperCase())}
+                placeholder="ABC123"
+                className="font-mono"
+              />
+              <Button onClick={handleApplyReferralCode} disabled={!newReferralCode}>
+                {language === "es" ? "Aplicar" : "Apply"}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Show applied referral code */}
+        {referralCodeUsed && (
+          <Card className="p-5 bg-green-50 border-green-200">
+            <div className="flex items-center gap-3 mb-2">
+              <Check className="h-5 w-5 text-green-600" />
+              <h2 className="font-semibold text-green-800">
+                {language === "es" ? "Código de Referido Aplicado" : "Referral Code Applied"}
+              </h2>
+            </div>
+            <p className="text-sm text-green-700">
+              {language === "es" ? "Código:" : "Code:"} <strong>{referralCodeUsed}</strong>
+            </p>
+          </Card>
+        )}
 
         {/* Profile Section */}
         <Card className="p-5">
@@ -178,9 +361,7 @@ const Settings = () => {
             {language === "es" ? "Zona de peligro" : "Danger Zone"}
           </h2>
           <p className="text-xs text-muted-foreground mb-3">
-            {language === "es"
-              ? "Cerrar sesión de tu cuenta"
-              : "Sign out of your account"}
+            {language === "es" ? "Cerrar sesión de tu cuenta" : "Sign out of your account"}
           </p>
           <Button variant="destructive" size="sm" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />

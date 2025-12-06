@@ -14,6 +14,153 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_agencies: {
+        Row: {
+          agency_code: string
+          agency_owner_user_id: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          agency_code: string
+          agency_owner_user_id: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          agency_code?: string
+          agency_owner_user_id?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      affiliate_agency_assignments: {
+        Row: {
+          affiliate_code: string
+          agency_code: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          affiliate_code: string
+          agency_code: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          affiliate_code?: string
+          agency_code?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      affiliate_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      affiliate_discounts: {
+        Row: {
+          created_at: string | null
+          discount_applied: boolean | null
+          discounted_price: number
+          id: string
+          plan_original_price: number
+          used_referral_code: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          discount_applied?: boolean | null
+          discounted_price: number
+          id?: string
+          plan_original_price: number
+          used_referral_code: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          discount_applied?: boolean | null
+          discounted_price?: number
+          id?: string
+          plan_original_price?: number
+          used_referral_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      affiliate_payouts: {
+        Row: {
+          affiliate_code: string
+          amount_paid: number
+          commission_affiliate: number
+          commission_agency: number | null
+          created_at: string | null
+          id: string
+          month: string
+          user_id_referred: string
+        }
+        Insert: {
+          affiliate_code: string
+          amount_paid?: number
+          commission_affiliate?: number
+          commission_agency?: number | null
+          created_at?: string | null
+          id?: string
+          month: string
+          user_id_referred: string
+        }
+        Update: {
+          affiliate_code?: string
+          amount_paid?: number
+          commission_affiliate?: number
+          commission_agency?: number | null
+          created_at?: string | null
+          id?: string
+          month?: string
+          user_id_referred?: string
+        }
+        Relationships: []
+      }
+      affiliate_referrals: {
+        Row: {
+          code_used: string
+          created_at: string | null
+          id: string
+          referred_user_id: string
+        }
+        Insert: {
+          code_used: string
+          created_at?: string | null
+          id?: string
+          referred_user_id: string
+        }
+        Update: {
+          code_used?: string
+          created_at?: string | null
+          id?: string
+          referred_user_id?: string
+        }
+        Relationships: []
+      }
       affiliates: {
         Row: {
           active_referrals_count: number
@@ -514,25 +661,40 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          currency: string | null
           email: string | null
           full_name: string | null
           id: string
+          language: string | null
+          marketplace: string | null
+          plan: Database["public"]["Enums"]["user_plan"] | null
+          referral_code_used: string | null
           updated_at: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string | null
+          currency?: string | null
           email?: string | null
           full_name?: string | null
           id: string
+          language?: string | null
+          marketplace?: string | null
+          plan?: Database["public"]["Enums"]["user_plan"] | null
+          referral_code_used?: string | null
           updated_at?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string | null
+          currency?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          language?: string | null
+          marketplace?: string | null
+          plan?: Database["public"]["Enums"]["user_plan"] | null
+          referral_code_used?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -838,6 +1000,11 @@ export type Database = {
       }
     }
     Functions: {
+      apply_referral_code: {
+        Args: { p_code: string; p_user_id: string }
+        Returns: boolean
+      }
+      generate_affiliate_code: { Args: never; Returns: string }
       generate_ref_code: { Args: never; Returns: string }
       has_role: {
         Args: {
@@ -849,6 +1016,7 @@ export type Database = {
     }
     Enums: {
       app_role: "user" | "founder"
+      user_plan: "free" | "creator" | "studio"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -977,6 +1145,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["user", "founder"],
+      user_plan: ["free", "creator", "studio"],
     },
   },
 } as const
