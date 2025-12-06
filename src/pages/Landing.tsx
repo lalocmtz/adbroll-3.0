@@ -294,42 +294,63 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Benefits */}
+      {/* Comparison Section */}
       <section className="py-20 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="badge-landing-light mb-4">Beneficios</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Por qué AdBroll cambia el juego
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              Con AdBroll <span className="text-4xl md:text-5xl">😎</span> vs Sin AdBroll <span className="text-4xl md:text-5xl">😡</span>
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                icon: Target,
-                title: "Contenido que vende",
-                description: "Replica estructuras probadas en lugar de adivinar. Aprende de los videos que ya están generando ventas.",
-              },
-              {
-                icon: DollarSign,
-                title: "Comisiones más altas",
-                description: "Te mostramos cuánto puedes ganar por cada venta. Elige productos con el mejor ROI.",
-              },
-              {
-                icon: Clock,
-                title: "Ahorra horas de trabajo",
-                description: "Scripts automáticos, análisis y tendencias listas para usar. De 0 a contenido en minutos.",
-              },
-            ].map((item, index) => (
-              <Card key={index} className="card-landing-light">
-                <div className="feature-icon-container mb-6">
-                  <item.icon className="h-7 w-7 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                <p className="text-muted-foreground">{item.description}</p>
-              </Card>
-            ))}
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Sin AdBroll */}
+            <div className="relative p-8 rounded-2xl border border-red-200 bg-gradient-to-br from-red-50/50 to-white shadow-lg">
+              <div className="absolute -top-4 left-6">
+                <span className="bg-red-500 text-white px-4 py-1.5 rounded-full text-sm font-semibold shadow-md">
+                  Sin AdBroll 😡
+                </span>
+              </div>
+              <ul className="space-y-5 mt-4">
+                {[
+                  "Pierdes horas buscando ideas sin claridad",
+                  "Grabas videos que no conectan ni venden",
+                  "No sabes si lo que haces dará resultados",
+                  "Terminas frustrado, sin ventas y con dudas",
+                ].map((item, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
+                      <X className="h-4 w-4 text-red-500" />
+                    </span>
+                    <span className="text-foreground/80">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Con AdBroll */}
+            <div className="relative p-8 rounded-2xl border border-green-200 bg-gradient-to-br from-green-50/50 to-white shadow-lg">
+              <div className="absolute -top-4 left-6">
+                <span className="bg-green-500 text-white px-4 py-1.5 rounded-full text-sm font-semibold shadow-md">
+                  Con AdBroll 😎
+                </span>
+              </div>
+              <ul className="space-y-5 mt-4">
+                {[
+                  "Sabes qué productos y guiones están generando ventas",
+                  "Solo grabas lo que ya está validado por datos",
+                  "Empiezas a ganar más rápido y sin adivinar",
+                  "Tienes claridad, motivación y resultados reales",
+                ].map((item, index) => (
+                  <li key={index} className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                      <Check className="h-4 w-4 text-green-500" />
+                    </span>
+                    <span className="text-foreground/80">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
