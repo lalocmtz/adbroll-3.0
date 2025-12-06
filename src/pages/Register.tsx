@@ -93,36 +93,37 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center landing-gradient p-4">
+      <Card className="w-full max-w-md bg-white/5 backdrop-blur-md border-white/10">
         <CardHeader>
           <div className="text-center mb-4">
             <h1
-              className="text-3xl font-bold mb-2 cursor-pointer hover:text-primary transition-colors"
+              className="text-3xl font-bold mb-2 cursor-pointer hover:text-primary transition-colors text-gradient"
               onClick={() => navigate("/")}
             >
               adbroll
             </h1>
           </div>
-          <CardTitle>Crear cuenta</CardTitle>
-          <CardDescription>
-            Accede a los 20 videos más rentables cada día
+          <CardTitle className="text-white">Crear cuenta</CardTitle>
+          <CardDescription className="text-white/60">
+            Accede a los videos más rentables de TikTok Shop
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Nombre completo</Label>
+              <Label htmlFor="fullName" className="text-white/80">Nombre completo</Label>
               <Input
                 id="fullName"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Tu nombre"
                 required
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-white/80">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -130,10 +131,11 @@ const Register = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tu@email.com"
                 required
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password" className="text-white/80">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
@@ -142,12 +144,13 @@ const Register = () => {
                 placeholder="••••••••"
                 required
                 minLength={6}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
               />
             </div>
 
             {/* Referral Code Input */}
             <div className="space-y-2">
-              <Label htmlFor="referralCode" className="flex items-center gap-2">
+              <Label htmlFor="referralCode" className="flex items-center gap-2 text-white/80">
                 <Gift className="h-4 w-4 text-primary" />
                 Código de referido (opcional)
               </Label>
@@ -156,30 +159,30 @@ const Register = () => {
                 value={referralCode}
                 onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                 placeholder="ABC123"
-                className={
+                className={`bg-white/10 border-white/20 text-white placeholder:text-white/40 ${
                   referralValid === true
                     ? "border-green-500 focus-visible:ring-green-500"
                     : referralValid === false
                     ? "border-red-500 focus-visible:ring-red-500"
                     : ""
-                }
+                }`}
               />
               {referralValid === true && (
-                <p className="text-sm text-green-600 flex items-center gap-1">
+                <p className="text-sm text-green-400 flex items-center gap-1">
                   🎉 Código válido - ¡50% off en tu primer mes!
                 </p>
               )}
               {referralValid === false && (
-                <p className="text-sm text-red-600">
+                <p className="text-sm text-red-400">
                   Código no válido
                 </p>
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-primary hover:bg-primary-hover" disabled={isLoading}>
               {isLoading ? "Creando cuenta..." : "Crear cuenta gratuita"}
             </Button>
-            <p className="text-sm text-center text-muted-foreground">
+            <p className="text-sm text-center text-white/60">
               ¿Ya tienes cuenta?{" "}
               <Link to="/login" className="text-primary hover:underline">
                 Inicia sesión
