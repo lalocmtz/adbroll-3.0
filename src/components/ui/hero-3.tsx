@@ -23,7 +23,7 @@ interface AnimatedMarqueeHeroProps {
   description: string;
   ctaText: string;
   ctaSecondaryText?: string;
-  images?: string[]; // Optional - will use static cards if not provided
+  images?: string[];
   className?: string;
   onCtaClick?: () => void;
   onCtaSecondaryClick?: () => void;
@@ -40,13 +40,13 @@ const ActionButton = ({
 }) => (
   <motion.button
     whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
+    whileTap={{ scale: 0.96 }}
     onClick={onClick}
     className={cn(
-      "px-8 py-4 rounded-full font-semibold shadow-lg transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-75",
+      "px-7 py-3.5 rounded-full font-bold transition-all duration-200 focus:outline-none",
       variant === "primary" 
-        ? "bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary btn-glow" 
-        : "bg-white text-foreground border border-border hover:bg-muted focus:ring-muted"
+        ? "bg-primary text-white shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40" 
+        : "bg-white/10 text-white border border-white/20 backdrop-blur-sm hover:bg-white/20"
     )}
   >
     {children}
@@ -75,22 +75,31 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
   return (
     <section
       className={cn(
-        "relative w-full min-h-screen overflow-hidden bg-background flex flex-col items-center justify-center text-center px-4",
+        "relative w-full h-screen overflow-hidden flex flex-col items-center justify-center text-center px-4",
         className
       )}
+      style={{ backgroundColor: '#0B0B0B' }}
     >
-      {/* Background glows */}
-      <div className="landing-hero-glow landing-hero-glow-pink" />
-      <div className="landing-hero-glow landing-hero-glow-blue" />
+      {/* Ground glow under cards for floating effect */}
+      <div 
+        className="absolute left-0 right-0 pointer-events-none z-[1]"
+        style={{
+          bottom: 'clamp(36vh, 40vh, 45vh)',
+          height: '96px',
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.4), rgba(0,0,0,0))',
+          filter: 'blur(24px)',
+        }}
+      />
 
-      {/* Main content - centered vertically */}
-      <div className="z-10 flex flex-col items-center max-w-4xl mx-auto pt-20 pb-8">
+      {/* Main content - centered */}
+      <div className="z-10 flex flex-col items-center max-w-[960px] mx-auto">
         {/* Tagline */}
         <motion.div
           initial="hidden"
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
-          className="mb-6 inline-block rounded-full border border-border bg-card/50 px-4 py-2 text-sm font-medium text-muted-foreground backdrop-blur-sm"
+          className="mb-3 inline-block rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs md:text-sm font-medium backdrop-blur-md"
+          style={{ color: 'rgba(255,255,255,0.68)' }}
         >
           {tagline}
         </motion.div>
@@ -107,7 +116,11 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
               },
             },
           }}
-          className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-tight"
+          className="font-black tracking-tight text-white leading-[0.98]"
+          style={{ 
+            fontSize: 'clamp(40px, 6vw, 88px)',
+            letterSpacing: '-0.02em',
+          }}
         >
           {typeof title === 'string' ? (
             title.split(" ").map((word, i) => (
@@ -131,8 +144,9 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
           initial="hidden"
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
-          transition={{ delay: 0.5 }}
-          className="mt-6 max-w-2xl text-lg md:text-xl text-muted-foreground"
+          transition={{ delay: 0.35 }}
+          className="mt-5 md:mt-6 max-w-[720px] text-base md:text-lg lg:text-xl"
+          style={{ color: 'rgba(255,255,255,0.68)' }}
         >
           {description}
         </motion.p>
@@ -142,8 +156,8 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
           initial="hidden"
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
-          transition={{ delay: 0.6 }}
-          className="flex flex-col sm:flex-row gap-4 mt-8"
+          transition={{ delay: 0.45 }}
+          className="flex flex-col sm:flex-row gap-3 mt-6 md:mt-7"
         >
           <ActionButton onClick={onCtaClick} variant="primary">
             {ctaText}
@@ -156,15 +170,23 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
         </motion.div>
       </div>
 
-      {/* Animated Image Marquee - Floating cards on white background */}
-      <div className="absolute bottom-0 left-0 w-full h-[520px] md:h-[640px] flex items-end justify-center overflow-hidden bg-white">
+      {/* Animated Image Marquee - Tightly spaced floating cards */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 flex items-end justify-center overflow-hidden"
+        style={{
+          height: 'clamp(36vh, 40vh, 45vh)',
+          maskImage: 'linear-gradient(to bottom, transparent, black 18%, black 82%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 18%, black 82%, transparent)',
+        }}
+      >
         <motion.div
-          className="flex gap-8 pb-6"
+          className="flex px-1"
+          style={{ gap: '8px' }}
           animate={{
-            x: ["-33.33%", "0%"],
+            x: ["-100%", "0%"],
             transition: {
               ease: "linear",
-              duration: 100,
+              duration: 32,
               repeat: Infinity,
             },
           }}
@@ -172,15 +194,19 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
           {heroImages.map((src, index) => (
             <div
               key={index}
-              className="relative w-[300px] md:w-[360px] h-[480px] md:h-[580px] flex-shrink-0 transition-transform hover:scale-[1.02]"
+              className="relative flex-shrink-0 rounded-[20px] overflow-hidden transition-transform duration-200 hover:-translate-y-1"
               style={{
-                transform: `rotate(${(index % 2 === 0 ? -1.5 : 2)}deg)`,
+                aspectRatio: '3/4',
+                height: 'clamp(176px, 22vh, 288px)',
+                transform: `rotate(${(index % 2 === 0 ? -1.5 : 2.5)}deg)`,
+                boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
+                willChange: 'transform',
               }}
             >
               <img
                 src={src}
-                alt={`Video viral ${index + 1}`}
-                className="w-full h-full object-contain"
+                alt={`Showcase image ${index + 1}`}
+                className="w-full h-full object-cover"
               />
             </div>
           ))}
