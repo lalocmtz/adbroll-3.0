@@ -50,7 +50,7 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
           className="flex items-center cursor-pointer"
           onClick={() => navigate(showMenu ? "/app" : "/")}
         >
-          <img src={logoDark} alt="adbroll" className="h-8" />
+          <img src={logoDark} alt="adbroll" className="h-10" />
         </div>
 
         {showMenu && (
