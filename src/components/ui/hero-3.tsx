@@ -156,15 +156,15 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
         </motion.div>
       </div>
 
-      {/* Animated Image Marquee - Full width, larger cards */}
-      <div className="absolute bottom-0 left-0 w-full h-[320px] md:h-[400px] [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)]">
+      {/* Animated Image Marquee - Full width, larger cards with shadows */}
+      <div className="absolute bottom-0 left-0 w-full h-[420px] md:h-[520px] flex items-end justify-center overflow-hidden">
         <motion.div
-          className="flex gap-6 absolute bottom-4"
+          className="flex gap-8 pb-8"
           animate={{
-            x: ["-50%", "0%"],
+            x: ["-33.33%", "0%"],
             transition: {
               ease: "linear",
-              duration: 40,
+              duration: 80,
               repeat: Infinity,
             },
           }}
@@ -172,15 +172,18 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
           {heroImages.map((src, index) => (
             <div
               key={index}
-              className="relative w-[200px] md:w-[260px] h-[280px] md:h-[360px] flex-shrink-0"
+              className="relative w-[280px] md:w-[340px] h-[380px] md:h-[460px] flex-shrink-0"
               style={{
-                transform: `rotate(${(index % 2 === 0 ? -2 : 3)}deg)`,
+                transform: `rotate(${(index % 2 === 0 ? -3 : 4)}deg)`,
               }}
             >
               <img
                 src={src}
                 alt={`Video viral ${index + 1}`}
-                className="w-full h-full object-cover object-top rounded-2xl shadow-xl border border-border/30"
+                className="w-full h-full object-contain rounded-3xl shadow-2xl drop-shadow-2xl"
+                style={{
+                  filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.25)) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.15))',
+                }}
               />
             </div>
           ))}
