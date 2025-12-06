@@ -45,8 +45,8 @@ const ActionButton = ({
     className={cn(
       "px-7 py-3.5 rounded-full font-bold transition-all duration-200 focus:outline-none",
       variant === "primary" 
-        ? "bg-primary text-white shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40" 
-        : "bg-white/10 text-white border border-white/20 backdrop-blur-sm hover:bg-white/20"
+        ? "bg-primary text-primary-foreground shadow-lg hover:bg-primary/90" 
+        : "bg-white text-foreground border border-border hover:bg-muted"
     )}
   >
     {children}
@@ -75,31 +75,18 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
   return (
     <section
       className={cn(
-        "relative w-full h-screen overflow-hidden flex flex-col items-center justify-center text-center px-4",
+        "relative w-full min-h-screen overflow-hidden flex flex-col items-center justify-start text-center px-4 bg-background",
         className
       )}
-      style={{ backgroundColor: '#0B0B0B' }}
     >
-      {/* Ground glow under cards for floating effect */}
-      <div 
-        className="absolute left-0 right-0 pointer-events-none z-[1]"
-        style={{
-          bottom: 'clamp(36vh, 40vh, 45vh)',
-          height: '96px',
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.4), rgba(0,0,0,0))',
-          filter: 'blur(24px)',
-        }}
-      />
-
       {/* Main content - centered */}
-      <div className="z-10 flex flex-col items-center max-w-[960px] mx-auto">
+      <div className="z-10 flex flex-col items-center max-w-[960px] mx-auto pt-24 md:pt-32">
         {/* Tagline */}
         <motion.div
           initial="hidden"
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
-          className="mb-3 inline-block rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs md:text-sm font-medium backdrop-blur-md"
-          style={{ color: 'rgba(255,255,255,0.68)' }}
+          className="mb-4 inline-block rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground"
         >
           {tagline}
         </motion.div>
@@ -116,11 +103,7 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
               },
             },
           }}
-          className="font-black tracking-tight text-white leading-[0.98]"
-          style={{ 
-            fontSize: 'clamp(40px, 6vw, 88px)',
-            letterSpacing: '-0.02em',
-          }}
+          className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-tight"
         >
           {typeof title === 'string' ? (
             title.split(" ").map((word, i) => (
@@ -145,8 +128,7 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
           transition={{ delay: 0.35 }}
-          className="mt-5 md:mt-6 max-w-[720px] text-base md:text-lg lg:text-xl"
-          style={{ color: 'rgba(255,255,255,0.68)' }}
+          className="mt-5 md:mt-6 max-w-[720px] text-base md:text-lg lg:text-xl text-muted-foreground"
         >
           {description}
         </motion.p>
@@ -157,7 +139,7 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
           transition={{ delay: 0.45 }}
-          className="flex flex-col sm:flex-row gap-3 mt-6 md:mt-7"
+          className="flex flex-col sm:flex-row gap-3 mt-6 md:mt-8"
         >
           <ActionButton onClick={onCtaClick} variant="primary">
             {ctaText}
@@ -170,43 +152,43 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
         </motion.div>
       </div>
 
-      {/* Animated Image Marquee - Tightly spaced floating cards */}
+      {/* Animated Image Marquee - Large cards with infinite scroll */}
       <div 
         className="absolute bottom-0 left-0 right-0 flex items-end justify-center overflow-hidden"
         style={{
-          height: 'clamp(36vh, 40vh, 45vh)',
-          maskImage: 'linear-gradient(to bottom, transparent, black 18%, black 82%, transparent)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 18%, black 82%, transparent)',
+          height: '55vh',
+          maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)',
         }}
       >
         <motion.div
-          className="flex px-1"
-          style={{ gap: '8px' }}
+          className="flex gap-4 md:gap-6"
           animate={{
-            x: ["-100%", "0%"],
-            transition: {
-              ease: "linear",
-              duration: 32,
+            x: ["-50%", "0%"],
+          }}
+          transition={{
+            x: {
               repeat: Infinity,
+              repeatType: "loop",
+              duration: 80,
+              ease: "linear",
             },
           }}
         >
           {heroImages.map((src, index) => (
             <div
               key={index}
-              className="relative flex-shrink-0 rounded-[20px] overflow-hidden transition-transform duration-200 hover:-translate-y-1"
+              className="relative flex-shrink-0 transition-transform duration-300 hover:scale-[1.02] hover:-translate-y-2"
               style={{
-                aspectRatio: '3/4',
-                height: 'clamp(176px, 22vh, 288px)',
-                transform: `rotate(${(index % 2 === 0 ? -1.5 : 2.5)}deg)`,
-                boxShadow: '0 8px 28px rgba(0,0,0,0.45)',
-                willChange: 'transform',
+                width: 'clamp(280px, 22vw, 380px)',
+                height: 'clamp(420px, 48vh, 620px)',
+                transform: `rotate(${(index % 2 === 0 ? -1 : 1.5)}deg)`,
               }}
             >
               <img
                 src={src}
                 alt={`Showcase image ${index + 1}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain drop-shadow-2xl"
               />
             </div>
           ))}
