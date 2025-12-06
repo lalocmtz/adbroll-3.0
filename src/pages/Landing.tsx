@@ -1,247 +1,655 @@
+import { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, BarChart3, FileText, Trophy, Sparkles, TrendingUp, Zap } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import GlobalHeader from "@/components/GlobalHeader";
-import LandingPricing from "@/components/LandingPricing";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  ArrowRight,
+  Play,
+  Sparkles,
+  TrendingUp,
+  FileText,
+  DollarSign,
+  Clock,
+  Lock,
+  Eye,
+  Zap,
+  Star,
+  Check,
+  X,
+  Gift,
+  Shield,
+  Brain,
+  Coins,
+  BarChart3,
+  Wand2,
+  Search,
+  Target,
+  ChevronRight,
+} from "lucide-react";
+import PricingModal from "@/components/PricingModal";
 
 const Landing = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get("ref");
+  const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const handleRegister = () => {
     navigate("/register" + (refCode ? `?ref=${refCode}` : ""));
   };
 
+  const handlePreviewClick = () => {
+    navigate("/register" + (refCode ? `?ref=${refCode}` : ""));
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
-      <GlobalHeader showMenu={false} />
+    <div className="min-h-screen landing-gradient text-white overflow-hidden">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 glass-effect border-b border-white/10">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <button onClick={() => navigate("/")} className="text-2xl font-bold">
+            <span className="text-gradient">adbroll</span>
+          </button>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10" onClick={() => navigate("/login")}>
+              Iniciar sesión
+            </Button>
+            <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover">
+              Empieza Gratis
+            </Button>
+          </div>
+        </div>
+      </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <div className="max-w-5xl mx-auto text-center space-y-8">
-          <Badge variant="secondary" className="text-sm px-4 py-1">
-            <Sparkles className="h-3 w-3 mr-1 inline" />
-            Datos en tiempo real de TikTok Shop
-          </Badge>
-          
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-balance leading-tight">
-            Descubre qué videos están vendiendo{" "}
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              HOY
-            </span>
-            {" "}en TikTok Shop
-          </h1>
-          
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto text-balance">
-            Guiones reales. Datos reales. Todo ya listo para usar y convertir.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Button 
-              size="lg" 
-              className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl transition-all"
-              onClick={handleRegister}
-            >
-              Empieza gratis
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="text-lg px-8 py-6 h-auto"
-              onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Ver planes
-            </Button>
-          </div>
+      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
         </div>
-      </section>
+        
+        <div className="container mx-auto px-4 relative">
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+            {/* Mini badges */}
+            <div className="flex flex-wrap justify-center gap-3 opacity-0 animate-fade-in-up">
+              <span className="badge-landing flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5" />
+                Sin riesgo — cancela cuando quieras
+              </span>
+              <span className="badge-landing flex items-center gap-1.5">
+                <Brain className="h-3.5 w-3.5" />
+                IA integrada
+              </span>
+              <span className="badge-landing flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5" />
+                Gana dinero recomendando AdBroll
+              </span>
+            </div>
 
-      {/* Stats Bar */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-3 gap-8 text-center">
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-foreground">20+</p>
-              <p className="text-sm md:text-base text-muted-foreground">Videos diarios</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-foreground">100%</p>
-              <p className="text-sm md:text-base text-muted-foreground">Datos verificados</p>
-            </div>
-            <div>
-              <p className="text-3xl md:text-4xl font-bold text-foreground">IA</p>
-              <p className="text-sm md:text-base text-muted-foreground">Guiones optimizados</p>
-            </div>
-          </div>
-        </div>
-      </section>
+            {/* Headline */}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight opacity-0 animate-fade-in-up animation-delay-100">
+              La herramienta que usan los creadores para encontrar videos que venden y{" "}
+              <span className="text-gradient">replicarlos en minutos</span>
+            </h1>
 
-      {/* Features Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Todo lo que necesitas para vender más
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Analiza, aprende y aplica las estrategias que funcionan
+            {/* Subtitle */}
+            <p className="text-lg md:text-xl text-white/70 max-w-3xl mx-auto opacity-0 animate-fade-in-up animation-delay-200">
+              Descubre los videos que están generando miles de dólares en TikTok Shop, extrae sus guiones y replica su éxito hoy mismo.
             </p>
+
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4 opacity-0 animate-fade-in-up animation-delay-300">
+              <Button
+                size="lg"
+                className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover glow-primary transition-all"
+                onClick={handleRegister}
+              >
+                Empieza Gratis
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="text-lg px-8 py-6 h-auto border-white/20 text-white hover:bg-white/10"
+                onClick={() => setPricingModalOpen(true)}
+              >
+                Ver Planes
+              </Button>
+            </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-            <Card className="card-premium p-8 text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <BarChart3 className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">
-                Datos reales de Kalodata
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Métricas verificadas de los videos que realmente están generando ventas en TikTok Shop
-              </p>
-            </Card>
-
-            <Card className="card-premium p-8 text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <FileText className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">
-                Guiones transcritos y reescritos por IA
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Cada video incluye transcripción automática y versión optimizada lista para adaptar
-              </p>
-            </Card>
-
-            <Card className="card-premium p-8 text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Trophy className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">
-                Top 20 videos con mayores ingresos
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Solo los creativos más rentables, actualizados cada día
-              </p>
-            </Card>
+          {/* Mockup placeholder */}
+          <div className="mt-16 max-w-5xl mx-auto opacity-0 animate-fade-in-up animation-delay-400">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-t from-[hsl(260,100%,4%)] via-transparent to-transparent z-10 pointer-events-none" />
+              <Card className="card-landing p-4 md:p-8 overflow-hidden animate-float">
+                <div className="aspect-video bg-gradient-to-br from-white/5 to-white/0 rounded-xl flex items-center justify-center border border-white/10">
+                  <div className="text-center space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto">
+                      <Play className="h-8 w-8 text-primary" />
+                    </div>
+                    <p className="text-white/60 text-sm">Preview del Dashboard</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       </section>
 
       {/* How it Works */}
-      <section className="container mx-auto px-4 py-16 md:py-24 bg-secondary/30">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
+      <section className="py-20 md:py-32 landing-gradient-section">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="badge-landing mb-4">Cómo funciona</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Cómo funciona
+              3 pasos simples para vender más
             </h2>
-            <p className="text-lg text-muted-foreground">
-              Simple, rápido y efectivo
+            <p className="text-white/60 max-w-2xl mx-auto">
+              De la inspiración a la acción en minutos, no horas
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                1
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                step: 1,
+                icon: Search,
+                title: "Explora videos que venden hoy",
+                description: "AdBroll analiza TikTok Shop y te muestra los videos que generan ventas reales.",
+              },
+              {
+                step: 2,
+                icon: FileText,
+                title: "Analiza y replica en segundos",
+                description: "Extrae scripts, análisis, ganancias por venta y productos vinculados.",
+              },
+              {
+                step: 3,
+                icon: Wand2,
+                title: "Crea contenido que vende",
+                description: "Genera variantes de guiones con IA y publica contenido optimizado.",
+              },
+            ].map((item, index) => (
+              <div key={index} className="relative">
+                <Card className="card-landing card-landing-hover h-full text-center transition-all duration-300">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">
+                    {item.step}
+                  </div>
+                  <div className="pt-6">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                      <item.icon className="h-7 w-7 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2 text-white">{item.title}</h3>
+                    <p className="text-white/60 text-sm">{item.description}</p>
+                  </div>
+                </Card>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Explora el Top 20</h3>
-              <p className="text-muted-foreground text-sm">
-                Descubre los videos más rentables del día
-              </p>
-            </div>
+            ))}
+          </div>
 
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                2
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Analiza los guiones</h3>
-              <p className="text-muted-foreground text-sm">
-                Lee las transcripciones y versiones optimizadas por IA
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                3
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Adapta y vende</h3>
-              <p className="text-muted-foreground text-sm">
-                Personaliza para tu producto y empieza a vender
-              </p>
-            </div>
+          <div className="text-center mt-12">
+            <Button
+              size="lg"
+              className="bg-primary hover:bg-primary-hover"
+              onClick={handleRegister}
+            >
+              Empieza Gratis
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* Screenshots/Mockup Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <div className="max-w-5xl mx-auto">
-          <Card className="card-premium p-8 md:p-12 bg-gradient-to-br from-primary/5 to-accent/5">
-            <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <TrendingUp className="h-16 w-16 text-muted-foreground mx-auto" />
-                <p className="text-xl font-semibold text-muted-foreground">
-                  Preview del Dashboard
-                </p>
-                <p className="text-sm text-muted-foreground max-w-md">
-                  Interfaz intuitiva con métricas en tiempo real, filtros avanzados y análisis detallado
-                </p>
-              </div>
-            </div>
+      {/* Interactive Preview (Paywall) */}
+      <section className="py-20 md:py-32">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="badge-landing mb-4">Vista previa</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Descubre lo que te espera dentro
+            </h2>
+            <p className="text-white/60 max-w-2xl mx-auto">
+              Haz clic para desbloquear acceso completo
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              {
+                icon: TrendingUp,
+                title: "Videos que están vendiendo hoy",
+                description: "Top 100 videos con mayores ingresos en TikTok Shop",
+                blurred: true,
+              },
+              {
+                icon: FileText,
+                title: "Extractor de Scripts con IA",
+                description: "Transcribe y analiza cualquier video automáticamente",
+                blurred: false,
+              },
+              {
+                icon: Target,
+                title: "Oportunidades de Productos",
+                description: "Productos con alta comisión y baja competencia",
+                blurred: true,
+              },
+            ].map((item, index) => (
+              <button
+                key={index}
+                onClick={handlePreviewClick}
+                className="group relative"
+              >
+                <Card className="card-landing card-landing-hover h-full text-left transition-all duration-300 overflow-hidden">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <item.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white mb-1">{item.title}</h3>
+                      <p className="text-white/60 text-sm">{item.description}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Blurred content placeholder */}
+                  <div className={`mt-4 space-y-2 ${item.blurred ? 'blur-paywall' : ''}`}>
+                    <div className="h-3 bg-white/10 rounded w-full" />
+                    <div className="h-3 bg-white/10 rounded w-4/5" />
+                    <div className="h-3 bg-white/10 rounded w-3/5" />
+                    <div className="h-8 bg-white/5 rounded mt-4" />
+                  </div>
+
+                  {/* Unlock overlay */}
+                  {item.blurred && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="px-4 py-2 bg-primary rounded-full text-sm font-medium flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Desbloquear
+                      </span>
+                    </div>
+                  )}
+                </Card>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits */}
+      <section className="py-20 md:py-32 landing-gradient-section">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="badge-landing mb-4">Beneficios</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Por qué AdBroll cambia el juego
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                icon: Target,
+                title: "Contenido que vende",
+                description: "Replica estructuras probadas en lugar de adivinar. Aprende de los videos que ya están generando ventas.",
+              },
+              {
+                icon: DollarSign,
+                title: "Comisiones más altas",
+                description: "Te mostramos cuánto puedes ganar por cada venta. Elige productos con el mejor ROI.",
+              },
+              {
+                icon: Clock,
+                title: "Ahorra horas de trabajo",
+                description: "Scripts automáticos, análisis y tendencias listas para usar. De 0 a contenido en minutos.",
+              },
+            ].map((item, index) => (
+              <Card key={index} className="card-landing card-landing-hover transition-all duration-300">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-6">
+                  <item.icon className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold mb-3 text-white">{item.title}</h3>
+                <p className="text-white/60">{item.description}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Product Tour */}
+      <section className="py-20 md:py-32">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="badge-landing mb-4">Dentro de AdBroll</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Datos reales. IA integrada. Resultados más rápidos.
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {[
+              { title: "Dashboard de Videos", icon: Play },
+              { title: "Analizar y Replicar", icon: Wand2 },
+              { title: "Oportunidades de Productos", icon: Target },
+              { title: "Extractor de Scripts", icon: FileText },
+              { title: "Generador de Variantes", icon: Sparkles },
+              { title: "Panel de Afiliados", icon: Coins },
+            ].map((item, index) => (
+              <Card key={index} className="card-landing card-landing-hover transition-all duration-300 group cursor-pointer" onClick={handlePreviewClick}>
+                <div className="aspect-video bg-gradient-to-br from-white/5 to-white/0 rounded-lg flex items-center justify-center border border-white/10 mb-4 group-hover:border-primary/30 transition-colors">
+                  <item.icon className="h-10 w-10 text-white/30 group-hover:text-primary transition-colors" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-white">{item.title}</h3>
+                  <ChevronRight className="h-5 w-5 text-white/40 group-hover:text-primary transition-colors" />
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-20 md:py-32 landing-gradient-section">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="badge-landing mb-4">Testimonios</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Lo que dicen los creadores
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              {
+                quote: "Dejé de grabar videos a ciegas. Ahora sé qué funciona.",
+                author: "Carlos M.",
+                role: "Creador TikTok Shop",
+              },
+              {
+                quote: "Mis ventas crecieron gracias a las oportunidades de alto payout.",
+                author: "María L.",
+                role: "Afiliada",
+              },
+              {
+                quote: "Vale cada peso. Me ahorra horas y aumenta mi conversión.",
+                author: "Diego R.",
+                role: "Content Creator",
+              },
+            ].map((item, index) => (
+              <Card key={index} className="card-landing">
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-primary text-primary" />
+                  ))}
+                </div>
+                <p className="text-white/80 mb-4 italic">"{item.quote}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+                    {item.author[0]}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white text-sm">{item.author}</p>
+                    <p className="text-white/50 text-xs">{item.role}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-20 md:py-32">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="badge-landing mb-4">Planes</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Elige tu plan
+            </h2>
+            <p className="text-white/60 max-w-2xl mx-auto">
+              Si vienes con código de referido, obtienes <span className="text-primary font-semibold">50% OFF</span> tu primer mes.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              {
+                name: "FREE",
+                price: 0,
+                description: "Perfecto para explorar",
+                features: [
+                  { text: "Feed limitado", included: true },
+                  { text: "Scripts limitados", included: true },
+                  { text: "Oportunidades bloqueadas", included: false },
+                  { text: "Variantes IA", included: false },
+                  { text: "Análisis IA", included: false },
+                ],
+                cta: "Empieza",
+                highlighted: false,
+              },
+              {
+                name: "CREATOR",
+                price: 29,
+                description: "Para creadores que escalan",
+                badge: "Más popular",
+                features: [
+                  { text: "Todo lo del free", included: true },
+                  { text: "Scripts ilimitados", included: true },
+                  { text: "Variantes IA", included: true },
+                  { text: "Oportunidades parciales", included: true },
+                  { text: "Panel de afiliados", included: true },
+                ],
+                cta: "Elegir plan",
+                highlighted: true,
+              },
+              {
+                name: "STUDIO",
+                price: 49,
+                description: "Para equipos y agencias",
+                badge: "Más completo",
+                features: [
+                  { text: "Todo ilimitado", included: true },
+                  { text: "Datos completos", included: true },
+                  { text: "Oportunidades pro", included: true },
+                  { text: "Prioridad en análisis", included: true },
+                  { text: "Soporte premium", included: true },
+                ],
+                cta: "Elegir plan",
+                highlighted: false,
+              },
+            ].map((plan, index) => (
+              <Card
+                key={index}
+                className={`relative p-6 flex flex-col transition-all duration-300 ${
+                  plan.highlighted
+                    ? "card-landing border-primary glow-primary md:scale-105"
+                    : "card-landing card-landing-hover"
+                }`}
+              >
+                {plan.badge && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white">
+                    <Star className="h-3 w-3 mr-1" />
+                    {plan.badge}
+                  </Badge>
+                )}
+
+                <div className="text-center mb-6 pt-2">
+                  <h3 className="text-lg font-bold text-white mb-1">{plan.name}</h3>
+                  <p className="text-white/50 text-sm mb-4">{plan.description}</p>
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-4xl font-bold text-white">
+                      {plan.price === 0 ? "Gratis" : `$${plan.price}`}
+                    </span>
+                    {plan.price > 0 && <span className="text-white/50">/mes</span>}
+                  </div>
+                </div>
+
+                <ul className="space-y-3 mb-6 flex-grow">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm">
+                      {feature.included ? (
+                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      ) : (
+                        <X className="h-4 w-4 text-white/30 flex-shrink-0" />
+                      )}
+                      <span className={feature.included ? "text-white/80" : "text-white/40"}>
+                        {feature.text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  className={`w-full ${
+                    plan.highlighted
+                      ? "bg-primary hover:bg-primary-hover"
+                      : "bg-white/10 hover:bg-white/20 text-white"
+                  }`}
+                  onClick={handleRegister}
+                >
+                  {plan.cta}
+                </Button>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-20 md:py-32 landing-gradient-section">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="badge-landing mb-4">FAQ</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Preguntas frecuentes
+            </h2>
+          </div>
+
+          <div className="max-w-3xl mx-auto">
+            <Accordion type="single" collapsible className="space-y-4">
+              {[
+                {
+                  question: "¿Qué tan precisos son los datos?",
+                  answer: "Nuestros datos provienen directamente de Kalodata, la fuente más confiable para métricas de TikTok Shop. Actualizamos los rankings y videos diariamente para darte información real y actualizada.",
+                },
+                {
+                  question: "¿Qué incluye el plan gratuito?",
+                  answer: "El plan gratuito te da acceso limitado al feed de videos, extracción de 1 script por día, y una vista previa de las oportunidades. Es perfecto para probar la plataforma antes de comprometerte.",
+                },
+                {
+                  question: "¿Puedo ganar dinero recomendando AdBroll?",
+                  answer: "¡Sí! Con nuestro programa de afiliados ganas el 30% de comisión recurrente por cada usuario que se suscriba con tu código. Puedes generar tu código desde el panel de configuración.",
+                },
+                {
+                  question: "¿Funciona para México y USA?",
+                  answer: "Actualmente nos enfocamos en TikTok Shop México con datos en MXN. Pronto expandiremos a USA y otros mercados.",
+                },
+                {
+                  question: "¿Puedo cancelar cuando quiera?",
+                  answer: "Absolutamente. No hay contratos ni compromisos a largo plazo. Puedes cancelar tu suscripción en cualquier momento desde tu panel de configuración.",
+                },
+                {
+                  question: "¿Necesito experiencia previa?",
+                  answer: "No. AdBroll está diseñado tanto para creadores nuevos como experimentados. La IA te guía en cada paso, desde encontrar videos hasta generar tus propios guiones optimizados.",
+                },
+              ].map((item, index) => (
+                <AccordionItem
+                  key={index}
+                  value={`item-${index}`}
+                  className="card-landing border-white/10 data-[state=open]:border-primary/30 transition-colors px-6"
+                >
+                  <AccordionTrigger className="text-white hover:text-primary py-4 text-left">
+                    {item.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-white/60 pb-4">
+                    {item.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 md:py-32">
+        <div className="container mx-auto px-4">
+          <Card className="max-w-4xl mx-auto p-8 md:p-16 text-center border-0 bg-gradient-to-r from-primary/20 to-accent/20 backdrop-blur-sm">
+            <Zap className="h-12 w-12 mx-auto mb-6 text-primary" />
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+              ¿Listo para vender más en TikTok Shop?
+            </h2>
+            <p className="text-lg md:text-xl mb-8 text-white/70 max-w-2xl mx-auto">
+              Únete a los creadores que están aumentando sus ventas con datos reales y scripts probados.
+            </p>
+            <Button
+              size="lg"
+              className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover glow-primary"
+              onClick={handleRegister}
+            >
+              Empieza Gratis
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </Card>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <LandingPricing />
-
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <Card className="max-w-4xl mx-auto p-8 md:p-16 text-center bg-gradient-to-r from-primary to-accent text-primary-foreground border-0 shadow-2xl">
-          <Zap className="h-12 w-12 mx-auto mb-6" />
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Comienza a analizar los mejores guiones hoy
-          </h2>
-          <p className="text-lg md:text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Únete a los creadores que están aumentando sus ventas con datos reales
-          </p>
-          <Button 
-            size="lg" 
-            variant="secondary"
-            className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl"
-            onClick={handleRegister}
-          >
-            Empieza gratis
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </Card>
-      </section>
-
       {/* Footer */}
-      <footer className="border-t border-border py-12 mt-8">
+      <footer className="border-t border-white/10 py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div>
-                <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  adbroll
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Datos reales para creadores reales
+            <div className="grid md:grid-cols-4 gap-8 mb-8">
+              <div className="md:col-span-2">
+                <h3 className="text-2xl font-bold text-gradient mb-2">adbroll</h3>
+                <p className="text-white/50 text-sm mb-4">
+                  La herramienta definitiva para creadores de TikTok Shop.
                 </p>
+                <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover">
+                  Empieza Gratis
+                </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
-                &copy; 2025 adbroll. Todos los derechos reservados.
+              <div>
+                <h4 className="font-semibold text-white mb-4">Legal</h4>
+                <ul className="space-y-2 text-sm">
+                  <li><button onClick={() => navigate("/terms")} className="text-white/50 hover:text-white transition-colors">Términos y Condiciones</button></li>
+                  <li><button onClick={() => navigate("/privacy")} className="text-white/50 hover:text-white transition-colors">Política de Privacidad</button></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-white mb-4">Soporte</h4>
+                <ul className="space-y-2 text-sm">
+                  <li><button onClick={() => navigate("/support")} className="text-white/50 hover:text-white transition-colors">Centro de Ayuda</button></li>
+                  <li><a href="mailto:contacto@adbroll.com" className="text-white/50 hover:text-white transition-colors">contacto@adbroll.com</a></li>
+                </ul>
+              </div>
+            </div>
+            <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-sm text-white/40">
+                © 2025 adbroll. Todos los derechos reservados.
               </p>
+              <div className="flex gap-4">
+                <a href="#" className="text-white/40 hover:text-white transition-colors">
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/></svg>
+                </a>
+                <a href="#" className="text-white/40 hover:text-white transition-colors">
+                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Pricing Modal */}
+      <PricingModal open={pricingModalOpen} onOpenChange={setPricingModalOpen} />
     </div>
   );
 };
