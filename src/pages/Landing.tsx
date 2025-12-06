@@ -371,16 +371,24 @@ const Landing = () => {
               <div className="order-2 lg:order-1">
                 <Badge className="badge-landing-light mb-4">Análisis de Scripts</Badge>
                 <h3 className="text-2xl md:text-3xl font-bold mb-4">
-                  Extrae y analiza guiones en segundos
+                  Convierte cualquier video viral en tu próximo guion ganador
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                  Nuestra IA transcribe el audio, identifica la estructura (Hook, Cuerpo, CTA) y te muestra exactamente qué hace que cada video venda.
+                  Nuestra IA analiza videos reales, detecta qué parte genera ventas y te entrega un guion listo para grabar.
+                  <span className="block mt-2 text-foreground/80 font-medium">
+                    Graba con confianza sabiendo que cada palabra ya está validada por datos reales.
+                  </span>
                 </p>
                 <ul className="space-y-3 mb-6">
-                  {["Transcripción automática con IA", "Análisis de estructura del script", "Identificación de patrones de venta", "Generación de variantes optimizadas"].map((item, i) => (
+                  {[
+                    { icon: "🧠", text: "Transcribe automáticamente cualquier video" },
+                    { icon: "🔍", text: "Identifica el gancho, cuerpo y cierre que vende" },
+                    { icon: "💸", text: "Detecta patrones de venta comprobados" },
+                    { icon: "✨", text: "Te da variantes optimizadas para maximizar vistas y conversiones" }
+                  ].map((item, i) => (
                     <li key={i} className="flex items-center gap-3 text-sm">
-                      <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
-                      <span>{item}</span>
+                      <span className="text-lg">{item.icon}</span>
+                      <span>{item.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -424,18 +432,26 @@ const Landing = () => {
                 </div>
               </div>
               <div>
-                <Badge className="badge-landing-light mb-4">Oportunidades</Badge>
+                <Badge className="badge-landing-light mb-4">Tu Copiloto IA</Badge>
                 <h3 className="text-2xl md:text-3xl font-bold mb-4">
-                  Encuentra productos con alta comisión y baja competencia
+                  Tu copiloto de IA trabaja por ti 24/7 para encontrar lo que vende
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                  Nuestro algoritmo analiza comisiones, ventas y competencia para mostrarte las mejores oportunidades de mercado.
+                  AdBroll está potenciado por un sistema de IA que analiza millones de datos, encuentra oportunidades y te guía paso a paso.
+                  <span className="block mt-2 text-foreground/80 font-medium">
+                    Tú solo eliges, grabas y ganas.
+                  </span>
                 </p>
                 <ul className="space-y-3 mb-6">
-                  {["Índice de oportunidad calculado con IA", "Comisiones del 15-30% por venta", "Productos con menos de 50 creadores activos", "Ganancias estimadas por cada venta"].map((item, i) => (
+                  {[
+                    { icon: "📊", text: "Detecta productos con poca competencia y alta comisión" },
+                    { icon: "🧠", text: "Calcula el potencial de cada producto por ti" },
+                    { icon: "💰", text: "Comisiones del 15-30% por venta" },
+                    { icon: "🚀", text: "Solo muestra oportunidades con alto potencial de ganancias" }
+                  ].map((item, i) => (
                     <li key={i} className="flex items-center gap-3 text-sm">
-                      <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
-                      <span>{item}</span>
+                      <span className="text-lg">{item.icon}</span>
+                      <span>{item.text}</span>
                     </li>
                   ))}
                 </ul>
