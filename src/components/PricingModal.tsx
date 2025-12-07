@@ -13,34 +13,14 @@ import {
 } from "@/components/ui/dialog";
 import {
   Check,
-  X,
   Sparkles,
-  Zap,
-  Building2,
   Gift,
   Star,
 } from "lucide-react";
-import { PlanType } from "@/hooks/useReferralCode";
 
 interface PricingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-interface PlanFeature {
-  text: string;
-  included: boolean;
-}
-
-interface Plan {
-  type: PlanType;
-  name: string;
-  price: number;
-  description: string;
-  icon: React.ReactNode;
-  features: PlanFeature[];
-  highlighted?: boolean;
-  badge?: string;
 }
 
 const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
@@ -74,80 +54,42 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
     checkReferral();
   }, [open]);
 
-  const plans: Plan[] = [
-    {
-      type: "free",
-      name: "Free",
-      price: 0,
-      description: language === "es" ? "Explorar la plataforma" : "Explore the platform",
-      icon: <Zap className="h-5 w-5" />,
-      features: [
-        { text: language === "es" ? "Vista limitada de videos" : "Limited video access", included: true },
-        { text: language === "es" ? "1 extracción por día" : "1 extraction per day", included: true },
-        { text: language === "es" ? "Variantes IA" : "AI Variants", included: false },
-        { text: language === "es" ? "Análisis IA" : "AI Analysis", included: false },
-      ],
-    },
-    {
-      type: "creator",
-      name: "Creator",
-      price: 29,
-      description: language === "es" ? "Para creadores que escalan" : "For scaling creators",
-      icon: <Sparkles className="h-5 w-5" />,
-      highlighted: true,
-      badge: language === "es" ? "Popular" : "Popular",
-      features: [
-        { text: language === "es" ? "Acceso completo" : "Full access", included: true },
-        { text: language === "es" ? "Análisis IA ilimitado" : "Unlimited AI analysis", included: true },
-        { text: language === "es" ? "Variantes IA (10/análisis)" : "AI Variants (10/analysis)", included: true },
-        { text: language === "es" ? "Panel de afiliados" : "Affiliate dashboard", included: true },
-      ],
-    },
-    {
-      type: "studio",
-      name: "Studio",
-      price: 49,
-      description: language === "es" ? "Para equipos y agencias" : "For teams & agencies",
-      icon: <Building2 className="h-5 w-5" />,
-      badge: language === "es" ? "Completo" : "Complete",
-      features: [
-        { text: language === "es" ? "Todo de Creator" : "Everything in Creator", included: true },
-        { text: language === "es" ? "Variantes avanzadas" : "Advanced variants", included: true },
-        { text: language === "es" ? "Soporte premium" : "Premium support", included: true },
-        { text: language === "es" ? "Para agencias" : "Agency-ready", included: true },
-      ],
-    },
-  ];
+  const features = language === "es" 
+    ? [
+        "Acceso completo a TikTok Shop México y USA",
+        "Scripts reales + extractor automático",
+        "Variantes IA ilimitadas",
+        "Hooks generados por IA",
+        "Panel de afiliados (30% recurrente)",
+      ]
+    : [
+        "Full access to TikTok Shop Mexico and US",
+        "Real scripts + automatic extractor",
+        "Unlimited AI variants",
+        "AI-generated hooks",
+        "Affiliate panel (30% recurring)",
+      ];
 
-  const handleSelectPlan = (planType: PlanType) => {
+  const handleSelectPlan = () => {
     onOpenChange(false);
     const refParam = referralCode ? `&ref=${referralCode}` : "";
 
-    if (planType === "free") {
-      navigate("/register" + (referralCode ? `?ref=${referralCode}` : ""));
-      return;
-    }
-
     if (session) {
-      navigate(`/checkout?plan=${planType}${refParam}`);
+      navigate(`/checkout?plan=creator${refParam}`);
     } else {
-      navigate(`/register?redirect=/checkout?plan=${planType}${refParam}${referralCode ? `&ref=${referralCode}` : ""}`);
+      navigate(`/register?redirect=/checkout?plan=creator${refParam}${referralCode ? `&ref=${referralCode}` : ""}`);
     }
   };
 
-  const getDiscountedPrice = (originalPrice: number) => {
-    if (referralValid && originalPrice > 0) {
-      return originalPrice * 0.5;
-    }
-    return originalPrice;
-  };
+  const price = 29;
+  const discountedPrice = referralValid ? price * 0.5 : price;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">
-            {language === "es" ? "Elige tu plan" : "Choose your plan"}
+            Adbroll Pro
           </DialogTitle>
         </DialogHeader>
 
@@ -162,104 +104,68 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
           </div>
         )}
 
-        <div className="grid md:grid-cols-3 gap-4 mt-4">
-          {plans.map((plan) => {
-            const discountedPrice = getDiscountedPrice(plan.price);
-            const hasDiscount = referralValid && plan.price > 0;
+        <Card className="relative p-6 border-2 border-primary">
+          <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 text-xs bg-primary text-primary-foreground">
+            <Star className="h-3 w-3 mr-1" />
+            {language === "es" ? "Plan único" : "Single plan"}
+          </Badge>
 
-            return (
-              <Card
-                key={plan.type}
-                className={`relative p-4 flex flex-col ${
-                  plan.highlighted
-                    ? "border-2 border-primary shadow-lg shadow-primary/10"
-                    : "border-border"
-                }`}
-              >
-                {plan.badge && (
-                  <Badge
-                    className={`absolute -top-2 left-1/2 -translate-x-1/2 text-xs ${
-                      plan.highlighted
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <Star className="h-3 w-3 mr-1" />
-                    {plan.badge}
-                  </Badge>
-                )}
+          <div className="text-center mb-4 pt-2">
+            <div className="inline-flex p-2 rounded-lg mb-2 bg-primary/10 text-primary">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              {language === "es"
+                ? "Todo lo que necesitas para vender más"
+                : "Everything you need to sell more"}
+            </p>
 
-                <div className="text-center mb-4 pt-2">
-                  <div
-                    className={`inline-flex p-2 rounded-lg mb-2 ${
-                      plan.highlighted
-                        ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {plan.icon}
-                  </div>
-                  <h3 className="text-lg font-bold mb-1">{plan.name}</h3>
-                  <p className="text-xs text-muted-foreground mb-3">{plan.description}</p>
+            <div className="flex items-baseline justify-center gap-1">
+              {referralValid ? (
+                <>
+                  <span className="text-lg text-muted-foreground line-through">
+                    ${price}
+                  </span>
+                  <span className="text-3xl font-bold text-primary">
+                    ${discountedPrice.toFixed(2)}
+                  </span>
+                </>
+              ) : (
+                <span className="text-3xl font-bold">${price}</span>
+              )}
+              <span className="text-muted-foreground text-sm">
+                /{language === "es" ? "mes" : "month"}
+              </span>
+            </div>
 
-                  <div className="flex items-baseline justify-center gap-1">
-                    {hasDiscount ? (
-                      <>
-                        <span className="text-lg text-muted-foreground line-through">
-                          ${plan.price}
-                        </span>
-                        <span className="text-2xl font-bold text-primary">
-                          ${discountedPrice.toFixed(2)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="text-2xl font-bold">
-                        {plan.price === 0
-                          ? language === "es" ? "Gratis" : "Free"
-                          : `$${plan.price}`}
-                      </span>
-                    )}
-                    {plan.price > 0 && (
-                      <span className="text-muted-foreground text-sm">/mes</span>
-                    )}
-                  </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              ~$499 MXN/{language === "es" ? "mes" : "month"}
+            </p>
 
-                  {hasDiscount && (
-                    <p className="text-xs text-green-600 mt-1 font-medium">
-                      🎉 50% off primer mes
-                    </p>
-                  )}
-                </div>
+            {referralValid && (
+              <p className="text-xs text-green-600 mt-1 font-medium">
+                🎉 50% off {language === "es" ? "primer mes" : "first month"}
+              </p>
+            )}
+          </div>
 
-                <ul className="space-y-2 mb-4 flex-grow text-sm">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      {feature.included ? (
-                        <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      ) : (
-                        <X className="h-4 w-4 text-muted-foreground/50 flex-shrink-0 mt-0.5" />
-                      )}
-                      <span className={feature.included ? "text-foreground" : "text-muted-foreground/50"}>
-                        {feature.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+          <ul className="space-y-2 mb-4 text-sm">
+            {features.map((feature, index) => (
+              <li key={index} className="flex items-start gap-2">
+                <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span className="text-foreground">{feature}</span>
+              </li>
+            ))}
+          </ul>
 
-                <Button
-                  className="w-full"
-                  variant={plan.highlighted ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleSelectPlan(plan.type)}
-                >
-                  {plan.price === 0
-                    ? language === "es" ? "Comenzar gratis" : "Start free"
-                    : language === "es" ? "Elegir plan" : "Choose plan"}
-                </Button>
-              </Card>
-            );
-          })}
-        </div>
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={handleSelectPlan}
+          >
+            {language === "es" ? "Empieza ahora" : "Start now"}
+          </Button>
+        </Card>
       </DialogContent>
     </Dialog>
   );
