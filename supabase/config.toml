@@ -1,10 +1,10 @@
 project_id = "gcntnilurlulejwwtpaa"
 
 [functions.auto-match-videos-products]
-verify_jwt = false
+verify_jwt = true
 
 [functions.smart-match-products]
-verify_jwt = false
+verify_jwt = true
 
 [functions.process-kalodata]
 verify_jwt = true
@@ -16,46 +16,46 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.transcribe-video]
-verify_jwt = false
+verify_jwt = true
 
 [functions.transcription-worker]
-verify_jwt = false
+verify_jwt = true
 
 [functions.transcribe-assemblyai]
-verify_jwt = false
+verify_jwt = true
 
 [functions.rewrite-script]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-script-variants]
-verify_jwt = false
+verify_jwt = true
 
 [functions.analyze-script-sections]
-verify_jwt = false
+verify_jwt = true
 
 [functions.analyze-script-insights]
-verify_jwt = false
+verify_jwt = true
 
 [functions.fetch-creator-avatar]
-verify_jwt = false
+verify_jwt = true
 
 [functions.analyze-full-script]
-verify_jwt = false
+verify_jwt = true
 
 [functions.download-tiktok-video]
-verify_jwt = false
+verify_jwt = true
 
 [functions.transcribe-and-analyze]
-verify_jwt = false
+verify_jwt = true
 
 [functions.download-videos-batch]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-hooks]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-full-script]
-verify_jwt = false
+verify_jwt = true
 
 [functions.rebuild-index]
-verify_jwt = false
+verify_jwt = true
