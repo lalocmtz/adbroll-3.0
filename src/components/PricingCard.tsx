@@ -2,26 +2,26 @@ import { Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PLANS, PlanType, useReferralCode } from "@/hooks/useReferralCode";
+import { useReferralCode } from "@/hooks/useReferralCode";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PricingCardProps {
-  planType: PlanType;
   features: string[];
   highlighted?: boolean;
   onSelect?: () => void;
 }
 
 export const PricingCard = ({
-  planType,
   features,
-  highlighted = false,
+  highlighted = true,
   onSelect,
 }: PricingCardProps) => {
   const { language } = useLanguage();
-  const { getPriceForPlan, referralCodeUsed } = useReferralCode();
-  const { originalPrice, discountedPrice, hasDiscount } = getPriceForPlan(planType);
-  const plan = PLANS[planType];
+  const { referralCodeUsed, referralDiscount } = useReferralCode();
+  
+  const price = 29;
+  const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied;
+  const discountedPrice = hasDiscount ? price * 0.5 : price;
 
   return (
     <Card
@@ -31,40 +31,33 @@ export const PricingCard = ({
           : "border-border"
       }`}
     >
-      {highlighted && (
-        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-          {language === "es" ? "Más popular" : "Most popular"}
-        </Badge>
-      )}
+      <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+        {language === "es" ? "Plan único" : "Single plan"}
+      </Badge>
 
       <div className="text-center mb-6">
-        <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
+        <h3 className="text-xl font-bold mb-2">Adbroll Pro</h3>
         <div className="flex items-center justify-center gap-2">
-          {hasDiscount && originalPrice > 0 ? (
+          {hasDiscount ? (
             <>
               <span className="text-2xl text-muted-foreground line-through">
-                ${originalPrice}
+                ${price}
               </span>
               <span className="text-4xl font-bold text-primary">
                 ${discountedPrice.toFixed(2)}
               </span>
             </>
           ) : (
-            <span className="text-4xl font-bold">
-              {originalPrice === 0 ? (
-                language === "es" ? "Gratis" : "Free"
-              ) : (
-                `$${originalPrice}`
-              )}
-            </span>
+            <span className="text-4xl font-bold">${price}</span>
           )}
-          {originalPrice > 0 && (
-            <span className="text-muted-foreground">
-              /{language === "es" ? "mes" : "mo"}
-            </span>
-          )}
+          <span className="text-muted-foreground">
+            /{language === "es" ? "mes" : "mo"}
+          </span>
         </div>
-        {hasDiscount && originalPrice > 0 && (
+        <p className="text-sm text-muted-foreground mt-1">
+          ~$499 MXN/{language === "es" ? "mes" : "mo"}
+        </p>
+        {hasDiscount && (
           <p className="text-sm text-green-600 mt-2 font-medium">
             🎉 {language === "es" ? "50% off primer mes" : "50% off first month"}
           </p>
@@ -82,16 +75,10 @@ export const PricingCard = ({
 
       <Button
         className="w-full"
-        variant={highlighted ? "default" : "outline"}
+        variant="default"
         onClick={onSelect}
       >
-        {originalPrice === 0
-          ? language === "es"
-            ? "Plan actual"
-            : "Current plan"
-          : language === "es"
-          ? "Suscribirse"
-          : "Subscribe"}
+        {language === "es" ? "Empieza ahora" : "Start now"}
       </Button>
     </Card>
   );

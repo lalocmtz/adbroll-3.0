@@ -18,10 +18,11 @@ export interface ReferralDiscount {
   created_at: string;
 }
 
+// Single plan: Adbroll Pro $29/month
 export const PLANS = {
   free: { name: "Free", price: 0 },
-  creator: { name: "Creator", price: 29 },
-  studio: { name: "Studio", price: 49 },
+  creator: { name: "Adbroll Pro", price: 29 },
+  studio: { name: "Adbroll Pro", price: 29 },
 } as const;
 
 export type PlanType = keyof typeof PLANS;
@@ -170,7 +171,8 @@ export const useReferralCode = () => {
         return { success: false, error: "No referral code applied" };
       }
 
-      const originalPrice = PLANS[planType].price;
+      // Always use $29 for Adbroll Pro
+      const originalPrice = 29;
       const discountedPrice = originalPrice * 0.5;
 
       const { data, error } = await supabase
@@ -199,8 +201,9 @@ export const useReferralCode = () => {
   };
 
   const getPriceForPlan = (planType: PlanType) => {
-    const originalPrice = PLANS[planType].price;
-    const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied;
+    // Always return $29 for paid plans
+    const originalPrice = planType === "free" ? 0 : 29;
+    const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied && originalPrice > 0;
     const discountedPrice = hasDiscount ? originalPrice * 0.5 : originalPrice;
 
     return {

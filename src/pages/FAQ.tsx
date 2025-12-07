@@ -12,8 +12,16 @@ import { HelpCircle } from "lucide-react";
 const faqData = {
   es: [
     {
+      question: "¿Cuánto cuesta Adbroll?",
+      answer: "Adbroll Pro cuesta $29 USD/mes (~$499 MXN/mes). Un solo plan con acceso completo a todas las funciones."
+    },
+    {
       question: "¿Qué es Adbroll?",
-      answer: "Adbroll es una plataforma de análisis para creadores de TikTok Shop México. Te mostramos los videos más vendedores, los productos más rentables y los creadores más exitosos para que puedas inspirarte y replicar estrategias que funcionan."
+      answer: "Adbroll es una plataforma de análisis para creadores de TikTok Shop. Te mostramos los videos más vendedores, los productos más rentables y los creadores más exitosos para que puedas inspirarte y replicar estrategias que funcionan."
+    },
+    {
+      question: "¿Funciona para México y Estados Unidos?",
+      answer: "Sí, funciona para TikTok Shop México y Estados Unidos. Puedes cambiar de país dentro del panel."
     },
     {
       question: "¿De dónde salen los datos?",
@@ -21,19 +29,11 @@ const faqData = {
     },
     {
       question: "¿Cada cuánto se actualizan los rankings?",
-      answer: "Los rankings se actualizan diariamente. Nuestro equipo importa nuevos datos de Kalodata regularmente para asegurar que siempre veas información fresca y relevante del mercado mexicano de TikTok Shop."
+      answer: "Los rankings se actualizan diariamente. Nuestro equipo importa nuevos datos de Kalodata regularmente para asegurar que siempre veas información fresca y relevante."
     },
     {
       question: "¿Puedo descargar los scripts?",
       answer: "Sí, puedes copiar cualquier script transcrito directamente desde la plataforma. En el modal de análisis de cada video encontrarás un botón para copiar el guión completo. También puedes generar variantes con IA y copiarlas."
-    },
-    {
-      question: "¿Cómo se calculan los ingresos y la comisión?",
-      answer: "Los ingresos mostrados representan el GMV (Gross Merchandise Value) reportado por Kalodata. La comisión estimada se calcula usando la tasa de comisión del producto (si está disponible) o una tasa estándar del 6-8% sobre los ingresos."
-    },
-    {
-      question: "¿Qué incluye la suscripción?",
-      answer: "La suscripción de $49 USD/mes incluye acceso completo a: Top 100 videos más vendedores, catálogo de productos rentables, directorio de creadores exitosos, transcripción de scripts con IA, análisis de estructura de videos, y generación de variantes de guiones."
     },
     {
       question: "¿Cómo funciona la transcripción con IA?",
@@ -46,8 +46,16 @@ const faqData = {
   ],
   en: [
     {
+      question: "How much does Adbroll cost?",
+      answer: "Adbroll Pro is $29/month. One plan with full access to all features."
+    },
+    {
       question: "What is Adbroll?",
-      answer: "Adbroll is an analytics platform for TikTok Shop Mexico creators. We show you the best-selling videos, most profitable products, and most successful creators so you can get inspired and replicate strategies that work."
+      answer: "Adbroll is an analytics platform for TikTok Shop creators. We show you the best-selling videos, most profitable products, and most successful creators so you can get inspired and replicate strategies that work."
+    },
+    {
+      question: "Does it work for Mexico and the United States?",
+      answer: "Yes, it works for TikTok Shop Mexico and US. You can switch markets inside the dashboard."
     },
     {
       question: "Where does the data come from?",
@@ -55,19 +63,11 @@ const faqData = {
     },
     {
       question: "How often are rankings updated?",
-      answer: "Rankings are updated daily. Our team imports new data from Kalodata regularly to ensure you always see fresh and relevant information from the Mexican TikTok Shop market."
+      answer: "Rankings are updated daily. Our team imports new data from Kalodata regularly to ensure you always see fresh and relevant information."
     },
     {
       question: "Can I download the scripts?",
       answer: "Yes, you can copy any transcribed script directly from the platform. In each video's analysis modal, you'll find a button to copy the complete script. You can also generate AI variants and copy them."
-    },
-    {
-      question: "How are revenue and commission calculated?",
-      answer: "The revenue shown represents the GMV (Gross Merchandise Value) reported by Kalodata. The estimated commission is calculated using the product's commission rate (if available) or a standard rate of 6-8% on revenue."
-    },
-    {
-      question: "What's included in the subscription?",
-      answer: "The $49 USD/month subscription includes full access to: Top 100 best-selling videos, profitable product catalog, successful creator directory, AI script transcription, video structure analysis, and script variant generation."
     },
     {
       question: "How does AI transcription work?",

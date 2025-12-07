@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Copy, Check, DollarSign, Users, TrendingUp, Gift, Share2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAffiliate } from "@/hooks/useAffiliate";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -88,12 +87,17 @@ const Affiliates = () => {
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold mb-1">
-              {language === "es" ? "💰 Gana $5 USD por cada referido" : "💰 Earn $5 USD per referral"}
+              {language === "es" ? "💰 Gana 30% recurrente por cada referido" : "💰 Earn 30% recurring per referral"}
             </h2>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground mb-2">
               {language === "es" 
-                ? "Cada vez que alguien se registre con tu código y se suscriba a Pro, recibirás $5 USD en tu saldo."
-                : "Every time someone signs up with your code and subscribes to Pro, you'll receive $5 USD in your balance."}
+                ? "Cada vez que alguien se registre con tu código y se suscriba a Adbroll Pro, recibirás el 30% de su pago mensual."
+                : "Every time someone signs up with your code and subscribes to Adbroll Pro, you'll receive 30% of their monthly payment."}
+            </p>
+            <p className="text-sm font-medium text-green-600 mb-4">
+              {language === "es" 
+                ? "≈ $8.70 USD al mes por cada usuario activo"
+                : "≈ $8.70 USD per month for each active user"}
             </p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="gap-1">
@@ -102,7 +106,7 @@ const Affiliates = () => {
               </Badge>
               <Badge variant="secondary" className="gap-1">
                 <Users className="h-3 w-3" />
-                {language === "es" ? "Comisión de por vida" : "Lifetime commission"}
+                {language === "es" ? "Comisión recurrente" : "Recurring commission"}
               </Badge>
             </div>
           </div>
@@ -271,12 +275,12 @@ const Affiliates = () => {
                 </div>
                 <div>
                   <p className="font-medium text-sm">
-                    {language === "es" ? "Se registran" : "They sign up"}
+                    {language === "es" ? "Se suscriben" : "They subscribe"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {language === "es" 
-                      ? "Y se suscriben a Pro"
-                      : "And subscribe to Pro"}
+                      ? "A Adbroll Pro por $29/mes"
+                      : "To Adbroll Pro for $29/mo"}
                   </p>
                 </div>
               </div>
@@ -286,12 +290,12 @@ const Affiliates = () => {
                 </div>
                 <div>
                   <p className="font-medium text-sm text-green-600">
-                    {language === "es" ? "¡Ganas $5!" : "You earn $5!"}
+                    {language === "es" ? "¡Ganas 30%!" : "You earn 30%!"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {language === "es" 
-                      ? "Por cada suscripción"
-                      : "Per subscription"}
+                      ? "≈$8.70/mes por usuario"
+                      : "≈$8.70/mo per user"}
                   </p>
                 </div>
               </div>
