@@ -6,17 +6,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Brain } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Brain, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
 import { AssetUploader } from "@/components/AssetUploader";
+
+type Market = "mx" | "us";
 
 const Admin = () => {
   const navigate = useNavigate();
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [productFile, setProductFile] = useState<File | null>(null);
   const [creatorFile, setCreatorFile] = useState<File | null>(null);
+  const [selectedMarket, setSelectedMarket] = useState<Market>("mx");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [isAIMatching, setIsAIMatching] = useState(false);
@@ -42,7 +46,7 @@ const Admin = () => {
     videosDownloaded: 0,
     pendingMatch: 0,
     pendingDownload: 0,
-    readyToShow: 0, // Videos that are complete (downloaded + product)
+    readyToShow: 0,
   });
 
   useEffect(() => {
@@ -283,6 +287,7 @@ const Admin = () => {
         
         const formData = new FormData();
         formData.append("file", creatorFile);
+        formData.append("market", selectedMarket);
         
         const { error } = await supabase.functions.invoke("process-kalodata-creators", {
           body: formData,
@@ -298,6 +303,7 @@ const Admin = () => {
         
         const formData = new FormData();
         formData.append("file", productFile);
+        formData.append("market", selectedMarket);
         
         const { error } = await supabase.functions.invoke("process-kalodata-products", {
           body: formData,
@@ -313,6 +319,7 @@ const Admin = () => {
         
         const formData = new FormData();
         formData.append("file", videoFile);
+        formData.append("market", selectedMarket);
         
         const { error } = await supabase.functions.invoke("process-kalodata", {
           body: formData,
@@ -598,6 +605,31 @@ const Admin = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Market Selector - MANDATORY */}
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+              <Label className="flex items-center gap-2 text-sm font-semibold mb-3">
+                <Globe className="h-4 w-4" />
+                Selecciona el mercado del archivo:
+              </Label>
+              <RadioGroup
+                value={selectedMarket}
+                onValueChange={(value) => setSelectedMarket(value as Market)}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="mx" id="market-mx" />
+                  <Label htmlFor="market-mx" className="cursor-pointer font-medium">
+                    🇲🇽 México (MX)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="us" id="market-us" />
+                  <Label htmlFor="market-us" className="cursor-pointer font-medium">
+                    🇺🇸 Estados Unidos (US)
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
             {/* Creators File - FIRST */}
             <div className="flex items-center gap-3">
               <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">1</div>

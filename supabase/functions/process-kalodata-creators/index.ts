@@ -198,16 +198,18 @@ serve(async (req) => {
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const market = formData.get("market") as string || "mx";
+    
     if (!file) throw new Error("No se proporcionó archivo");
 
-    console.log("Archivo de creadores recibido:", file.name, "Tamaño:", file.size);
+    console.log("Archivo de creadores recibido:", file.name, "Tamaño:", file.size, "Market:", market);
 
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array" });
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet);
 
-    console.log(`Procesando ${rows.length} filas del Excel`);
+    console.log(`Procesando ${rows.length} filas del Excel para mercado ${market}`);
     
     if (rows.length > 0) {
       console.log("Columnas detectadas:", JSON.stringify(Object.keys(rows[0])));
@@ -226,7 +228,6 @@ serve(async (req) => {
       const videosCount = parseNumericValue(findColumnValue(row, "videos_count"));
       const gmvVideos = parseNumericValue(findColumnValue(row, "gmv_videos"));
       const tiktokUrl = findColumnValue(row, "tiktok_url");
-      const country = findColumnValue(row, "country");
 
       const finalUsername = username || creatorName || `creator_${index + 1}`;
       const cleanUsername = String(finalUsername).replace("@", "").trim();
@@ -250,7 +251,7 @@ serve(async (req) => {
         revenue_live: gmvLive || 0,
         revenue_videos: gmvVideos || 0,
         tiktok_url: buildTikTokUrl(cleanUsername, tiktokUrl ? String(tiktokUrl).trim() : null),
-        country: country ? String(country).trim() : null,
+        country: market, // Always use market from request body
       };
     }).filter(c => c.handle && c.handle !== "creator_0");
 
@@ -262,19 +263,20 @@ serve(async (req) => {
     });
 
     const top50Creators = sortedCreators.slice(0, 50);
-    console.log(`Top 50 creadores seleccionados`);
+    console.log(`Top 50 creadores seleccionados (market: ${market})`);
 
-    // SMART UPSERT: Check existing creators by handle
+    // SMART UPSERT: Check existing creators by handle AND market
     let insertedCount = 0;
     let updatedCount = 0;
     const creatorsForAvatarFetch: Array<{ id: string; tiktok_url: string | null; avatar_url: string | null }> = [];
 
     for (const c of top50Creators) {
-      // Check if creator exists by handle
+      // Check if creator exists by handle AND market
       const { data: existing } = await supabaseServiceClient
         .from("creators")
         .select("id, avatar_url")
         .eq("creator_handle", c.handle)
+        .eq("country", market)
         .maybeSingle();
 
       if (existing) {
@@ -314,7 +316,7 @@ serve(async (req) => {
           console.error(`Error updating creator ${c.handle}:`, updateError);
         }
       } else {
-        // INSERT new creator
+        // INSERT new creator with market
         const { data: inserted, error: insertError } = await supabaseServiceClient
           .from("creators")
           .insert({
@@ -328,7 +330,7 @@ serve(async (req) => {
 
         if (!insertError && inserted) {
           insertedCount++;
-          console.log(`Inserted creator: ${c.handle}`);
+          console.log(`Inserted creator: ${c.handle} (market: ${market})`);
           
           // Queue for avatar fetch if missing
           if (!inserted.avatar_url) {
@@ -340,7 +342,7 @@ serve(async (req) => {
       }
     }
 
-    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
+    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated (market: ${market})`);
 
     // Start background task to fetch avatars
     if (creatorsForAvatarFetch.length > 0) {
@@ -363,7 +365,8 @@ serve(async (req) => {
         updated: updatedCount,
         processed: top50Creators.length,
         total: rows.length,
-        message: `Importación inteligente: ${insertedCount} nuevos, ${updatedCount} actualizados. Avatares descargándose en segundo plano.`,
+        market,
+        message: `Importación inteligente (${market.toUpperCase()}): ${insertedCount} nuevos, ${updatedCount} actualizados. Avatares descargándose en segundo plano.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

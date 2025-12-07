@@ -8,6 +8,7 @@ import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { MarketProvider } from "@/contexts/MarketContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -80,9 +81,10 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <LanguageProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+          <MarketProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
@@ -198,10 +200,11 @@ const App = () => {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </LanguageProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
+        </MarketProvider>
+      </LanguageProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 };
 
 export default App;
