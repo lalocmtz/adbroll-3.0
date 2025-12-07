@@ -88,12 +88,12 @@ const Login = () => {
       <Card className="w-full max-w-md card-landing-light">
         <CardHeader>
           <div className="text-center mb-4">
-            <h1 
-              className="text-3xl font-bold mb-2 cursor-pointer hover:text-primary transition-colors text-gradient"
+            <img 
+              src="/src/assets/logo-dark.png"
+              alt="adbroll"
+              className="h-10 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/")}
-            >
-              adbroll
-            </h1>
+            />
           </div>
           <CardTitle>Bienvenido de vuelta</CardTitle>
           <CardDescription>
