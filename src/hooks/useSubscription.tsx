@@ -8,6 +8,7 @@ export const useSubscription = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [isFounder, setIsFounder] = useState(false);
 
   useEffect(() => {
     checkSubscription();
@@ -22,9 +23,16 @@ export const useSubscription = () => {
         return;
       }
 
-      // TEMPORARY DEV BYPASS: Full access for development account
-      if (user.email === "lalocmtz@gmail.com") {
-        setSubscription(null);
+      // Check for founder role using server-side RLS protected table
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "founder")
+        .maybeSingle();
+
+      if (roleData) {
+        setIsFounder(true);
         setHasActiveSubscription(true);
         setLoading(false);
         return;
@@ -55,6 +63,7 @@ export const useSubscription = () => {
     subscription,
     loading,
     hasActiveSubscription,
+    isFounder,
     refetch: checkSubscription,
   };
 };
