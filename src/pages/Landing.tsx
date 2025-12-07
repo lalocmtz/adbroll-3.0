@@ -610,14 +610,14 @@ const Landing = () => {
               <div>
                 <h4 className="font-semibold mb-4">Legal</h4>
                 <ul className="space-y-2 text-sm">
-                  <li><button onClick={() => navigate("/terms")} className="text-muted-foreground hover:text-foreground transition-colors">Términos y Condiciones</button></li>
-                  <li><button onClick={() => navigate("/privacy")} className="text-muted-foreground hover:text-foreground transition-colors">Política de Privacidad</button></li>
+                  <li><a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">Términos y Condiciones</a></li>
+                  <li><a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">Política de Privacidad</a></li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-semibold mb-4">Soporte</h4>
                 <ul className="space-y-2 text-sm">
-                  <li><button onClick={() => navigate("/support")} className="text-muted-foreground hover:text-foreground transition-colors">Centro de Ayuda</button></li>
+                  <li><a href="/support" className="text-muted-foreground hover:text-foreground transition-colors">Centro de Ayuda</a></li>
                   <li><a href="mailto:contacto@adbroll.com" className="text-muted-foreground hover:text-foreground transition-colors">contacto@adbroll.com</a></li>
                 </ul>
               </div>
