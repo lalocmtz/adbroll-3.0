@@ -80,17 +80,18 @@ const Dashboard = () => {
   }, [market]);
 
   useEffect(() => {
-    fetchVideos();
-  }, [currentPage, sortOrder, selectedCategory, productFilter, creatorFilter, market]);
     setCurrentPage(1);
-    fetchVideos(1);
-  }, [productFilter, creatorFilter, sortOrder, selectedCategory]);
+  }, [productFilter, creatorFilter, sortOrder, selectedCategory, market]);
+
+  useEffect(() => {
+    fetchVideos(currentPage);
+  }, [currentPage, sortOrder, selectedCategory, productFilter, creatorFilter, market]);
 
   const fetchCategories = async () => {
-    // Get categories from products table (productos have categories, not videos directly)
     const { data } = await supabase
       .from("products")
       .select("categoria")
+      .eq("market", market)
       .not("categoria", "is", null);
     
     if (data) {
@@ -98,10 +99,6 @@ const Dashboard = () => {
       setCategories(uniqueCategories.sort());
     }
   };
-
-  useEffect(() => {
-    fetchVideos(currentPage);
-  }, [currentPage]);
 
   const fetchVideos = async (page: number) => {
     try {
