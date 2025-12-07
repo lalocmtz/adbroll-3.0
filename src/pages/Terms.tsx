@@ -1,7 +1,9 @@
+import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import GlobalHeader from "@/components/GlobalHeader";
 import Footer from "@/components/Footer";
-import { FileText } from "lucide-react";
+import { FileText, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Terms = () => {
   const { language, t } = useLanguage();
@@ -202,6 +204,13 @@ Email: contacto@adbroll.com`
       <GlobalHeader showMenu={false} />
       
       <main className="flex-1 container mx-auto px-4 md:px-6 py-12 max-w-3xl">
+        <Link to="/">
+          <Button variant="ghost" className="mb-6 -ml-2 text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {language === 'es' ? 'Volver al inicio' : 'Back to home'}
+          </Button>
+        </Link>
+
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
             <FileText className="h-8 w-8 text-primary" />
