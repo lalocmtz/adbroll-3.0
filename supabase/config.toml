@@ -1,5 +1,8 @@
 project_id = "gcntnilurlulejwwtpaa"
 
+[functions.send-email]
+verify_jwt = true
+
 [functions.auto-match-videos-products]
 verify_jwt = true
 
