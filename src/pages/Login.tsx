@@ -91,7 +91,7 @@ const Login = () => {
             <img 
               src="/src/assets/logo-dark.png"
               alt="adbroll"
-              className="h-10 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+              className="h-12 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/")}
             />
           </div>

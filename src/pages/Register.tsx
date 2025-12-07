@@ -148,12 +148,12 @@ const Register = () => {
       <Card className="w-full max-w-md card-landing-light">
         <CardHeader>
           <div className="text-center mb-4">
-            <h1
-              className="text-3xl font-bold mb-2 cursor-pointer hover:text-primary transition-colors text-gradient"
+            <img 
+              src="/src/assets/logo-dark.png"
+              alt="adbroll"
+              className="h-12 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/")}
-            >
-              adbroll
-            </h1>
+            />
           </div>
           <CardTitle>Crear cuenta</CardTitle>
           <CardDescription>
@@ -286,7 +286,7 @@ const Register = () => {
                 <p className="text-sm text-destructive">{errors.password}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Mínimo 6 caracteres, una letra y un número
+                Mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial
               </p>
             </div>
 
