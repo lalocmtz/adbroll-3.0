@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Gift } from "lucide-react";
+import { registerSchema } from "@/lib/validations";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -18,6 +19,7 @@ const Register = () => {
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -44,16 +46,32 @@ const Register = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+
+    // Validate inputs
+    const result = registerSchema.safeParse({ fullName, email, password, referralCode });
+    if (!result.success) {
+      const fieldErrors: { fullName?: string; email?: string; password?: string } = {};
+      result.error.errors.forEach((err) => {
+        const field = err.path[0] as string;
+        if (field === 'fullName') fieldErrors.fullName = err.message;
+        if (field === 'email') fieldErrors.email = err.message;
+        if (field === 'password') fieldErrors.password = err.message;
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const { data: signUpData, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: result.data.email,
+        password: result.data.password,
         options: {
           emailRedirectTo: `${window.location.origin}/app`,
           data: {
-            full_name: fullName,
+            full_name: result.data.fullName,
           },
         },
       });
@@ -84,9 +102,13 @@ const Register = () => {
         setTimeout(() => navigate(`/pricing${refParam}`), 1000);
       }
     } catch (error: any) {
+      let message = error.message;
+      if (error.message?.includes("already registered")) {
+        message = "Este email ya está registrado. ¿Quieres iniciar sesión?";
+      }
       toast({
         title: "Error al registrarse",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -216,10 +238,17 @@ const Register = () => {
               <Input
                 id="fullName"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  if (errors.fullName) setErrors(prev => ({ ...prev, fullName: undefined }));
+                }}
                 placeholder="Tu nombre"
-                required
+                className={errors.fullName ? "border-destructive" : ""}
+                aria-invalid={!!errors.fullName}
               />
+              {errors.fullName && (
+                <p className="text-sm text-destructive">{errors.fullName}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -227,10 +256,17 @@ const Register = () => {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
+                }}
                 placeholder="tu@email.com"
-                required
+                className={errors.email ? "border-destructive" : ""}
+                aria-invalid={!!errors.email}
               />
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
@@ -238,11 +274,20 @@ const Register = () => {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+                }}
                 placeholder="••••••••"
-                required
-                minLength={6}
+                className={errors.password ? "border-destructive" : ""}
+                aria-invalid={!!errors.password}
               />
+              {errors.password && (
+                <p className="text-sm text-destructive">{errors.password}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Mínimo 6 caracteres, una letra y un número
+              </p>
             </div>
 
             <Button type="submit" className="w-full bg-primary hover:bg-primary-hover" disabled={isLoading}>
