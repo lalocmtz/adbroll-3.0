@@ -6,6 +6,17 @@
 
 ## ✅ COMPLETADO - Diciembre 2024
 
+### APP-FIRST Model (Diciembre 7, 2024)
+- [x] Redirect `/` to `/app` - No landing page
+- [x] `useBlurGate` hook - Access levels: visitor/free/paid
+- [x] `BlurGateContext` - Global blur state provider
+- [x] `PaywallModal` - Reusable modal for feature gating
+- [x] `PreviewBanner` - Top banner for free preview mode
+- [x] `BlurOverlay` component - Blur wrapper for content
+- [x] VideoCardOriginal - Metrics blur + paywall CTA
+- [x] DashboardSidebar - Works for unauthenticated users
+- [x] Removed SubscriptionGate blocking - App viewable by all
+
 ### 0. INGESTA - Sistema de Importación Kalodata
 - [x] Edge functions usan XLSX (SheetJS) para archivos `.xlsx`
 - [x] Column mapping dinámico para encabezados en español

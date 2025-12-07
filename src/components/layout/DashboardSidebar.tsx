@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import {
   TrendingUp,
   Coins,
   Wrench,
+  LogIn,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import logoDark from "@/assets/logo-dark.png";
@@ -45,6 +47,7 @@ const navItems = [
 
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   const { language } = useLanguage();
+  const { isLoggedIn, hasPaid } = useBlurGateContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [userEmail, setUserEmail] = useState<string>("");
@@ -60,8 +63,10 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
         setUserName(user.user_metadata?.full_name || user.email.split("@")[0]);
       }
     };
-    getUser();
-  }, []);
+    if (isLoggedIn) {
+      getUser();
+    }
+  }, [isLoggedIn]);
 
   const getUserInitials = () => {
     if (!userName) return "U";
@@ -251,46 +256,68 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             <span>{language === "es" ? "Soporte" : "Support"}</span>
           </button>
 
-          {/* Plan Card - Redesigned */}
-          <div className="p-3 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 border border-[#E2E8F0] dark:border-border">
-            <div className="flex items-start gap-2 mb-2">
-              <span className="text-base">💼</span>
-              <div className="flex-1">
-                <p className="text-xs font-medium text-[#0F172A] dark:text-foreground">
-                  {language === "es" ? "Plan actual:" : "Current plan:"} <span className="text-primary">Starter</span>
-                </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {language === "es" ? "🚀 Mejora para acceder a más herramientas" : "🚀 Upgrade for more tools"}
-                </p>
+          {/* Plan Card - Different for logged in/out */}
+          {isLoggedIn ? (
+            <div className="p-3 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 border border-[#E2E8F0] dark:border-border">
+              <div className="flex items-start gap-2 mb-2">
+                <span className="text-base">💼</span>
+                <div className="flex-1">
+                  <p className="text-xs font-medium text-[#0F172A] dark:text-foreground">
+                    {language === "es" ? "Plan actual:" : "Current plan:"} <span className="text-primary">{hasPaid ? "Pro" : "Free"}</span>
+                  </p>
+                  {!hasPaid && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {language === "es" ? "🚀 Mejora para desbloquear todo" : "🚀 Upgrade to unlock everything"}
+                    </p>
+                  )}
+                </div>
               </div>
+              {!hasPaid && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full h-8 text-xs rounded-lg"
+                  onClick={() => setPricingModalOpen(true)}
+                >
+                  {language === "es" ? "Activar Pro — $29/mes" : "Activate Pro — $29/mo"}
+                </Button>
+              )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full h-8 text-xs rounded-lg"
-              onClick={() => setPricingModalOpen(true)}
-            >
-              {language === "es" ? "Ver planes" : "View plans"}
-            </Button>
-          </div>
+          ) : (
+            <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+              <p className="text-xs font-medium text-center text-foreground mb-2">
+                {language === "es" ? "Crea tu cuenta gratis" : "Create your free account"}
+              </p>
+              <Button
+                size="sm"
+                className="w-full h-8 text-xs rounded-lg"
+                onClick={() => navigate("/register")}
+              >
+                <LogIn className="h-3.5 w-3.5 mr-1.5" />
+                {language === "es" ? "Registrarme" : "Sign up"}
+              </Button>
+            </div>
+          )}
 
-          {/* User card */}
-          <button
-            onClick={() => setAccountModalOpen(true)}
-            className="flex items-center gap-3 p-3 rounded-xl w-full transition-all duration-200 hover:bg-muted"
-            style={{ backgroundColor: 'hsl(var(--sidebar-user-bg))' }}
-          >
-            <Avatar className="h-9 w-9 border-2 border-primary/20">
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                {getUserInitials()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-xs font-medium truncate text-foreground">{userName}</p>
-              <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
-            </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </button>
+          {/* User card - only for logged in users */}
+          {isLoggedIn && (
+            <button
+              onClick={() => setAccountModalOpen(true)}
+              className="flex items-center gap-3 p-3 rounded-xl w-full transition-all duration-200 hover:bg-muted"
+              style={{ backgroundColor: 'hsl(var(--sidebar-user-bg))' }}
+            >
+              <Avatar className="h-9 w-9 border-2 border-primary/20">
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-xs font-medium truncate text-foreground">{userName}</p>
+                <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </button>
+          )}
         </div>
       </aside>
 
