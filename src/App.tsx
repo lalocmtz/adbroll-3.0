@@ -6,11 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { SubscriptionGate } from "@/components/SubscriptionGate";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { MarketProvider } from "@/contexts/MarketContext";
+import { BlurGateProvider } from "@/contexts/BlurGateContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -33,20 +32,25 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ 
+// APP-FIRST: All app routes are viewable, but gated by blur/paywall
+const AppRoute = ({ 
   children, 
-  session 
+  session,
+  requiresAuth = false 
 }: { 
   children: React.ReactNode; 
   session: Session | null;
+  requiresAuth?: boolean;
 }) => {
-  if (!session) return <Navigate to="/login" replace />;
+  // Admin routes require auth
+  if (requiresAuth && !session) {
+    return <Navigate to="/login" replace />;
+  }
+  
   return (
-    <SubscriptionGate>
-      <DashboardLayout>
-        {children}
-      </DashboardLayout>
-    </SubscriptionGate>
+    <DashboardLayout>
+      {children}
+    </DashboardLayout>
   );
 };
 
@@ -82,129 +86,138 @@ const App = () => {
       <TooltipProvider>
         <LanguageProvider>
           <MarketProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/pricing" element={<Pricing />} />
-              
-              {/* Protected routes with DashboardLayout */}
-              <Route
-                path="/app"
-                element={
-                  <ProtectedRoute session={session}>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/products"
-                element={
-                  <ProtectedRoute session={session}>
-                    <Products />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/creadores"
-                element={
-                  <ProtectedRoute session={session}>
-                    <Creators />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/favorites"
-                element={
-                  <ProtectedRoute session={session}>
-                    <Favorites />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/tools"
-                element={
-                  <ProtectedRoute session={session}>
-                    <Tools />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute session={session}>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/support"
-                element={
-                  <ProtectedRoute session={session}>
-                    <Support />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/import"
-                element={
-                  <ProtectedRoute session={session}>
-                    <Admin />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={<Navigate to="/admin/import" replace />}
-              />
-              <Route
-                path="/videos/product/:productId"
-                element={
-                  <ProtectedRoute session={session}>
-                    <RelatedVideos />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/videos/creator/:creatorId"
-                element={
-                  <ProtectedRoute session={session}>
-                    <RelatedVideos />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/opportunities"
-                element={
-                  <ProtectedRoute session={session}>
-                    <Opportunities />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/affiliates"
-                element={
-                  <ProtectedRoute session={session}>
-                    <Affiliates />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </MarketProvider>
-      </LanguageProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+            <BlurGateProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  {/* APP-FIRST: Redirect home to app */}
+                  <Route path="/" element={<Navigate to="/app" replace />} />
+                  
+                  {/* Auth routes */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  
+                  {/* Public info pages */}
+                  <Route path="/faq" element={<FAQ />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  
+                  {/* APP-FIRST: Main app routes (viewable by all, gated by blur) */}
+                  <Route
+                    path="/app"
+                    element={
+                      <AppRoute session={session}>
+                        <Dashboard />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/products"
+                    element={
+                      <AppRoute session={session}>
+                        <Products />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/creadores"
+                    element={
+                      <AppRoute session={session}>
+                        <Creators />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/favorites"
+                    element={
+                      <AppRoute session={session}>
+                        <Favorites />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/tools"
+                    element={
+                      <AppRoute session={session}>
+                        <Tools />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <AppRoute session={session}>
+                        <Settings />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/support"
+                    element={
+                      <AppRoute session={session}>
+                        <Support />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/opportunities"
+                    element={
+                      <AppRoute session={session}>
+                        <Opportunities />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/affiliates"
+                    element={
+                      <AppRoute session={session}>
+                        <Affiliates />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/videos/product/:productId"
+                    element={
+                      <AppRoute session={session}>
+                        <RelatedVideos />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/videos/creator/:creatorId"
+                    element={
+                      <AppRoute session={session}>
+                        <RelatedVideos />
+                      </AppRoute>
+                    }
+                  />
+                  
+                  {/* Admin routes - require auth */}
+                  <Route
+                    path="/admin/import"
+                    element={
+                      <AppRoute session={session} requiresAuth>
+                        <Admin />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin"
+                    element={<Navigate to="/admin/import" replace />}
+                  />
+                  
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </BlurGateProvider>
+          </MarketProvider>
+        </LanguageProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
 };
 
 export default App;

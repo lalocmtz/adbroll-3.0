@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, Sparkles, DollarSign, ShoppingCart, Eye, Play, ExternalLink } from 'lucide-react';
+import { Heart, Sparkles, DollarSign, ShoppingCart, Eye, Play, ExternalLink, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import VideoAnalysisModalOriginal from './VideoAnalysisModalOriginal';
+import { useBlurGateContext } from '@/contexts/BlurGateContext';
+import { cn } from '@/lib/utils';
 
 interface Video {
   id: string;
@@ -67,11 +69,14 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { hasPaid, isLoggedIn, openPaywall, shouldBlur, shouldBlurPartial } = useBlurGateContext();
   
   const commissionRate = video.product?.commission || 6;
   const commissionEstimated = (video.revenue_mxn || 0) * (commissionRate / 100);
   const productPrice = video.product?.price || video.product?.precio_mxn || 0;
   const earningsPerSale = productPrice * (commissionRate / 100);
+  
+  const needsBlur = shouldBlur || shouldBlurPartial;
 
   useEffect(() => {
     const checkFavoriteStatus = async () => {
@@ -109,10 +114,13 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isLoggedIn) {
+      openPaywall("Guardar en favoritos");
+      return;
+    }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      toast({ title: "Inicia sesión", description: "Debes iniciar sesión para guardar favoritos" });
-      navigate("/login");
+      openPaywall("Guardar en favoritos");
       return;
     }
     setLoading(true);
@@ -133,6 +141,14 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAnalyzeClick = () => {
+    if (!hasPaid) {
+      openPaywall("Analizar guion y replicar");
+      return;
+    }
+    setShowModal(true);
   };
 
   const openTikTok = (e: React.MouseEvent) => {
@@ -268,15 +284,15 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
             </div>
           )}
 
-          {/* Metrics Grid */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* Metrics Grid - With blur for non-paid users */}
+          <div className={cn("grid grid-cols-2 gap-2", needsBlur && "blur-sm pointer-events-none select-none")}>
             <div className="p-2.5 rounded-xl bg-[#ECFDF5] dark:bg-success/10">
               <div className="flex items-center gap-1.5 mb-1">
                 <DollarSign className="h-3.5 w-3.5 text-[#475569]" />
                 <span className="text-[11px] text-[#94A3B8]">Ingresos</span>
               </div>
               <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
-                {formatCurrency(video.revenue_mxn)}
+                {hasPaid ? formatCurrency(video.revenue_mxn) : "•••"}
               </p>
             </div>
 
@@ -286,7 +302,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                 <span className="text-[11px] text-[#94A3B8]">Ventas</span>
               </div>
               <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
-                {formatNumber(video.sales)}
+                {hasPaid ? formatNumber(video.sales) : "•••"}
               </p>
             </div>
 
@@ -296,7 +312,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                 <span className="text-[11px] text-[#94A3B8]">Ganancias Est.</span>
               </div>
               <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
-                {formatCurrency(commissionEstimated)}
+                {hasPaid ? formatCurrency(commissionEstimated) : "•••"}
               </p>
             </div>
 
@@ -306,7 +322,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                 <span className="text-[11px] text-[#94A3B8]">Vistas</span>
               </div>
               <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
-                {formatNumber(video.views)}
+                {hasPaid ? formatNumber(video.views) : "•••"}
               </p>
             </div>
           </div>
@@ -314,10 +330,14 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
           {/* CTA Button */}
           <Button 
             className="w-full h-11"
-            onClick={() => setShowModal(true)}
+            onClick={handleAnalyzeClick}
           >
-            <Sparkles className="h-4 w-4" />
-            Analizar guion y replicar
+            {hasPaid ? (
+              <Sparkles className="h-4 w-4" />
+            ) : (
+              <Lock className="h-4 w-4" />
+            )}
+            {hasPaid ? "Analizar guion y replicar" : "Desbloquear análisis"}
           </Button>
         </div>
       </div>
