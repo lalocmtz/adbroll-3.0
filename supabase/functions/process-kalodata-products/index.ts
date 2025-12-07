@@ -113,16 +113,18 @@ serve(async (req) => {
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const market = formData.get("market") as string || "mx";
+    
     if (!file) throw new Error("No se proporcionó archivo");
 
-    console.log("Archivo de productos recibido:", file.name, "Tamaño:", file.size);
+    console.log("Archivo de productos recibido:", file.name, "Tamaño:", file.size, "Market:", market);
 
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array" });
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet);
 
-    console.log(`Procesando ${rows.length} filas del Excel`);
+    console.log(`Procesando ${rows.length} filas del Excel para mercado ${market}`);
     
     if (rows.length > 0) {
       console.log("Columnas detectadas:", Object.keys(rows[0]));
@@ -173,7 +175,7 @@ serve(async (req) => {
       return bValue - aValue;
     });
 
-    // SMART UPSERT: Check existing products by name
+    // SMART UPSERT: Check existing products by name AND market
     let insertedCount = 0;
     let updatedCount = 0;
 
@@ -181,11 +183,12 @@ serve(async (req) => {
       const p = sortedProducts[idx];
       const rank = idx + 1;
 
-      // Check if product exists by name
+      // Check if product exists by name AND market
       const { data: existing } = await supabaseServiceClient
         .from("products")
         .select("id")
         .eq("producto_nombre", p.name)
+        .eq("market", market)
         .maybeSingle();
 
       const productData = {
@@ -204,6 +207,7 @@ serve(async (req) => {
         total_ventas: p.sales_30d,
         creators_count: p.creators_count,
         rating: p.rating,
+        market,
         updated_at: new Date().toISOString(),
       };
 
@@ -235,21 +239,21 @@ serve(async (req) => {
           console.error(`Error updating product ${p.name}:`, updateError);
         }
       } else {
-        // INSERT new product
+        // INSERT new product with market
         const { error: insertError } = await supabaseServiceClient
           .from("products")
           .insert(productData);
 
         if (!insertError) {
           insertedCount++;
-          console.log(`Inserted product: ${p.name}`);
+          console.log(`Inserted product: ${p.name} (market: ${market})`);
         } else {
           console.error(`Error inserting product ${p.name}:`, insertError);
         }
       }
     }
 
-    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
+    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated (market: ${market})`);
 
     // Trigger auto-matching after products import
     console.log('Triggering auto-match videos to products...');
@@ -271,7 +275,8 @@ serve(async (req) => {
         updated: updatedCount,
         processed: sortedProducts.length,
         total: rows.length,
-        message: `Importación inteligente: ${insertedCount} nuevos, ${updatedCount} actualizados de ${rows.length} filas.`,
+        market,
+        message: `Importación inteligente (${market.toUpperCase()}): ${insertedCount} nuevos, ${updatedCount} actualizados de ${rows.length} filas.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

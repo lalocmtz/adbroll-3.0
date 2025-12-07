@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import VideoCardOriginal from "@/components/VideoCardOriginal";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useMarket } from "@/contexts/MarketContext";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,6 +67,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { market } = useMarket();
   const [searchParams] = useSearchParams();
   const productFilter = searchParams.get("productName");
   const creatorFilter = searchParams.get("creator");
@@ -75,9 +77,11 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [market]);
 
   useEffect(() => {
+    fetchVideos();
+  }, [currentPage, sortOrder, selectedCategory, productFilter, creatorFilter, market]);
     setCurrentPage(1);
     fetchVideos(1);
   }, [productFilter, creatorFilter, sortOrder, selectedCategory]);

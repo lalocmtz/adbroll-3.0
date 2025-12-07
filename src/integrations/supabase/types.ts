@@ -576,6 +576,7 @@ export type Database = {
           is_opportunity: boolean | null
           last_import: string | null
           last_imported_from_kalodata_at: string | null
+          market: string
           precio_mxn: number | null
           price: number | null
           producto_nombre: string
@@ -608,6 +609,7 @@ export type Database = {
           is_opportunity?: boolean | null
           last_import?: string | null
           last_imported_from_kalodata_at?: string | null
+          market?: string
           precio_mxn?: number | null
           price?: number | null
           producto_nombre: string
@@ -640,6 +642,7 @@ export type Database = {
           is_opportunity?: boolean | null
           last_import?: string | null
           last_imported_from_kalodata_at?: string | null
+          market?: string
           precio_mxn?: number | null
           price?: number | null
           producto_nombre?: string

@@ -191,33 +191,37 @@ serve(async (req) => {
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const market = formData.get("market") as string || "mx";
+    
     if (!file) throw new Error("No se proporcionó archivo");
 
-    console.log("Archivo recibido:", file.name, "Tamaño:", file.size);
+    console.log("Archivo recibido:", file.name, "Tamaño:", file.size, "Market:", market);
 
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array" });
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows: ExcelRow[] = XLSX.utils.sheet_to_json(worksheet);
 
-    console.log(`Procesando ${rows.length} filas del Excel`);
+    console.log(`Procesando ${rows.length} filas del Excel para mercado ${market}`);
 
     // Sort by revenue
     const sortedRows = rows.sort((a, b) => b["Ingresos (M$)"] - a["Ingresos (M$)"]);
 
-    // Load all products for matching
+    // Load all products for matching (filtered by market)
     const { data: products } = await supabaseServiceClient
       .from("products")
-      .select("id, producto_nombre, producto_url, price, total_ventas, total_ingresos_mxn");
+      .select("id, producto_nombre, producto_url, price, total_ventas, total_ingresos_mxn")
+      .eq("market", market);
 
-    console.log(`Loaded ${products?.length || 0} products for matching`);
+    console.log(`Loaded ${products?.length || 0} products for matching (market: ${market})`);
 
-    // Load all creators for matching
+    // Load all creators for matching (filtered by market)
     const { data: creators } = await supabaseServiceClient
       .from("creators")
-      .select("id, creator_handle");
+      .select("id, creator_handle")
+      .eq("country", market);
 
-    console.log(`Loaded ${creators?.length || 0} creators for matching`);
+    console.log(`Loaded ${creators?.length || 0} creators for matching (market: ${market})`);
 
     // Advanced product matching function
     const calculateMatchScore = (videoText: string, productName: string): number => {
@@ -325,6 +329,7 @@ serve(async (req) => {
         revenue_mxn: row["Ingresos (M$)"],
         views: row["Visualizaciones"],
         roas: row["ROAS - Retorno de la inversión publicitaria"],
+        country: market,
       };
 
       if (existing) {
@@ -357,7 +362,6 @@ serve(async (req) => {
             ...videoMetrics,
             processing_status: 'pending',
             category: null,
-            country: null,
             imported_at: new Date().toISOString(),
           })
           .select("id")
@@ -411,7 +415,8 @@ serve(async (req) => {
         processed: sortedRows.length,
         total: sortedRows.length,
         downloads_queued: newlyInsertedVideos.length,
-        message: `Importación inteligente: ${insertedCount} nuevos, ${updatedCount} actualizados. ${newlyInsertedVideos.length} videos en cola para descarga.`,
+        market,
+        message: `Importación inteligente (${market.toUpperCase()}): ${insertedCount} nuevos, ${updatedCount} actualizados. ${newlyInsertedVideos.length} videos en cola para descarga.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

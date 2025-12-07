@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 type Language = "es" | "en";
 type Currency = "MXN" | "USD";
@@ -14,6 +14,9 @@ interface LanguageContextType {
 
 // Exchange rate MXN to USD (configurable)
 const MXN_TO_USD_RATE = 0.058;
+
+const LANGUAGE_STORAGE_KEY = "adbroll_language";
+const CURRENCY_STORAGE_KEY = "adbroll_currency";
 
 const translations = {
   es: {
@@ -295,8 +298,39 @@ const translations = {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguage] = useState<Language>("es");
-  const [currency, setCurrency] = useState<Currency>("MXN");
+  const [language, setLanguageState] = useState<Language>(() => {
+    // Check localStorage first
+    const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (stored === "es" || stored === "en") {
+      return stored;
+    }
+    
+    // Default based on browser language
+    const browserLang = navigator.language.toLowerCase();
+    return browserLang.startsWith("es") ? "es" : "en";
+  });
+
+  const [currency, setCurrencyState] = useState<Currency>(() => {
+    // Check localStorage first
+    const stored = localStorage.getItem(CURRENCY_STORAGE_KEY);
+    if (stored === "MXN" || stored === "USD") {
+      return stored;
+    }
+    
+    // Default based on browser language
+    const browserLang = navigator.language.toLowerCase();
+    return browserLang.startsWith("es") ? "MXN" : "USD";
+  });
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+  };
+
+  const setCurrency = (curr: Currency) => {
+    setCurrencyState(curr);
+    localStorage.setItem(CURRENCY_STORAGE_KEY, curr);
+  };
 
   const t = (key: string): string => {
     return translations[language][key as keyof typeof translations.es] || key;
