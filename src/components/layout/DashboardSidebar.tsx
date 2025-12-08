@@ -27,6 +27,8 @@ import {
   Coins,
   Wrench,
   LogIn,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import logoDark from "@/assets/logo-dark.png";
@@ -36,13 +38,14 @@ interface DashboardSidebarProps {
   onClose: () => void;
 }
 
+// Nav items with locked state for visitors
 const navItems = [
-  { to: "/app", label: "videos", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle },
-  { to: "/products", label: "products", labelEs: "Productos", labelEn: "Products", icon: Package },
-  { to: "/creadores", label: "creators", labelEs: "Creadores", labelEn: "Creators", icon: Users },
-  { to: "/opportunities", label: "opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp },
-  { to: "/favorites", label: "favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart },
-  { to: "/tools", label: "tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench },
+  { to: "/app", label: "videos", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle, lockedForVisitor: false },
+  { to: "/products", label: "products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: true },
+  { to: "/creadores", label: "creators", labelEs: "Creadores", labelEn: "Creators", icon: Users, lockedForVisitor: true },
+  { to: "/opportunities", label: "opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: true },
+  { to: "/favorites", label: "favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
+  { to: "/tools", label: "tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true },
 ];
 
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
@@ -126,138 +129,185 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
 
         {/* Navigation */}
         <nav className="flex-1 px-5 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 relative",
-                isActive(item.to)
-                  ? "text-primary"
-                  : "text-foreground hover:text-primary"
-              )}
-              style={{
-                backgroundColor: isActive(item.to) ? 'hsl(var(--sidebar-item-active-bg))' : undefined,
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive(item.to)) {
-                  e.currentTarget.style.backgroundColor = 'hsl(var(--sidebar-item-hover-bg))';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive(item.to)) {
-                  e.currentTarget.style.backgroundColor = '';
-                }
-              }}
-            >
-              {/* Active indicator */}
-              {isActive(item.to) && (
-                <div 
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary"
-                />
-              )}
-              <item.icon 
+          {navItems.map((item) => {
+            const isLocked = !isLoggedIn && item.lockedForVisitor;
+            
+            if (isLocked) {
+              return (
+                <button
+                  key={item.to}
+                  onClick={() => {
+                    navigate("/unlock");
+                    handleNavClick();
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 relative w-full",
+                    "text-muted-foreground/60 hover:text-muted-foreground"
+                  )}
+                >
+                  <item.icon className="h-5 w-5 text-muted-foreground/40" />
+                  <span className="flex-1 text-left">{language === "es" ? item.labelEs : item.labelEn}</span>
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground/40" />
+                </button>
+              );
+            }
+            
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={handleNavClick}
                 className={cn(
-                  "h-5 w-5 transition-colors",
-                  isActive(item.to) ? "text-primary" : "text-muted-foreground"
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 relative",
+                  isActive(item.to)
+                    ? "text-primary"
+                    : "text-foreground hover:text-primary"
                 )}
-              />
-              <span>{language === "es" ? item.labelEs : item.labelEn}</span>
-            </NavLink>
-          ))}
+                style={{
+                  backgroundColor: isActive(item.to) ? 'hsl(var(--sidebar-item-active-bg))' : undefined,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive(item.to)) {
+                    e.currentTarget.style.backgroundColor = 'hsl(var(--sidebar-item-hover-bg))';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive(item.to)) {
+                    e.currentTarget.style.backgroundColor = '';
+                  }
+                }}
+              >
+                {isActive(item.to) && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary" />
+                )}
+                <item.icon 
+                  className={cn(
+                    "h-5 w-5 transition-colors",
+                    isActive(item.to) ? "text-primary" : "text-muted-foreground"
+                  )}
+                />
+                <span>{language === "es" ? item.labelEs : item.labelEn}</span>
+              </NavLink>
+            );
+          })}
 
           {/* Separator */}
           <div className="py-4">
             <Separator className="bg-separator" />
           </div>
 
-          {/* Affiliates special button */}
-          <NavLink
-            to="/affiliates"
-            onClick={handleNavClick}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
-              isActive("/affiliates")
-                ? "text-primary bg-[hsl(var(--sidebar-item-active-bg))]"
-                : "hover:opacity-90"
-            )}
-            style={{
-              backgroundColor: isActive("/affiliates") ? undefined : 'hsl(var(--sidebar-affiliate-bg))',
-              color: isActive("/affiliates") ? undefined : 'hsl(var(--sidebar-affiliate-text))',
-            }}
-          >
-            <Coins 
+          {/* Affiliates - HIDE for visitors */}
+          {isLoggedIn && (
+            <NavLink
+              to="/affiliates"
+              onClick={handleNavClick}
               className={cn(
-                "h-5 w-5",
-                isActive("/affiliates") ? "text-primary" : ""
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
+                isActive("/affiliates")
+                  ? "text-primary bg-[hsl(var(--sidebar-item-active-bg))]"
+                  : "hover:opacity-90"
               )}
-              style={{ color: isActive("/affiliates") ? undefined : 'hsl(var(--sidebar-affiliate-text))' }}
-            />
-            <div className="flex flex-col">
-              <span>{language === "es" ? "Afiliados" : "Affiliates"}</span>
-              <span className="text-[10px] font-normal opacity-80">
-                {language === "es" ? "💰 gana dinero hoy" : "💰 earn money today"}
-              </span>
-            </div>
-          </NavLink>
+              style={{
+                backgroundColor: isActive("/affiliates") ? undefined : 'hsl(var(--sidebar-affiliate-bg))',
+                color: isActive("/affiliates") ? undefined : 'hsl(var(--sidebar-affiliate-text))',
+              }}
+            >
+              <Coins 
+                className={cn(
+                  "h-5 w-5",
+                  isActive("/affiliates") ? "text-primary" : ""
+                )}
+                style={{ color: isActive("/affiliates") ? undefined : 'hsl(var(--sidebar-affiliate-text))' }}
+              />
+              <div className="flex flex-col">
+                <span>{language === "es" ? "Afiliados" : "Affiliates"}</span>
+                <span className="text-[10px] font-normal opacity-80">
+                  {language === "es" ? "💰 gana dinero hoy" : "💰 earn money today"}
+                </span>
+              </div>
+            </NavLink>
+          )}
 
-          {/* Settings */}
-          <NavLink
-            to="/settings"
-            onClick={handleNavClick}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 relative",
-              isActive("/settings")
-                ? "text-primary"
-                : "text-foreground hover:text-primary"
-            )}
-            style={{
-              backgroundColor: isActive("/settings") ? 'hsl(var(--sidebar-item-active-bg))' : undefined,
-            }}
-            onMouseEnter={(e) => {
-              if (!isActive("/settings")) {
-                e.currentTarget.style.backgroundColor = 'hsl(var(--sidebar-item-hover-bg))';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isActive("/settings")) {
-                e.currentTarget.style.backgroundColor = '';
-              }
-            }}
-          >
-            {isActive("/settings") && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary" />
-            )}
-            <Settings 
+          {/* Settings - HIDE for visitors */}
+          {isLoggedIn && (
+            <NavLink
+              to="/settings"
+              onClick={handleNavClick}
               className={cn(
-                "h-5 w-5 transition-colors",
-                isActive("/settings") ? "text-primary" : "text-muted-foreground"
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 relative",
+                isActive("/settings")
+                  ? "text-primary"
+                  : "text-foreground hover:text-primary"
               )}
-            />
-            <span>{language === "es" ? "Configuración" : "Settings"}</span>
-          </NavLink>
+              style={{
+                backgroundColor: isActive("/settings") ? 'hsl(var(--sidebar-item-active-bg))' : undefined,
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive("/settings")) {
+                  e.currentTarget.style.backgroundColor = 'hsl(var(--sidebar-item-hover-bg))';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive("/settings")) {
+                  e.currentTarget.style.backgroundColor = '';
+                }
+              }}
+            >
+              {isActive("/settings") && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary" />
+              )}
+              <Settings 
+                className={cn(
+                  "h-5 w-5 transition-colors",
+                  isActive("/settings") ? "text-primary" : "text-muted-foreground"
+                )}
+              />
+              <span>{language === "es" ? "Configuración" : "Settings"}</span>
+            </NavLink>
+          )}
         </nav>
 
         {/* Bottom section */}
         <div className="px-5 pb-6 pt-3 space-y-3">
-          {/* Separator */}
           <Separator className="bg-separator" />
 
-          {/* Support link */}
-          <button
-            onClick={() => {
-              navigate("/support");
-              handleNavClick();
-            }}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted-foreground hover:text-primary hover:bg-[hsl(var(--sidebar-item-hover-bg))] w-full transition-all duration-200"
-          >
-            <HelpCircle className="h-5 w-5" />
-            <span>{language === "es" ? "Soporte" : "Support"}</span>
-          </button>
+          {/* Support link - HIDE for visitors */}
+          {isLoggedIn && (
+            <button
+              onClick={() => {
+                navigate("/support");
+                handleNavClick();
+              }}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted-foreground hover:text-primary hover:bg-[hsl(var(--sidebar-item-hover-bg))] w-full transition-all duration-200"
+            >
+              <HelpCircle className="h-5 w-5" />
+              <span>{language === "es" ? "Soporte" : "Support"}</span>
+            </button>
+          )}
 
-          {/* Plan Card - Different for logged in/out */}
-          {isLoggedIn ? (
+          {/* For visitors: Show unlock + login buttons */}
+          {!isLoggedIn && (
+            <div className="space-y-2">
+              <Button
+                className="w-full bg-primary hover:bg-primary-hover"
+                onClick={() => navigate("/unlock")}
+              >
+                <Unlock className="h-4 w-4 mr-2" />
+                {language === "es" ? "Desbloquear todo" : "Unlock everything"}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/login")}
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                {language === "es" ? "Iniciar sesión" : "Sign in"}
+              </Button>
+            </div>
+          )}
+
+          {/* Plan Card - Only for logged in users */}
+          {isLoggedIn && (
             <div className="p-3 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 border border-[#E2E8F0] dark:border-border">
               <div className="flex items-start gap-2 mb-2">
                 <span className="text-base">💼</span>
@@ -282,20 +332,6 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
                   {language === "es" ? "Activar Pro — $29/mes" : "Activate Pro — $29/mo"}
                 </Button>
               )}
-            </div>
-          ) : (
-            <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-              <p className="text-xs font-medium text-center text-foreground mb-2">
-                {language === "es" ? "Crea tu cuenta gratis" : "Create your free account"}
-              </p>
-              <Button
-                size="sm"
-                className="w-full h-8 text-xs rounded-lg"
-                onClick={() => navigate("/register")}
-              >
-                <LogIn className="h-3.5 w-3.5 mr-1.5" />
-                {language === "es" ? "Registrarme" : "Sign up"}
-              </Button>
             </div>
           )}
 
@@ -350,7 +386,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-lg bg-muted">
                   <p className="text-sm text-muted-foreground">{language === "es" ? "Plan actual" : "Current Plan"}</p>
-                  <p className="font-semibold">Free</p>
+                  <p className="font-semibold">{hasPaid ? "Pro" : "Free"}</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted">
                   <p className="text-sm text-muted-foreground">{language === "es" ? "Miembro desde" : "Member since"}</p>
