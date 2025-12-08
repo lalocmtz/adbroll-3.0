@@ -38,12 +38,12 @@ interface DashboardSidebarProps {
   onClose: () => void;
 }
 
-// Nav items with locked state for visitors
+// Nav items - Products, Creators, Opportunities are accessible for visitors (first 3 items visible)
 const navItems = [
   { to: "/app", label: "videos", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle, lockedForVisitor: false },
-  { to: "/products", label: "products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: true },
-  { to: "/creadores", label: "creators", labelEs: "Creadores", labelEn: "Creators", icon: Users, lockedForVisitor: true },
-  { to: "/opportunities", label: "opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: true },
+  { to: "/products", label: "products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: false },
+  { to: "/creadores", label: "creators", labelEs: "Creadores", labelEn: "Creators", icon: Users, lockedForVisitor: false },
+  { to: "/opportunities", label: "opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
   { to: "/favorites", label: "favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
   { to: "/tools", label: "tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true },
 ];

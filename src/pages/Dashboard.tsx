@@ -117,7 +117,7 @@ const Dashboard = () => {
         .from("videos")
         .select(`
           *,
-          product:products!videos_product_id_fkey (
+          product:products (
             id,
             producto_nombre,
             imagen_url,
