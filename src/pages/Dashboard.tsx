@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -210,7 +210,10 @@ const Dashboard = () => {
         {!isLoggedIn ? (
           <div 
             className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
-            onClick={() => navigate("/unlock")}
+            onClick={() => {
+              navigate("/unlock");
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           >
             {SORT_OPTIONS.map((option, i) => (
               <span
@@ -236,7 +239,10 @@ const Dashboard = () => {
         {!isLoggedIn ? (
           <div 
             className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer"
-            onClick={() => navigate("/unlock")}
+            onClick={() => {
+              navigate("/unlock");
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           >
             <Lock className="h-3 w-3" />
             Categorías
@@ -286,7 +292,10 @@ const Dashboard = () => {
                   <div 
                     key={video.id}
                     className="relative cursor-pointer group"
-                    onClick={() => navigate("/unlock")}
+                    onClick={() => {
+                      navigate("/unlock");
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                   >
                     <div className="blur-sm pointer-events-none">
                       <VideoCardOriginal 

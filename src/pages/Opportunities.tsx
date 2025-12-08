@@ -187,7 +187,10 @@ const Opportunities = () => {
           {!isLoggedIn ? (
             <div 
               className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
-              onClick={() => navigate("/unlock")}
+              onClick={() => {
+                navigate("/unlock");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             >
               {sortOptions.map((option, i) => (
                 <span
@@ -213,7 +216,10 @@ const Opportunities = () => {
           {!isLoggedIn ? (
             <div 
               className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer"
-              onClick={() => navigate("/unlock")}
+              onClick={() => {
+                navigate("/unlock");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             >
               <Lock className="h-3 w-3" />
               {language === "es" ? "Categorías" : "Categories"}
@@ -273,7 +279,10 @@ const Opportunities = () => {
                   <div 
                     key={product.id}
                     className="relative cursor-pointer group"
-                    onClick={() => navigate("/unlock")}
+                    onClick={() => {
+                      navigate("/unlock");
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                   >
                     <Card className="overflow-hidden blur-sm pointer-events-none rounded-xl">
                       <div className="aspect-[3/4] bg-muted" />
