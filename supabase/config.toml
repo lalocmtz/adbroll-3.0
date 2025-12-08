@@ -77,3 +77,15 @@ verify_jwt = false
 
 [functions.transcribe-videos-batch]
 verify_jwt = true
+
+[functions.affiliate-create-connect]
+verify_jwt = true
+
+[functions.affiliate-dashboard-link]
+verify_jwt = true
+
+[functions.affiliate-process-payouts]
+verify_jwt = false
+
+[functions.affiliate-update-code]
+verify_jwt = true

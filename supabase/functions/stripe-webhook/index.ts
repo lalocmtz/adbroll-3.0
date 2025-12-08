@@ -51,6 +51,11 @@ serve(async (req) => {
         await handleSubscriptionUpdated(subscription);
         break;
       }
+      case "account.updated": {
+        const account = event.data.object as Stripe.Account;
+        await handleAccountUpdated(account);
+        break;
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -230,10 +235,10 @@ async function calculateAffiliateCommission(
       month: currentMonth,
     });
 
-  // Update affiliate earnings
+  // Update affiliate earnings and active referrals count
   const { data: affiliate } = await supabaseAdmin
     .from("affiliates")
-    .select("id, usd_earned, usd_available")
+    .select("id, usd_earned, usd_available, active_referrals_count")
     .eq("user_id", affiliateCode.user_id)
     .single();
 
@@ -243,10 +248,11 @@ async function calculateAffiliateCommission(
       .update({
         usd_earned: (affiliate.usd_earned || 0) + commissionAmount,
         usd_available: (affiliate.usd_available || 0) + commissionAmount,
+        active_referrals_count: (affiliate.active_referrals_count || 0) + 1,
       })
       .eq("id", affiliate.id);
 
-    console.log(`Commission $${commissionAmount} added to affiliate: ${affiliateCode.user_id}`);
+    console.log(`Commission $${commissionAmount} added to affiliate: ${affiliateCode.user_id}, active referrals: ${(affiliate.active_referrals_count || 0) + 1}`);
   }
 }
 
@@ -262,10 +268,47 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const customerId = subscription.customer as string;
+
+  // Update subscription status
   await supabaseAdmin
     .from("subscriptions")
     .update({ status: "cancelled" })
     .eq("stripe_subscription_id", subscription.id);
+
+  // Decrement active referrals count for the affiliate
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("referral_code_used")
+    .eq("stripe_customer_id", customerId)
+    .single();
+
+  if (profile?.referral_code_used) {
+    const { data: affiliateCode } = await supabaseAdmin
+      .from("affiliate_codes")
+      .select("user_id")
+      .eq("code", profile.referral_code_used.toUpperCase())
+      .single();
+
+    if (affiliateCode) {
+      const { data: affiliate } = await supabaseAdmin
+        .from("affiliates")
+        .select("id, active_referrals_count")
+        .eq("user_id", affiliateCode.user_id)
+        .single();
+
+      if (affiliate && affiliate.active_referrals_count > 0) {
+        await supabaseAdmin
+          .from("affiliates")
+          .update({
+            active_referrals_count: affiliate.active_referrals_count - 1,
+          })
+          .eq("id", affiliate.id);
+
+        console.log(`Decremented active referrals for affiliate: ${affiliateCode.user_id}`);
+      }
+    }
+  }
 
   console.log(`Subscription cancelled: ${subscription.id}`);
 }
@@ -284,4 +327,35 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     .eq("stripe_subscription_id", subscription.id);
 
   console.log(`Subscription updated: ${subscription.id} -> ${status}`);
+}
+
+async function handleAccountUpdated(account: Stripe.Account) {
+  // Handle Stripe Connect account updates (onboarding completion)
+  const connectAccountId = account.id;
+  
+  // Check if this is an Express account with our metadata
+  if (account.type !== "express") {
+    return;
+  }
+
+  // Check if account is fully verified and can receive payouts
+  const isOnboardingComplete = 
+    account.details_submitted === true &&
+    account.payouts_enabled === true;
+
+  console.log(`Connect account ${connectAccountId} updated - onboarding complete: ${isOnboardingComplete}`);
+
+  if (isOnboardingComplete) {
+    // Update affiliate record
+    const { error } = await supabaseAdmin
+      .from("affiliates")
+      .update({ stripe_onboarding_complete: true })
+      .eq("stripe_connect_id", connectAccountId);
+
+    if (error) {
+      console.error("Error updating affiliate onboarding status:", error);
+    } else {
+      console.log(`Affiliate onboarding complete for Connect account: ${connectAccountId}`);
+    }
+  }
 }

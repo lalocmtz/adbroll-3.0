@@ -166,7 +166,10 @@ export type Database = {
           active_referrals_count: number
           created_at: string | null
           id: string
+          last_payout_at: string | null
           ref_code: string
+          stripe_connect_id: string | null
+          stripe_onboarding_complete: boolean | null
           usd_available: number
           usd_earned: number
           usd_withdrawn: number
@@ -176,7 +179,10 @@ export type Database = {
           active_referrals_count?: number
           created_at?: string | null
           id?: string
+          last_payout_at?: string | null
           ref_code: string
+          stripe_connect_id?: string | null
+          stripe_onboarding_complete?: boolean | null
           usd_available?: number
           usd_earned?: number
           usd_withdrawn?: number
@@ -186,7 +192,10 @@ export type Database = {
           active_referrals_count?: number
           created_at?: string | null
           id?: string
+          last_payout_at?: string | null
           ref_code?: string
+          stripe_connect_id?: string | null
+          stripe_onboarding_complete?: boolean | null
           usd_available?: number
           usd_earned?: number
           usd_withdrawn?: number
@@ -950,6 +959,41 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      withdrawal_history: {
+        Row: {
+          affiliate_id: string
+          amount: number
+          created_at: string
+          id: string
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          affiliate_id: string
+          amount: number
+          created_at?: string
+          id?: string
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          affiliate_id?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_history_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
             referencedColumns: ["id"]
           },
         ]
