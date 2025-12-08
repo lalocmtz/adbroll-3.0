@@ -44,8 +44,10 @@ const Admin = () => {
     creators: 0,
     videosWithProduct: 0,
     videosDownloaded: 0,
+    videosTranscribed: 0,
     pendingMatch: 0,
     pendingDownload: 0,
+    pendingTranscription: 0,
     readyToShow: 0,
   });
 
@@ -71,7 +73,7 @@ const Admin = () => {
     setIsRefreshing(true);
     try {
       const [videosRes, productsRes, creatorsRes] = await Promise.all([
-        supabase.from("videos").select("id, product_id, video_mp4_url"),
+        supabase.from("videos").select("id, product_id, video_mp4_url, transcript"),
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("creators").select("id", { count: "exact", head: true }),
       ]);
@@ -79,7 +81,9 @@ const Admin = () => {
       const videos = videosRes.data || [];
       const withProduct = videos.filter(v => v.product_id).length;
       const downloaded = videos.filter(v => v.video_mp4_url).length;
+      const transcribed = videos.filter(v => v.transcript).length;
       const readyToShow = videos.filter(v => v.video_mp4_url && v.product_id).length;
+      const pendingTranscription = videos.filter(v => v.video_mp4_url && !v.transcript).length;
       
       setStats({
         videos: videos.length,
@@ -87,8 +91,10 @@ const Admin = () => {
         creators: creatorsRes.count || 0,
         videosWithProduct: withProduct,
         videosDownloaded: downloaded,
+        videosTranscribed: transcribed,
         pendingMatch: videos.length - withProduct,
         pendingDownload: videos.length - downloaded,
+        pendingTranscription,
         readyToShow,
       });
     } finally {
@@ -282,7 +288,7 @@ const Admin = () => {
     try {
       // Step 1: Import Creators FIRST
       if (creatorFile) {
-        setProcessPhase("1/5 Importando creadores...");
+        setProcessPhase("1/6 Importando creadores...");
         setProcessProgress(5);
         
         const formData = new FormData();
@@ -298,8 +304,8 @@ const Admin = () => {
 
       // Step 2: Import Products SECOND
       if (productFile) {
-        setProcessPhase("2/5 Importando productos...");
-        setProcessProgress(15);
+        setProcessPhase("2/6 Importando productos...");
+        setProcessProgress(10);
         
         const formData = new FormData();
         formData.append("file", productFile);
@@ -314,8 +320,8 @@ const Admin = () => {
 
       // Step 3: Import Videos THIRD
       if (videoFile) {
-        setProcessPhase("3/5 Importando videos...");
-        setProcessProgress(30);
+        setProcessPhase("3/6 Importando videos...");
+        setProcessProgress(20);
         
         const formData = new FormData();
         formData.append("file", videoFile);
@@ -329,8 +335,8 @@ const Admin = () => {
       }
 
       // Step 4: Download pending videos
-      setProcessPhase("4/5 Descargando videos de TikTok...");
-      setProcessProgress(45);
+      setProcessPhase("4/6 Descargando videos de TikTok...");
+      setProcessProgress(30);
       
       let downloadedCount = 0;
       let continueDownload = true;
@@ -349,9 +355,9 @@ const Admin = () => {
           continueDownload = false;
         } else {
           downloadedCount += data.successful || 0;
-          const progress = 45 + Math.min(25, (downloadedCount / 50) * 25);
+          const progress = 30 + Math.min(15, (downloadedCount / 50) * 15);
           setProcessProgress(progress);
-          setProcessPhase(`4/5 Descargando videos... (${downloadedCount} completados)`);
+          setProcessPhase(`4/6 Descargando videos... (${downloadedCount} completados)`);
           await new Promise(r => setTimeout(r, 500));
           
           if (downloadedCount >= 100) break;
@@ -359,8 +365,8 @@ const Admin = () => {
       }
 
       // Step 5: Match all videos with products (using AI toggle setting)
-      setProcessPhase(`5/5 Vinculando videos ${useAI ? "(con IA)" : "(fuzzy)"}...`);
-      setProcessProgress(75);
+      setProcessPhase(`5/6 Vinculando videos ${useAI ? "(con IA)" : "(fuzzy)"}...`);
+      setProcessProgress(50);
       
       let matchComplete = false;
       let totalMatched = 0;
@@ -382,12 +388,43 @@ const Admin = () => {
         aiTotal += data.aiMatches || 0;
         matchComplete = data.complete;
         
-        const progress = 75 + Math.min(20, (totalMatched / 100) * 20);
+        const progress = 50 + Math.min(15, (totalMatched / 100) * 15);
         setProcessProgress(progress);
-        setProcessPhase(`5/5 Vinculando... (${totalMatched} vinculados${aiTotal > 0 ? `, ${aiTotal} IA` : ""})`);
+        setProcessPhase(`5/6 Vinculando... (${totalMatched} vinculados${aiTotal > 0 ? `, ${aiTotal} IA` : ""})`);
       }
 
       setLastMatchStats({ fuzzy: fuzzyTotal, ai: aiTotal, total: totalMatched });
+
+      // Step 6: Transcribe and analyze all videos with MP4
+      setProcessPhase("6/6 Transcribiendo y analizando scripts...");
+      setProcessProgress(70);
+      
+      let transcribedCount = 0;
+      let continueTranscription = true;
+      
+      while (continueTranscription) {
+        const { data, error } = await supabase.functions.invoke("transcribe-videos-batch", {
+          body: { batchSize: 3 },
+        });
+        
+        if (error) {
+          console.warn("Transcription batch error:", error.message);
+          break;
+        }
+        
+        if (!data || data.processed === 0 || data.remaining === 0 || data.complete) {
+          continueTranscription = false;
+        } else {
+          transcribedCount += data.successful || 0;
+          const progress = 70 + Math.min(25, (transcribedCount / 50) * 25);
+          setProcessProgress(progress);
+          setProcessPhase(`6/6 Transcribiendo scripts... (${transcribedCount} completados, ${data.remaining} pendientes)`);
+          await new Promise(r => setTimeout(r, 1000));
+          
+          // Limit to 100 videos per run to avoid timeout
+          if (transcribedCount >= 100) break;
+        }
+      }
 
       // Done!
       setProcessProgress(100);
@@ -396,7 +433,7 @@ const Admin = () => {
       
       toast({
         title: "¡Proceso completado!",
-        description: `${downloadedCount} videos descargados, ${totalMatched} productos vinculados${aiTotal > 0 ? ` (${aiTotal} con IA)` : ""}.`,
+        description: `${downloadedCount} videos descargados, ${totalMatched} productos vinculados, ${transcribedCount} scripts transcritos.`,
       });
 
       await loadStats();
@@ -465,7 +502,7 @@ const Admin = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <Card className="border-green-200 bg-green-50/50">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
@@ -490,6 +527,18 @@ const Admin = () => {
               </div>
             </CardContent>
           </Card>
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Pendientes transcribir</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats.pendingTranscription}</p>
+                  <p className="text-xs text-blue-600">Sin script</p>
+                </div>
+                <FileSpreadsheet className="h-6 w-6 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
           <Card className="border-purple-200 bg-purple-50/50">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
@@ -508,7 +557,7 @@ const Admin = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Total videos</p>
                   <p className="text-2xl font-bold">{stats.videos}</p>
-                  <p className="text-xs text-muted-foreground">{stats.products} productos • {stats.creators} creadores</p>
+                  <p className="text-xs text-muted-foreground">{stats.videosTranscribed} con script</p>
                 </div>
                 <Package className="h-6 w-6 text-primary" />
               </div>

@@ -159,4 +159,17 @@
 
 ---
 
+## ✅ AUTO-TRANSCRIPTION SYSTEM (Diciembre 2024)
+
+### Transcripción Automática en Import
+- [x] Edge function `transcribe-videos-batch` - Procesa videos en lotes
+- [x] AssemblyAI para transcripción de audio a texto
+- [x] Lovable AI Gateway para análisis de scripts (hook/body/cta)
+- [x] Admin panel actualizado - Nuevo paso 6/6 "Transcribiendo y analizando scripts"
+- [x] Stats actualizados - Nuevo contador "Pendientes transcribir"
+- [x] Flujo: Import → Download → Match → **Transcribe+Analyze** (automático)
+- [x] Variantes IA se generan on-demand cuando el usuario las solicita
+
+---
+
 **Última actualización:** Diciembre 2024
