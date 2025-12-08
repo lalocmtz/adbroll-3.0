@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Flame, Video, ShoppingCart, Film, Heart, Play } from "lucide-react";
+import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Flame, Video, ShoppingCart, Film, Heart, Play, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { openTikTokLink } from "@/lib/tiktokDeepLink";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
 
 interface Creator {
   id: string;
@@ -37,10 +38,12 @@ const SORT_OPTIONS = [
 ];
 
 const ITEMS_PER_PAGE = 12;
+const FREE_PREVIEW_LIMIT = 3;
 
 const Creators = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isLoggedIn } = useBlurGateContext();
   const [creators, setCreators] = useState<Creator[]>([]);
   const [sortedCreators, setSortedCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
@@ -228,13 +231,32 @@ const Creators = () => {
       {/* Minimal header */}
       <DataSubtitle />
 
-      {/* Filter Pills */}
+      {/* Filter Pills - Locked for visitors */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <FilterPills
-          options={SORT_OPTIONS}
-          value={sortBy}
-          onChange={(v) => setSortBy(v as SortOption)}
-        />
+        {!isLoggedIn ? (
+          <div 
+            className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
+            onClick={() => navigate("/unlock")}
+          >
+            {SORT_OPTIONS.map((option, i) => (
+              <span
+                key={option.value}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 ${
+                  i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
+                }`}
+              >
+                <Lock className="h-3 w-3" />
+                {option.label}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <FilterPills
+            options={SORT_OPTIONS}
+            value={sortBy}
+            onChange={(v) => setSortBy(v as SortOption)}
+          />
+        )}
         <span className="text-xs text-muted-foreground ml-auto">
           {sortedCreators.length} creadores
         </span>
@@ -255,6 +277,37 @@ const Creators = () => {
               const globalIndex = startIndex + pageIndex;
               const ranking = globalIndex + 1;
               const isFav = favorites.has(creator.id);
+              const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+
+              if (isLocked) {
+                return (
+                  <div 
+                    key={creator.id}
+                    className="relative cursor-pointer group"
+                    onClick={() => navigate("/unlock")}
+                  >
+                    <div className="blur-sm pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5">
+                      <div className="flex items-start gap-3 mb-4">
+                        <div className="h-12 w-12 rounded-full bg-muted" />
+                        <div className="flex-1">
+                          <div className="h-4 bg-muted rounded mb-2 w-3/4" />
+                          <div className="h-3 bg-muted rounded w-1/2" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="h-16 bg-muted rounded-xl" />
+                        <div className="h-16 bg-muted rounded-xl" />
+                      </div>
+                    </div>
+                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-[20px]">
+                      <div className="text-center p-4">
+                        <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium text-foreground">Desbloquear</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div

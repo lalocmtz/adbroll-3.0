@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, ExternalLink, DollarSign, Percent, TrendingUp, ShoppingCart, Users, Star, Heart, Play } from "lucide-react";
+import { Package, ExternalLink, DollarSign, Percent, TrendingUp, ShoppingCart, Users, Star, Heart, Play, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
 
 interface Product {
   id: string;
@@ -38,9 +39,12 @@ const SORT_OPTIONS = [
 
 type SortOption = "revenue_30d" | "commission" | "creators_count";
 
+const FREE_PREVIEW_LIMIT = 3;
+
 const Products = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isLoggedIn } = useBlurGateContext();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -218,26 +222,55 @@ const Products = () => {
       {/* Minimal header */}
       <DataSubtitle />
 
-      {/* Filter Pills */}
+      {/* Filter Pills - Locked for visitors */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <FilterPills
-          options={SORT_OPTIONS}
-          value={sortBy}
-          onChange={(v) => setSortBy(v as SortOption)}
-        />
-        
-        {/* Category Dropdown */}
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-auto h-8 text-xs px-3 rounded-full border-border/50 bg-muted/60">
-            <SelectValue placeholder="Categoría" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Categorías</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+        {!isLoggedIn ? (
+          <div 
+            className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
+            onClick={() => navigate("/unlock")}
+          >
+            {SORT_OPTIONS.map((option, i) => (
+              <span
+                key={option.value}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 ${
+                  i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
+                }`}
+              >
+                <Lock className="h-3 w-3" />
+                {option.label}
+              </span>
             ))}
-          </SelectContent>
-        </Select>
+          </div>
+        ) : (
+          <FilterPills
+            options={SORT_OPTIONS}
+            value={sortBy}
+            onChange={(v) => setSortBy(v as SortOption)}
+          />
+        )}
+        
+        {/* Category Dropdown - Locked for visitors */}
+        {!isLoggedIn ? (
+          <div 
+            className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer"
+            onClick={() => navigate("/unlock")}
+          >
+            <Lock className="h-3 w-3" />
+            Categorías
+          </div>
+        ) : (
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-auto h-8 text-xs px-3 rounded-full border-border/50 bg-muted/60">
+              <SelectValue placeholder="Categoría" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Categorías</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         <span className="text-xs text-muted-foreground ml-auto">
           {filteredProducts.length} productos
@@ -257,13 +290,37 @@ const Products = () => {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {paginatedProducts.map((product, index) => {
-              const displayRank = (currentPage - 1) * PRODUCTS_PER_PAGE + index + 1;
+              const globalIndex = (currentPage - 1) * PRODUCTS_PER_PAGE + index;
+              const displayRank = globalIndex + 1;
               const isFav = favorites.has(product.id);
               const isTop5 = displayRank <= 5;
               const price = product.price || product.precio_mxn || 0;
               const commissionRate = product.commission || 6;
               const earningsPerSale = price * (commissionRate / 100);
+              const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
               
+              if (isLocked) {
+                return (
+                  <div 
+                    key={product.id}
+                    className="relative cursor-pointer group"
+                    onClick={() => navigate("/unlock")}
+                  >
+                    <div className="blur-sm pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5">
+                      <div className="aspect-square bg-muted rounded-2xl mb-4" />
+                      <div className="h-4 bg-muted rounded mb-2 w-3/4" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
+                    </div>
+                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-[20px]">
+                      <div className="text-center p-4">
+                        <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium text-foreground">Desbloquear</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div 
                   key={product.id}

@@ -205,28 +205,57 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Filter Pills */}
+      {/* Filter Pills - Locked for visitors */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <FilterPills
-          options={SORT_OPTIONS}
-          value={sortOrder}
-          onChange={setSortOrder}
-        />
-        
-        {/* Category Dropdown */}
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="h-8 w-auto min-w-[120px] text-xs rounded-full border-border/50 bg-muted/60">
-            <SelectValue placeholder="Categoría" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Categorías</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
-              </SelectItem>
+        {!isLoggedIn ? (
+          <div 
+            className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
+            onClick={() => navigate("/unlock")}
+          >
+            {SORT_OPTIONS.map((option, i) => (
+              <span
+                key={option.value}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 ${
+                  i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
+                }`}
+              >
+                <Lock className="h-3 w-3" />
+                {option.label}
+              </span>
             ))}
-          </SelectContent>
-        </Select>
+          </div>
+        ) : (
+          <FilterPills
+            options={SORT_OPTIONS}
+            value={sortOrder}
+            onChange={setSortOrder}
+          />
+        )}
+        
+        {/* Category Dropdown - Locked for visitors */}
+        {!isLoggedIn ? (
+          <div 
+            className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer"
+            onClick={() => navigate("/unlock")}
+          >
+            <Lock className="h-3 w-3" />
+            Categorías
+          </div>
+        ) : (
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="h-8 w-auto min-w-[120px] text-xs rounded-full border-border/50 bg-muted/60">
+              <SelectValue placeholder="Categoría" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Categorías</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         
         <span className="text-xs text-muted-foreground ml-auto">
           {totalCount} videos

@@ -92,6 +92,21 @@
 
 ---
 
+## ✅ FASE 1 - VISITOR MODE UX (Diciembre 2024)
+
+### Gating Visual para Visitantes
+- [x] Dashboard - Primeros 10 videos sin blur, resto bloqueado → /unlock
+- [x] Productos - Solo 3 productos visibles, resto → /unlock
+- [x] Creadores - Solo 3 creadores visibles, resto → /unlock  
+- [x] Oportunidades - Solo 3 oportunidades visibles, resto → /unlock
+- [x] VideoAnalysisModal - Script visible, tabs Análisis/Variantes bloqueados → /unlock
+- [x] Filtros bloqueados para visitantes → /unlock
+- [x] PreviewBanner removido del layout
+- [x] Sidebar muestra items bloqueados con candado para visitantes
+- [x] Botones "Desbloquear todo" e "Iniciar sesión" en sidebar para visitantes
+
+---
+
 ## 🔄 PENDIENTE
 
 - [x] VideoAnalysisModal - Columna de negocio con producto vinculado ✅

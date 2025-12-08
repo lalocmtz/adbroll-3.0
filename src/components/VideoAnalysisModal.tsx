@@ -4,8 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, X, Check, FileText, BarChart3, Wand2, Loader2, AlertCircle, RefreshCw, Heart, ChevronDown, ChevronUp } from "lucide-react";
+import { Copy, X, Check, FileText, BarChart3, Wand2, Loader2, AlertCircle, RefreshCw, Heart, ChevronDown, ChevronUp, Lock } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useNavigate } from "react-router-dom";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
 
 interface VideoAnalysisModalProps {
   isOpen: boolean;
@@ -34,6 +36,8 @@ interface Variants {
 }
 
 const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps) => {
+  const navigate = useNavigate();
+  const { isLoggedIn } = useBlurGateContext();
   const [transcript, setTranscript] = useState<string>("");
   const [sections, setSections] = useState<Section[]>([]);
   const [variants, setVariants] = useState<Variants | null>(null);
@@ -384,11 +388,37 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                   <FileText className="h-3.5 w-3.5" />
                   Script
                 </TabsTrigger>
-                <TabsTrigger value="analysis" className="gap-1.5 text-xs">
+                <TabsTrigger 
+                  value="analysis" 
+                  className="gap-1.5 text-xs"
+                  disabled={!isLoggedIn}
+                  onClick={(e) => {
+                    if (!isLoggedIn) {
+                      e.preventDefault();
+                      onClose();
+                      navigate("/unlock");
+                    }
+                  }}
+                >
+                  {!isLoggedIn && <Lock className="h-3 w-3" />}
                   <BarChart3 className="h-3.5 w-3.5" />
                   Análisis
                 </TabsTrigger>
-                <TabsTrigger value="variants" className="gap-1.5 text-xs" onClick={generateVariants}>
+                <TabsTrigger 
+                  value="variants" 
+                  className="gap-1.5 text-xs" 
+                  disabled={!isLoggedIn}
+                  onClick={(e) => {
+                    if (!isLoggedIn) {
+                      e.preventDefault();
+                      onClose();
+                      navigate("/unlock");
+                    } else {
+                      generateVariants();
+                    }
+                  }}
+                >
+                  {!isLoggedIn && <Lock className="h-3 w-3" />}
                   <Wand2 className="h-3.5 w-3.5" />
                   Variantes IA
                 </TabsTrigger>

@@ -14,8 +14,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Preview Banner - shows for non-paid users */}
-      <PreviewBanner />
+      {/* Preview Banner removed */}
       
       <div className="flex flex-1">
         {/* Sidebar */}
