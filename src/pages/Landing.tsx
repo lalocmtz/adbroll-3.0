@@ -13,6 +13,7 @@ import { TypingAnimation } from "@/components/ui/typing-animation";
 import { FeatureSteps } from "@/components/ui/feature-section";
 import { TestimonialsColumn } from "@/components/ui/testimonials-columns-1";
 import { NativeVideoPlayer } from "@/components/NativeVideoPlayer";
+import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 
 const testimonials = [{
   text: "Adbroll me hizo pasar de adivinar qué productos grabar a saber exactamente qué vende. Ahora mis videos generan ventas todos los días.",
@@ -79,9 +80,10 @@ const Landing = () => {
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get("ref");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
 
-  const handleRegister = () => {
-    navigate("/register" + (refCode ? `?ref=${refCode}` : ""));
+  const handleCTA = () => {
+    setEmailModalOpen(true);
   };
 
   return (
@@ -96,7 +98,7 @@ const Landing = () => {
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => navigate("/login")}>
               Iniciar sesión
             </Button>
-            <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover btn-glow">
+            <Button onClick={handleCTA} className="bg-primary hover:bg-primary-hover btn-glow">
               Empieza ahora
             </Button>
           </div>
@@ -115,12 +117,7 @@ const Landing = () => {
         </>} 
         description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA." 
         ctaText="Empieza ahora" 
-        ctaSecondaryText="Ver cómo funciona" 
-        onCtaClick={handleRegister} 
-        onCtaSecondaryClick={() => {
-          const howItWorks = document.getElementById('how-it-works');
-          howItWorks?.scrollIntoView({ behavior: 'smooth' });
-        }} 
+        onCtaClick={handleCTA} 
       />
 
       {/* How it Works */}
@@ -156,7 +153,7 @@ const Landing = () => {
           />
 
           <div className="text-center mt-8">
-            <Button size="lg" className="bg-primary hover:bg-primary-hover btn-glow" onClick={handleRegister}>
+            <Button size="lg" className="bg-primary hover:bg-primary-hover btn-glow" onClick={handleCTA}>
               Empieza ahora
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
@@ -259,7 +256,7 @@ const Landing = () => {
                     </li>
                   ))}
                 </ul>
-                <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover btn-glow">
+                <Button onClick={handleCTA} className="bg-primary hover:bg-primary-hover btn-glow">
                   Empieza ahora
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -321,7 +318,7 @@ const Landing = () => {
                     </li>
                   ))}
                 </ul>
-                <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover btn-glow">
+                <Button onClick={handleCTA} className="bg-primary hover:bg-primary-hover btn-glow">
                   Empieza ahora
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -352,7 +349,7 @@ const Landing = () => {
           </div>
 
           <div className="text-center mt-10">
-            <Button size="lg" className="bg-primary hover:bg-primary-hover btn-glow" onClick={handleRegister}>
+            <Button size="lg" className="bg-primary hover:bg-primary-hover btn-glow" onClick={handleCTA}>
               Empieza ahora
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
@@ -437,7 +434,7 @@ const Landing = () => {
                 ))}
               </ul>
 
-              <Button className="w-full bg-primary hover:bg-primary-hover" size="lg" onClick={handleRegister}>
+              <Button className="w-full bg-primary hover:bg-primary-hover" size="lg" onClick={handleCTA}>
                 Empieza ahora
               </Button>
             </Card>
@@ -501,7 +498,7 @@ const Landing = () => {
             <p className="text-lg md:text-xl mb-8 text-muted-foreground max-w-2xl mx-auto">
               Únete a los creadores que están aumentando sus ventas con datos reales y scripts probados.
             </p>
-            <Button size="lg" className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover btn-glow" onClick={handleRegister}>
+            <Button size="lg" className="text-lg px-8 py-6 h-auto shadow-lg hover:shadow-xl bg-primary hover:bg-primary-hover btn-glow" onClick={handleCTA}>
               Empieza ahora
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
@@ -519,7 +516,7 @@ const Landing = () => {
                 <p className="text-muted-foreground text-sm mb-4">
                   La herramienta definitiva para creadores de TikTok Shop.
                 </p>
-                <Button onClick={handleRegister} className="bg-primary hover:bg-primary-hover">
+                <Button onClick={handleCTA} className="bg-primary hover:bg-primary-hover">
                   Empieza ahora
                 </Button>
               </div>
@@ -557,7 +554,7 @@ const Landing = () => {
 
       {/* Mobile Sticky CTA */}
       <div className="mobile-sticky-cta">
-        <Button className="w-full bg-primary hover:bg-primary-hover text-lg py-6" onClick={handleRegister}>
+        <Button className="w-full bg-primary hover:bg-primary-hover text-lg py-6" onClick={handleCTA}>
           Empieza ahora
           <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
@@ -565,6 +562,9 @@ const Landing = () => {
 
       {/* Pricing Modal */}
       <PricingModal open={pricingModalOpen} onOpenChange={setPricingModalOpen} />
+
+      {/* Email Capture Modal */}
+      <EmailCaptureModal open={emailModalOpen} onOpenChange={setEmailModalOpen} referralCode={refCode} />
     </div>
   );
 };

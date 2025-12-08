@@ -148,4 +148,15 @@
 
 ---
 
+## ✅ CONVERSION FLOW v2 (Diciembre 2024)
+
+### Nuevo Flujo de Conversión
+- [x] Landing/Unlock - Un solo CTA "Empieza ahora" (eliminado "Ver cómo funciona")
+- [x] EmailCaptureModal - Modal para capturar email antes de Stripe
+- [x] Edge function `create-checkout-guest` - Checkout sin cuenta previa
+- [x] stripe-webhook actualizado - Crea cuenta automáticamente post-pago
+- [x] Flujo: CTA → Email → Stripe → Cuenta creada → Dashboard
+
+---
+
 **Última actualización:** Diciembre 2024

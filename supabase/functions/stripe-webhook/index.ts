@@ -68,14 +68,79 @@ serve(async (req) => {
 });
 
 async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.supabase_user_id;
+  const subscriptionId = session.subscription as string;
+  const customerId = session.customer as string;
+  
+  // Check if this is a guest checkout that needs account creation
+  const guestEmail = session.metadata?.guest_email;
+  const createAccountOnSuccess = session.metadata?.create_account_on_success === "true";
+  const referralCode = session.metadata?.referral_code;
+  
+  let userId = session.metadata?.supabase_user_id;
+
+  // If guest checkout, create user account
+  if (createAccountOnSuccess && guestEmail && !userId) {
+    console.log(`Creating account for guest: ${guestEmail}`);
+    
+    // Generate random password (user will reset later)
+    const tempPassword = crypto.randomUUID();
+    
+    // Create user with Supabase Admin
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: guestEmail,
+      password: tempPassword,
+      email_confirm: true, // Auto-confirm email since they paid
+      user_metadata: {
+        source: "paid_checkout",
+      },
+    });
+
+    if (authError) {
+      console.error("Error creating user:", authError);
+      // Check if user already exists
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find(u => u.email === guestEmail);
+      if (existingUser) {
+        userId = existingUser.id;
+        console.log(`User already exists: ${userId}`);
+      }
+    } else if (authData.user) {
+      userId = authData.user.id;
+      console.log(`User created: ${userId}`);
+
+      // Create profile
+      await supabaseAdmin.from("profiles").upsert({
+        id: userId,
+        email: guestEmail,
+        stripe_customer_id: customerId,
+        referral_code_used: referralCode || null,
+      }, { onConflict: "id" });
+
+      // Send password reset email so user can set their password
+      const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+        type: "recovery",
+        email: guestEmail,
+      });
+
+      if (resetError) {
+        console.error("Error sending password reset:", resetError);
+      } else {
+        console.log(`Password reset link generated for: ${guestEmail}`);
+      }
+    }
+  }
+
   if (!userId) {
-    console.error("No user ID in session metadata");
+    console.error("No user ID found for checkout session");
     return;
   }
 
-  const subscriptionId = session.subscription as string;
-  const customerId = session.customer as string;
+  // Update profile with stripe customer ID if not already set
+  await supabaseAdmin
+    .from("profiles")
+    .update({ stripe_customer_id: customerId })
+    .eq("id", userId)
+    .is("stripe_customer_id", null);
 
   // Create or update subscription record
   const { error } = await supabaseAdmin

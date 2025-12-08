@@ -12,6 +12,7 @@ import { FeatureSteps } from "@/components/ui/feature-section";
 import { TestimonialsColumn } from "@/components/ui/testimonials-columns-1";
 import { NativeVideoPlayer } from "@/components/NativeVideoPlayer";
 import PricingModal from "@/components/PricingModal";
+import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { useState } from "react";
 
 const testimonials = [{
@@ -74,9 +75,10 @@ const Unlock = () => {
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get("ref");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
 
   const handleUnlock = () => {
-    setPricingModalOpen(true);
+    setEmailModalOpen(true);
   };
 
   const handleLogin = () => {
@@ -131,12 +133,7 @@ const Unlock = () => {
         </>} 
         description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA." 
         ctaText="Desbloquear Adbroll Pro" 
-        ctaSecondaryText="Ver cómo funciona" 
         onCtaClick={handleUnlock} 
-        onCtaSecondaryClick={() => {
-          const howItWorks = document.getElementById('how-it-works');
-          howItWorks?.scrollIntoView({ behavior: 'smooth' });
-        }} 
       />
 
       {/* How it Works */}
@@ -429,6 +426,9 @@ const Unlock = () => {
 
       {/* Pricing Modal */}
       <PricingModal open={pricingModalOpen} onOpenChange={setPricingModalOpen} />
+      
+      {/* Email Capture Modal */}
+      <EmailCaptureModal open={emailModalOpen} onOpenChange={setEmailModalOpen} referralCode={refCode} />
     </div>
   );
 };
