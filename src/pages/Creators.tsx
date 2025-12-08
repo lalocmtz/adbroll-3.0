@@ -305,7 +305,7 @@ const Creators = () => {
                         <div className="h-16 bg-muted rounded-xl" />
                       </div>
                     </div>
-                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-[20px]">
+                    <div className="absolute inset-0 bg-background/40 flex items-center justify-center rounded-[20px]">
                       <div className="text-center p-4">
                         <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm font-medium text-foreground">Desbloquear</p>
@@ -354,7 +354,15 @@ const Creators = () => {
                       </span>
                     </div>
                     <button
-                      onClick={(e) => toggleFavorite(creator.id, e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isLoggedIn) {
+                          navigate("/unlock");
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          return;
+                        }
+                        toggleFavorite(creator.id, e);
+                      }}
                       className="h-9 w-9 rounded-full bg-[#F8FAFC] flex items-center justify-center hover:bg-[#F1F5F9] transition-colors"
                     >
                       <Heart className={`h-[18px] w-[18px] transition-colors ${isFav ? 'text-[#F31260] fill-[#F31260]' : 'text-[#CBD5E1] hover:text-[#1E293B]'}`} />
@@ -423,7 +431,14 @@ const Creators = () => {
                   <div className="flex gap-3">
                     <Button
                       className="flex-1 h-10"
-                      onClick={() => navigate(`/videos/creator/${creator.id}`)}
+                      onClick={() => {
+                        if (!isLoggedIn) {
+                          navigate("/unlock");
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          return;
+                        }
+                        navigate(`/videos/creator/${creator.id}`);
+                      }}
                     >
                       <Play className="h-4 w-4" />
                       Ver videos
@@ -433,7 +448,14 @@ const Creators = () => {
                       <Button
                         variant="secondary"
                         className="h-10 px-4"
-                        onClick={() => openTikTokLink(tiktokUrl)}
+                        onClick={() => {
+                          if (!isLoggedIn) {
+                            navigate("/unlock");
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            return;
+                          }
+                          openTikTokLink(tiktokUrl);
+                        }}
                       >
                         <ExternalLink className="h-4 w-4" />
                         TikTok
