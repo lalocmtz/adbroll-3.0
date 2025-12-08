@@ -87,33 +87,59 @@ const Affiliates = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user");
 
-      const { data: codeData, error: codeError } = await supabase.rpc("generate_ref_code");
-      if (codeError) throw codeError;
-
-      const newCode = codeData as string;
-
-      const { error: affiliateCodeError } = await supabase
+      // First check if user already has a code in affiliate_codes
+      const { data: existingCode } = await supabase
         .from("affiliate_codes")
-        .insert({ user_id: user.id, code: newCode });
+        .select("code")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      if (affiliateCodeError) throw affiliateCodeError;
+      let codeToUse: string;
 
-      const { error: affiliateError } = await supabase
+      if (existingCode?.code) {
+        // User already has a code, use it
+        codeToUse = existingCode.code;
+      } else {
+        // Generate new code
+        const { data: codeData, error: codeError } = await supabase.rpc("generate_ref_code");
+        if (codeError) throw codeError;
+
+        codeToUse = codeData as string;
+
+        // Insert into affiliate_codes
+        const { error: affiliateCodeError } = await supabase
+          .from("affiliate_codes")
+          .insert({ user_id: user.id, code: codeToUse });
+
+        if (affiliateCodeError) throw affiliateCodeError;
+      }
+
+      // Check if affiliates record exists
+      const { data: existingAffiliate } = await supabase
         .from("affiliates")
-        .insert({ 
-          user_id: user.id, 
-          ref_code: newCode,
-          active_referrals_count: 0,
-          usd_earned: 0,
-          usd_available: 0,
-          usd_withdrawn: 0,
-        });
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      if (affiliateError) throw affiliateError;
+      if (!existingAffiliate) {
+        // Create affiliates record
+        const { error: affiliateError } = await supabase
+          .from("affiliates")
+          .insert({ 
+            user_id: user.id, 
+            ref_code: codeToUse,
+            active_referrals_count: 0,
+            usd_earned: 0,
+            usd_available: 0,
+            usd_withdrawn: 0,
+          });
+
+        if (affiliateError) throw affiliateError;
+      }
 
       toast({
         title: language === "es" ? "¡Código creado!" : "Code created!",
-        description: `${language === "es" ? "Tu código:" : "Your code:"} ${newCode}`,
+        description: `${language === "es" ? "Tu código:" : "Your code:"} ${codeToUse}`,
       });
 
       refetch();
