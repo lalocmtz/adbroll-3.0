@@ -27,6 +27,7 @@ import Affiliates from "./pages/Affiliates";
 import FAQ from "./pages/FAQ";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import RefundPolicy from "./pages/RefundPolicy";
 import About from "./pages/About";
 import Pricing from "./pages/Pricing";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
@@ -108,6 +109,7 @@ const App = () => {
                   <Route path="/faq" element={<FAQ />} />
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/terms" element={<Terms />} />
+                  <Route path="/refund-policy" element={<RefundPolicy />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/checkout/success" element={<CheckoutSuccess />} />

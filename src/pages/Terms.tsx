@@ -43,13 +43,16 @@ Nos reservamos el derecho de suspender o terminar cuentas que violen estos térm
         },
         {
           title: "4. Suscripción y Pagos",
-          content: `El acceso completo al Servicio requiere una suscripción pagada de $49 USD mensuales. Al suscribirte:
+          content: `El acceso completo al Servicio requiere una suscripción pagada de $29 USD mensuales. Al suscribirte:
 
 • Autorizas cargos recurrentes a tu método de pago
 • Aceptas que los precios pueden cambiar con aviso previo de 30 días
-• Reconoces que no hay reembolsos por períodos parciales
+• Puedes cancelar en cualquier momento desde Configuración → Gestionar suscripción
+• Al cancelar, mantienes acceso hasta el final del período pagado
 
-Los pagos son procesados de forma segura por Stripe. No almacenamos información de tarjetas de crédito.`
+Los pagos son procesados de forma segura por Stripe. No almacenamos información de tarjetas de crédito.
+
+Para información sobre reembolsos, consulta nuestra Política de Reembolsos en /refund-policy.`
         },
         {
           title: "5. Uso Aceptable",
@@ -136,13 +139,16 @@ We reserve the right to suspend or terminate accounts that violate these terms.`
         },
         {
           title: "4. Subscription and Payments",
-          content: `Full access to the Service requires a paid subscription of $49 USD monthly. By subscribing:
+          content: `Full access to the Service requires a paid subscription of $29 USD monthly. By subscribing:
 
 • You authorize recurring charges to your payment method
 • You accept that prices may change with 30 days prior notice
-• You acknowledge that there are no refunds for partial periods
+• You can cancel anytime from Settings → Manage subscription
+• Upon cancellation, you retain access until the end of the paid period
 
-Payments are processed securely by Stripe. We do not store credit card information.`
+Payments are processed securely by Stripe. We do not store credit card information.
+
+For refund information, please see our Refund Policy at /refund-policy.`
         },
         {
           title: "5. Acceptable Use",

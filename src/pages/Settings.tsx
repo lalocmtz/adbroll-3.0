@@ -138,47 +138,82 @@ const Settings = () => {
           </div>
         </Card>
 
-        {/* Subscription Section - Only show if active */}
-        {subscription?.status === "active" && (
-          <Card className="p-5 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-            <div className="flex items-center gap-3 mb-4">
-              <CreditCard className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold">
-                {language === "es" ? "Suscripción" : "Subscription"}
-              </h2>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg font-bold">Adbroll Pro</span>
-                  <Badge variant="default">
-                    {language === "es" ? "Activo" : "Active"}
-                  </Badge>
+        {/* Subscription Section */}
+        <Card className={`p-5 ${subscription?.status === "active" ? "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20" : ""}`}>
+          <div className="flex items-center gap-3 mb-4">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <h2 className="font-semibold">
+              {language === "es" ? "Suscripción" : "Subscription"}
+            </h2>
+          </div>
+          
+          {subscription?.status === "active" ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg font-bold">Adbroll Pro</span>
+                    <Badge variant="default">
+                      {language === "es" ? "Activo" : "Active"}
+                    </Badge>
+                  </div>
+                  {subscription.renew_at && (
+                    <p className="text-sm text-muted-foreground">
+                      {language === "es" ? "Renueva el" : "Renews on"}{" "}
+                      {formatDate(subscription.renew_at)}
+                    </p>
+                  )}
                 </div>
-                {subscription.renew_at && (
-                  <p className="text-sm text-muted-foreground">
-                    {language === "es" ? "Renueva el" : "Renews on"}{" "}
-                    {formatDate(subscription.renew_at)}
-                  </p>
-                )}
+                <Button 
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                  className="gap-2"
+                >
+                  {portalLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <ExternalLink className="h-4 w-4" />
+                      {language === "es" ? "Abrir portal de Stripe" : "Open Stripe portal"}
+                    </>
+                  )}
+                </Button>
               </div>
-              <Button 
-                onClick={handleManageSubscription}
-                disabled={portalLoading}
-                className="gap-2"
-              >
-                {portalLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <ExternalLink className="h-4 w-4" />
-                    {language === "es" ? "Gestionar suscripción" : "Manage subscription"}
-                  </>
-                )}
+              
+              {/* Subscription Info */}
+              <div className="pt-3 border-t border-border/50 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {language === "es" 
+                    ? "• Tu suscripción es mensual y se renueva automáticamente"
+                    : "• Your subscription is monthly and renews automatically"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {language === "es"
+                    ? "• Puedes cancelarla en cualquier momento desde el portal"
+                    : "• You can cancel anytime from the portal"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {language === "es"
+                    ? "• Al cancelar, mantienes acceso hasta el final del período pagado"
+                    : "• When you cancel, you keep access until the end of the paid period"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground mb-4">
+                {language === "es" 
+                  ? "No tienes suscripción activa"
+                  : "You don't have an active subscription"}
+              </p>
+              <Button asChild>
+                <a href="/pricing">
+                  {language === "es" ? "Ver planes" : "View plans"}
+                </a>
               </Button>
             </div>
-          </Card>
-        )}
+          )}
+        </Card>
 
         {/* Preferences Section */}
         <Card className="p-5">
