@@ -124,6 +124,13 @@
 - [x] CheckoutCancel page (/checkout/cancel)
 - [x] Settings - PlanStatusCard con gestión de suscripción vía Stripe Portal
 
+### Blur Gate Integration
+- [x] useBlurGate verifica subscriptions.status = 'active'
+- [x] Founders con rol 'founder' tienen acceso completo
+- [x] Usuarios pagados: hasPaid = true, accessLevel = 'paid', sin blur
+- [x] Usuarios free: accessLevel = 'free', blur parcial
+- [x] Visitantes: accessLevel = 'visitor', blur completo
+
 ---
 
 **Última actualización:** Diciembre 2024
