@@ -152,7 +152,15 @@ const Pricing = () => {
       });
 
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      
+      if (data?.url) {
+        // Redirect to Stripe - don't reset loading since we're leaving the page
+        window.location.href = data.url;
+        return;
+      }
+      
+      // No URL returned - this shouldn't happen
+      throw new Error("No checkout URL returned");
     } catch (error) {
       console.error("Checkout error:", error);
       toast({
@@ -162,7 +170,6 @@ const Pricing = () => {
           : "Could not start checkout. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
