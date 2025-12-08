@@ -327,11 +327,24 @@ const Dashboard = () => {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="mt-6">
-              <CompactPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
+              {!isLoggedIn ? (
+                <div 
+                  className="flex items-center justify-center gap-2 opacity-60 cursor-pointer"
+                  onClick={() => {
+                    navigate("/unlock");
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Ver más videos</span>
+                </div>
+              ) : (
+                <CompactPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              )}
             </div>
           )}
         </>
