@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
+import { openTikTokLink } from "@/lib/tiktokDeepLink";
 
 interface Creator {
   id: string;
@@ -373,7 +374,7 @@ const Creators = () => {
                       <Button
                         variant="secondary"
                         className="h-10 px-4"
-                        onClick={() => window.open(tiktokUrl, '_blank')}
+                        onClick={() => openTikTokLink(tiktokUrl)}
                       >
                         <ExternalLink className="h-4 w-4" />
                         TikTok

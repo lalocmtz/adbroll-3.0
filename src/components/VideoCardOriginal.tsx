@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import VideoAnalysisModalOriginal from './VideoAnalysisModalOriginal';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
 import { cn } from '@/lib/utils';
+import { openTikTokLink } from '@/lib/tiktokDeepLink';
 
 interface Video {
   id: string;
@@ -153,7 +154,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
 
   const openTikTok = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.open(video.video_url, '_blank');
+    openTikTokLink(video.video_url);
   };
 
   const navigateToProduct = (e: React.MouseEvent) => {
