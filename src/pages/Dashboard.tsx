@@ -278,6 +278,7 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {videos.map((video, index) => {
               const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
+              const isFreePreview = !isLoggedIn && globalIndex < FREE_PREVIEW_LIMIT;
               const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
               
               if (isLocked) {
@@ -307,7 +308,8 @@ const Dashboard = () => {
                 <VideoCardOriginal 
                   key={video.id} 
                   video={video}
-                  ranking={globalIndex + 1} 
+                  ranking={globalIndex + 1}
+                  isFreePreview={isFreePreview}
                 />
               );
             })}

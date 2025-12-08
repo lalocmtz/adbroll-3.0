@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label';
 import { 
   Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, 
   DollarSign, ShoppingCart, Percent, Eye, FlaskConical, X, Sparkles,
-  TrendingUp, Save, Play, Volume2, Maximize2, ChevronDown, ChevronUp
+  TrendingUp, Save, Play, Volume2, Maximize2, ChevronDown, ChevronUp, Lock
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useNavigate } from 'react-router-dom';
+import { useBlurGateContext } from '@/contexts/BlurGateContext';
 
 interface GeneratedVariant {
   hook: string;
@@ -84,8 +86,10 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
   const [isSavingVariant, setIsSavingVariant] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { hasPaid } = useBlurGateContext();
   
-  // New state for variant generator controls
+  // Variant generator controls
   const [variantCount, setVariantCount] = useState<number>(2);
   const [changeLevel, setChangeLevel] = useState<'light' | 'medium' | 'aggressive'>('medium');
   const [generatedVariants, setGeneratedVariants] = useState<GeneratedVariant[]>([]);
@@ -96,7 +100,14 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
   const commissionRate = video.product?.commission || 6;
   const earningPerSale = productPrice * (commissionRate / 100);
 
-  // Check favorite status on mount
+  // Handle locked tabs for visitors
+  const handleTabChange = (value: string) => {
+    if (!hasPaid && (value === 'analysis' || value === 'variants')) {
+      navigate('/unlock');
+      return;
+    }
+    setActiveTab(value);
+  };
   useEffect(() => {
     const checkFavoriteStatus = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -522,7 +533,7 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
 
             {/* Tabs Content */}
             <div className="flex-1 overflow-hidden">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="h-full flex flex-col">
                 <div className="px-5 pt-4">
                   <TabsList className="grid grid-cols-3 w-full h-11 p-1 bg-muted/50 rounded-xl">
                     <TabsTrigger 
@@ -536,6 +547,7 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
                       value="analysis" 
                       className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
                     >
+                      {!hasPaid && <Lock className="h-3 w-3" />}
                       <Brain className="h-4 w-4" />
                       <span className="hidden sm:inline">Análisis</span>
                     </TabsTrigger>
@@ -543,6 +555,7 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
                       value="variants" 
                       className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
                     >
+                      {!hasPaid && <Lock className="h-3 w-3" />}
                       <Wand2 className="h-4 w-4" />
                       <span className="hidden sm:inline">Variantes IA</span>
                     </TabsTrigger>

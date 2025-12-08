@@ -43,6 +43,7 @@ interface Video {
 interface VideoCardOriginalProps {
   video: Video;
   ranking: number;
+  isFreePreview?: boolean; // For first 10 videos shown to visitors
 }
 
 const formatNumber = (num: number | null | undefined): string => {
@@ -62,7 +63,7 @@ const formatCurrency = (num: number | null | undefined): string => {
   }).format(num);
 };
 
-const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
+const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardOriginalProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -77,7 +78,9 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
   const productPrice = video.product?.price || video.product?.precio_mxn || 0;
   const earningsPerSale = productPrice * (commissionRate / 100);
   
-  const needsBlur = shouldBlur || shouldBlurPartial;
+  // Free preview videos show all data even for non-paid users
+  const showFullData = hasPaid || isFreePreview;
+  const needsBlur = !showFullData && (shouldBlur || shouldBlurPartial);
 
   useEffect(() => {
     const checkFavoriteStatus = async () => {
@@ -145,10 +148,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
   };
 
   const handleAnalyzeClick = () => {
-    if (!hasPaid) {
-      openPaywall("Analizar guion y replicar");
-      return;
-    }
+    // Free preview videos can open modal (but with limited tabs)
     setShowModal(true);
   };
 
@@ -293,7 +293,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                 <span className="text-[11px] text-[#94A3B8]">Ingresos</span>
               </div>
               <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
-                {hasPaid ? formatCurrency(video.revenue_mxn) : "•••"}
+                {showFullData ? formatCurrency(video.revenue_mxn) : "•••"}
               </p>
             </div>
 
@@ -303,7 +303,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                 <span className="text-[11px] text-[#94A3B8]">Ventas</span>
               </div>
               <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
-                {hasPaid ? formatNumber(video.sales) : "•••"}
+                {showFullData ? formatNumber(video.sales) : "•••"}
               </p>
             </div>
 
@@ -313,7 +313,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                 <span className="text-[11px] text-[#94A3B8]">Ganancias Est.</span>
               </div>
               <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
-                {hasPaid ? formatCurrency(commissionEstimated) : "•••"}
+                {showFullData ? formatCurrency(commissionEstimated) : "•••"}
               </p>
             </div>
 
@@ -323,7 +323,7 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
                 <span className="text-[11px] text-[#94A3B8]">Vistas</span>
               </div>
               <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
-                {hasPaid ? formatNumber(video.views) : "•••"}
+                {showFullData ? formatNumber(video.views) : "•••"}
               </p>
             </div>
           </div>
@@ -333,12 +333,8 @@ const VideoCardOriginal = ({ video, ranking }: VideoCardOriginalProps) => {
             className="w-full h-11"
             onClick={handleAnalyzeClick}
           >
-            {hasPaid ? (
-              <Sparkles className="h-4 w-4" />
-            ) : (
-              <Lock className="h-4 w-4" />
-            )}
-            {hasPaid ? "Analizar guion y replicar" : "Desbloquear análisis"}
+            <Sparkles className="h-4 w-4" />
+            Analizar guion y replicar
           </Button>
         </div>
       </div>
