@@ -13,7 +13,7 @@ import { TestimonialsColumn } from "@/components/ui/testimonials-columns-1";
 import { NativeVideoPlayer } from "@/components/NativeVideoPlayer";
 import PricingModal from "@/components/PricingModal";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const testimonials = [{
   text: "Adbroll me hizo pasar de adivinar qué productos grabar a saber exactamente qué vende. Ahora mis videos generan ventas todos los días.",
@@ -73,9 +73,19 @@ import step3Variants from "@/assets/step-3-variants.png";
 const Unlock = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const refCode = searchParams.get("ref");
+  const urlRefCode = searchParams.get("ref");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+
+  // Get refCode from URL or localStorage
+  const refCode = urlRefCode || localStorage.getItem("adbroll_ref_code");
+
+  // Save refCode to localStorage if present in URL
+  useEffect(() => {
+    if (urlRefCode) {
+      localStorage.setItem("adbroll_ref_code", urlRefCode.toUpperCase());
+    }
+  }, [urlRefCode]);
 
   const handleUnlock = () => {
     setEmailModalOpen(true);

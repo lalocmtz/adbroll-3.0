@@ -77,6 +77,15 @@ const App = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Capture referral code from URL on initial load and save to localStorage
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get("ref");
+    if (refCode) {
+      localStorage.setItem("adbroll_ref_code", refCode.toUpperCase());
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
