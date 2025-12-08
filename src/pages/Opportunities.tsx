@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Gem, TrendingUp, Users, DollarSign, Percent, ExternalLink, Check, X, Sparkles, Target, HelpCircle, Lightbulb } from "lucide-react";
+import { Gem, TrendingUp, Users, DollarSign, Percent, ExternalLink, Check, X, Sparkles, Target, HelpCircle, Lightbulb, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
 
 interface OpportunityReason {
   commission_high: boolean;
@@ -61,10 +62,13 @@ const SORT_OPTIONS_EN = [
   { value: "earning_per_sale", label: "Highest earnings" },
 ];
 
+const FREE_PREVIEW_LIMIT = 3;
+
 const Opportunities = () => {
   const { toast } = useToast();
   const { language, currency } = useLanguage();
   const navigate = useNavigate();
+  const { isLoggedIn } = useBlurGateContext();
   const [opportunities, setOpportunities] = useState<OpportunityProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>("io_score");
@@ -178,26 +182,55 @@ const Opportunities = () => {
         {/* Minimal header */}
         <DataSubtitle />
 
-        {/* Filter Pills */}
+        {/* Filter Pills - Locked for visitors */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
-          <FilterPills
-            options={sortOptions}
-            value={sortBy}
-            onChange={(v) => setSortBy(v as SortOption)}
-          />
-          
-          {/* Category Dropdown */}
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-auto h-8 text-xs px-3 rounded-full border-border/50 bg-muted/60">
-              <SelectValue placeholder={language === "es" ? "Categoría" : "Category"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{language === "es" ? "Todas las categorías" : "All categories"}</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+          {!isLoggedIn ? (
+            <div 
+              className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
+              onClick={() => navigate("/unlock")}
+            >
+              {sortOptions.map((option, i) => (
+                <span
+                  key={option.value}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 ${
+                    i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
+                  }`}
+                >
+                  <Lock className="h-3 w-3" />
+                  {option.label}
+                </span>
               ))}
-            </SelectContent>
-          </Select>
+            </div>
+          ) : (
+            <FilterPills
+              options={sortOptions}
+              value={sortBy}
+              onChange={(v) => setSortBy(v as SortOption)}
+            />
+          )}
+          
+          {/* Category Dropdown - Locked for visitors */}
+          {!isLoggedIn ? (
+            <div 
+              className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer"
+              onClick={() => navigate("/unlock")}
+            >
+              <Lock className="h-3 w-3" />
+              {language === "es" ? "Categorías" : "Categories"}
+            </div>
+          ) : (
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-auto h-8 text-xs px-3 rounded-full border-border/50 bg-muted/60">
+                <SelectValue placeholder={language === "es" ? "Categoría" : "Category"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{language === "es" ? "Todas las categorías" : "All categories"}</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           <span className="text-xs text-muted-foreground ml-auto">
             {filteredOpportunities.length} {language === "es" ? "oportunidades" : "opportunities"}
@@ -232,7 +265,34 @@ const Opportunities = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredOpportunities.map((product, index) => (
+            {filteredOpportunities.map((product, index) => {
+              const isLocked = !isLoggedIn && index >= FREE_PREVIEW_LIMIT;
+              
+              if (isLocked) {
+                return (
+                  <div 
+                    key={product.id}
+                    className="relative cursor-pointer group"
+                    onClick={() => navigate("/unlock")}
+                  >
+                    <Card className="overflow-hidden blur-sm pointer-events-none rounded-xl">
+                      <div className="aspect-[3/4] bg-muted" />
+                      <div className="p-6">
+                        <div className="h-4 bg-muted rounded mb-2 w-3/4" />
+                        <div className="h-3 bg-muted rounded w-1/2" />
+                      </div>
+                    </Card>
+                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-xl">
+                      <div className="text-center p-4">
+                        <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium text-foreground">Desbloquear</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              
+              return (
               <OpportunityCard
                 key={product.id}
                 product={product}
@@ -242,7 +302,8 @@ const Opportunities = () => {
                 formatCurrency={formatCurrency}
                 navigate={navigate}
               />
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
