@@ -15,10 +15,138 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings as SettingsIcon, User, Globe, LogOut, Crown, Gift, Copy, Check } from "lucide-react";
+import { Settings as SettingsIcon, User, Globe, LogOut, Crown, Gift, Copy, Check, Loader2, ExternalLink } from "lucide-react";
 import { DataSubtitle } from "@/components/FilterPills";
 import { useReferralCode, PLANS } from "@/hooks/useReferralCode";
 import { ReferralDiscountBanner } from "@/components/PricingCard";
+
+// Plan Status Card with Stripe Portal integration
+const PlanStatusCard = ({ 
+  subscription, 
+  language 
+}: { 
+  subscription: SubscriptionData | null; 
+  language: string;
+}) => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const handleUpgrade = async () => {
+    setLoading(true);
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("referral_code_used, id")
+        .single();
+
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { referral_code: profile?.referral_code_used },
+      });
+
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Error",
+        description: language === "es" 
+          ? "No se pudo iniciar el pago" 
+          : "Could not start checkout",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (error) {
+      console.error("Portal error:", error);
+      toast({
+        title: "Error",
+        description: language === "es" 
+          ? "No se pudo abrir el portal" 
+          : "Could not open portal",
+        variant: "destructive",
+      });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  return (
+    <Card className="p-5 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+      <div className="flex items-center gap-3 mb-3">
+        <Crown className="h-5 w-5 text-primary" />
+        <h2 className="font-semibold">
+          {language === "es" ? "Tu Plan" : "Your Plan"}
+        </h2>
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg font-bold">
+              {subscription?.status === "active" ? "Adbroll Pro" : "Free"}
+            </span>
+            <Badge
+              variant={subscription?.status === "active" ? "default" : "secondary"}
+            >
+              {subscription?.status === "active"
+                ? language === "es" ? "Activo" : "Active"
+                : language === "es" ? "Inactivo" : "Inactive"}
+            </Badge>
+          </div>
+          {subscription?.status === "active" && subscription.renew_at && (
+            <p className="text-xs text-muted-foreground">
+              {language === "es" ? "Renueva el" : "Renews on"}{" "}
+              {new Date(subscription.renew_at).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+        {subscription?.status === "active" ? (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleManageSubscription}
+            disabled={portalLoading}
+          >
+            {portalLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                {language === "es" ? "Gestionar" : "Manage"}
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button 
+            size="sm" 
+            className="gap-2"
+            onClick={handleUpgrade}
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Crown className="h-4 w-4" />
+                {language === "es" ? "Upgrade - $29/mes" : "Upgrade - $29/mo"}
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+};
 
 interface SubscriptionData {
   status: string;
@@ -147,46 +275,10 @@ const Settings = () => {
 
       <div className="space-y-5">
         {/* Plan Status */}
-        <Card className="p-5 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <div className="flex items-center gap-3 mb-3">
-            <Crown className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">
-              {language === "es" ? "Tu Plan" : "Your Plan"}
-            </h2>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg font-bold">
-                  {subscription?.status === "active" ? "Adbroll Pro" : "Free"}
-                </span>
-                <Badge
-                  variant={subscription?.status === "active" ? "default" : "secondary"}
-                >
-                  {subscription?.status === "active"
-                    ? language === "es"
-                      ? "Activo"
-                      : "Active"
-                    : language === "es"
-                    ? "Inactivo"
-                    : "Inactive"}
-                </Badge>
-              </div>
-              {subscription?.status === "active" && subscription.renew_at && (
-                <p className="text-xs text-muted-foreground">
-                  {language === "es" ? "Renueva el" : "Renews on"}{" "}
-                  {new Date(subscription.renew_at).toLocaleDateString()}
-                </p>
-              )}
-            </div>
-            {subscription?.status !== "active" && (
-              <Button size="sm" className="gap-2">
-                <Crown className="h-4 w-4" />
-                {language === "es" ? "Upgrade - $49/mes" : "Upgrade - $49/mo"}
-              </Button>
-            )}
-          </div>
-        </Card>
+        <PlanStatusCard 
+          subscription={subscription} 
+          language={language} 
+        />
 
         {/* Affiliate Code Section */}
         <Card className="p-5">
