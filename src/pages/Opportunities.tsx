@@ -291,7 +291,7 @@ const Opportunities = () => {
                         <div className="h-3 bg-muted rounded w-1/2" />
                       </div>
                     </Card>
-                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-xl">
+                    <div className="absolute inset-0 bg-background/40 flex items-center justify-center rounded-xl">
                       <div className="text-center p-4">
                         <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm font-medium text-foreground">Desbloquear</p>
@@ -310,6 +310,7 @@ const Opportunities = () => {
                 currency={currency}
                 formatCurrency={formatCurrency}
                 navigate={navigate}
+                isLoggedIn={isLoggedIn}
               />
               );
             })}
@@ -327,7 +328,8 @@ const OpportunityCard = ({
   language,
   currency,
   formatCurrency,
-  navigate
+  navigate,
+  isLoggedIn
 }: {
   product: OpportunityProduct;
   index: number;
@@ -335,6 +337,7 @@ const OpportunityCard = ({
   currency: string;
   formatCurrency: (amount: number | null, curr: string) => string;
   navigate: (path: string) => void;
+  isLoggedIn: boolean;
 }) => {
   const reason = product.opportunity_reason;
   const tags = reason?.tags || [];
@@ -362,7 +365,14 @@ const OpportunityCard = ({
   return (
     <Card 
       className="overflow-hidden hover:shadow-lg transition-all duration-200 group cursor-pointer bg-card rounded-xl border border-border/60 shadow-sm flex flex-col"
-      onClick={() => navigate(`/videos/product/${product.id}`)}
+      onClick={() => {
+        if (!isLoggedIn) {
+          navigate("/unlock");
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        navigate(`/videos/product/${product.id}`);
+      }}
     >
       {/* Image Container - 3:4 ratio */}
       <div className="relative" style={{ aspectRatio: '3/4' }}>
@@ -495,6 +505,11 @@ const OpportunityCard = ({
             className="flex-1 h-9 text-xs rounded-lg font-medium"
             onClick={(e) => {
               e.stopPropagation();
+              if (!isLoggedIn) {
+                navigate("/unlock");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+              }
               navigate(`/videos/product/${product.id}`);
             }}
           >
@@ -506,6 +521,8 @@ const OpportunityCard = ({
             language={language} 
             currency={currency}
             formatCurrency={formatCurrency}
+            isLoggedIn={isLoggedIn}
+            navigate={navigate}
           />
           
           {product.producto_url && (
@@ -515,6 +532,11 @@ const OpportunityCard = ({
               className="h-9 w-9 p-0 rounded-lg"
               onClick={(e) => {
                 e.stopPropagation();
+                if (!isLoggedIn) {
+                  navigate("/unlock");
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  return;
+                }
                 window.open(product.producto_url!, '_blank');
               }}
             >
@@ -562,12 +584,16 @@ const WhyOpportunityModal = ({
   product, 
   language, 
   currency,
-  formatCurrency 
+  formatCurrency,
+  isLoggedIn,
+  navigate
 }: { 
   product: OpportunityProduct; 
   language: string; 
   currency: string;
   formatCurrency: (amount: number | null, curr: string) => string;
+  isLoggedIn: boolean;
+  navigate: (path: string) => void;
 }) => {
   const reason = product.opportunity_reason;
   if (!reason) return null;
@@ -620,7 +646,14 @@ const WhyOpportunityModal = ({
           size="sm" 
           variant="ghost"
           className="h-9 w-9 p-0 rounded-lg hover:bg-primary/10"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isLoggedIn) {
+              navigate("/unlock");
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
+          disabled={!isLoggedIn}
         >
           <HelpCircle className="h-4 w-4 text-muted-foreground" />
         </Button>

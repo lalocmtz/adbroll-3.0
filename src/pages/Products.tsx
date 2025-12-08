@@ -320,7 +320,7 @@ const Products = () => {
                       <div className="h-4 bg-muted rounded mb-2 w-3/4" />
                       <div className="h-3 bg-muted rounded w-1/2" />
                     </div>
-                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-[20px]">
+                    <div className="absolute inset-0 bg-background/40 flex items-center justify-center rounded-[20px]">
                       <div className="text-center p-4">
                         <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm font-medium text-foreground">Desbloquear</p>
@@ -361,6 +361,11 @@ const Products = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (!isLoggedIn) {
+                                navigate("/unlock");
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                return;
+                              }
                               window.open(product.producto_url!, '_blank');
                             }}
                             className="h-8 w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
@@ -370,7 +375,15 @@ const Products = () => {
                         )}
                         
                         <button
-                          onClick={(e) => toggleFavorite(product.id, e)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isLoggedIn) {
+                              navigate("/unlock");
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                              return;
+                            }
+                            toggleFavorite(product.id, e);
+                          }}
                           className="h-8 w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
                         >
                           <Heart className={`h-[18px] w-[18px] transition-colors ${isFav ? 'text-[#F31260] fill-[#F31260]' : 'text-[#CBD5E1] hover:text-[#1E293B]'}`} />
@@ -460,7 +473,14 @@ const Products = () => {
 
                     <Button
                       className="w-full h-10"
-                      onClick={() => navigate(`/videos/product/${product.id}`)}
+                      onClick={() => {
+                        if (!isLoggedIn) {
+                          navigate("/unlock");
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          return;
+                        }
+                        navigate(`/videos/product/${product.id}`);
+                      }}
                     >
                       <Play className="h-4 w-4" />
                       Ver videos
