@@ -102,8 +102,27 @@
 - [x] Página /pricing con 3 planes (FREE, CREATOR, STUDIO) ✅
 - [x] Detección automática código referido en /pricing ✅
 - [x] FAQ en página de precios ✅
-- [ ] Stripe webhook para comisión de afiliados
+- [x] Stripe webhook para comisión de afiliados ✅
 - [ ] Deep links a TikTok Shop
+
+---
+
+## ✅ STRIPE INTEGRATION (Diciembre 2024)
+
+### Backend
+- [x] Secrets configurados: STRIPE_SECRET_KEY, STRIPE_PRICE_ID_PRO, STRIPE_COUPON_ID, STRIPE_WEBHOOK_SECRET
+- [x] stripe_customer_id añadido a profiles
+- [x] Edge function `create-checkout` - Crea sesión de Stripe Checkout
+- [x] Edge function `stripe-webhook` - Maneja eventos de Stripe (checkout.session.completed, invoice.paid, invoice.payment_failed, subscription.deleted/updated)
+- [x] Edge function `customer-portal` - Portal de gestión de suscripción
+- [x] Lógica de comisión de afiliados (30% = $8.70 por pago)
+
+### Frontend
+- [x] PaywallModal - Conectado a Stripe Checkout
+- [x] Pricing page - Botón conectado a Stripe Checkout
+- [x] CheckoutSuccess page (/checkout/success)
+- [x] CheckoutCancel page (/checkout/cancel)
+- [x] Settings - PlanStatusCard con gestión de suscripción vía Stripe Portal
 
 ---
 

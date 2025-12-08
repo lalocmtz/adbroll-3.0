@@ -17,17 +17,21 @@ import {
   Gift,
   ChevronLeft,
   Star,
+  Loader2,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Pricing = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { language } = useLanguage();
+  const { toast } = useToast();
   const [session, setSession] = useState<any>(null);
   const [referralCode, setReferralCode] = useState<string | null>(
     searchParams.get("ref")
   );
   const [referralValid, setReferralValid] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // Check session
@@ -134,17 +138,32 @@ const Pricing = () => {
     },
   ];
 
-  const handleSelectPlan = () => {
-    const refParam = referralCode ? `&ref=${referralCode}` : "";
+  const handleSelectPlan = async () => {
+    if (!session) {
+      const refParam = referralCode ? `&ref=${referralCode}` : "";
+      navigate(`/register?redirect=/pricing${refParam}`);
+      return;
+    }
 
-    if (session) {
-      navigate(`/checkout?plan=creator${refParam}`);
-    } else {
-      navigate(
-        `/register?redirect=/checkout?plan=creator${refParam}${
-          referralCode ? `&ref=${referralCode}` : ""
-        }`
-      );
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { referral_code: referralCode },
+      });
+
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Error",
+        description: language === "es" 
+          ? "No se pudo iniciar el pago. Intenta de nuevo." 
+          : "Could not start checkout. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -271,8 +290,16 @@ const Pricing = () => {
               className="w-full"
               size="lg"
               onClick={handleSelectPlan}
+              disabled={loading}
             >
-              {language === "es" ? "Empieza ahora" : "Start now"}
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {language === "es" ? "Procesando..." : "Processing..."}
+                </>
+              ) : (
+                language === "es" ? "Empieza ahora" : "Start now"
+              )}
             </Button>
           </Card>
         </div>

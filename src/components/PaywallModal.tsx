@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, Lock, Sparkles, TrendingUp, Video, Wand2, Globe, Calendar } from "lucide-react";
+import { Check, Lock, Sparkles, TrendingUp, Video, Wand2, Globe, Calendar, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBlurGate } from "@/hooks/useBlurGate";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface PaywallModalProps {
   open: boolean;
@@ -21,16 +24,45 @@ const FEATURES = [
 
 export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
   const navigate = useNavigate();
-  const { isLoggedIn } = useBlurGate();
+  const { toast } = useToast();
+  const { isLoggedIn, session } = useBlurGate();
+  const [loading, setLoading] = useState(false);
 
-  const handleActivate = () => {
+  const handleActivate = async () => {
     if (!isLoggedIn) {
       navigate("/register");
-    } else {
-      // TODO: Open Stripe checkout
-      navigate("/pricing");
+      onClose();
+      return;
     }
-    onClose();
+
+    setLoading(true);
+    try {
+      // Get referral code if user has one
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("referral_code_used")
+        .eq("id", session?.user?.id)
+        .single();
+
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { referral_code: profile?.referral_code_used },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo iniciar el proceso de pago. Intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,8 +95,22 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
           </ul>
 
           <div className="space-y-2">
-            <Button onClick={handleActivate} className="w-full" size="lg">
-              {isLoggedIn ? "Activar Adbroll Pro" : "Crear cuenta gratis"}
+            <Button 
+              onClick={handleActivate} 
+              className="w-full" 
+              size="lg"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Procesando...
+                </>
+              ) : isLoggedIn ? (
+                "Activar Adbroll Pro"
+              ) : (
+                "Crear cuenta gratis"
+              )}
             </Button>
             <Button variant="ghost" onClick={onClose} className="w-full text-muted-foreground">
               Seguir explorando
