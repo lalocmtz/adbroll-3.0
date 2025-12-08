@@ -14,9 +14,16 @@ serve(async (req) => {
   }
 
   try {
+    // Use anon key for auth operations
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+    
+    // Use service role for database operations (bypasses RLS)
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     // Get user from auth header
@@ -41,7 +48,7 @@ serve(async (req) => {
     });
 
     // Check if user already has a Stripe customer
-    const { data: profile } = await supabaseClient
+    const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("stripe_customer_id, email")
       .eq("id", user.id)
@@ -59,11 +66,17 @@ serve(async (req) => {
       });
       customerId = customer.id;
 
-      // Save customer ID to profile
-      await supabaseClient
+      // Save customer ID to profile using admin client to bypass RLS
+      const { error: updateError } = await supabaseAdmin
         .from("profiles")
         .update({ stripe_customer_id: customerId })
         .eq("id", user.id);
+      
+      if (updateError) {
+        console.error("Error updating stripe_customer_id:", updateError);
+      } else {
+        console.log(`Saved stripe_customer_id ${customerId} for user ${user.id}`);
+      }
     }
 
     // Build checkout session params
