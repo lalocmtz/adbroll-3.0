@@ -7,9 +7,11 @@ import VideoCardOriginal from "@/components/VideoCardOriginal";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useMarket } from "@/contexts/MarketContext";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Lock } from "lucide-react";
 
 interface Video {
   id: string;
@@ -68,12 +70,14 @@ const Dashboard = () => {
   const { toast } = useToast();
   const { t } = useLanguage();
   const { market } = useMarket();
+  const { isLoggedIn } = useBlurGateContext();
   const [searchParams] = useSearchParams();
   const productFilter = searchParams.get("productName");
   const creatorFilter = searchParams.get("creator");
   
   const ITEMS_PER_PAGE = 20;
   const MAX_VIDEOS = 100;
+  const FREE_PREVIEW_LIMIT = 10; // Videos visitors can see without blur
 
   useEffect(() => {
     fetchCategories();
@@ -243,13 +247,41 @@ const Dashboard = () => {
         <>
           {/* Video Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {videos.map((video, index) => (
-              <VideoCardOriginal 
-                key={video.id} 
-                video={video}
-                ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} 
-              />
-            ))}
+            {videos.map((video, index) => {
+              const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
+              const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+              
+              if (isLocked) {
+                return (
+                  <div 
+                    key={video.id}
+                    className="relative cursor-pointer group"
+                    onClick={() => navigate("/unlock")}
+                  >
+                    <div className="blur-sm pointer-events-none">
+                      <VideoCardOriginal 
+                        video={video}
+                        ranking={globalIndex + 1} 
+                      />
+                    </div>
+                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-xl">
+                      <div className="text-center p-4">
+                        <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium text-foreground">Desbloquear</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              
+              return (
+                <VideoCardOriginal 
+                  key={video.id} 
+                  video={video}
+                  ranking={globalIndex + 1} 
+                />
+              );
+            })}
           </div>
 
           {/* Pagination */}

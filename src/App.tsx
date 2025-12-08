@@ -12,6 +12,7 @@ import { BlurGateProvider } from "@/contexts/BlurGateContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Unlock from "./pages/Unlock";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Creators from "./pages/Creators";
@@ -99,6 +100,9 @@ const App = () => {
                   {/* Auth routes */}
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  
+                  {/* Unlock page (paywall landing) */}
+                  <Route path="/unlock" element={<Unlock />} />
                   
                   {/* Public info pages */}
                   <Route path="/faq" element={<FAQ />} />
