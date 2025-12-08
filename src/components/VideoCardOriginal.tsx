@@ -159,6 +159,12 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
 
   const navigateToProduct = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // For non-logged-in users, redirect to unlock page
+    if (!isLoggedIn) {
+      navigate("/unlock");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (video.product_id) {
       navigate(`/videos/product/${video.product_id}`);
     } else if (video.product_name) {

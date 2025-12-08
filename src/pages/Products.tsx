@@ -227,7 +227,10 @@ const Products = () => {
         {!isLoggedIn ? (
           <div 
             className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
-            onClick={() => navigate("/unlock")}
+            onClick={() => {
+              navigate("/unlock");
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           >
             {SORT_OPTIONS.map((option, i) => (
               <span
@@ -253,7 +256,10 @@ const Products = () => {
         {!isLoggedIn ? (
           <div 
             className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer"
-            onClick={() => navigate("/unlock")}
+            onClick={() => {
+              navigate("/unlock");
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           >
             <Lock className="h-3 w-3" />
             Categorías
@@ -304,7 +310,10 @@ const Products = () => {
                   <div 
                     key={product.id}
                     className="relative cursor-pointer group"
-                    onClick={() => navigate("/unlock")}
+                    onClick={() => {
+                      navigate("/unlock");
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                   >
                     <div className="blur-sm pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5">
                       <div className="aspect-square bg-muted rounded-2xl mb-4" />

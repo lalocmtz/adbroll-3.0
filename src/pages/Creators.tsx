@@ -236,7 +236,10 @@ const Creators = () => {
         {!isLoggedIn ? (
           <div 
             className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
-            onClick={() => navigate("/unlock")}
+            onClick={() => {
+              navigate("/unlock");
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           >
             {SORT_OPTIONS.map((option, i) => (
               <span
@@ -284,7 +287,10 @@ const Creators = () => {
                   <div 
                     key={creator.id}
                     className="relative cursor-pointer group"
-                    onClick={() => navigate("/unlock")}
+                    onClick={() => {
+                      navigate("/unlock");
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
                   >
                     <div className="blur-sm pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5">
                       <div className="flex items-start gap-3 mb-4">
