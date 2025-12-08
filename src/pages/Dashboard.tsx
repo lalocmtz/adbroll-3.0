@@ -297,13 +297,13 @@ const Dashboard = () => {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
-                    <div className="blur-sm pointer-events-none">
+                    <div className="blur-[2px] pointer-events-none">
                       <VideoCardOriginal 
                         video={video}
                         ranking={globalIndex + 1} 
                       />
                     </div>
-                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-xl">
+                    <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-xl">
                       <div className="text-center p-4">
                         <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm font-medium text-foreground">Desbloquear</p>

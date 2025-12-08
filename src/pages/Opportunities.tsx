@@ -284,14 +284,45 @@ const Opportunities = () => {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
-                    <Card className="overflow-hidden blur-sm pointer-events-none rounded-xl">
-                      <div className="aspect-[3/4] bg-muted" />
+                    <Card className="overflow-hidden blur-[2px] pointer-events-none rounded-xl shadow-sm">
+                      {/* Image Container - 3:4 ratio */}
+                      <div className="relative" style={{ aspectRatio: '3/4' }}>
+                        {product.imagen_url ? (
+                          <img 
+                            src={product.imagen_url} 
+                            alt={product.producto_nombre}
+                            className="w-full h-full object-cover rounded-t-xl"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-muted/30 rounded-t-xl">
+                            <Gem className="h-12 w-12 text-muted-foreground/30" />
+                          </div>
+                        )}
+                        {/* IO Score Badge */}
+                        <div className="absolute top-3 left-3">
+                          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 gap-1.5 shadow-md px-2.5 py-1 text-xs font-semibold">
+                            <TrendingUp className="h-3.5 w-3.5" />
+                            IO {product.io_score?.toFixed(0) || 0}
+                          </Badge>
+                        </div>
+                        {/* Rank Badge */}
+                        <div className="absolute top-3 right-3">
+                          <Badge variant="secondary" className="font-bold bg-white/95 text-foreground shadow-sm px-2 py-0.5">
+                            #{index + 1}
+                          </Badge>
+                        </div>
+                      </div>
+                      {/* Content */}
                       <div className="p-6">
-                        <div className="h-4 bg-muted rounded mb-2 w-3/4" />
-                        <div className="h-3 bg-muted rounded w-1/2" />
+                        <h3 className="font-semibold text-[15px] text-foreground line-clamp-2 leading-tight">
+                          {product.producto_nombre}
+                        </h3>
+                        {product.categoria && (
+                          <p className="text-[12px] text-muted-foreground mt-2">{product.categoria}</p>
+                        )}
                       </div>
                     </Card>
-                    <div className="absolute inset-0 bg-background/40 flex items-center justify-center rounded-xl">
+                    <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-xl">
                       <div className="text-center p-4">
                         <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm font-medium text-foreground">Desbloquear</p>

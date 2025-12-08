@@ -292,20 +292,55 @@ const Creators = () => {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
-                    <div className="blur-sm pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5">
+                    <div className="blur-[2px] pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5 shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
+                      {/* Header: Avatar + Name + Ranking */}
                       <div className="flex items-start gap-3 mb-4">
-                        <div className="h-12 w-12 rounded-full bg-muted" />
-                        <div className="flex-1">
-                          <div className="h-4 bg-muted rounded mb-2 w-3/4" />
-                          <div className="h-3 bg-muted rounded w-1/2" />
+                        <div className="relative">
+                          <Avatar className="h-12 w-12 border-2 border-[#F31260]/20 shrink-0 shadow-md">
+                            <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
+                            <AvatarFallback className="bg-gradient-to-br from-[#F31260]/80 to-[#F31260] text-white font-bold text-sm">
+                              {getInitials(creator.nombre_completo, creator.usuario_creador)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {isTop5(globalIndex) && (
+                            <div className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full p-1 shadow-lg">
+                              <Flame className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground truncate">
+                            {creator.nombre_completo || creator.usuario_creador}
+                          </h3>
+                          <p className="text-[13px] text-[#94A3B8]">
+                            @{creator.creator_handle || creator.usuario_creador}
+                          </p>
+                          <span className={`inline-block mt-1.5 text-[12px] font-bold px-2.5 py-0.5 rounded-full ${
+                            isTop5(globalIndex)
+                              ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white'
+                              : 'bg-[#F1F5F9] text-[#0F172A] border border-[#E2E8F0]'
+                          }`}>
+                            #{ranking} {isTop5(globalIndex) && '🔥'}
+                          </span>
                         </div>
                       </div>
+                      {/* Primary Revenue Cards */}
                       <div className="grid grid-cols-2 gap-3 mb-4">
-                        <div className="h-16 bg-muted rounded-xl" />
-                        <div className="h-16 bg-muted rounded-xl" />
+                        <div className="p-3 rounded-xl bg-[#ECFDF5] text-center">
+                          <p className="text-[10px] text-[#94A3B8] uppercase">GMV Total</p>
+                          <p className="text-sm font-bold text-[#0F172A]">
+                            {formatCurrency(creator.total_ingresos_mxn)}
+                          </p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[#ECFDF5] text-center">
+                          <p className="text-[10px] text-[#94A3B8] uppercase">Comisión Est.</p>
+                          <p className="text-sm font-bold text-[#0F172A]">
+                            {calculateCommission(creator.total_ingresos_mxn)}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="absolute inset-0 bg-background/40 flex items-center justify-center rounded-[20px]">
+                    <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-[20px]">
                       <div className="text-center p-4">
                         <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm font-medium text-foreground">Desbloquear</p>

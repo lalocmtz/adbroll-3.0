@@ -315,12 +315,46 @@ const Products = () => {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
-                    <div className="blur-sm pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5">
-                      <div className="aspect-square bg-muted rounded-2xl mb-4" />
-                      <div className="h-4 bg-muted rounded mb-2 w-3/4" />
-                      <div className="h-3 bg-muted rounded w-1/2" />
+                    <div className="blur-[2px] pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5 shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
+                      {/* Product Image - 1:1 aspect ratio */}
+                      <div className="relative aspect-square bg-muted rounded-2xl overflow-hidden mb-4">
+                        <img
+                          src={product.imagen_url || PLACEHOLDER_IMAGE}
+                          alt={product.producto_nombre}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
+                          }}
+                        />
+                        <span className={`absolute top-3 left-3 text-[13px] font-bold px-2.5 py-1 rounded-full shadow-lg ${
+                          isTop5 
+                            ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white' 
+                            : 'bg-white/95 text-[#0F172A] border border-[#E2E8F0]'
+                        }`}>
+                          #{displayRank} {isTop5 && '🔥'}
+                        </span>
+                      </div>
+                      {/* Content */}
+                      <div className="space-y-3">
+                        <h3 className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground truncate">
+                          {product.producto_nombre}
+                        </h3>
+                        {product.categoria && (
+                          <p className="text-[13px] text-[#94A3B8]">{product.categoria}</p>
+                        )}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 rounded-xl bg-[#ECFDF5]">
+                            <p className="text-[11px] text-[#94A3B8]">Ingresos 30D</p>
+                            <p className="text-sm font-bold text-[#0F172A]">{formatCurrency(getRevenue(product))}</p>
+                          </div>
+                          <div className="p-3 rounded-xl bg-[#F8FAFC]">
+                            <p className="text-[11px] text-[#94A3B8]">Ventas 30D</p>
+                            <p className="text-sm font-bold text-[#0F172A]">{formatNumber(getSales(product))}</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="absolute inset-0 bg-background/40 flex items-center justify-center rounded-[20px]">
+                    <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-[20px]">
                       <div className="text-center p-4">
                         <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                         <p className="text-sm font-medium text-foreground">Desbloquear</p>
