@@ -85,6 +85,16 @@ const Footer = () => {
                   {t("termsConditions")}
                 </Link>
               </li>
+              <li>
+                <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  {t("language") === "es" ? "Política de Reembolsos" : "Refund Policy"}
+                </Link>
+              </li>
+              <li>
+                <Link to="/support" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  {t("language") === "es" ? "Soporte" : "Support"}
+                </Link>
+              </li>
             </ul>
           </div>
 

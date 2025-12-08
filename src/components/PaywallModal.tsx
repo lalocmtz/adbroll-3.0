@@ -83,7 +83,7 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
             <p className="text-sm text-muted-foreground mt-1">Cancela cuando quieras</p>
           </div>
 
-          <ul className="space-y-3 mb-6">
+          <ul className="space-y-3 mb-4">
             {FEATURES.map((f, i) => (
               <li key={i} className="flex items-center gap-3 text-sm">
                 <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10">
@@ -93,6 +93,11 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
               </li>
             ))}
           </ul>
+
+          {/* Subscription Note */}
+          <p className="text-xs text-muted-foreground text-center mb-4 px-2">
+            Esta es una suscripción mensual. Puedes cancelarla en cualquier momento desde Configuración → Suscripción.
+          </p>
 
           <div className="space-y-2">
             <Button 
@@ -116,6 +121,14 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
               Seguir explorando
             </Button>
           </div>
+
+          {/* Policy Links */}
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            Al continuar, aceptas nuestros{" "}
+            <a href="/terms" className="text-primary hover:underline">Términos</a>
+            {" "}y{" "}
+            <a href="/refund-policy" className="text-primary hover:underline">Política de Reembolsos</a>
+          </p>
         </div>
       </DialogContent>
     </Dialog>

@@ -229,8 +229,21 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
             )}
           </Button>
 
+          {/* Subscription Note */}
+          <p className="text-xs text-muted-foreground text-center mb-2">
+            Esta es una suscripción mensual de $29 USD. Puedes cancelarla cuando quieras desde Configuración.
+          </p>
+          
+          {/* Policy Links */}
           <p className="text-xs text-muted-foreground text-center">
-            Al continuar aceptas nuestros términos de servicio
+            Al continuar, aceptas nuestros{" "}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Términos y Condiciones
+            </a>
+            {" "}y{" "}
+            <a href="/refund-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Política de Reembolsos
+            </a>
           </p>
         </form>
       </DialogContent>
