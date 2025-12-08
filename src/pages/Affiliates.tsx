@@ -62,9 +62,12 @@ const Affiliates = () => {
     }
   }, []);
 
+  // Production domain for referral links
+  const ADBROLL_DOMAIN = "https://adbroll.com";
+
   const handleCopyLink = async () => {
     if (affiliate?.ref_code) {
-      const link = `${window.location.origin}?ref=${affiliate.ref_code}`;
+      const link = `${ADBROLL_DOMAIN}?ref=${affiliate.ref_code}`;
       await navigator.clipboard.writeText(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -443,7 +446,7 @@ const Affiliates = () => {
                 </label>
                 <div className="flex gap-2">
                   <Input 
-                    value={`${window.location.origin}?ref=${affiliate.ref_code}`} 
+                    value={`${ADBROLL_DOMAIN}?ref=${affiliate.ref_code}`} 
                     readOnly 
                     className="text-sm"
                   />
