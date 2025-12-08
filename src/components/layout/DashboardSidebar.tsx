@@ -6,13 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
   PlayCircle,
@@ -21,7 +14,6 @@ import {
   Heart,
   Settings,
   HelpCircle,
-  ChevronDown,
   X,
   TrendingUp,
   Coins,
@@ -29,6 +21,7 @@ import {
   LogIn,
   Lock,
   Unlock,
+  LogOut,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import logoDark from "@/assets/logo-dark.png";
@@ -55,7 +48,6 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   const location = useLocation();
   const [userEmail, setUserEmail] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
-  const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   useEffect(() => {
@@ -80,6 +72,12 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
     if (window.innerWidth < 1024) {
       onClose();
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
+    handleNavClick();
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -268,8 +266,8 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
         </nav>
 
         {/* Bottom section */}
-        <div className="px-5 pb-6 pt-3 space-y-3">
-          <Separator className="bg-separator" />
+        <div className="px-5 pb-6 pt-3 space-y-2">
+          <Separator className="bg-separator mb-3" />
 
           {/* Support link - HIDE for visitors */}
           {isLoggedIn && (
@@ -282,6 +280,17 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             >
               <HelpCircle className="h-5 w-5" />
               <span>{language === "es" ? "Soporte" : "Support"}</span>
+            </button>
+          )}
+
+          {/* Logout button - only for logged in users */}
+          {isLoggedIn && (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10 w-full transition-all duration-200"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>{language === "es" ? "Cerrar sesión" : "Sign out"}</span>
             </button>
           )}
 
@@ -306,40 +315,14 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             </div>
           )}
 
-          {/* Plan Card - Only for logged in users */}
-          {isLoggedIn && (
-            <div className="p-3 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 border border-[#E2E8F0] dark:border-border">
-              <div className="flex items-start gap-2 mb-2">
-                <span className="text-base">💼</span>
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-[#0F172A] dark:text-foreground">
-                    {language === "es" ? "Plan actual:" : "Current plan:"} <span className="text-primary">{hasPaid ? "Pro" : "Free"}</span>
-                  </p>
-                  {!hasPaid && (
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {language === "es" ? "🚀 Mejora para desbloquear todo" : "🚀 Upgrade to unlock everything"}
-                    </p>
-                  )}
-                </div>
-              </div>
-              {!hasPaid && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="w-full h-8 text-xs rounded-lg"
-                  onClick={() => setPricingModalOpen(true)}
-                >
-                  {language === "es" ? "Activar Pro — $29/mes" : "Activate Pro — $29/mo"}
-                </Button>
-              )}
-            </div>
-          )}
-
-          {/* User card - only for logged in users */}
+          {/* User card - only for logged in users, navigates to settings */}
           {isLoggedIn && (
             <button
-              onClick={() => setAccountModalOpen(true)}
-              className="flex items-center gap-3 p-3 rounded-xl w-full transition-all duration-200 hover:bg-muted"
+              onClick={() => {
+                navigate("/settings");
+                handleNavClick();
+              }}
+              className="flex items-center gap-3 p-3 rounded-xl w-full transition-all duration-200 hover:bg-muted mt-2"
               style={{ backgroundColor: 'hsl(var(--sidebar-user-bg))' }}
             >
               <Avatar className="h-9 w-9 border-2 border-primary/20">
@@ -351,67 +334,10 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
                 <p className="text-xs font-medium truncate text-foreground">{userName}</p>
                 <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
               </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </button>
           )}
         </div>
       </aside>
-
-      {/* Account Modal */}
-      <Dialog open={accountModalOpen} onOpenChange={setAccountModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{language === "es" ? "Mi Cuenta" : "My Account"}</DialogTitle>
-          </DialogHeader>
-          <Tabs defaultValue="overview" className="mt-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="billing">Billing</TabsTrigger>
-              <TabsTrigger value="team">Team</TabsTrigger>
-              <TabsTrigger value="api">API</TabsTrigger>
-            </TabsList>
-            <TabsContent value="overview" className="mt-4 space-y-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 border-2 border-primary/20">
-                  <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-lg font-semibold">{userName}</p>
-                  <p className="text-sm text-muted-foreground">{userEmail}</p>
-                </div>
-              </div>
-              <Separator />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-muted">
-                  <p className="text-sm text-muted-foreground">{language === "es" ? "Plan actual" : "Current Plan"}</p>
-                  <p className="font-semibold">{hasPaid ? "Pro" : "Free"}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-muted">
-                  <p className="text-sm text-muted-foreground">{language === "es" ? "Miembro desde" : "Member since"}</p>
-                  <p className="font-semibold">2024</p>
-                </div>
-              </div>
-            </TabsContent>
-            <TabsContent value="billing" className="mt-4">
-              <div className="text-center py-8 text-muted-foreground">
-                {language === "es" ? "Próximamente: Gestión de facturación y pagos" : "Coming soon: Billing and payment management"}
-              </div>
-            </TabsContent>
-            <TabsContent value="team" className="mt-4">
-              <div className="text-center py-8 text-muted-foreground">
-                {language === "es" ? "Próximamente: Gestión de equipo" : "Coming soon: Team management"}
-              </div>
-            </TabsContent>
-            <TabsContent value="api" className="mt-4">
-              <div className="text-center py-8 text-muted-foreground">
-                {language === "es" ? "Próximamente: API e integraciones" : "Coming soon: API and integrations"}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
 
       {/* Pricing Modal */}
       <PricingModal open={pricingModalOpen} onOpenChange={setPricingModalOpen} />
