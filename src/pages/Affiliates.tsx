@@ -2,19 +2,20 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Check, DollarSign, Users, TrendingUp, Gift, Share2 } from "lucide-react";
+import { Copy, Check, DollarSign, Users, TrendingUp, Gift, Share2, Sparkles } from "lucide-react";
 import { useAffiliate } from "@/hooks/useAffiliate";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { DataSubtitle } from "@/components/FilterPills";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 
 const Affiliates = () => {
   const { toast } = useToast();
   const { language } = useLanguage();
-  const { affiliate, referrals, loading } = useAffiliate();
+  const { affiliate, referrals, loading, refetch } = useAffiliate();
   const [copied, setCopied] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const handleCopyLink = async () => {
     if (affiliate?.ref_code) {
@@ -35,6 +36,59 @@ const Affiliates = () => {
     }
   };
 
+  const handleCreateAffiliateCode = async () => {
+    setCreating(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user");
+
+      // Generate unique code
+      const { data: codeData, error: codeError } = await supabase.rpc("generate_ref_code");
+      if (codeError) throw codeError;
+
+      const newCode = codeData as string;
+
+      // Create in affiliate_codes table
+      const { error: affiliateCodeError } = await supabase
+        .from("affiliate_codes")
+        .insert({ user_id: user.id, code: newCode });
+
+      if (affiliateCodeError) throw affiliateCodeError;
+
+      // Create in affiliates table
+      const { error: affiliateError } = await supabase
+        .from("affiliates")
+        .insert({ 
+          user_id: user.id, 
+          ref_code: newCode,
+          active_referrals_count: 0,
+          usd_earned: 0,
+          usd_available: 0,
+          usd_withdrawn: 0,
+        });
+
+      if (affiliateError) throw affiliateError;
+
+      toast({
+        title: language === "es" ? "¡Código creado!" : "Code created!",
+        description: `${language === "es" ? "Tu código:" : "Your code:"} ${newCode}`,
+      });
+
+      refetch();
+    } catch (error) {
+      console.error("Error creating affiliate code:", error);
+      toast({
+        title: "Error",
+        description: language === "es" 
+          ? "No se pudo crear el código" 
+          : "Could not create code",
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -45,7 +99,6 @@ const Affiliates = () => {
   if (loading) {
     return (
       <div className="pt-5 pb-6 px-4 md:px-6 max-w-4xl">
-        <DataSubtitle />
         <div className="grid gap-4 md:grid-cols-3 mb-6">
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
@@ -58,8 +111,6 @@ const Affiliates = () => {
 
   return (
     <div className="pt-5 pb-6 px-4 md:px-6 max-w-4xl">
-      <DataSubtitle />
-
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
@@ -303,13 +354,39 @@ const Affiliates = () => {
           </Card>
         </div>
       ) : (
-        <Card className="p-12 text-center">
-          <Users className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-          <p className="text-muted-foreground">
+        /* CTA to create affiliate code */
+        <Card className="p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="h-8 w-8 text-green-600" />
+          </div>
+          <h3 className="text-lg font-bold mb-2">
             {language === "es" 
-              ? "No se encontraron datos de afiliado."
-              : "No affiliate data found."}
+              ? "¡Empieza a ganar dinero hoy!" 
+              : "Start earning money today!"}
+          </h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+            {language === "es" 
+              ? "Crea tu código de afiliado único y compártelo con otros creadores. Ganarás 30% de cada pago que hagan."
+              : "Create your unique affiliate code and share it with other creators. You'll earn 30% of every payment they make."}
           </p>
+          <Button 
+            size="lg" 
+            onClick={handleCreateAffiliateCode}
+            disabled={creating}
+            className="gap-2"
+          >
+            {creating ? (
+              <>
+                <span className="animate-spin">⏳</span>
+                {language === "es" ? "Creando..." : "Creating..."}
+              </>
+            ) : (
+              <>
+                <Gift className="h-5 w-5" />
+                {language === "es" ? "Crear mi código de afiliado" : "Create my affiliate code"}
+              </>
+            )}
+          </Button>
         </Card>
       )}
     </div>
