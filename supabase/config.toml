@@ -71,3 +71,6 @@ verify_jwt = true
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.create-checkout-guest]
+verify_jwt = false
