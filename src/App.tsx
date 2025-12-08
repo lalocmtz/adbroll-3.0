@@ -86,10 +86,10 @@ const App = () => {
       <TooltipProvider>
         <LanguageProvider>
           <MarketProvider>
-            <BlurGateProvider>
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <BlurGateProvider>
                 <Routes>
                   {/* APP-FIRST: Redirect home to app */}
                   <Route path="/" element={<Navigate to="/app" replace />} />
@@ -211,8 +211,8 @@ const App = () => {
                   
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                </BlurGateProvider>
               </BrowserRouter>
-            </BlurGateProvider>
           </MarketProvider>
         </LanguageProvider>
       </TooltipProvider>
