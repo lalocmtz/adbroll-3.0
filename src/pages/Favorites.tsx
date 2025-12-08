@@ -14,6 +14,7 @@ import {
 import VideoAnalysisModalOriginal from "@/components/VideoAnalysisModalOriginal";
 import { useNavigate } from "react-router-dom";
 import { DataSubtitle } from "@/components/FilterPills";
+import { openTikTokLink } from "@/lib/tiktokDeepLink";
 
 interface FavoriteVideo {
   id: string;
@@ -283,7 +284,7 @@ const Favorites = () => {
                             size="icon"
                             variant="ghost"
                             className="h-7 w-7 rounded-full shadow-md backdrop-blur-sm bg-background/80 hover:bg-background/90"
-                            onClick={() => window.open(video.video_url || video.tiktok_url, '_blank')}
+                            onClick={() => openTikTokLink(video.video_url || video.tiktok_url || '')}
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Button>
@@ -670,7 +671,7 @@ const Favorites = () => {
                         <Button
                           variant="outline"
                           className="w-full h-7 text-[10px]"
-                          onClick={() => window.open(creator.tiktok_url!, '_blank')}
+                          onClick={() => openTikTokLink(creator.tiktok_url!)}
                         >
                           <ExternalLink className="h-3 w-3 mr-1" />
                           Ver en TikTok

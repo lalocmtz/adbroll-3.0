@@ -103,7 +103,7 @@
 - [x] Detección automática código referido en /pricing ✅
 - [x] FAQ en página de precios ✅
 - [x] Stripe webhook para comisión de afiliados ✅
-- [ ] Deep links a TikTok Shop
+- [x] Deep links a TikTok Shop ✅
 
 ---
 

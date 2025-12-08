@@ -10,6 +10,7 @@ import VideoCardOriginal from "@/components/VideoCardOriginal";
 import { useToast } from "@/hooks/use-toast";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
+import { openTikTokLink } from "@/lib/tiktokDeepLink";
 
 interface Video {
   id: string;
@@ -324,7 +325,7 @@ const RelatedVideos = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open(creatorInfo.tiktok_url!, '_blank')}
+                onClick={() => openTikTokLink(creatorInfo.tiktok_url!)}
               >
                 <ExternalLink className="h-4 w-4 mr-1.5" />
                 Ver en TikTok
