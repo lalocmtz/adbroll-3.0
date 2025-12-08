@@ -284,7 +284,7 @@ const Opportunities = () => {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
-                    <Card className="overflow-hidden blur-[2px] pointer-events-none rounded-xl shadow-sm">
+                    <Card className="overflow-hidden blur-[6px] pointer-events-none rounded-xl shadow-sm">
                       {/* Image Container - 3:4 ratio */}
                       <div className="relative" style={{ aspectRatio: '3/4' }}>
                         {product.imagen_url ? (

@@ -315,7 +315,7 @@ const Products = () => {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
-                    <div className="blur-[2px] pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5 shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
+                    <div className="blur-[6px] pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5 shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
                       {/* Product Image - 1:1 aspect ratio */}
                       <div className="relative aspect-square bg-muted rounded-2xl overflow-hidden mb-4">
                         <img
