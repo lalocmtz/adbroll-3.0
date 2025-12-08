@@ -78,9 +78,19 @@ import step3Variants from "@/assets/step-3-variants.png";
 const Landing = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const refCode = searchParams.get("ref");
+  const urlRefCode = searchParams.get("ref");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  
+  // Get refCode from URL or localStorage
+  const refCode = urlRefCode || localStorage.getItem("adbroll_ref_code");
+
+  // Save refCode to localStorage if present in URL
+  useEffect(() => {
+    if (urlRefCode) {
+      localStorage.setItem("adbroll_ref_code", urlRefCode.toUpperCase());
+    }
+  }, [urlRefCode]);
 
   const handleCTA = () => {
     setEmailModalOpen(true);

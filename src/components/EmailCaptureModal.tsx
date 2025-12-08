@@ -18,20 +18,40 @@ interface EmailCaptureModalProps {
 
 export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialReferralCode }: EmailCaptureModalProps) => {
   const [email, setEmail] = useState("");
-  const [referralCode, setReferralCode] = useState(initialReferralCode || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  // Get referral code from props, URL params, or localStorage
+  const getInitialReferralCode = () => {
+    if (initialReferralCode) return initialReferralCode.toUpperCase();
+    const storedCode = localStorage.getItem("adbroll_ref_code");
+    if (storedCode) return storedCode.toUpperCase();
+    return "";
+  };
+  
+  const [referralCode, setReferralCode] = useState(getInitialReferralCode);
   
   // Referral code validation state
   const [validatingCode, setValidatingCode] = useState(false);
   const [codeValid, setCodeValid] = useState<boolean | null>(null);
   const [codeError, setCodeError] = useState("");
 
-  // Pre-fill referral code if passed
+  // Re-initialize referral code when modal opens (to pick up localStorage changes)
+  useEffect(() => {
+    if (open) {
+      const code = getInitialReferralCode();
+      if (code && code !== referralCode) {
+        setReferralCode(code);
+        validateReferralCode(code);
+      }
+    }
+  }, [open]);
+
+  // Pre-fill referral code if passed as prop
   useEffect(() => {
     if (initialReferralCode) {
-      setReferralCode(initialReferralCode);
-      validateReferralCode(initialReferralCode);
+      setReferralCode(initialReferralCode.toUpperCase());
+      validateReferralCode(initialReferralCode.toUpperCase());
     }
   }, [initialReferralCode]);
 
