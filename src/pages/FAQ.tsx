@@ -8,74 +8,59 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { HelpCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const faqData = {
   es: [
     {
-      question: "¿Cuánto cuesta Adbroll?",
-      answer: "Adbroll Pro cuesta $29 USD/mes (~$499 MXN/mes). Un solo plan con acceso completo a todas las funciones."
-    },
-    {
       question: "¿Qué es Adbroll?",
-      answer: "Adbroll es una plataforma de análisis para creadores de TikTok Shop. Te mostramos los videos más vendedores, los productos más rentables y los creadores más exitosos para que puedas inspirarte y replicar estrategias que funcionan."
+      answer: "Adbroll es una herramienta de análisis creativo que ayuda a identificar videos, productos y guiones que están funcionando en TikTok Shop."
     },
     {
-      question: "¿Funciona para México y Estados Unidos?",
-      answer: "Sí, funciona para TikTok Shop México y Estados Unidos. Puedes cambiar de país dentro del panel."
+      question: "¿Cómo funciona la suscripción?",
+      answer: "La suscripción se renueva automáticamente cada mes. Puedes cancelarla en cualquier momento desde tu panel de usuario. Una vez cancelada, el acceso permanece activo hasta que concluya el periodo ya pagado."
     },
     {
-      question: "¿De dónde salen los datos?",
-      answer: "Los datos provienen de Kalodata, una de las herramientas de análisis más confiables para TikTok Shop. Importamos y procesamos la información diariamente para brindarte insights actualizados sobre rendimiento de videos, productos y creadores."
+      question: "¿Cómo aparecerá el cargo en mi estado de cuenta?",
+      answer: 'Los cargos aparecerán como: "ADBROLL.COM".'
     },
     {
-      question: "¿Cada cuánto se actualizan los rankings?",
-      answer: "Los rankings se actualizan diariamente. Nuestro equipo importa nuevos datos de Kalodata regularmente para asegurar que siempre veas información fresca y relevante."
+      question: "¿Ofrecen reembolsos?",
+      answer: "Consulta nuestra política de reembolsos en la página de Política de Reembolsos."
     },
     {
-      question: "¿Puedo descargar los scripts?",
-      answer: "Sí, puedes copiar cualquier script transcrito directamente desde la plataforma. En el modal de análisis de cada video encontrarás un botón para copiar el guión completo. También puedes generar variantes con IA y copiarlas."
+      question: "¿Quién opera Adbroll?",
+      answer: "Adbroll es un producto de Ecom Genius LLC, Delaware, EE. UU."
     },
     {
-      question: "¿Cómo funciona la transcripción con IA?",
-      answer: "Cuando haces clic en 'Analizar guion y replicar', nuestro sistema descarga el audio del video de TikTok, lo transcribe usando inteligencia artificial (AssemblyAI/Whisper), y luego analiza la estructura del script identificando Hook, Cuerpo y CTA."
-    },
-    {
-      question: "¿Puedo cancelar mi suscripción en cualquier momento?",
-      answer: "Sí, puedes cancelar tu suscripción cuando quieras desde tu perfil. Mantendrás acceso hasta el final del período de facturación actual. No hay cargos adicionales por cancelación."
+      question: "¿Dónde puedo contactar soporte?",
+      answer: "Correo de soporte: contacto@adbroll.com\nHorario: Lunes a viernes, 9:00 am – 6:00 pm CST."
     }
   ],
   en: [
     {
-      question: "How much does Adbroll cost?",
-      answer: "Adbroll Pro is $29/month. One plan with full access to all features."
-    },
-    {
       question: "What is Adbroll?",
-      answer: "Adbroll is an analytics platform for TikTok Shop creators. We show you the best-selling videos, most profitable products, and most successful creators so you can get inspired and replicate strategies that work."
+      answer: "Adbroll is a creative analytics tool that helps identify videos, products, and scripts that are working on TikTok Shop."
     },
     {
-      question: "Does it work for Mexico and the United States?",
-      answer: "Yes, it works for TikTok Shop Mexico and US. You can switch markets inside the dashboard."
+      question: "How does the subscription work?",
+      answer: "The subscription renews automatically every month. You can cancel it at any time from your user dashboard. Once canceled, access remains active until the end of the already paid period."
     },
     {
-      question: "Where does the data come from?",
-      answer: "The data comes from Kalodata, one of the most reliable analytics tools for TikTok Shop. We import and process information daily to provide you with updated insights on video, product, and creator performance."
+      question: "How will the charge appear on my statement?",
+      answer: 'Charges will appear as: "ADBROLL.COM".'
     },
     {
-      question: "How often are rankings updated?",
-      answer: "Rankings are updated daily. Our team imports new data from Kalodata regularly to ensure you always see fresh and relevant information."
+      question: "Do you offer refunds?",
+      answer: "Please see our refund policy on the Refund Policy page."
     },
     {
-      question: "Can I download the scripts?",
-      answer: "Yes, you can copy any transcribed script directly from the platform. In each video's analysis modal, you'll find a button to copy the complete script. You can also generate AI variants and copy them."
+      question: "Who operates Adbroll?",
+      answer: "Adbroll is a product of Ecom Genius LLC, Delaware, USA."
     },
     {
-      question: "How does AI transcription work?",
-      answer: "When you click 'Analyze script and replicate', our system downloads the TikTok video audio, transcribes it using artificial intelligence (AssemblyAI/Whisper), and then analyzes the script structure identifying Hook, Body, and CTA."
-    },
-    {
-      question: "Can I cancel my subscription at any time?",
-      answer: "Yes, you can cancel your subscription whenever you want from your profile. You'll maintain access until the end of the current billing period. There are no additional cancellation charges."
+      question: "Where can I contact support?",
+      answer: "Support email: contacto@adbroll.com\nHours: Monday to Friday, 9:00 am – 6:00 pm CST."
     }
   ]
 };
@@ -112,8 +97,17 @@ const FAQ = () => {
               <AccordionTrigger className="text-left hover:no-underline py-4">
                 <span className="font-semibold">{faq.question}</span>
               </AccordionTrigger>
-              <AccordionContent className="text-muted-foreground pb-4">
-                {faq.answer}
+              <AccordionContent className="text-muted-foreground pb-4 whitespace-pre-line">
+                {faq.question.includes("reembolsos") || faq.question.includes("refunds") ? (
+                  <>
+                    {language === "es" ? "Consulta nuestra política de reembolsos en: " : "Please see our refund policy at: "}
+                    <Link to="/refund-policy" className="text-primary hover:underline">
+                      {language === "es" ? "Política de Reembolsos" : "Refund Policy"}
+                    </Link>
+                  </>
+                ) : (
+                  faq.answer
+                )}
               </AccordionContent>
             </AccordionItem>
           ))}

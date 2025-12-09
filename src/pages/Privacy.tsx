@@ -6,155 +6,89 @@ import { Shield, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Privacy = () => {
-  const { language, t } = useLanguage();
+  const { language } = useLanguage();
 
   const content = {
     es: {
       title: "Política de Privacidad",
-      lastUpdated: "Última actualización: Diciembre 2024",
+      lastUpdated: "Última actualización: 2025",
+      backButton: "Volver al inicio",
+      intro: "Adbroll, operado por **Ecom Genius LLC**, respeta tu privacidad y está comprometido con proteger tu información personal.",
       sections: [
         {
-          title: "1. Información que Recopilamos",
-          content: `Recopilamos información que nos proporcionas directamente cuando:
-          
-• Creas una cuenta (correo electrónico, nombre)
-• Te suscribes a nuestro servicio (información de pago procesada por Stripe)
-• Utilizas nuestra plataforma (actividad de uso, preferencias)
-• Te comunicas con nosotros (contenido de mensajes)
-
-También recopilamos automáticamente cierta información técnica como tu dirección IP, tipo de navegador, y datos de uso para mejorar nuestros servicios.`
+          title: "Información que recopilamos",
+          content: `• Datos de registro (correo electrónico, nombre).
+• Información de pago procesada de forma segura por Stripe. Nosotros no almacenamos números de tarjeta.
+• Información sobre uso de la plataforma (páginas vistas, funciones utilizadas).`
         },
         {
-          title: "2. Uso de la Información",
-          content: `Utilizamos la información recopilada para:
-
-• Proporcionar, mantener y mejorar nuestros servicios
-• Procesar transacciones y enviar notificaciones relacionadas
-• Responder a tus comentarios, preguntas y solicitudes de soporte
-• Enviar comunicaciones de marketing (con tu consentimiento)
-• Detectar, investigar y prevenir actividades fraudulentas
-• Personalizar tu experiencia en la plataforma`
+          title: "Cómo usamos tu información",
+          content: `• Para proveer acceso a la plataforma.
+• Para procesar pagos y suscripciones.
+• Para enviar notificaciones relacionadas con tu cuenta.
+• Para mejorar funciones y seguridad del servicio.`
         },
         {
-          title: "3. Compartir Información",
-          content: `No vendemos tu información personal. Podemos compartir información con:
-
-• Proveedores de servicios que nos ayudan a operar (Stripe para pagos, Supabase para almacenamiento)
-• Autoridades legales cuando sea requerido por ley
-• En caso de fusión o adquisición, con el nuevo propietario
-
-Todos nuestros proveedores están obligados a proteger tu información bajo estándares estrictos de privacidad.`
+          title: "Compartición de datos",
+          content: `• Stripe, nuestro procesador de pagos.
+• Proveedores de hosting y seguridad.
+• Nunca vendemos datos a terceros.`
         },
         {
-          title: "4. Seguridad de Datos",
-          content: `Implementamos medidas de seguridad técnicas y organizativas para proteger tu información, incluyendo:
-
-• Encriptación de datos en tránsito (HTTPS/TLS)
-• Almacenamiento seguro de contraseñas (hash + salt)
-• Acceso restringido a datos personales
-• Monitoreo regular de seguridad
-
-Sin embargo, ningún método de transmisión por Internet es 100% seguro.`
+          title: "Retención de datos",
+          content: `Conservamos la información mientras la cuenta esté activa o según lo exija la ley.`
         },
         {
-          title: "5. Tus Derechos",
-          content: `Tienes derecho a:
-
-• Acceder a tu información personal
-• Corregir datos inexactos
-• Eliminar tu cuenta y datos asociados
-• Oponerte al procesamiento de tus datos
-• Exportar tus datos en formato legible
-
-Para ejercer estos derechos, contacta a contacto@adbroll.com`
+          title: "Tus derechos",
+          content: `Puedes solicitar eliminación de tu cuenta escribiendo a contacto@adbroll.com`
         },
         {
-          title: "6. Cookies",
-          content: `Utilizamos cookies esenciales para el funcionamiento de la plataforma y cookies analíticas para entender cómo se usa el servicio. Puedes configurar tu navegador para rechazar cookies, aunque esto puede afectar la funcionalidad.`
-        },
-        {
-          title: "7. Cambios a esta Política",
-          content: `Podemos actualizar esta política ocasionalmente. Te notificaremos sobre cambios significativos por correo electrónico o mediante un aviso en la plataforma. El uso continuado del servicio después de los cambios constituye aceptación de la política actualizada.`
-        },
-        {
-          title: "8. Contacto",
-          content: `Si tienes preguntas sobre esta Política de Privacidad, contáctanos en:
-          
-Email: contacto@adbroll.com`
+          title: "Información de la empresa",
+          content: `Ecom Genius LLC
+16192 Coastal Highway
+Lewes, Delaware 19958, United States
+Correo: contacto@adbroll.com`
         }
       ]
     },
     en: {
       title: "Privacy Policy",
-      lastUpdated: "Last updated: December 2024",
+      lastUpdated: "Last updated: 2025",
+      backButton: "Back to home",
+      intro: "Adbroll, operated by **Ecom Genius LLC**, respects your privacy and is committed to protecting your personal information.",
       sections: [
         {
-          title: "1. Information We Collect",
-          content: `We collect information you provide directly when:
-          
-• You create an account (email, name)
-• You subscribe to our service (payment information processed by Stripe)
-• You use our platform (usage activity, preferences)
-• You communicate with us (message content)
-
-We also automatically collect certain technical information such as your IP address, browser type, and usage data to improve our services.`
+          title: "Information we collect",
+          content: `• Registration data (email, name).
+• Payment information processed securely by Stripe. We do not store card numbers.
+• Information about platform usage (pages viewed, features used).`
         },
         {
-          title: "2. Use of Information",
-          content: `We use the collected information to:
-
-• Provide, maintain, and improve our services
-• Process transactions and send related notifications
-• Respond to your comments, questions, and support requests
-• Send marketing communications (with your consent)
-• Detect, investigate, and prevent fraudulent activities
-• Personalize your experience on the platform`
+          title: "How we use your information",
+          content: `• To provide access to the platform.
+• To process payments and subscriptions.
+• To send notifications related to your account.
+• To improve features and service security.`
         },
         {
-          title: "3. Sharing Information",
-          content: `We do not sell your personal information. We may share information with:
-
-• Service providers that help us operate (Stripe for payments, Supabase for storage)
-• Legal authorities when required by law
-• In case of merger or acquisition, with the new owner
-
-All our providers are required to protect your information under strict privacy standards.`
+          title: "Data sharing",
+          content: `• Stripe, our payment processor.
+• Hosting and security providers.
+• We never sell data to third parties.`
         },
         {
-          title: "4. Data Security",
-          content: `We implement technical and organizational security measures to protect your information, including:
-
-• Data encryption in transit (HTTPS/TLS)
-• Secure password storage (hash + salt)
-• Restricted access to personal data
-• Regular security monitoring
-
-However, no method of transmission over the Internet is 100% secure.`
+          title: "Data retention",
+          content: `We retain information while the account is active or as required by law.`
         },
         {
-          title: "5. Your Rights",
-          content: `You have the right to:
-
-• Access your personal information
-• Correct inaccurate data
-• Delete your account and associated data
-• Object to the processing of your data
-• Export your data in readable format
-
-To exercise these rights, contact contacto@adbroll.com`
+          title: "Your rights",
+          content: `You can request account deletion by writing to contacto@adbroll.com`
         },
         {
-          title: "6. Cookies",
-          content: `We use essential cookies for platform functionality and analytical cookies to understand how the service is used. You can configure your browser to reject cookies, although this may affect functionality.`
-        },
-        {
-          title: "7. Changes to this Policy",
-          content: `We may update this policy occasionally. We will notify you of significant changes by email or through a notice on the platform. Continued use of the service after changes constitutes acceptance of the updated policy.`
-        },
-        {
-          title: "8. Contact",
-          content: `If you have questions about this Privacy Policy, contact us at:
-          
+          title: "Company information",
+          content: `Ecom Genius LLC
+16192 Coastal Highway
+Lewes, Delaware 19958, United States
 Email: contacto@adbroll.com`
         }
       ]
@@ -162,6 +96,14 @@ Email: contacto@adbroll.com`
   };
 
   const data = content[language];
+
+  // Helper to render bold text
+  const renderText = (text: string) => {
+    const parts = text.split(/\*\*(.*?)\*\*/g);
+    return parts.map((part, index) => 
+      index % 2 === 1 ? <strong key={index}>{part}</strong> : part
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -171,7 +113,7 @@ Email: contacto@adbroll.com`
         <Link to="/">
           <Button variant="ghost" className="mb-6 -ml-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {language === 'es' ? 'Volver al inicio' : 'Back to home'}
+            {data.backButton}
           </Button>
         </Link>
 
@@ -182,6 +124,10 @@ Email: contacto@adbroll.com`
           <h1 className="text-3xl md:text-4xl font-bold mb-2">{data.title}</h1>
           <p className="text-muted-foreground">{data.lastUpdated}</p>
         </div>
+
+        <p className="text-muted-foreground text-center mb-8 text-lg">
+          {renderText(data.intro)}
+        </p>
 
         <div className="prose prose-gray dark:prose-invert max-w-none">
           {data.sections.map((section, index) => (
