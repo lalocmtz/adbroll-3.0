@@ -417,12 +417,12 @@ const VideoAnalysisModalOriginal = ({
             </Button>
           </div>
 
-          {/* Mobile Value Section - Key metrics and product info */}
+          {/* Mobile Value Section - Unified scroll for everything */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="md:hidden overflow-y-auto"
+            className="md:hidden flex-1 overflow-y-auto"
           >
             {/* Results Card */}
             <div className="p-3 border-b border-border bg-gradient-to-b from-muted/50 to-transparent">
@@ -452,7 +452,6 @@ const VideoAnalysisModalOriginal = ({
                   <div className="text-sm font-bold text-foreground">{formatCurrency(earningPerSale)}</div>
                 </div>
               </motion.div>
-              
             </div>
             
             {/* Product Card - Always visible on mobile */}
@@ -500,37 +499,227 @@ const VideoAnalysisModalOriginal = ({
                 Y le hizo ganar al creador una comisión aproximada de{' '}
                 <span className="text-lg font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
               </p>
-              
-              {/* Motivational CTA */}
-              <p className="text-xs text-muted-foreground mt-2.5 leading-relaxed">
-                Ahora grábate con la misma energía que usó el creador. Usa el mismo guion o alguna de nuestras variantes optimizadas con IA. Aquí te dejamos el análisis:
-              </p>
-              
-              {/* Full Video Player */}
-              {(video.video_mp4_url || video.thumbnail_url) && (
-                <div className="mt-3 rounded-xl overflow-hidden bg-black aspect-[9/16] max-h-[220px]">
-                  {video.video_mp4_url ? (
-                    <video 
-                      src={video.video_mp4_url}
-                      controls
-                      playsInline
-                      className="w-full h-full object-contain"
-                      poster={video.thumbnail_url || undefined}
-                    />
-                  ) : video.thumbnail_url ? (
-                    <button 
-                      onClick={() => setShowVideoExpanded(true)}
-                      className="w-full h-full relative group"
-                    >
-                      <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <Play className="h-10 w-10 text-white" fill="white" />
-                      </div>
-                    </button>
-                  ) : null}
-                </div>
-              )}
             </div>
+
+            {/* SIGUIENTE PASO - Video + Instructions side by side */}
+            <div className="p-3 border-b border-border bg-gradient-to-b from-amber-50 to-transparent dark:from-amber-900/10">
+              {/* Red "Next Step" badge */}
+              <div className="text-[10px] uppercase tracking-wider text-red-500 font-bold mb-2 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                Siguiente paso
+              </div>
+              
+              {/* Horizontal layout: Video + Instructions */}
+              <div className="flex gap-3 items-start">
+                {/* Video thumbnail/player - compact */}
+                {(video.video_mp4_url || video.thumbnail_url) && (
+                  <div className="w-20 flex-shrink-0 rounded-xl overflow-hidden bg-black aspect-[9/16]">
+                    {video.video_mp4_url ? (
+                      <video 
+                        src={video.video_mp4_url}
+                        controls
+                        playsInline
+                        className="w-full h-full object-contain"
+                        poster={video.thumbnail_url || undefined}
+                      />
+                    ) : (
+                      <button 
+                        onClick={() => setShowVideoExpanded(true)}
+                        className="w-full h-full relative group"
+                      >
+                        <img src={video.thumbnail_url || ''} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Play className="h-5 w-5 text-white" fill="white" />
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Instructions text - right side */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground leading-snug">
+                    Grábate con la <span className="font-semibold">misma energía</span> que usó el creador.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                    Usa el mismo guion o alguna de nuestras variantes optimizadas con IA. Aquí te dejamos el análisis:
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs - Now inside unified scroll */}
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col">
+              <div className="sticky top-0 z-20 bg-background px-3 pt-2 pb-1 border-b border-border">
+                <TabsList className="grid grid-cols-3 w-full h-10 p-1 bg-muted/50 rounded-xl">
+                  <TabsTrigger value="script" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs">
+                    <FileText className="h-3.5 w-3.5" />
+                    Script
+                  </TabsTrigger>
+                  <TabsTrigger value="analysis" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs">
+                    {!hasPaid && <Lock className="h-3 w-3" />}
+                    <Brain className="h-3.5 w-3.5" />
+                    Análisis
+                  </TabsTrigger>
+                  <TabsTrigger value="variants" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs">
+                    {!hasPaid && <Lock className="h-3 w-3" />}
+                    <Wand2 className="h-3.5 w-3.5" />
+                    Variantes
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <div className="p-3 pb-24">
+                {isProcessing ? (
+                  <div className="flex flex-col items-center justify-center gap-4 py-12">
+                    <div className="relative">
+                      <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground text-sm">{statusMessage}</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Script Tab */}
+                    <TabsContent value="script" className="mt-0 animate-fade-in">
+                      <div className="card-premium p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-7 w-7 rounded-lg bg-muted flex items-center justify-center">
+                              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                            </div>
+                            <h3 className="font-semibold text-foreground text-sm">Transcripción Original</h3>
+                          </div>
+                          {transcript && <CopyButton text={transcript} field="transcript" variant="outline" />}
+                        </div>
+                        {transcript ? (
+                          <div className="bg-muted/30 rounded-xl p-3 border border-border/50">
+                            <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed font-mono">
+                              {transcript}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 flex flex-col items-center justify-center">
+                            <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                              <FileText className="h-5 w-5 text-muted-foreground/50" />
+                            </div>
+                            <p className="text-muted-foreground text-sm mb-3">
+                              No hay transcripción disponible
+                            </p>
+                            <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl" size="sm">
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Generar transcripción
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+
+                    {/* Analysis Tab */}
+                    <TabsContent value="analysis" className="mt-0 animate-fade-in">
+                      {!hasPaid ? (
+                        <div className="card-premium p-6 text-center">
+                          <Lock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                          <p className="text-sm text-muted-foreground mb-4">Desbloquea el análisis completo</p>
+                          <Button onClick={() => navigate('/unlock')} className="rounded-xl" size="sm">
+                            Desbloquear
+                          </Button>
+                        </div>
+                      ) : analysis ? (
+                        <div className="space-y-3">
+                          {analysis.hook && (
+                            <div className="card-premium p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="h-6 w-6 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                  <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                                </div>
+                                <h4 className="font-semibold text-sm">Hook</h4>
+                              </div>
+                              <p className="text-sm text-foreground/80">{analysis.hook}</p>
+                            </div>
+                          )}
+                          {analysis.body && (
+                            <div className="card-premium p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="h-6 w-6 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                  <FileText className="h-3.5 w-3.5 text-blue-600" />
+                                </div>
+                                <h4 className="font-semibold text-sm">Cuerpo</h4>
+                              </div>
+                              <p className="text-sm text-foreground/80">{analysis.body}</p>
+                            </div>
+                          )}
+                          {analysis.cta && (
+                            <div className="card-premium p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="h-6 w-6 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                  <TrendingUp className="h-3.5 w-3.5 text-green-600" />
+                                </div>
+                                <h4 className="font-semibold text-sm">CTA</h4>
+                              </div>
+                              <p className="text-sm text-foreground/80">{analysis.cta}</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Brain className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
+                          <p className="text-muted-foreground text-sm mb-3">Sin análisis disponible</p>
+                          <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl" size="sm">
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generar análisis
+                          </Button>
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    {/* Variants Tab */}
+                    <TabsContent value="variants" className="mt-0 animate-fade-in">
+                      {!hasPaid ? (
+                        <div className="card-premium p-6 text-center">
+                          <Lock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                          <p className="text-sm text-muted-foreground mb-4">Desbloquea las variantes IA</p>
+                          <Button onClick={() => navigate('/unlock')} className="rounded-xl" size="sm">
+                            Desbloquear
+                          </Button>
+                        </div>
+                      ) : variants && variants.length > 0 ? (
+                        <div className="space-y-3">
+                          {variants.map((variant, index) => (
+                            <div key={index} className="card-premium p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium text-primary">Variante {index + 1}</span>
+                                <div className="flex gap-1">
+                                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => copyVariant(variant, index)}>
+                                    <Copy className="h-3 w-3 mr-1" />
+                                    Copiar
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => saveVariantToFavorites(variant, index)}>
+                                    <Heart className="h-3 w-3 mr-1" />
+                                    Guardar
+                                  </Button>
+                                </div>
+                              </div>
+                              <p className="text-sm text-foreground/80 whitespace-pre-wrap">{variant.full_script || `${variant.hook}\n\n${variant.body}\n\n${variant.cta}`}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Wand2 className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
+                          <p className="text-muted-foreground text-sm mb-3">Sin variantes generadas</p>
+                          <Button onClick={generateVariants} disabled={isGeneratingVariants} className="rounded-xl" size="sm">
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            Generar variantes
+                          </Button>
+                        </div>
+                      )}
+                    </TabsContent>
+                  </>
+                )}
+              </div>
+            </Tabs>
           </motion.div>
 
           {/* Desktop Layout: Side by side */}
