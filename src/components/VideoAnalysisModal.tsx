@@ -346,14 +346,14 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
           size="icon"
           variant="ghost"
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 h-8 w-8"
+          className="absolute top-3 right-3 z-50 h-8 w-8 md:top-4 md:right-4"
         >
           <X className="h-4 w-4" />
         </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
-          {/* Left Side - Video */}
-          <div className="p-6 border-r border-border flex flex-col">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 h-full max-h-[90vh] overflow-y-auto lg:overflow-hidden">
+          {/* Left Side - Video (Hidden on mobile, shown on desktop) */}
+          <div className="hidden lg:flex p-6 border-r border-border flex-col">
             <p className="text-sm text-muted-foreground mb-4">@{video.creador}</p>
             
             <div className="flex-1 flex items-start justify-center">
@@ -380,17 +380,22 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
             </div>
           </div>
 
+          {/* Mobile Header */}
+          <div className="lg:hidden px-4 pt-4 pb-2">
+            <p className="text-sm text-muted-foreground">@{video.creador}</p>
+          </div>
+
           {/* Right Side - Tabs */}
-          <div className="p-6 flex flex-col h-[80vh] overflow-hidden">
+          <div className="px-4 pb-4 lg:p-6 flex flex-col lg:h-[80vh] overflow-hidden">
             <Tabs defaultValue="script" className="flex-1 flex flex-col overflow-hidden">
               <TabsList className="grid w-full grid-cols-3 mb-4">
-                <TabsTrigger value="script" className="gap-1.5 text-xs">
+                <TabsTrigger value="script" className="gap-1 text-xs px-2">
                   <FileText className="h-3.5 w-3.5" />
-                  Script
+                  <span className="hidden sm:inline">Script</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="analysis" 
-                  className="gap-1.5 text-xs"
+                  className="gap-1 text-xs px-2"
                   disabled={!isLoggedIn}
                   onClick={(e) => {
                     if (!isLoggedIn) {
@@ -402,11 +407,11 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                 >
                   {!isLoggedIn && <Lock className="h-3 w-3" />}
                   <BarChart3 className="h-3.5 w-3.5" />
-                  Análisis
+                  <span className="hidden sm:inline">Análisis</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="variants" 
-                  className="gap-1.5 text-xs" 
+                  className="gap-1 text-xs px-2" 
                   disabled={!isLoggedIn}
                   onClick={(e) => {
                     if (!isLoggedIn) {
@@ -420,20 +425,20 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                 >
                   {!isLoggedIn && <Lock className="h-3 w-3" />}
                   <Wand2 className="h-3.5 w-3.5" />
-                  Variantes IA
+                  <span className="hidden sm:inline">Variantes</span>
                 </TabsTrigger>
               </TabsList>
 
               {/* TAB 1 - Script */}
-              <TabsContent value="script" className="flex-1 overflow-y-auto">
+              <TabsContent value="script" className="flex-1 overflow-y-auto pr-1">
                 {loadingTranscript ? (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div className="flex flex-col items-center justify-center py-8 md:py-12 gap-3">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Transcribiendo audio del video…</p>
                     <p className="text-xs text-muted-foreground/70">Esto puede tomar hasta 60 segundos</p>
                   </div>
                 ) : transcriptError ? (
-                  <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <div className="flex flex-col items-center justify-center py-8 md:py-12 gap-4">
                     <AlertCircle className="h-10 w-10 text-destructive" />
                     <p className="text-sm text-destructive text-center">{transcriptError}</p>
                     <Button 
@@ -449,9 +454,12 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                     </Button>
                   </div>
                 ) : transcript ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
+                    {/* Section Title */}
                     <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-medium">Transcripción del Video</h3>
+                      <h3 className="text-lg font-semibold md:text-sm md:font-medium">
+                        🧠 Guión generado por IA
+                      </h3>
                       <div className="flex items-center gap-1">
                         <SaveButton text={transcript} variantType="Transcripción Original" />
                         <CopyButton text={transcript} section="transcript" />
@@ -465,7 +473,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div className="flex flex-col items-center justify-center py-8 md:py-12 gap-3">
                     <FileText className="h-10 w-10 text-muted-foreground/30" />
                     <p className="text-sm text-muted-foreground">Esperando transcripción...</p>
                   </div>
@@ -473,41 +481,48 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
               </TabsContent>
 
               {/* TAB 2 - Análisis */}
-              <TabsContent value="analysis" className="flex-1 overflow-y-auto">
+              <TabsContent value="analysis" className="flex-1 overflow-y-auto pr-1">
                 {loadingAnalysis ? (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div className="flex flex-col items-center justify-center py-8 md:py-12 gap-3">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Analizando estructura del guión...</p>
                   </div>
                 ) : sections.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
+                  <div className="text-center py-8 md:py-12 text-muted-foreground">
                     <BarChart3 className="h-10 w-10 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">
                       {loadingTranscript ? "Esperando transcripción..." : "Cargando análisis..."}
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {sections.map((section, index) => (
-                      <div 
-                        key={index} 
-                        className={`border rounded-lg p-4 ${getSectionColor(section.type)}`}
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-sm font-medium">
-                            {getSectionEmoji(section.type)} {section.label}
-                          </h4>
-                          <CopyButton text={section.content} section={`section-${index}`} />
+                  <div className="space-y-4">
+                    {/* Section Title */}
+                    <h3 className="text-lg font-semibold md:text-sm md:font-medium">
+                      🔍 Análisis del video
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      {sections.map((section, index) => (
+                        <div 
+                          key={index} 
+                          className={`border rounded-lg p-4 ${getSectionColor(section.type)}`}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="text-sm font-medium">
+                              {getSectionEmoji(section.type)} {section.label}
+                            </h4>
+                            <CopyButton text={section.content} section={`section-${index}`} />
+                          </div>
+                          <p className="text-sm">{section.content}</p>
                         </div>
-                        <p className="text-sm">{section.content}</p>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
               </TabsContent>
 
               {/* TAB 3 - Variantes IA */}
-              <TabsContent value="variants" className="flex-1 overflow-y-auto">
+              <TabsContent value="variants" className="flex-1 overflow-y-auto pr-1">
                 {loadingVariants ? (
                   <div className="flex flex-col items-center justify-center py-12 gap-3">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
