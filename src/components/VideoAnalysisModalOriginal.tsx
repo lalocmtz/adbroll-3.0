@@ -6,15 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, DollarSign, ShoppingCart, Percent, Eye, FlaskConical, X, Sparkles, TrendingUp, Save, Play, Volume2, Maximize2, ChevronDown, ChevronUp, Lock, Package, LogIn } from 'lucide-react';
+import { Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, DollarSign, ShoppingCart, Percent, Eye, FlaskConical, X, Sparkles, TrendingUp, Save, Play, Volume2, Maximize2, ChevronDown, ChevronUp, Lock, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useNavigate } from 'react-router-dom';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
-import logoDark from '@/assets/logo-dark.png';
-
 interface GeneratedVariant {
   hook: string;
   body: string;
@@ -89,8 +87,7 @@ const VideoAnalysisModalOriginal = ({
   } = useToast();
   const navigate = useNavigate();
   const {
-    hasPaid,
-    isLoggedIn
+    hasPaid
   } = useBlurGateContext();
 
   // Variant generator controls
@@ -392,37 +389,78 @@ const VideoAnalysisModalOriginal = ({
       <DialogContent className="w-full h-full md:max-w-6xl md:max-h-[92vh] md:h-auto overflow-hidden p-0 gap-0 animate-scale-in [&>button]:hidden rounded-none md:rounded-xl">
         <div className="flex flex-col h-full md:h-auto md:max-h-[92vh]">
           
-          {/* Mobile Header - Logo + Login for visitors */}
-          <div className="flex items-center justify-between p-3 border-b border-border bg-background sticky top-0 z-30 md:hidden">
-            <div className="flex items-center gap-3">
-              <button onClick={onClose} className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                <X className="h-4 w-4" />
-              </button>
-              <img src={logoDark} alt="AdBroll" className="h-6" />
+          {/* Mobile Header - Fixed at top */}
+          <div className="flex items-center gap-3 p-3 border-b border-border bg-background sticky top-0 z-30 md:hidden">
+            <button onClick={onClose} className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+            
+            {/* Small video thumbnail - clickable to expand */}
+            {video.thumbnail_url && <button onClick={() => setShowVideoExpanded(true)} className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted relative group">
+                <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Play className="h-4 w-4 text-white" fill="white" />
+                </div>
+              </button>}
+            
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-semibold line-clamp-1 text-foreground">
+                {video.title || 'Análisis de Video'}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                @{video.creator_handle || video.creator_name || 'creator'}
+              </p>
             </div>
             
-            <div className="flex items-center gap-2">
-              {isLoggedIn && (
-                <Button size="icon" variant="ghost" onClick={handleToggleFavorite} className={`h-8 w-8 rounded-full flex-shrink-0 ${isFavorite ? "text-destructive" : ""}`}>
-                  <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-                </Button>
-              )}
-              {!isLoggedIn && (
-                <Button size="sm" variant="outline" onClick={() => navigate('/login')} className="h-8 text-xs gap-1.5">
-                  <LogIn className="h-3.5 w-3.5" />
-                  Iniciar sesión
-                </Button>
-              )}
-            </div>
+            <Button size="icon" variant="ghost" onClick={handleToggleFavorite} className={`h-8 w-8 rounded-full flex-shrink-0 ${isFavorite ? "text-destructive" : ""}`}>
+              <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+            </Button>
           </div>
 
-          {/* Mobile Content Section */}
+          {/* Mobile Value Section - Key metrics and product info */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="md:hidden overflow-y-auto flex-1"
+            className="md:hidden overflow-y-auto"
           >
+            {/* Results Card */}
+            <div className="p-3 border-b border-border bg-gradient-to-b from-muted/50 to-transparent">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
+                📊 Resultados del video
+              </div>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+                className="grid grid-cols-4 gap-2"
+              >
+                <div className="bg-[#ECFDF5] rounded-lg p-2 text-center">
+                  <div className="text-[10px] text-muted-foreground">Ingresos</div>
+                  <div className="text-sm font-bold text-foreground">{formatCurrency(video.revenue_mxn)}</div>
+                </div>
+                <div className="bg-muted rounded-lg p-2 text-center">
+                  <div className="text-[10px] text-muted-foreground">Ventas</div>
+                  <div className="text-sm font-bold text-foreground">{formatNumber(video.sales)}</div>
+                </div>
+                <div className="bg-muted rounded-lg p-2 text-center">
+                  <div className="text-[10px] text-muted-foreground">Vistas</div>
+                  <div className="text-sm font-bold text-foreground">{formatNumber(video.views)}</div>
+                </div>
+                <div className="bg-[#FEF3C7] rounded-lg p-2 text-center">
+                  <div className="text-[10px] text-muted-foreground">$/venta</div>
+                  <div className="text-sm font-bold text-foreground">{formatCurrency(earningPerSale)}</div>
+                </div>
+              </motion.div>
+              
+              {/* Creator Earnings Highlight */}
+              <div className="mt-2 p-2.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">💸 El creador ganó aprox:</span>
+                  <span className="text-base font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
+                </div>
+              </div>
+            </div>
             
             {/* Product Card - Always visible on mobile */}
             {video.product && <div className="p-3 border-b border-border">
@@ -451,85 +489,6 @@ const VideoAnalysisModalOriginal = ({
                     </Button>}
                 </div>
               </div>}
-            
-            {/* Video Player on Mobile */}
-            <div className="p-3 border-b border-border">
-              <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
-                {video.video_mp4_url ? (
-                  <video 
-                    ref={videoRef}
-                    src={video.video_mp4_url}
-                    className="w-full h-full object-contain"
-                    controls
-                    playsInline
-                    poster={video.thumbnail_url || undefined}
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-muted gap-2">
-                    <Play className="h-8 w-8 text-muted-foreground/40" />
-                    <p className="text-muted-foreground text-xs">Video no disponible</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* AI Analyzed Headline + Transcript */}
-            <div className="p-3">
-              <div className="mb-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="h-6 w-6 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                    <Brain className="h-3.5 w-3.5 text-white" />
-                  </div>
-                  <span className="text-sm font-semibold text-foreground">🧠 La IA analizó este video</span>
-                </div>
-                <p className="text-xs text-muted-foreground pl-8">
-                  Aquí está el guión listo para que lo repliques con tu producto
-                </p>
-              </div>
-              
-              {/* Transcript - non-selectable for non-paid users */}
-              <div className="card-premium p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-xs font-semibold text-foreground">Transcripción</h3>
-                  </div>
-                  {hasPaid && transcript && <CopyButton text={transcript} field="transcript-mobile" variant="outline" />}
-                  {!hasPaid && (
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Lock className="h-3 w-3" />
-                      <span className="text-[10px]">Premium</span>
-                    </div>
-                  )}
-                </div>
-                {transcript ? (
-                  <div 
-                    className={`bg-muted/30 rounded-lg p-3 border border-border/50 max-h-48 overflow-y-auto ${!hasPaid ? 'select-none' : ''}`}
-                  >
-                    <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                      {transcript}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-muted-foreground text-xs">Procesando transcripción...</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Sticky CTA for non-paid users */}
-            {!hasPaid && (
-              <div className="sticky bottom-0 p-3 bg-background border-t border-border">
-                <Button 
-                  className="w-full h-11 gap-2 text-sm font-semibold"
-                  onClick={() => navigate('/unlock')}
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Desbloquear Todo — $29/mes
-                </Button>
-              </div>
-            )}
           </motion.div>
 
           {/* Desktop Layout: Side by side */}
