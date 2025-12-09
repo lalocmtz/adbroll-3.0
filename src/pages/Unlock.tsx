@@ -101,31 +101,32 @@ const Unlock = () => {
 
   return (
     <div className="min-h-screen landing-light text-foreground overflow-hidden relative">
-      {/* Fixed Header with Close, Login, and Unlock buttons */}
+      {/* Fixed Header - Compact on mobile */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          {/* Close button */}
+        <div className="container mx-auto px-3 md:px-4 py-2.5 md:py-4 flex items-center justify-between">
+          {/* Close button - icon only on mobile */}
           <button 
             onClick={handleClose} 
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="h-5 w-5" />
-            <span className="text-sm font-medium hidden sm:inline">Volver al feed</span>
+            <span className="text-sm font-medium hidden md:inline">Volver al feed</span>
           </button>
           
-          {/* Logo */}
+          {/* Logo - smaller on mobile */}
           <button onClick={() => navigate("/app")} className="flex items-center absolute left-1/2 -translate-x-1/2">
-            <img src={logoDark} alt="Adbroll" className="h-10" />
+            <img src={logoDark} alt="Adbroll" className="h-7 md:h-10" />
           </button>
           
-          {/* Right buttons */}
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={handleLogin}>
+          {/* Right buttons - compact on mobile */}
+          <div className="flex items-center gap-2 md:gap-3">
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground hidden sm:flex" onClick={handleLogin}>
               <LogIn className="h-4 w-4 mr-2" />
               Iniciar sesión
             </Button>
-            <Button onClick={handleUnlock} className="bg-primary hover:bg-primary-hover btn-glow">
-              Desbloquear Adbroll Pro
+            <Button size="sm" onClick={handleUnlock} className="bg-primary hover:bg-primary-hover btn-glow text-xs md:text-sm px-3 md:px-4">
+              <span className="hidden sm:inline">Desbloquear Adbroll Pro</span>
+              <span className="sm:hidden">Desbloquear</span>
             </Button>
           </div>
         </div>
@@ -146,11 +147,11 @@ const Unlock = () => {
         onCtaClick={handleUnlock} 
       />
 
-      {/* How it Works */}
-      <section id="how-it-works" className="py-16 md:py-24 landing-section-alt">
+      {/* How it Works - Reduced spacing on mobile */}
+      <section id="how-it-works" className="py-10 md:py-24 landing-section-alt">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-foreground">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 text-foreground">
               ¿Cómo funciona?
             </h2>
           </div>
@@ -187,49 +188,49 @@ const Unlock = () => {
         </div>
       </section>
 
-      {/* Comparison Section */}
-      <section className="py-20 md:py-32 landing-section-alt">
+      {/* Comparison Section - Reduced spacing */}
+      <section className="py-12 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Con Adbroll <span className="text-4xl md:text-5xl">😎</span> vs Sin Adbroll <span className="text-4xl md:text-5xl">😡</span>
+          <div className="text-center mb-8 md:mb-16">
+            <h2 className="text-xl md:text-5xl font-bold mb-4">
+              Con Adbroll <span className="text-2xl md:text-5xl">😎</span> vs Sin Adbroll <span className="text-2xl md:text-5xl">😡</span>
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-4 md:gap-8 max-w-5xl mx-auto">
             {/* Sin Adbroll */}
-            <div className="relative p-8 rounded-2xl border border-red-200 bg-gradient-to-br from-red-50/50 to-white shadow-lg">
-              <div className="absolute -top-4 left-6">
-                <span className="bg-red-500 text-white px-4 py-1.5 rounded-full text-sm font-semibold shadow-md">
+            <div className="relative p-5 md:p-8 rounded-2xl border border-red-200 bg-gradient-to-br from-red-50/50 to-white shadow-lg">
+              <div className="absolute -top-3 md:-top-4 left-4 md:left-6">
+                <span className="bg-red-500 text-white px-3 md:px-4 py-1 md:py-1.5 rounded-full text-xs md:text-sm font-semibold shadow-md">
                   Sin Adbroll 😡
                 </span>
               </div>
-              <ul className="space-y-5 mt-4">
+              <ul className="space-y-3 md:space-y-5 mt-3 md:mt-4">
                 {["Pierdes horas buscando ideas sin claridad", "Grabas videos que no conectan ni venden", "No sabes si lo que haces dará resultados", "Terminas frustrado, sin ventas y con dudas"].map((item, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
-                      <span className="text-red-500 text-sm">✗</span>
+                  <li key={index} className="flex items-start gap-2 md:gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full bg-red-100 flex items-center justify-center">
+                      <span className="text-red-500 text-xs md:text-sm">✗</span>
                     </span>
-                    <span className="text-foreground/80">{item}</span>
+                    <span className="text-foreground/80 text-sm md:text-base">{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Con Adbroll */}
-            <div className="relative p-8 rounded-2xl border border-green-200 bg-gradient-to-br from-green-50/50 to-white shadow-lg">
-              <div className="absolute -top-4 left-6">
-                <span className="bg-green-500 text-white px-4 py-1.5 rounded-full text-sm font-semibold shadow-md">
+            <div className="relative p-5 md:p-8 rounded-2xl border border-green-200 bg-gradient-to-br from-green-50/50 to-white shadow-lg">
+              <div className="absolute -top-3 md:-top-4 left-4 md:left-6">
+                <span className="bg-green-500 text-white px-3 md:px-4 py-1 md:py-1.5 rounded-full text-xs md:text-sm font-semibold shadow-md">
                   Con Adbroll 😎
                 </span>
               </div>
-              <ul className="space-y-5 mt-4">
+              <ul className="space-y-3 md:space-y-5 mt-3 md:mt-4">
                 {["Sabes qué productos y guiones están generando ventas", "Solo grabas lo que ya está validado por datos", "Empiezas a ganar más rápido y sin adivinar", "Tienes claridad, motivación y resultados reales"].map((item, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                      <Check className="h-4 w-4 text-green-500" />
+                  <li key={index} className="flex items-start gap-2 md:gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full bg-green-100 flex items-center justify-center">
+                      <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
                     </span>
-                    <span className="text-foreground/80">{item}</span>
+                    <span className="text-foreground/80 text-sm md:text-base">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -238,12 +239,12 @@ const Unlock = () => {
         </div>
       </section>
 
-      {/* Product Tour */}
-      <section className="py-20 md:py-32">
+      {/* Product Tour - Reduced spacing */}
+      <section className="py-12 md:py-32">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <Badge className="badge-landing-light mb-4">Dentro de Adbroll</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 md:mb-16">
+            <Badge className="badge-landing-light mb-3 md:mb-4">Dentro de Adbroll</Badge>
+            <h2 className="text-xl md:text-4xl font-bold mb-3 md:mb-4">
               Datos reales. IA integrada. Resultados más rápidos.
             </h2>
           </div>

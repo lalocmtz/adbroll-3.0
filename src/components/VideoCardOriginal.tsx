@@ -177,16 +177,16 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   return (
     <>
       <div 
-        className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 group"
+        className="bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-[#E2E8F0] dark:border-border p-2.5 md:p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 group"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Video Container - 4:5 aspect ratio */}
-        <div className="relative aspect-[4/5] bg-muted rounded-2xl overflow-hidden mb-3">
+        {/* Video Container - 3:4 on mobile, 4:5 on desktop */}
+        <div className="relative aspect-[3/4] md:aspect-[4/5] bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-3">
           {/* Top Icons Bar */}
-          <div className="absolute top-3 left-3 right-3 z-20 flex items-center justify-between pointer-events-none">
-            {/* Ranking Badge */}
-            <span className={`pointer-events-auto text-[13px] font-bold px-2.5 py-1 rounded-full shadow-lg ${
+          <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-20 flex items-center justify-between pointer-events-none">
+            {/* Ranking Badge - smaller on mobile */}
+            <span className={`pointer-events-auto text-[11px] md:text-[13px] font-bold px-2 md:px-2.5 py-0.5 md:py-1 rounded-full shadow-lg ${
               isTop5 
                 ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white' 
                 : 'bg-white/95 text-[#0F172A] border border-[#E2E8F0]'
@@ -194,20 +194,20 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
               #{ranking} {isTop5 && '🔥'}
             </span>
 
-            {/* Right Icons */}
-            <div className="flex items-center gap-2 pointer-events-auto">
+            {/* Right Icons - smaller on mobile */}
+            <div className="flex items-center gap-1.5 md:gap-2 pointer-events-auto">
               <button 
                 onClick={openTikTok}
-                className="h-8 w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
               >
-                <ExternalLink className="h-[18px] w-[18px] text-[#CBD5E1] hover:text-[#1E293B] transition-colors" />
+                <ExternalLink className="h-3.5 w-3.5 md:h-[18px] md:w-[18px] text-[#CBD5E1] hover:text-[#1E293B] transition-colors" />
               </button>
               <button 
                 onClick={handleToggleFavorite}
                 disabled={loading}
-                className="h-8 w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
               >
-                <Heart className={`h-[18px] w-[18px] transition-colors ${isFavorite ? 'text-[#F31260] fill-[#F31260]' : 'text-[#CBD5E1] hover:text-[#1E293B]'}`} />
+                <Heart className={`h-3.5 w-3.5 md:h-[18px] md:w-[18px] transition-colors ${isFavorite ? 'text-[#F31260] fill-[#F31260]' : 'text-[#CBD5E1] hover:text-[#1E293B]'}`} />
               </button>
             </div>
           </div>
@@ -226,121 +226,124 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
               />
               {!isHovered && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <div className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center shadow-lg">
-                    <Play className="w-7 h-7 text-[#0F172A] ml-1" fill="currentColor" />
+                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/95 flex items-center justify-center shadow-lg">
+                    <Play className="w-5 h-5 md:w-7 md:h-7 text-[#0F172A] ml-0.5" fill="currentColor" />
                   </div>
                 </div>
               )}
               
               {earningsPerSale > 0 && (
-                <span className="absolute bottom-3 left-3 z-10 bg-[#EEF2FF] text-[#6366F1] text-xs font-medium px-2 py-1 rounded-md shadow-sm">
-                  💰 Gana {formatCurrency(earningsPerSale)} por venta
+                <span className="absolute bottom-2 md:bottom-3 left-2 md:left-3 z-10 bg-[#EEF2FF] text-[#6366F1] text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-md shadow-sm">
+                  💰 {formatCurrency(earningsPerSale)}/venta
                 </span>
               )}
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-muted to-muted/80">
-              <div className="w-14 h-14 rounded-full bg-white/95 flex items-center justify-center">
-                <Play className="w-7 h-7 text-muted-foreground ml-1" />
+              <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/95 flex items-center justify-center">
+                <Play className="w-5 h-5 md:w-7 md:h-7 text-muted-foreground ml-0.5" />
               </div>
             </div>
           )}
         </div>
 
-        {/* Content */}
-        <div className="space-y-3">
+        {/* Content - compact spacing on mobile */}
+        <div className="space-y-2 md:space-y-3">
           {/* Title and Creator */}
           <div>
-            <h3 className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground line-clamp-2 leading-snug" title={video.title || 'Video TikTok Shop'}>
+            <h3 className="text-[13px] md:text-[15px] font-semibold text-[#0F172A] dark:text-foreground line-clamp-2 leading-snug" title={video.title || 'Video TikTok Shop'}>
               {video.title || 'Video TikTok Shop'}
             </h3>
-            <p className="text-[13px] text-[#94A3B8] mt-0.5">
+            <p className="text-[11px] md:text-[13px] text-[#94A3B8] mt-0.5">
               @{video.creator_handle || video.creator_name || 'creator'}
             </p>
           </div>
 
-          {/* Product Association */}
-          {video.product || video.product_name ? (
-            <button 
-              onClick={navigateToProduct}
-              className="flex items-center gap-2.5 w-full p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 hover:bg-[#F1F5F9] dark:hover:bg-muted transition-colors text-left"
-            >
-              {video.product?.imagen_url ? (
-                <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-[#E2E8F0]" />
-              ) : (
-                <div className="w-10 h-10 rounded-lg bg-[#F31260]/10 flex items-center justify-center flex-shrink-0">
-                  <ShoppingCart className="h-5 w-5 text-[#F31260]" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <span className="text-[13px] text-[#0F172A] dark:text-foreground font-medium line-clamp-1">
-                  {video.product?.producto_nombre || video.product_name}
-                </span>
-                {video.product?.total_ingresos_mxn && (
-                  <span className="text-[11px] text-[#94A3B8]">GMV: {formatCurrency(video.product.total_ingresos_mxn)}</span>
+          {/* Product Association - hidden on mobile for compactness */}
+          <div className="hidden md:block">
+            {video.product || video.product_name ? (
+              <button 
+                onClick={navigateToProduct}
+                className="flex items-center gap-2.5 w-full p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 hover:bg-[#F1F5F9] dark:hover:bg-muted transition-colors text-left"
+              >
+                {video.product?.imagen_url ? (
+                  <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-[#E2E8F0]" />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-[#F31260]/10 flex items-center justify-center flex-shrink-0">
+                    <ShoppingCart className="h-5 w-5 text-[#F31260]" />
+                  </div>
                 )}
+                <div className="flex-1 min-w-0">
+                  <span className="text-[13px] text-[#0F172A] dark:text-foreground font-medium line-clamp-1">
+                    {video.product?.producto_nombre || video.product_name}
+                  </span>
+                  {video.product?.total_ingresos_mxn && (
+                    <span className="text-[11px] text-[#94A3B8]">GMV: {formatCurrency(video.product.total_ingresos_mxn)}</span>
+                  )}
+                </div>
+                <span className="text-[11px] text-[#94A3B8] shrink-0">Ver →</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 w-full p-2 rounded-xl bg-[#F8FAFC] dark:bg-muted/30 opacity-60">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <span className="text-[13px] text-muted-foreground">Sin producto asignado</span>
               </div>
-              <span className="text-[11px] text-[#94A3B8] shrink-0">Ver →</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-2 w-full p-2 rounded-xl bg-[#F8FAFC] dark:bg-muted/30 opacity-60">
-              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <span className="text-[13px] text-muted-foreground">Sin producto asignado</span>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Metrics Grid - With blur for non-paid users */}
-          <div className={cn("grid grid-cols-2 gap-2", needsBlur && "blur-sm pointer-events-none select-none")}>
-            <div className="p-2.5 rounded-xl bg-[#ECFDF5] dark:bg-success/10">
-              <div className="flex items-center gap-1.5 mb-1">
-                <DollarSign className="h-3.5 w-3.5 text-[#475569]" />
-                <span className="text-[11px] text-[#94A3B8]">Ingresos</span>
+          {/* Metrics Grid - Compact on mobile */}
+          <div className={cn("grid grid-cols-2 gap-1.5 md:gap-2", needsBlur && "blur-sm pointer-events-none select-none")}>
+            <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#ECFDF5] dark:bg-success/10">
+              <div className="flex items-center gap-1 mb-0.5 md:mb-1">
+                <DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5 text-[#475569]" />
+                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Ingresos</span>
               </div>
-              <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+              <p className="text-xs md:text-sm font-bold text-[#0F172A] dark:text-foreground">
                 {showFullData ? formatCurrency(video.revenue_mxn) : "•••"}
               </p>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
-              <div className="flex items-center gap-1.5 mb-1">
-                <ShoppingCart className="h-3.5 w-3.5 text-[#475569]" />
-                <span className="text-[11px] text-[#94A3B8]">Ventas</span>
+            <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
+              <div className="flex items-center gap-1 mb-0.5 md:mb-1">
+                <ShoppingCart className="h-3 w-3 md:h-3.5 md:w-3.5 text-[#475569]" />
+                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Ventas</span>
               </div>
-              <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+              <p className="text-xs md:text-sm font-bold text-[#0F172A] dark:text-foreground">
                 {showFullData ? formatNumber(video.sales) : "•••"}
               </p>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-[#FEF3C7] dark:bg-amber-950/30">
-              <div className="flex items-center gap-1.5 mb-1">
-                <DollarSign className="h-3.5 w-3.5 text-[#475569]" />
-                <span className="text-[11px] text-[#94A3B8]">Ganancias Est.</span>
+            <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#FEF3C7] dark:bg-amber-950/30">
+              <div className="flex items-center gap-1 mb-0.5 md:mb-1">
+                <DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5 text-[#475569]" />
+                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Comisión</span>
               </div>
-              <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+              <p className="text-xs md:text-sm font-bold text-[#0F172A] dark:text-foreground">
                 {showFullData ? formatCurrency(commissionEstimated) : "•••"}
               </p>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
-              <div className="flex items-center gap-1.5 mb-1">
-                <Eye className="h-3.5 w-3.5 text-[#475569]" />
-                <span className="text-[11px] text-[#94A3B8]">Vistas</span>
+            <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
+              <div className="flex items-center gap-1 mb-0.5 md:mb-1">
+                <Eye className="h-3 w-3 md:h-3.5 md:w-3.5 text-[#475569]" />
+                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Vistas</span>
               </div>
-              <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+              <p className="text-xs md:text-sm font-bold text-[#0F172A] dark:text-foreground">
                 {showFullData ? formatNumber(video.views) : "•••"}
               </p>
             </div>
           </div>
 
-          {/* CTA Button */}
+          {/* CTA Button - Compact on mobile */}
           <Button 
-            className="w-full h-11"
+            className="w-full h-9 md:h-11 text-xs md:text-sm"
             onClick={handleAnalyzeClick}
           >
-            <Sparkles className="h-4 w-4" />
-            Analizar guion y replicar
+            <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Analizar guion y replicar</span>
+            <span className="sm:hidden">Analizar</span>
           </Button>
         </div>
       </div>
