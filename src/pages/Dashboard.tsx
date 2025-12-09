@@ -194,76 +194,98 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="pt-5 pb-6 px-4 md:px-6">
-      {/* Minimal header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-        <DataSubtitle />
+    <div className="pt-4 pb-6 px-4 md:px-6">
+      {/* Mobile Hero Section */}
+      <div className="mb-6 md:mb-4 py-4 md:py-0">
+        <h1 className="text-2xl font-semibold text-foreground mb-2 font-sans md:hidden">
+          🔥 Los videos que más están vendiendo hoy
+        </h1>
+        <p className="text-base text-muted-foreground md:hidden mb-4">
+          Descubre guiones y productos que están generando ingresos reales en TikTok Shop.
+        </p>
+        
+        {/* Desktop minimal header */}
+        <div className="hidden md:flex md:items-center md:justify-between gap-2">
+          <DataSubtitle />
+          {(productFilter || creatorFilter) && (
+            <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
+              ← Ver todos
+            </Button>
+          )}
+        </div>
+        
+        {/* Mobile back button */}
         {(productFilter || creatorFilter) && (
-          <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7 md:hidden">
             ← Ver todos
           </Button>
         )}
       </div>
 
-      {/* Filter Pills - Locked for visitors */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        {!isLoggedIn ? (
-          <div 
-            className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
-            onClick={() => {
-              navigate("/unlock");
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            {SORT_OPTIONS.map((option, i) => (
-              <span
-                key={option.value}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 ${
-                  i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
-                }`}
-              >
-                <Lock className="h-3 w-3" />
-                {option.label}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <FilterPills
-            options={SORT_OPTIONS}
-            value={sortOrder}
-            onChange={setSortOrder}
-          />
-        )}
-        
-        {/* Category Dropdown - Locked for visitors */}
-        {!isLoggedIn ? (
-          <div 
-            className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer"
-            onClick={() => {
-              navigate("/unlock");
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            <Lock className="h-3 w-3" />
-            Categorías
-          </div>
-        ) : (
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="h-8 w-auto min-w-[120px] text-xs rounded-full border-border/50 bg-muted/60">
-              <SelectValue placeholder="Categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Categorías</SelectItem>
-              {categories.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
-                </SelectItem>
+      {/* Filter Pills - Horizontal scrollable on mobile */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible">
+          {!isLoggedIn ? (
+            <div 
+              className="flex gap-1.5 opacity-60 cursor-pointer flex-nowrap"
+              onClick={() => {
+                navigate("/unlock");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              {SORT_OPTIONS.map((option, i) => (
+                <span
+                  key={option.value}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 whitespace-nowrap ${
+                    i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
+                  }`}
+                >
+                  <Lock className="h-3 w-3" />
+                  {option.label}
+                </span>
               ))}
-            </SelectContent>
-          </Select>
-        )}
+            </div>
+          ) : (
+            <FilterPills
+              options={SORT_OPTIONS}
+              value={sortOrder}
+              onChange={setSortOrder}
+            />
+          )}
+          
+          {/* Category Dropdown - Locked for visitors */}
+          {!isLoggedIn ? (
+            <div 
+              className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap flex-shrink-0"
+              onClick={() => {
+                navigate("/unlock");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <Lock className="h-3 w-3" />
+              Categorías
+            </div>
+          ) : (
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="h-8 w-auto min-w-[120px] text-xs rounded-full border-border/50 bg-muted/60 flex-shrink-0">
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Categorías</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
         
-        <span className="text-xs text-muted-foreground ml-auto">
+        <span className="text-xs text-muted-foreground block mt-2 md:hidden">
+          {totalCount} videos disponibles
+        </span>
+        <span className="text-xs text-muted-foreground hidden md:block mt-2">
           {totalCount} videos
         </span>
       </div>
@@ -281,7 +303,7 @@ const Dashboard = () => {
       ) : (
         <>
           {/* Video Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
             {videos.map((video, index) => {
               const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
               const isFreePreview = !isLoggedIn && globalIndex < FREE_PREVIEW_LIMIT;
