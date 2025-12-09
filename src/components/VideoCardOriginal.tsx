@@ -264,39 +264,38 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             </p>
           </div>
 
-          {/* Product Association - hidden on mobile for compactness */}
-          <div className="hidden md:block">
-            {video.product || video.product_name ? (
-              <button 
-                onClick={navigateToProduct}
-                className="flex items-center gap-2.5 w-full p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50 hover:bg-[#F1F5F9] dark:hover:bg-muted transition-colors text-left"
-              >
-                {video.product?.imagen_url ? (
-                  <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-[#E2E8F0]" />
-                ) : (
-                  <div className="w-10 h-10 rounded-lg bg-[#F31260]/10 flex items-center justify-center flex-shrink-0">
-                    <ShoppingCart className="h-5 w-5 text-[#F31260]" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <span className="text-[13px] text-[#0F172A] dark:text-foreground font-medium line-clamp-1">
-                    {video.product?.producto_nombre || video.product_name}
-                  </span>
-                  {video.product?.total_ingresos_mxn && (
-                    <span className="text-[11px] text-[#94A3B8]">GMV: {formatCurrency(video.product.total_ingresos_mxn)}</span>
-                  )}
+          {/* Product Association - compact on mobile, full on desktop */}
+          {video.product || video.product_name ? (
+            <button 
+              onClick={navigateToProduct}
+              className="flex items-center gap-2 md:gap-2.5 w-full p-2 md:p-2.5 rounded-lg md:rounded-xl bg-[#F8FAFC] dark:bg-muted/50 hover:bg-[#F1F5F9] dark:hover:bg-muted transition-colors text-left"
+            >
+              {video.product?.imagen_url ? (
+                <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-8 h-8 md:w-10 md:h-10 rounded-md md:rounded-lg object-cover flex-shrink-0 border border-[#E2E8F0]" />
+              ) : (
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-md md:rounded-lg bg-[#F31260]/10 flex items-center justify-center flex-shrink-0">
+                  <ShoppingCart className="h-4 w-4 md:h-5 md:w-5 text-[#F31260]" />
                 </div>
-                <span className="text-[11px] text-[#94A3B8] shrink-0">Ver →</span>
-              </button>
-            ) : (
-              <div className="flex items-center gap-2 w-full p-2 rounded-xl bg-[#F8FAFC] dark:bg-muted/30 opacity-60">
-                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              )}
+              <div className="flex-1 min-w-0">
+                <span className="text-[11px] md:text-[13px] text-[#0F172A] dark:text-foreground font-medium line-clamp-1">
+                  {video.product?.producto_nombre || video.product_name}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] md:text-[11px] text-[#94A3B8]">{commissionRate}%</span>
+                  <span className="text-[9px] md:text-[11px] font-medium text-green-600">{formatCurrency(earningsPerSale)}/vta</span>
                 </div>
-                <span className="text-[13px] text-muted-foreground">Sin producto asignado</span>
               </div>
-            )}
-          </div>
+              <span className="hidden md:inline text-[11px] text-[#94A3B8] shrink-0">Ver →</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 w-full p-2 rounded-lg md:rounded-xl bg-[#F8FAFC] dark:bg-muted/30 opacity-60">
+              <div className="w-6 h-6 md:w-8 md:h-8 rounded-md md:rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                <ShoppingCart className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+              </div>
+              <span className="text-[10px] md:text-[13px] text-muted-foreground">Sin producto</span>
+            </div>
+          )}
 
           {/* Metrics Grid - Compact on mobile */}
           <div className={cn("grid grid-cols-2 gap-1.5 md:gap-2", needsBlur && "blur-sm pointer-events-none select-none")}>

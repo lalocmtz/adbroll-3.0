@@ -294,25 +294,16 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             </button>
           )}
 
-          {/* For visitors: Show unlock + login buttons */}
+          {/* For visitors: Show only login button */}
           {!isLoggedIn && (
-            <div className="space-y-2">
-              <Button
-                className="w-full bg-primary hover:bg-primary-hover"
-                onClick={() => navigate("/unlock")}
-              >
-                <Unlock className="h-4 w-4 mr-2" />
-                {language === "es" ? "Desbloquear todo" : "Unlock everything"}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => navigate("/login")}
-              >
-                <LogIn className="h-4 w-4 mr-2" />
-                {language === "es" ? "Iniciar sesión" : "Sign in"}
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate("/login")}
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              {language === "es" ? "Iniciar sesión" : "Sign in"}
+            </Button>
           )}
 
           {/* User card - only for logged in users, navigates to settings */}
