@@ -646,6 +646,25 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                 )}
               </TabsContent>
             </Tabs>
+            
+            {/* Sticky CTA for non-logged users */}
+            {!isLoggedIn && (
+              <div className="sticky bottom-0 left-0 right-0 pt-3 pb-1 mt-4 bg-background border-t border-border shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+                <Button 
+                  onClick={() => {
+                    onClose();
+                    navigate("/unlock");
+                  }}
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-11"
+                >
+                  <Lock className="h-4 w-4 mr-2" />
+                  Desbloquear todo
+                </Button>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Accede a análisis completo y variantes IA
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
