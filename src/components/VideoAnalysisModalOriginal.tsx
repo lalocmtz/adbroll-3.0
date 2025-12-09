@@ -453,13 +453,6 @@ const VideoAnalysisModalOriginal = ({
                 </div>
               </motion.div>
               
-              {/* Creator Earnings Highlight */}
-              <div className="mt-2 p-2.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">💸 El creador ganó aprox:</span>
-                  <span className="text-base font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
-                </div>
-              </div>
             </div>
             
             {/* Product Card - Always visible on mobile */}
@@ -492,35 +485,50 @@ const VideoAnalysisModalOriginal = ({
             
             {/* Emotional Headline Section - Script Ready */}
             <div className="p-3 border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
-              <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1.5 flex items-center gap-1.5">
+              <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2 flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3" />
                 Guion extraído con IA
               </div>
-              <p className="text-sm font-medium text-foreground leading-snug">
-                Este video generó <span className="text-green-600 font-bold">{formatCurrency(video.revenue_mxn)}</span> en ventas.
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                La IA ya analizó el guion ganador. Ahora es tu turno de replicarlo.
+              
+              {/* Sales highlight - all bold black */}
+              <p className="text-sm font-bold text-foreground leading-snug">
+                Este video generó {formatCurrency(video.revenue_mxn)} en ventas.
               </p>
               
-              {/* Compact video thumbnail - click to expand */}
-              {video.thumbnail_url && (
-                <button 
-                  onClick={() => setShowVideoExpanded(true)}
-                  className="mt-3 w-full flex items-center gap-3 p-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
-                >
-                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 relative">
-                    <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <Play className="h-4 w-4 text-white" fill="white" />
-                    </div>
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-xs font-medium text-foreground">Ver video original</span>
-                    <span className="text-[10px] text-muted-foreground block">Analiza el tono, ritmo y presentación</span>
-                  </div>
-                  <Maximize2 className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                </button>
+              {/* Creator earnings - GREEN emphasis */}
+              <p className="text-sm text-foreground mt-1">
+                Y le hizo ganar al creador una comisión aproximada de{' '}
+                <span className="text-lg font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
+              </p>
+              
+              {/* Motivational CTA */}
+              <p className="text-xs text-muted-foreground mt-2.5 leading-relaxed">
+                Ahora grábate con la misma energía que usó el creador. Usa el mismo guion o alguna de nuestras variantes optimizadas con IA. Aquí te dejamos el análisis:
+              </p>
+              
+              {/* Full Video Player */}
+              {(video.video_mp4_url || video.thumbnail_url) && (
+                <div className="mt-3 rounded-xl overflow-hidden bg-black aspect-[9/16] max-h-[220px]">
+                  {video.video_mp4_url ? (
+                    <video 
+                      src={video.video_mp4_url}
+                      controls
+                      playsInline
+                      className="w-full h-full object-contain"
+                      poster={video.thumbnail_url || undefined}
+                    />
+                  ) : video.thumbnail_url ? (
+                    <button 
+                      onClick={() => setShowVideoExpanded(true)}
+                      className="w-full h-full relative group"
+                    >
+                      <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Play className="h-10 w-10 text-white" fill="white" />
+                      </div>
+                    </button>
+                  ) : null}
+                </div>
               )}
             </div>
           </motion.div>
