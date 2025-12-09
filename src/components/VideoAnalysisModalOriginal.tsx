@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -417,13 +418,23 @@ const VideoAnalysisModalOriginal = ({
           </div>
 
           {/* Mobile Value Section - Key metrics and product info */}
-          <div className="md:hidden overflow-y-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="md:hidden overflow-y-auto"
+          >
             {/* Results Card */}
             <div className="p-3 border-b border-border bg-gradient-to-b from-muted/50 to-transparent">
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
                 📊 Resultados del video
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+                className="grid grid-cols-4 gap-2"
+              >
                 <div className="bg-[#ECFDF5] rounded-lg p-2 text-center">
                   <div className="text-[10px] text-muted-foreground">Ingresos</div>
                   <div className="text-sm font-bold text-foreground">{formatCurrency(video.revenue_mxn)}</div>
@@ -440,7 +451,7 @@ const VideoAnalysisModalOriginal = ({
                   <div className="text-[10px] text-muted-foreground">$/venta</div>
                   <div className="text-sm font-bold text-foreground">{formatCurrency(earningPerSale)}</div>
                 </div>
-              </div>
+              </motion.div>
               
               {/* Creator Earnings Highlight */}
               <div className="mt-2 p-2.5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
@@ -478,7 +489,7 @@ const VideoAnalysisModalOriginal = ({
                     </Button>}
                 </div>
               </div>}
-          </div>
+          </motion.div>
 
           {/* Desktop Layout: Side by side */}
           <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
