@@ -391,178 +391,243 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[92vh] overflow-hidden p-0 gap-0 animate-scale-in [&>button]:hidden">
-        <div className="flex flex-col lg:flex-row h-full max-h-[92vh]">
-          {/* Left: Metrics + Video Player */}
-          <div className="w-full lg:w-[380px] bg-muted/20 flex-shrink-0 flex flex-col border-r border-border p-4 gap-3">
-            {/* Two Cards Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              {/* Video Metrics Card */}
-              <div className="card-premium p-3 space-y-2">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                    <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                  </div>
-                  <h4 className="text-xs font-semibold text-foreground">Métricas</h4>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Ventas</span>
-                    <span className="text-xs font-bold tabular-nums">{formatNumber(video.sales)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Vistas</span>
-                    <span className="text-xs font-bold tabular-nums">{formatNumber(video.views)}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-1 border-t border-border/50">
-                    <span className="text-xs text-muted-foreground">Comisiones</span>
-                    <span className="text-xs font-bold text-success tabular-nums">
-                      {formatCurrency((video.sales || 0) * earningPerSale)}
-                    </span>
-                  </div>
-                </div>
+      {/* Full-screen on mobile, max-w-6xl on desktop */}
+      <DialogContent className="w-full h-full md:max-w-6xl md:max-h-[92vh] md:h-auto overflow-hidden p-0 gap-0 animate-scale-in [&>button]:hidden rounded-none md:rounded-xl">
+        <div className="flex flex-col h-full md:h-auto md:max-h-[92vh]">
+          
+          {/* Mobile Header - Fixed at top */}
+          <div className="flex items-center gap-3 p-3 border-b border-border bg-background sticky top-0 z-30 md:hidden">
+            <button 
+              onClick={onClose}
+              className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            
+            {/* Small video thumbnail */}
+            {video.thumbnail_url && (
+              <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+                <img 
+                  src={video.thumbnail_url} 
+                  alt="" 
+                  className="w-full h-full object-cover"
+                />
               </div>
+            )}
+            
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-semibold line-clamp-1 text-foreground">
+                {video.title || 'Análisis de Video'}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                @{video.creator_handle || video.creator_name || 'creator'}
+              </p>
+            </div>
+            
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handleToggleFavorite}
+              className={`h-8 w-8 rounded-full flex-shrink-0 ${
+                isFavorite ? "text-destructive" : ""
+              }`}
+            >
+              <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+            </Button>
+          </div>
 
-              {/* Product Data Card */}
-              <div className="card-premium p-3 space-y-2 bg-gradient-to-br from-primary/[0.02] to-transparent">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                    <ShoppingCart className="h-3.5 w-3.5 text-primary" />
+          {/* Mobile Metrics Row - Horizontal scrollable */}
+          <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto scrollbar-hide bg-muted/30 border-b border-border md:hidden">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#ECFDF5] rounded-lg flex-shrink-0">
+              <DollarSign className="h-3 w-3 text-success" />
+              <span className="text-xs font-bold text-foreground">{formatCurrency(video.revenue_mxn)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted rounded-lg flex-shrink-0">
+              <ShoppingCart className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs font-bold text-foreground">{formatNumber(video.sales)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted rounded-lg flex-shrink-0">
+              <Eye className="h-3 w-3 text-muted-foreground" />
+              <span className="text-xs font-bold text-foreground">{formatNumber(video.views)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#FEF3C7] rounded-lg flex-shrink-0">
+              <span className="text-xs font-bold text-foreground">💰 {formatCurrency(earningPerSale)}/venta</span>
+            </div>
+          </div>
+
+          {/* Desktop Layout: Side by side */}
+          <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+            
+            {/* Left: Video Player - Hidden on mobile */}
+            <div className="hidden md:flex w-[380px] bg-muted/20 flex-shrink-0 flex-col border-r border-border p-4 gap-3">
+              {/* Two Cards Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Video Metrics Card */}
+                <div className="card-premium p-3 space-y-2">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+                      <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <h4 className="text-xs font-semibold text-foreground">Métricas</h4>
                   </div>
-                  <h4 className="text-xs font-semibold text-foreground">Producto</h4>
-                </div>
-                
-                {video.product ? (
+                  
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Comisión</span>
-                      <span className="text-xs font-bold tabular-nums">{video.product.commission || 0}%</span>
+                      <span className="text-xs text-muted-foreground">Ventas</span>
+                      <span className="text-xs font-bold tabular-nums">{formatNumber(video.sales)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">$/venta</span>
-                      <span className="text-xs font-bold text-success tabular-nums">
-                        {formatCurrency(earningPerSale)}
-                      </span>
+                      <span className="text-xs text-muted-foreground">Vistas</span>
+                      <span className="text-xs font-bold tabular-nums">{formatNumber(video.views)}</span>
                     </div>
                     <div className="flex items-center justify-between pt-1 border-t border-border/50">
-                      <span className="text-xs text-muted-foreground">GMV 30d</span>
-                      <span className="text-xs font-bold tabular-nums">{formatCurrency(video.product.revenue_30d)}</span>
+                      <span className="text-xs text-muted-foreground">Comisiones</span>
+                      <span className="text-xs font-bold text-success tabular-nums">
+                        {formatCurrency((video.sales || 0) * earningPerSale)}
+                      </span>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic text-center py-2">Sin producto</p>
-                )}
-              </div>
-            </div>
+                </div>
 
-            {/* Video Card - Centered and Smaller */}
-            <div className="flex-1 flex flex-col items-center justify-center min-h-0">
-              <div className="card-premium overflow-hidden w-full max-w-[280px]">
-                <div className="relative aspect-[9/16] bg-black rounded-xl overflow-hidden">
-                  {video.video_mp4_url ? (
-                    <video
-                      ref={videoRef}
-                      src={video.video_mp4_url}
-                      className="w-full h-full object-contain"
-                      controls
-                      autoPlay
-                      loop
-                      playsInline
-                      poster={video.thumbnail_url || undefined}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-muted gap-2">
-                      <Play className="h-8 w-8 text-muted-foreground/40" />
-                      <p className="text-muted-foreground text-xs">Video no disponible</p>
+                {/* Product Data Card */}
+                <div className="card-premium p-3 space-y-2 bg-gradient-to-br from-primary/[0.02] to-transparent">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
+                      <ShoppingCart className="h-3.5 w-3.5 text-primary" />
                     </div>
+                    <h4 className="text-xs font-semibold text-foreground">Producto</h4>
+                  </div>
+                  
+                  {video.product ? (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Comisión</span>
+                        <span className="text-xs font-bold tabular-nums">{video.product.commission || 0}%</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">$/venta</span>
+                        <span className="text-xs font-bold text-success tabular-nums">
+                          {formatCurrency(earningPerSale)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                        <span className="text-xs text-muted-foreground">GMV 30d</span>
+                        <span className="text-xs font-bold tabular-nums">{formatCurrency(video.product.revenue_30d)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic text-center py-2">Sin producto</p>
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* TikTok Shop Button - Bottom */}
-            {video.product?.producto_url && (
-              <Button
-                variant="default"
-                size="sm"
-                className="w-full gap-2 h-9 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
-                onClick={() => window.open(video.product?.producto_url || '', '_blank')}
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                Ver en TikTok Shop
-              </Button>
-            )}
-          </div>
-
-          {/* Right: Analysis Content */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-background">
-            {/* Header */}
-            <div className="p-5 border-b border-border flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-semibold line-clamp-2 text-foreground leading-snug pr-2">
-                  {video.title || 'Análisis de Video'}
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  @{video.creator_handle || video.creator_name || 'creator'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={handleToggleFavorite}
-                  className={`rounded-xl h-9 w-9 transition-all ${
-                    isFavorite 
-                      ? "bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive hover:text-white" 
-                      : "hover:border-destructive/30 hover:text-destructive"
-                  }`}
-                >
-                  <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={onClose}
-                  className="rounded-xl h-9 w-9 hover:bg-muted"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Tabs Content */}
-            <div className="flex-1 overflow-hidden">
-              <Tabs value={activeTab} onValueChange={handleTabChange} className="h-full flex flex-col">
-                <div className="px-5 pt-4">
-                  <TabsList className="grid grid-cols-3 w-full h-11 p-1 bg-muted/50 rounded-xl">
-                    <TabsTrigger 
-                      value="script" 
-                      className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                    >
-                      <FileText className="h-4 w-4" />
-                      <span className="hidden sm:inline">Script</span>
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="analysis" 
-                      className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                    >
-                      {!hasPaid && <Lock className="h-3 w-3" />}
-                      <Brain className="h-4 w-4" />
-                      <span className="hidden sm:inline">Análisis</span>
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="variants" 
-                      className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                    >
-                      {!hasPaid && <Lock className="h-3 w-3" />}
-                      <Wand2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">Variantes IA</span>
-                    </TabsTrigger>
-                  </TabsList>
+              {/* Video Card - Centered and Smaller */}
+              <div className="flex-1 flex flex-col items-center justify-center min-h-0">
+                <div className="card-premium overflow-hidden w-full max-w-[280px]">
+                  <div className="relative aspect-[9/16] bg-black rounded-xl overflow-hidden">
+                    {video.video_mp4_url ? (
+                      <video
+                        ref={videoRef}
+                        src={video.video_mp4_url}
+                        className="w-full h-full object-contain"
+                        controls
+                        autoPlay
+                        loop
+                        playsInline
+                        poster={video.thumbnail_url || undefined}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-muted gap-2">
+                        <Play className="h-8 w-8 text-muted-foreground/40" />
+                        <p className="text-muted-foreground text-xs">Video no disponible</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              </div>
 
-                <div className="flex-1 overflow-y-auto p-5 pt-4">
+              {/* TikTok Shop Button - Bottom */}
+              {video.product?.producto_url && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full gap-2 h-9 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
+                  onClick={() => window.open(video.product?.producto_url || '', '_blank')}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Ver en TikTok Shop
+                </Button>
+              )}
+            </div>
+
+            {/* Right: Analysis Content */}
+            <div className="flex-1 flex flex-col overflow-hidden bg-background">
+              {/* Desktop Header - Hidden on mobile */}
+              <div className="hidden md:flex p-5 border-b border-border items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-semibold line-clamp-2 text-foreground leading-snug pr-2">
+                    {video.title || 'Análisis de Video'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    @{video.creator_handle || video.creator_name || 'creator'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={handleToggleFavorite}
+                    className={`rounded-xl h-9 w-9 transition-all ${
+                      isFavorite 
+                        ? "bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive hover:text-white" 
+                        : "hover:border-destructive/30 hover:text-destructive"
+                    }`}
+                  >
+                    <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={onClose}
+                    className="rounded-xl h-9 w-9 hover:bg-muted"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Tabs Content */}
+              <div className="flex-1 overflow-hidden">
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="h-full flex flex-col">
+                  <div className="px-3 md:px-5 pt-3 md:pt-4">
+                    <TabsList className="grid grid-cols-3 w-full h-10 md:h-11 p-1 bg-muted/50 rounded-xl">
+                      <TabsTrigger 
+                        value="script" 
+                        className="gap-1.5 md:gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs md:text-sm"
+                      >
+                        <FileText className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        Script
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="analysis" 
+                        className="gap-1.5 md:gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs md:text-sm"
+                      >
+                        {!hasPaid && <Lock className="h-3 w-3" />}
+                        <Brain className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        Análisis
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="variants" 
+                        className="gap-1.5 md:gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs md:text-sm"
+                      >
+                        {!hasPaid && <Lock className="h-3 w-3" />}
+                        <Wand2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                        Variantes
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-3 md:p-5 pt-3 md:pt-4">
                   {isProcessing ? (
                     <div className="flex flex-col items-center justify-center h-full gap-4 py-12">
                       <div className="relative">
@@ -891,8 +956,9 @@ const VideoAnalysisModalOriginal = ({ isOpen, onClose, video }: VideoAnalysisMod
                       </TabsContent>
                     </>
                   )}
-                </div>
-              </Tabs>
+                  </div>
+                </Tabs>
+              </div>
             </div>
           </div>
         </div>

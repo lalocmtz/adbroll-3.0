@@ -11,7 +11,7 @@ import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Lock } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
 
 interface Video {
   id: string;
@@ -193,15 +193,17 @@ const Dashboard = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const marketLabel = market === 'mx' ? 'México' : 'Estados Unidos';
+
   return (
-    <div className="pt-2 pb-6 px-3 md:px-6">
+    <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
       {/* Compact Mobile Hero Section */}
-      <div className="mb-4 md:mb-4 py-2 md:py-0">
-        <h1 className="text-xl font-semibold text-foreground mb-1 font-sans md:hidden leading-tight">
-          🔥 Videos que más venden hoy
+      <div className="mb-3 md:mb-4 py-1 md:py-0">
+        <h1 className="text-lg font-bold text-foreground mb-0.5 font-sans md:hidden leading-tight">
+          🔥 Lo que vende HOY en TikTok Shop {marketLabel}
         </h1>
-        <p className="text-sm text-muted-foreground md:hidden mb-3">
-          Guiones y productos con ingresos reales en TikTok Shop.
+        <p className="text-xs text-muted-foreground md:hidden">
+          Descubre guiones y productos que generan $$$
         </p>
         
         {/* Desktop minimal header */}
@@ -348,7 +350,7 @@ const Dashboard = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-6">
+            <div className="mt-6 mb-16 md:mb-0">
               {!isLoggedIn ? (
                 <div 
                   className="flex items-center justify-center gap-2 opacity-60 cursor-pointer"
@@ -370,6 +372,22 @@ const Dashboard = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* Sticky CTA for visitors - Mobile only */}
+      {!isLoggedIn && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
+          <Button 
+            className="w-full h-12 text-sm font-semibold shadow-lg"
+            onClick={() => {
+              navigate("/unlock");
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Desbloquear acceso completo — $29/mes
+          </Button>
+        </div>
       )}
     </div>
   );
