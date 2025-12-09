@@ -4,18 +4,14 @@ import React from "react";
 import { motion, Variants } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-// Import hero card images
-import heroCard1 from "@/assets/hero-card-1.png";
-import heroCard2 from "@/assets/hero-card-2.png";
-import heroCard3 from "@/assets/hero-card-3.png";
-import heroCard4 from "@/assets/hero-card-4.png";
-import heroCard5 from "@/assets/hero-card-5.png";
-import heroCard6 from "@/assets/hero-card-6.png";
-import heroCard7 from "@/assets/hero-card-7.png";
-import heroCard8 from "@/assets/hero-card-8.png";
+// Import result images for hero
+import result1 from "@/assets/result-1.png";
+import result2 from "@/assets/result-2.png";
+import result3 from "@/assets/result-3.png";
+import result4 from "@/assets/result-4.png";
 
-// Static hero card images
-const HERO_CARDS = [heroCard1, heroCard2, heroCard3, heroCard4, heroCard5, heroCard6, heroCard7, heroCard8];
+// Static result images
+const HERO_CARDS = [result1, result2, result3, result4];
 
 interface AnimatedMarqueeHeroProps {
   tagline: string;
@@ -69,7 +65,7 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
     show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 100, damping: 20 } },
   };
 
-  // Use static hero cards - duplicate for seamless infinite scroll
+  // Duplicate for seamless infinite scroll
   const heroImages = [...HERO_CARDS, ...HERO_CARDS, ...HERO_CARDS];
 
   return (
@@ -152,18 +148,18 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
         </motion.div>
       </div>
 
-      {/* Animated Image Marquee - reduced height on mobile */}
+      {/* Animated Image Marquee - adjusted for square images */}
       <div 
         className="absolute bottom-0 left-0 right-0 flex items-end justify-center overflow-hidden"
         style={{
-          height: 'clamp(40vh, 45vh, 58vh)',
+          height: 'clamp(32vh, 38vh, 48vh)',
           maskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
           WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
         }}
       >
         <motion.div
           className="flex"
-          style={{ gap: '12px' }}
+          style={{ gap: '16px' }}
           animate={{
             x: ["-50%", "0%"],
           }}
@@ -171,7 +167,7 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
             x: {
               repeat: Infinity,
               repeatType: "loop",
-              duration: 90,
+              duration: 60,
               ease: "linear",
             },
           }}
@@ -181,15 +177,15 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
               key={index}
               className="relative flex-shrink-0 transition-transform duration-300 hover:scale-[1.02] hover:-translate-y-2"
               style={{
-                width: 'clamp(140px, 18vw, 340px)',
-                height: 'clamp(220px, 40vh, 580px)',
+                width: 'clamp(180px, 22vw, 380px)',
+                height: 'clamp(180px, 26vh, 380px)',
                 transform: `rotate(${(index % 2 === 0 ? -1 : 1.5)}deg)`,
               }}
             >
               <img
                 src={src}
-                alt={`Showcase image ${index + 1}`}
-                className="w-full h-full object-contain drop-shadow-xl"
+                alt={`Resultado ${index + 1}`}
+                className="w-full h-full object-contain drop-shadow-2xl rounded-2xl border border-border/10"
               />
             </div>
           ))}

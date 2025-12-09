@@ -134,7 +134,7 @@ const Unlock = () => {
       <section id="how-it-works" className="py-10 md:py-24 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 text-foreground">
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4 text-foreground">
               ¿Cómo funciona?
             </h2>
           </div>
@@ -169,8 +169,8 @@ const Unlock = () => {
       <section className="py-12 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8 md:mb-16">
-            <h2 className="text-xl md:text-5xl font-bold mb-4">
-              Con Adbroll <span className="text-2xl md:text-5xl">😎</span> vs Sin Adbroll <span className="text-2xl md:text-5xl">😡</span>
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-4">
+              Con Adbroll <span className="text-xl md:text-3xl lg:text-4xl">😎</span> vs Sin Adbroll <span className="text-xl md:text-3xl lg:text-4xl">😡</span>
             </h2>
           </div>
 
@@ -217,7 +217,7 @@ const Unlock = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-8 md:mb-16">
             <Badge className="badge-landing-light mb-3 md:mb-4">Dentro de Adbroll</Badge>
-            <h2 className="text-xl md:text-4xl font-bold mb-3 md:mb-4">
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
               Datos reales. IA integrada. Resultados más rápidos.
             </h2>
           </div>
@@ -298,7 +298,7 @@ const Unlock = () => {
           once: true
         }} className="flex flex-col items-center justify-center max-w-[540px] mx-auto">
             <Badge className="badge-landing-light mb-4">Testimonios reales</Badge>
-            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tighter mt-5 text-center">
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold tracking-tighter mt-5 text-center">
               Creadores que cambiaron su juego con Adbroll
             </h2>
             <p className="text-center mt-5 text-muted-foreground">
@@ -319,7 +319,7 @@ const Unlock = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <Badge className="badge-landing-light mb-4">💸 Precio simple</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-4">
               Un solo plan. Todo incluido.
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -362,7 +362,7 @@ const Unlock = () => {
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="text-center mb-12">
             <Badge className="badge-landing-light mb-4">FAQ</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold">
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold">
               Preguntas frecuentes
             </h2>
           </div>
