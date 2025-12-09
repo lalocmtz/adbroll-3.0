@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Tag, Check, X } from "lucide-react";
+import { Loader2, Sparkles, Tag, Check, X, TrendingUp, FileText, Wand2, ShoppingBag, Zap } from "lucide-react";
 import { z } from "zod";
 
 const emailSchema = z.string().email({ message: "Ingresa un email válido" });
@@ -149,24 +149,51 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
     }
   };
 
+  const benefits = [
+    { icon: TrendingUp, text: "Videos virales que generan ventas" },
+    { icon: FileText, text: "Guiones listos para copiar" },
+    { icon: Wand2, text: "Variantes IA personalizadas" },
+    { icon: ShoppingBag, text: "Productos con alta comisión" },
+    { icon: Zap, text: "Actualizaciones diarias" },
+  ];
+
+  const displayPrice = codeValid ? "$14.50" : "$29";
+  const originalPrice = codeValid ? "$29" : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-background border-border text-foreground">
-        <DialogHeader>
-          <div className="flex items-center justify-center mb-4">
-            <div className="p-4 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
-              <Sparkles className="h-8 w-8 text-primary" />
+      <DialogContent className="sm:max-w-md bg-background border-border text-foreground p-0 overflow-hidden">
+        {/* Premium Header */}
+        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 pb-4">
+          <DialogHeader className="space-y-3">
+            <div className="flex items-center justify-center">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg">
+                <Sparkles className="h-7 w-7 text-white" />
+              </div>
             </div>
-          </div>
-          <DialogTitle className="text-center text-2xl font-bold text-foreground">
-            Tu próximo video viral te espera
-          </DialogTitle>
-          <p className="text-center text-muted-foreground mt-2">
-            Únete a cientos de creadores que ya están ganando con TikTok Shop
-          </p>
-        </DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold text-foreground leading-tight">
+              🔓 Desbloquea TODO el poder de AdBroll
+            </DialogTitle>
+            <p className="text-center text-sm text-muted-foreground">
+              Únete a +1,000 creadores que ya ganan con TikTok Shop
+            </p>
+          </DialogHeader>
+        </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+        {/* Benefits List */}
+        <div className="px-6 py-4 space-y-2.5 bg-muted/30">
+          {benefits.map((benefit, index) => (
+            <div key={index} className="flex items-center gap-3">
+              <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <Check className="h-3.5 w-3.5 text-green-600" />
+              </div>
+              <span className="text-sm text-foreground">{benefit.text}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="px-6 pb-6 pt-4 space-y-4">
           {/* Email field */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-foreground text-sm font-medium">
@@ -181,7 +208,7 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
                 setEmail(e.target.value);
                 setError("");
               }}
-              className="h-12 text-base"
+              className="h-12 text-base border-2 focus:border-primary"
               disabled={loading}
               autoFocus
             />
@@ -205,7 +232,7 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
                 onChange={(e) => {
                   setReferralCode(e.target.value.toUpperCase());
                 }}
-                className="h-12 text-base uppercase pr-12"
+                className="h-12 text-base uppercase pr-12 border-2"
                 disabled={loading}
               />
               {/* Validation indicator */}
@@ -233,9 +260,18 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
             )}
           </div>
 
+          {/* Price Display */}
+          <div className="flex items-center justify-center gap-2 py-2">
+            <span className="text-2xl font-bold text-foreground">{displayPrice}</span>
+            <span className="text-sm text-muted-foreground">/mes</span>
+            {originalPrice && (
+              <span className="text-sm text-muted-foreground line-through ml-1">{originalPrice}</span>
+            )}
+          </div>
+
           <Button
             type="submit"
-            className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base"
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base rounded-xl shadow-lg"
             disabled={loading || !email.trim()}
           >
             {loading ? (
@@ -246,25 +282,25 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Continuar
+                Activar AdBroll Pro
               </>
             )}
           </Button>
 
           {/* Subscription Note */}
-          <p className="text-xs text-muted-foreground text-center mb-2">
-            Esta es una suscripción mensual de $29 USD. Puedes cancelarla cuando quieras desde Configuración.
+          <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
+            Suscripción mensual. Cancela cuando quieras desde tu panel.
           </p>
           
           {/* Policy Links */}
-          <p className="text-xs text-muted-foreground text-center">
-            Al continuar, aceptas nuestros{" "}
+          <p className="text-[11px] text-muted-foreground text-center">
+            Al continuar aceptas{" "}
             <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              Términos y Condiciones
+              Términos
             </a>
             {" "}y{" "}
             <a href="/refund-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              Política de Reembolsos
+              Reembolsos
             </a>
           </p>
         </form>

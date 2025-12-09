@@ -12,6 +12,9 @@ import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lock, Sparkles } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+
 interface Video {
   id: string;
   video_url: string;
@@ -200,19 +203,30 @@ const Dashboard = () => {
     });
   };
   const marketLabel = market === 'mx' ? 'México' : 'Estados Unidos';
+  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: es });
+  
   return <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
-      {/* Compact Mobile Hero Section */}
+      {/* Compact Mobile Hero Section - Dynamic Date */}
       <div className="mb-3 md:mb-4 py-1 md:py-0">
-        <h1 className="text-lg font-bold text-foreground mb-0.5 font-sans md:hidden leading-tight">
-          🔥 Lo que vende HOY en TikTok Shop {marketLabel}
-        </h1>
-        <p className="text-xs text-muted-foreground md:hidden">
-          Descubre guiones y productos que generan $
-        </p>
+        <div className="md:hidden">
+          <h1 className="text-base font-bold text-foreground leading-tight">
+            🔥 Lo que vende HOY
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {todayFormatted} · TikTok Shop {marketLabel}
+          </p>
+        </div>
         
         {/* Desktop minimal header */}
         <div className="hidden md:flex md:items-center md:justify-between gap-2">
-          <DataSubtitle />
+          <div>
+            <h1 className="text-lg font-bold text-foreground leading-tight">
+              🔥 Lo que vende HOY, {todayFormatted}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              TikTok Shop {marketLabel} · Guiones y productos que generan $$$
+            </p>
+          </div>
           {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
               ← Ver todos
             </Button>}
