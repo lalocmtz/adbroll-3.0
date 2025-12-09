@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Gift } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -84,6 +85,18 @@ const Register = () => {
           p_user_id: signUpData.user.id,
           p_code: referralCode,
         });
+      }
+
+      // Send welcome email
+      try {
+        const welcomeEmail = emailTemplates.welcome(result.data.fullName);
+        await sendEmail({
+          to: result.data.email,
+          subject: welcomeEmail.subject,
+          html: welcomeEmail.html,
+        });
+      } catch (emailError) {
+        console.error("Error sending welcome email:", emailError);
       }
 
       toast({

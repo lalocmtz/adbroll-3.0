@@ -11,6 +11,29 @@ const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 );
 
+// Helper to send emails via our send-email edge function
+async function sendEmail(to: string, template: string, templateData: Record<string, string> = {}) {
+  try {
+    const response = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+      },
+      body: JSON.stringify({ to, template, templateData }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      console.error(`Failed to send email to ${to}:`, error);
+    } else {
+      console.log(`Email sent to ${to}: ${template}`);
+    }
+  } catch (error) {
+    console.error(`Error sending email to ${to}:`, error);
+  }
+}
+
 serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
   if (!signature) {
@@ -21,7 +44,6 @@ serve(async (req) => {
     const body = await req.text();
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
     
-    // Use async version for Deno environment
     const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     console.log(`Webhook received: ${event.type}`);
 
@@ -76,33 +98,28 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const subscriptionId = session.subscription as string;
   const customerId = session.customer as string;
   
-  // Check if this is a guest checkout that needs account creation
   const guestEmail = session.metadata?.guest_email;
   const createAccountOnSuccess = session.metadata?.create_account_on_success === "true";
   const referralCode = session.metadata?.referral_code;
   
   let userId = session.metadata?.supabase_user_id;
+  let isNewAccount = false;
 
   // If guest checkout, create user account
   if (createAccountOnSuccess && guestEmail && !userId) {
     console.log(`Creating account for guest: ${guestEmail}`);
     
-    // Generate random password (user will reset later)
     const tempPassword = crypto.randomUUID();
     
-    // Create user with Supabase Admin
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: guestEmail,
       password: tempPassword,
-      email_confirm: true, // Auto-confirm email since they paid
-      user_metadata: {
-        source: "paid_checkout",
-      },
+      email_confirm: true,
+      user_metadata: { source: "paid_checkout" },
     });
 
     if (authError) {
       console.error("Error creating user:", authError);
-      // Check if user already exists
       const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
       const existingUser = existingUsers?.users?.find(u => u.email === guestEmail);
       if (existingUser) {
@@ -111,9 +128,9 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       }
     } else if (authData.user) {
       userId = authData.user.id;
+      isNewAccount = true;
       console.log(`User created: ${userId}`);
 
-      // Create profile
       await supabaseAdmin.from("profiles").upsert({
         id: userId,
         email: guestEmail,
@@ -121,17 +138,11 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
         referral_code_used: referralCode || null,
       }, { onConflict: "id" });
 
-      // Send password reset email so user can set their password
-      const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-        type: "recovery",
+      // Send account setup email instead of generic password reset
+      await sendEmail(guestEmail, "account_setup", {
         email: guestEmail,
+        setupLink: "https://adbroll.com/checkout/success",
       });
-
-      if (resetError) {
-        console.error("Error sending password reset:", resetError);
-      } else {
-        console.log(`Password reset link generated for: ${guestEmail}`);
-      }
     }
   }
 
@@ -140,7 +151,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     return;
   }
 
-  // Update profile with stripe customer ID if not already set
+  // Update profile with stripe customer ID
   await supabaseAdmin
     .from("profiles")
     .update({ stripe_customer_id: customerId })
@@ -157,14 +168,23 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       status: "active",
       price_usd: 29,
       created_at: new Date().toISOString(),
-    }, {
-      onConflict: "user_id",
-    });
+    }, { onConflict: "user_id" });
 
   if (error) {
     console.error("Error creating subscription:", error);
   } else {
     console.log(`Subscription created for user: ${userId}`);
+    
+    // Send subscription confirmation email
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("id", userId)
+      .single();
+    
+    if (profile?.email && !isNewAccount) {
+      await sendEmail(profile.email, "subscription_confirmed", { price: "29" });
+    }
   }
 }
 
@@ -172,10 +192,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
   const subscriptionId = invoice.subscription as string;
 
-  // Find user by stripe customer ID
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("id, referral_code_used")
+    .select("id, email, referral_code_used")
     .eq("stripe_customer_id", customerId)
     .single();
 
@@ -184,7 +203,6 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     return;
   }
 
-  // Update subscription status to active
   await supabaseAdmin
     .from("subscriptions")
     .update({ 
@@ -195,18 +213,24 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
 
   console.log(`Subscription activated for user: ${profile.id}`);
 
-  // Calculate affiliate commission (30% = $8.70 from $29)
+  // Only send confirmation for renewal payments (not first payment which is handled in checkout)
+  const isRenewal = invoice.billing_reason === "subscription_cycle";
+  if (isRenewal && profile.email) {
+    await sendEmail(profile.email, "subscription_confirmed", { price: "29" });
+  }
+
+  // Calculate affiliate commission
   if (profile.referral_code_used) {
-    await calculateAffiliateCommission(profile.id, profile.referral_code_used, 29);
+    await calculateAffiliateCommission(profile.id, profile.referral_code_used, 29, profile.email);
   }
 }
 
 async function calculateAffiliateCommission(
   referredUserId: string, 
   referralCode: string, 
-  amountPaid: number
+  amountPaid: number,
+  referredEmail?: string
 ) {
-  // Find affiliate by code
   const { data: affiliateCode } = await supabaseAdmin
     .from("affiliate_codes")
     .select("user_id")
@@ -218,13 +242,10 @@ async function calculateAffiliateCommission(
     return;
   }
 
-  const commissionRate = 0.30; // 30%
-  const commissionAmount = amountPaid * commissionRate; // $8.70
+  const commissionRate = 0.30;
+  const commissionAmount = amountPaid * commissionRate;
+  const currentMonth = new Date().toISOString().slice(0, 7);
 
-  // Get current month for payout tracking
-  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-
-  // Create payout record
   await supabaseAdmin
     .from("affiliate_payouts")
     .insert({
@@ -235,10 +256,9 @@ async function calculateAffiliateCommission(
       month: currentMonth,
     });
 
-  // Update affiliate earnings and active referrals count
   const { data: affiliate } = await supabaseAdmin
     .from("affiliates")
-    .select("id, usd_earned, usd_available, active_referrals_count")
+    .select("id, user_id, usd_earned, usd_available, active_referrals_count")
     .eq("user_id", affiliateCode.user_id)
     .single();
 
@@ -252,12 +272,27 @@ async function calculateAffiliateCommission(
       })
       .eq("id", affiliate.id);
 
-    console.log(`Commission $${commissionAmount} added to affiliate: ${affiliateCode.user_id}, active referrals: ${(affiliate.active_referrals_count || 0) + 1}`);
+    console.log(`Commission $${commissionAmount} added to affiliate: ${affiliateCode.user_id}`);
+
+    // Send commission notification email to affiliate
+    const { data: affiliateProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("id", affiliateCode.user_id)
+      .single();
+
+    if (affiliateProfile?.email) {
+      await sendEmail(affiliateProfile.email, "affiliate_commission", {
+        amount: commissionAmount.toFixed(2),
+        referredEmail: referredEmail || "usuario",
+      });
+    }
   }
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
   const subscriptionId = invoice.subscription as string;
+  const customerId = invoice.customer as string;
 
   await supabaseAdmin
     .from("subscriptions")
@@ -265,24 +300,39 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     .eq("stripe_subscription_id", subscriptionId);
 
   console.log(`Payment failed for subscription: ${subscriptionId}`);
+
+  // Send payment failed email
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("email")
+    .eq("stripe_customer_id", customerId)
+    .single();
+
+  if (profile?.email) {
+    await sendEmail(profile.email, "payment_failed", {});
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
 
-  // Update subscription status
   await supabaseAdmin
     .from("subscriptions")
     .update({ status: "cancelled" })
     .eq("stripe_subscription_id", subscription.id);
 
-  // Decrement active referrals count for the affiliate
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("referral_code_used")
+    .select("email, referral_code_used")
     .eq("stripe_customer_id", customerId)
     .single();
 
+  // Send cancellation email
+  if (profile?.email) {
+    await sendEmail(profile.email, "subscription_cancelled", {});
+  }
+
+  // Decrement active referrals count for the affiliate
   if (profile?.referral_code_used) {
     const { data: affiliateCode } = await supabaseAdmin
       .from("affiliate_codes")
@@ -300,9 +350,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       if (affiliate && affiliate.active_referrals_count > 0) {
         await supabaseAdmin
           .from("affiliates")
-          .update({
-            active_referrals_count: affiliate.active_referrals_count - 1,
-          })
+          .update({ active_referrals_count: affiliate.active_referrals_count - 1 })
           .eq("id", affiliate.id);
 
         console.log(`Decremented active referrals for affiliate: ${affiliateCode.user_id}`);
@@ -330,15 +378,12 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 }
 
 async function handleAccountUpdated(account: Stripe.Account) {
-  // Handle Stripe Connect account updates (onboarding completion)
   const connectAccountId = account.id;
   
-  // Check if this is an Express account with our metadata
   if (account.type !== "express") {
     return;
   }
 
-  // Check if account is fully verified and can receive payouts
   const isOnboardingComplete = 
     account.details_submitted === true &&
     account.payouts_enabled === true;
@@ -346,7 +391,6 @@ async function handleAccountUpdated(account: Stripe.Account) {
   console.log(`Connect account ${connectAccountId} updated - onboarding complete: ${isOnboardingComplete}`);
 
   if (isOnboardingComplete) {
-    // Update affiliate record
     const { error } = await supabaseAdmin
       .from("affiliates")
       .update({ stripe_onboarding_complete: true })
