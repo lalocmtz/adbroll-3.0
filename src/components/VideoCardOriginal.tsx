@@ -181,8 +181,8 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Video Container - 3:4 on mobile, 4:5 on desktop */}
-        <div className="relative aspect-[3/4] md:aspect-[4/5] bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-3">
+        {/* Video Container - Optimized for more visibility */}
+        <div className="relative aspect-[4/5] md:aspect-[4/5] bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-3">
           {/* Top Icons Bar */}
           <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-20 flex items-center justify-between pointer-events-none">
             {/* Ranking Badge - smaller on mobile */}
@@ -338,12 +338,12 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
 
           {/* CTA Button - Compact on mobile */}
           <Button 
-            className="w-full h-9 md:h-11 text-xs md:text-sm"
+            className="w-full h-8 md:h-11 text-[11px] md:text-sm"
             onClick={handleAnalyzeClick}
           >
-            <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4" />
+            <Sparkles className="h-3 w-3 md:h-4 md:w-4" />
             <span className="hidden sm:inline">Analizar guion y replicar</span>
-            <span className="sm:hidden">Analizar</span>
+            <span className="sm:hidden">Ver guion →</span>
           </Button>
         </div>
       </div>
