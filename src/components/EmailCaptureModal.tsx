@@ -133,6 +133,8 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
       }
 
       if (data?.url) {
+        // Store email for post-checkout account setup
+        localStorage.setItem("adbroll_checkout_email", email.trim());
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
