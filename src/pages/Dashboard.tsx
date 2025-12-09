@@ -12,7 +12,6 @@ import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lock, Sparkles } from "lucide-react";
-
 interface Video {
   id: string;
   video_url: string;
@@ -50,14 +49,19 @@ interface Video {
     producto_url: string | null;
   } | null;
 }
-
-const SORT_OPTIONS = [
-  { value: "revenue", label: "Más ingresos" },
-  { value: "sales", label: "Más ventas" },
-  { value: "views", label: "Más vistas" },
-  { value: "earnings", label: "Ganancias estimadas" },
-];
-
+const SORT_OPTIONS = [{
+  value: "revenue",
+  label: "Más ingresos"
+}, {
+  value: "sales",
+  label: "Más ventas"
+}, {
+  value: "views",
+  label: "Más vistas"
+}, {
+  value: "earnings",
+  label: "Ganancias estimadas"
+}];
 const Dashboard = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,14 +71,21 @@ const Dashboard = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { t } = useLanguage();
-  const { market } = useMarket();
-  const { isLoggedIn } = useBlurGateContext();
+  const {
+    toast
+  } = useToast();
+  const {
+    t
+  } = useLanguage();
+  const {
+    market
+  } = useMarket();
+  const {
+    isLoggedIn
+  } = useBlurGateContext();
   const [searchParams] = useSearchParams();
   const productFilter = searchParams.get("productName");
   const creatorFilter = searchParams.get("creator");
-  
   const ITEMS_PER_PAGE = 20;
   const MAX_VIDEOS = 100;
   const FREE_PREVIEW_LIMIT = 10; // Videos visitors can see without blur
@@ -82,40 +93,30 @@ const Dashboard = () => {
   useEffect(() => {
     fetchCategories();
   }, [market]);
-
   useEffect(() => {
     setCurrentPage(1);
   }, [productFilter, creatorFilter, sortOrder, selectedCategory, market]);
-
   useEffect(() => {
     fetchVideos(currentPage);
   }, [currentPage, sortOrder, selectedCategory, productFilter, creatorFilter, market]);
-
   const fetchCategories = async () => {
-    const { data } = await supabase
-      .from("products")
-      .select("categoria")
-      .eq("market", market)
-      .not("categoria", "is", null);
-    
+    const {
+      data
+    } = await supabase.from("products").select("categoria").eq("market", market).not("categoria", "is", null);
     if (data) {
       const uniqueCategories = [...new Set(data.map(p => p.categoria).filter(Boolean))] as string[];
       setCategories(uniqueCategories.sort());
     }
   };
-
   const fetchVideos = async (page: number) => {
     try {
       setLoading(true);
-      
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
       // Use JOIN to get product data
       // ONLY show videos that are COMPLETE (downloaded AND have product assigned)
-      let query = supabase
-        .from("videos")
-        .select(`
+      let query = supabase.from("videos").select(`
           *,
           product:products (
             id,
@@ -129,31 +130,40 @@ const Dashboard = () => {
             revenue_30d,
             producto_url
           )
-        `, { count: "exact" })
-        .not("video_mp4_url", "is", null)  // Must be downloaded
-        .not("product_id", "is", null);     // Must have product assigned
+        `, {
+        count: "exact"
+      }).not("video_mp4_url", "is", null) // Must be downloaded
+      .not("product_id", "is", null); // Must have product assigned
 
       // Apply sorting first (before category filter which happens client-side)
       if (sortOrder === "revenue") {
-        query = query.order("revenue_mxn", { ascending: false });
+        query = query.order("revenue_mxn", {
+          ascending: false
+        });
       } else if (sortOrder === "sales") {
-        query = query.order("sales", { ascending: false });
+        query = query.order("sales", {
+          ascending: false
+        });
       } else if (sortOrder === "views") {
-        query = query.order("views", { ascending: false });
+        query = query.order("views", {
+          ascending: false
+        });
       } else if (sortOrder === "earnings") {
-        query = query.order("revenue_mxn", { ascending: false });
+        query = query.order("revenue_mxn", {
+          ascending: false
+        });
       }
-
       if (productFilter) {
         query = query.ilike("product_name", `%${productFilter}%`);
       }
-
       if (creatorFilter) {
         query = query.or(`creator_name.ilike.%${creatorFilter}%,creator_handle.ilike.%${creatorFilter}%`);
       }
-
-      const { data, error, count } = await query;
-
+      const {
+        data,
+        error,
+        count
+      } = await query;
       if (error) throw error;
 
       // Filter by category client-side (since category is in the joined product)
@@ -164,39 +174,33 @@ const Dashboard = () => {
 
       // Apply pagination after filtering
       const paginatedData = filteredData.slice(from, to + 1);
-      
       setVideos(paginatedData);
       setTotalCount(Math.min(filteredData.length, MAX_VIDEOS));
     } catch (error: any) {
       toast({
         title: "Error al cargar videos",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
+    return <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">{t("loadingVideos")}</p>
-      </div>
-    );
+      </div>;
   }
-
   const totalPages = Math.min(Math.ceil(totalCount / ITEMS_PER_PAGE), 5);
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
   };
-
   const marketLabel = market === 'mx' ? 'México' : 'Estados Unidos';
-
-  return (
-    <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
+  return <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
       {/* Compact Mobile Hero Section */}
       <div className="mb-3 md:mb-4 py-1 md:py-0">
         <h1 className="text-lg font-bold text-foreground mb-0.5 font-sans md:hidden leading-tight">
@@ -209,79 +213,54 @@ const Dashboard = () => {
         {/* Desktop minimal header */}
         <div className="hidden md:flex md:items-center md:justify-between gap-2">
           <DataSubtitle />
-          {(productFilter || creatorFilter) && (
-            <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
+          {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
               ← Ver todos
-            </Button>
-          )}
+            </Button>}
         </div>
         
         {/* Mobile back button */}
-        {(productFilter || creatorFilter) && (
-          <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7 md:hidden">
+        {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7 md:hidden">
             ← Ver todos
-          </Button>
-        )}
+          </Button>}
       </div>
 
       {/* Filter Pills - Compact horizontal scrollable on mobile */}
       <div className="mb-4 md:mb-6">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
-          {!isLoggedIn ? (
-            <div 
-              className="flex gap-1.5 opacity-60 cursor-pointer flex-nowrap"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              {SORT_OPTIONS.map((option, i) => (
-                <span
-                  key={option.value}
-                  className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[11px] md:text-xs font-medium h-7 md:h-8 flex items-center gap-1 whitespace-nowrap ${
-                    i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
-                  }`}
-                >
+          {!isLoggedIn ? <div className="flex gap-1.5 opacity-60 cursor-pointer flex-nowrap" onClick={() => {
+          navigate("/unlock");
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        }}>
+              {SORT_OPTIONS.map((option, i) => <span key={option.value} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[11px] md:text-xs font-medium h-7 md:h-8 flex items-center gap-1 whitespace-nowrap ${i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"}`}>
                   <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   {option.label}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <FilterPills
-              options={SORT_OPTIONS}
-              value={sortOrder}
-              onChange={setSortOrder}
-            />
-          )}
+                </span>)}
+            </div> : <FilterPills options={SORT_OPTIONS} value={sortOrder} onChange={setSortOrder} />}
           
           {/* Category Dropdown - Locked for visitors */}
-          {!isLoggedIn ? (
-            <div 
-              className="h-7 md:h-8 px-2.5 md:px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1 text-[11px] md:text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap flex-shrink-0"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
+          {!isLoggedIn ? <div className="h-7 md:h-8 px-2.5 md:px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1 text-[11px] md:text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap flex-shrink-0" onClick={() => {
+          navigate("/unlock");
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        }}>
               <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
               Categorías
-            </div>
-          ) : (
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            </div> : <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger className="h-7 md:h-8 w-auto min-w-[100px] md:min-w-[120px] text-[11px] md:text-xs rounded-full border-border/50 bg-muted/60 flex-shrink-0">
                 <SelectValue placeholder="Categoría" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Categorías</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
+                {categories.map(cat => <SelectItem key={cat} value={cat}>
                     {cat}
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
-            </Select>
-          )}
+            </Select>}
         </div>
         
         <span className="text-[11px] text-muted-foreground block mt-1.5 md:hidden">
@@ -292,40 +271,27 @@ const Dashboard = () => {
         </span>
       </div>
 
-      {videos.length === 0 ? (
-        <Card className="p-12 text-center">
+      {videos.length === 0 ? <Card className="p-12 text-center">
           <p className="text-muted-foreground text-lg">
-            {productFilter
-              ? `No se encontraron videos relacionados con "${productFilter}"`
-              : creatorFilter
-              ? `No se encontraron videos de @${creatorFilter}`
-              : "No hay videos disponibles."}
+            {productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos disponibles."}
           </p>
-        </Card>
-      ) : (
-        <>
+        </Card> : <>
           {/* Video Grid - 2 columns on mobile */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-5">
             {videos.map((video, index) => {
-              const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
-              const isFreePreview = !isLoggedIn && globalIndex < FREE_PREVIEW_LIMIT;
-              const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
-              
-              if (isLocked) {
-                return (
-                  <div 
-                    key={video.id}
-                    className="relative cursor-pointer group"
-                    onClick={() => {
-                      navigate("/unlock");
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                  >
+          const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
+          const isFreePreview = !isLoggedIn && globalIndex < FREE_PREVIEW_LIMIT;
+          const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+          if (isLocked) {
+            return <div key={video.id} className="relative cursor-pointer group" onClick={() => {
+              navigate("/unlock");
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+            }}>
                     <div className="blur-[2px] pointer-events-none">
-                      <VideoCardOriginal 
-                        video={video}
-                        ranking={globalIndex + 1} 
-                      />
+                      <VideoCardOriginal video={video} ranking={globalIndex + 1} />
                     </div>
                     <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-xl">
                       <div className="text-center p-4">
@@ -333,64 +299,40 @@ const Dashboard = () => {
                         <p className="text-sm font-medium text-foreground">Desbloquear</p>
                       </div>
                     </div>
-                  </div>
-                );
-              }
-              
-              return (
-                <VideoCardOriginal 
-                  key={video.id} 
-                  video={video}
-                  ranking={globalIndex + 1}
-                  isFreePreview={isFreePreview}
-                />
-              );
-            })}
+                  </div>;
+          }
+          return <VideoCardOriginal key={video.id} video={video} ranking={globalIndex + 1} isFreePreview={isFreePreview} />;
+        })}
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-6 mb-16 md:mb-0">
-              {!isLoggedIn ? (
-                <div 
-                  className="flex items-center justify-center gap-2 opacity-60 cursor-pointer"
-                  onClick={() => {
-                    navigate("/unlock");
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                >
+          {totalPages > 1 && <div className="mt-6 mb-16 md:mb-0">
+              {!isLoggedIn ? <div className="flex items-center justify-center gap-2 opacity-60 cursor-pointer" onClick={() => {
+          navigate("/unlock");
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        }}>
                   <Lock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Ver más videos</span>
-                </div>
-              ) : (
-                <CompactPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              )}
-            </div>
-          )}
-        </>
-      )}
+                </div> : <CompactPagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />}
+            </div>}
+        </>}
 
       {/* Sticky CTA for visitors - Mobile only */}
-      {!isLoggedIn && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
-          <Button 
-            className="w-full h-12 text-sm font-semibold shadow-lg"
-            onClick={() => {
-              navigate("/unlock");
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
+      {!isLoggedIn && <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
+          <Button className="w-full h-12 text-sm font-semibold shadow-lg" onClick={() => {
+        navigate("/unlock");
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }}>
             <Sparkles className="h-4 w-4 mr-2" />
-            Desbloquear acceso completo — $29/mes
+            Desbloquear acceso completo 
           </Button>
-        </div>
-      )}
-    </div>
-  );
+        </div>}
+    </div>;
 };
-
 export default Dashboard;
