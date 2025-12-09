@@ -111,10 +111,26 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-border mt-8 pt-6 text-center">
+        <div className="border-t border-border mt-8 pt-6 text-center space-y-4">
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Adbroll. {t("allRightsReserved")}.
           </p>
+          
+          {/* Company Legal Information */}
+          <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border/50">
+            <p>
+              Adbroll es un producto operado por <strong>Ecom Genius LLC</strong>, una compañía registrada en el estado de Delaware, Estados Unidos.
+            </p>
+            <p>
+              <strong>Dirección legal:</strong> 16192 Coastal Highway, Lewes, Delaware 19958, United States.
+            </p>
+            <p>
+              <strong>Correo de soporte:</strong> contacto@adbroll.com &nbsp;|&nbsp; <strong>Horario de soporte:</strong> Lunes a viernes, 9:00 am – 6:00 pm CST.
+            </p>
+            <p>
+              Todos los cargos aparecerán en tu estado de cuenta como: <strong>ADBROLL.COM</strong>.
+            </p>
+          </div>
         </div>
       </div>
     </footer>
