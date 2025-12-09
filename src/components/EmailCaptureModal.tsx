@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,37 +164,66 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-background border-border text-foreground p-0 overflow-hidden">
-        {/* Premium Header */}
-        <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 pb-4">
-          <DialogHeader className="space-y-3">
-            <div className="flex items-center justify-center">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg">
-                <Sparkles className="h-7 w-7 text-white" />
-              </div>
-            </div>
-            <DialogTitle className="text-center text-xl font-bold text-foreground leading-tight">
-              🔓 Desbloquea TODO el poder de AdBroll
-            </DialogTitle>
-            <p className="text-center text-sm text-muted-foreground">
-              Únete a +1,000 creadores que ya ganan con TikTok Shop
-            </p>
-          </DialogHeader>
-        </div>
+        <AnimatePresence>
+          {/* Premium Header */}
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 pb-4"
+          >
+            <DialogHeader className="space-y-3">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.1, type: "spring", stiffness: 200 }}
+                className="flex items-center justify-center"
+              >
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg">
+                  <Sparkles className="h-7 w-7 text-white" />
+                </div>
+              </motion.div>
+              <DialogTitle className="text-center text-xl font-bold text-foreground leading-tight">
+                🔓 Desbloquea TODO el poder de AdBroll
+              </DialogTitle>
+              <p className="text-center text-sm text-muted-foreground">
+                Únete a +1,000 creadores que ya ganan con TikTok Shop
+              </p>
+            </DialogHeader>
+          </motion.div>
 
-        {/* Benefits List */}
-        <div className="px-6 py-4 space-y-2.5 bg-muted/30">
-          {benefits.map((benefit, index) => (
-            <div key={index} className="flex items-center gap-3">
-              <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                <Check className="h-3.5 w-3.5 text-green-600" />
-              </div>
-              <span className="text-sm text-foreground">{benefit.text}</span>
-            </div>
-          ))}
-        </div>
+          {/* Benefits List */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="px-6 py-4 space-y-2.5 bg-muted/30"
+          >
+            {benefits.map((benefit, index) => (
+              <motion.div 
+                key={index} 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 + index * 0.08 }}
+                className="flex items-center gap-3"
+              >
+                <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <Check className="h-3.5 w-3.5 text-green-600" />
+                </div>
+                <span className="text-sm text-foreground">{benefit.text}</span>
+              </motion.div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 pb-6 pt-4 space-y-4">
+        <motion.form 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+          onSubmit={handleSubmit} 
+          className="px-6 pb-6 pt-4 space-y-4"
+        >
           {/* Email field */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-foreground text-sm font-medium">
@@ -293,7 +323,12 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
           </p>
           
           {/* Policy Links */}
-          <p className="text-[11px] text-muted-foreground text-center">
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="text-[11px] text-muted-foreground text-center"
+          >
             Al continuar aceptas{" "}
             <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
               Términos
@@ -302,8 +337,8 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
             <a href="/refund-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
               Reembolsos
             </a>
-          </p>
-        </form>
+          </motion.p>
+        </motion.form>
       </DialogContent>
     </Dialog>
   );

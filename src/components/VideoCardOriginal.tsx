@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Heart, Sparkles, DollarSign, ShoppingCart, Eye, Play, ExternalLink, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -176,8 +177,12 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
 
   return (
     <>
-      <div 
-        className="bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-[#E2E8F0] dark:border-border p-2.5 md:p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 group"
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut", delay: ranking * 0.05 }}
+        whileHover={{ y: -4, transition: { duration: 0.2 } }}
+        className="bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-[#E2E8F0] dark:border-border p-2.5 md:p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-shadow duration-300 group"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
@@ -346,7 +351,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             <span className="sm:hidden">Ver guion →</span>
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {showModal && <VideoAnalysisModalOriginal isOpen={showModal} onClose={() => setShowModal(false)} video={video} />}
     </>
