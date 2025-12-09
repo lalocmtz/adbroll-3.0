@@ -39,11 +39,11 @@ const ActionButton = ({
   variant?: "primary" | "secondary";
 }) => (
   <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.96 }}
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
     onClick={onClick}
     className={cn(
-      "px-7 py-3.5 rounded-full font-bold transition-all duration-200 focus:outline-none",
+      "w-full sm:w-auto px-6 md:px-7 py-3 md:py-3.5 rounded-full font-semibold md:font-bold text-sm md:text-base transition-all duration-200 focus:outline-none",
       variant === "primary" 
         ? "bg-primary text-primary-foreground shadow-lg hover:bg-primary/90" 
         : "bg-white text-foreground border border-border hover:bg-muted"
@@ -75,23 +75,23 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
   return (
     <section
       className={cn(
-        "relative w-full min-h-screen overflow-hidden flex flex-col items-center justify-start text-center px-4 bg-background",
+        "relative w-full min-h-[85vh] md:min-h-screen overflow-hidden flex flex-col items-center justify-start text-center px-4 bg-background",
         className
       )}
     >
-      {/* Main content - centered */}
-      <div className="z-10 flex flex-col items-center max-w-[960px] mx-auto pt-24 md:pt-32">
-        {/* Tagline */}
+      {/* Main content - centered with reduced mobile padding */}
+      <div className="z-10 flex flex-col items-center max-w-[960px] mx-auto pt-20 md:pt-32 px-1">
+        {/* Tagline - smaller on mobile */}
         <motion.div
           initial="hidden"
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
-          className="mb-4 inline-block rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground"
+          className="mb-3 md:mb-4 inline-block rounded-full border border-border bg-card px-3 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium text-muted-foreground"
         >
           {tagline}
         </motion.div>
 
-        {/* Main Title */}
+        {/* Main Title - responsive sizing */}
         <motion.h1
           initial="hidden"
           animate="show"
@@ -103,7 +103,7 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
               },
             },
           }}
-          className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-tight"
+          className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-tight"
         >
           {typeof title === 'string' ? (
             title.split(" ").map((word, i) => (
@@ -122,24 +122,24 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
           )}
         </motion.h1>
 
-        {/* Description */}
+        {/* Description - responsive */}
         <motion.p
           initial="hidden"
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
           transition={{ delay: 0.35 }}
-          className="mt-5 md:mt-6 max-w-[720px] text-base md:text-lg lg:text-xl text-muted-foreground"
+          className="mt-4 md:mt-6 max-w-[720px] text-sm md:text-lg lg:text-xl text-muted-foreground px-2"
         >
           {description}
         </motion.p>
 
-        {/* Call to Action Buttons */}
+        {/* Call to Action Buttons - full width on mobile */}
         <motion.div
           initial="hidden"
           animate="show"
           variants={FADE_IN_ANIMATION_VARIANTS}
           transition={{ delay: 0.45 }}
-          className="flex flex-col sm:flex-row gap-3 mt-6 md:mt-8"
+          className="flex flex-col sm:flex-row gap-3 mt-5 md:mt-8 w-full sm:w-auto px-4 sm:px-0"
         >
           <ActionButton onClick={onCtaClick} variant="primary">
             {ctaText}
@@ -152,11 +152,11 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
         </motion.div>
       </div>
 
-      {/* Animated Image Marquee - Tightly packed cards with infinite scroll */}
+      {/* Animated Image Marquee - reduced height on mobile */}
       <div 
         className="absolute bottom-0 left-0 right-0 flex items-end justify-center overflow-hidden"
         style={{
-          height: '58vh',
+          height: 'clamp(40vh, 45vh, 58vh)',
           maskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
           WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)',
         }}
@@ -181,8 +181,8 @@ export const AnimatedMarqueeHero: React.FC<AnimatedMarqueeHeroProps> = ({
               key={index}
               className="relative flex-shrink-0 transition-transform duration-300 hover:scale-[1.02] hover:-translate-y-2"
               style={{
-                width: 'clamp(260px, 20vw, 340px)',
-                height: 'clamp(400px, 50vh, 580px)',
+                width: 'clamp(140px, 18vw, 340px)',
+                height: 'clamp(220px, 40vh, 580px)',
                 transform: `rotate(${(index % 2 === 0 ? -1 : 1.5)}deg)`,
               }}
             >

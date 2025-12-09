@@ -194,14 +194,14 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="pt-4 pb-6 px-4 md:px-6">
-      {/* Mobile Hero Section */}
-      <div className="mb-6 md:mb-4 py-4 md:py-0">
-        <h1 className="text-2xl font-semibold text-foreground mb-2 font-sans md:hidden">
-          🔥 Los videos que más están vendiendo hoy
+    <div className="pt-2 pb-6 px-3 md:px-6">
+      {/* Compact Mobile Hero Section */}
+      <div className="mb-4 md:mb-4 py-2 md:py-0">
+        <h1 className="text-xl font-semibold text-foreground mb-1 font-sans md:hidden leading-tight">
+          🔥 Videos que más venden hoy
         </h1>
-        <p className="text-base text-muted-foreground md:hidden mb-4">
-          Descubre guiones y productos que están generando ingresos reales en TikTok Shop.
+        <p className="text-sm text-muted-foreground md:hidden mb-3">
+          Guiones y productos con ingresos reales en TikTok Shop.
         </p>
         
         {/* Desktop minimal header */}
@@ -222,9 +222,9 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Filter Pills - Horizontal scrollable on mobile */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible">
+      {/* Filter Pills - Compact horizontal scrollable on mobile */}
+      <div className="mb-4 md:mb-6">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
           {!isLoggedIn ? (
             <div 
               className="flex gap-1.5 opacity-60 cursor-pointer flex-nowrap"
@@ -236,11 +236,11 @@ const Dashboard = () => {
               {SORT_OPTIONS.map((option, i) => (
                 <span
                   key={option.value}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 whitespace-nowrap ${
+                  className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[11px] md:text-xs font-medium h-7 md:h-8 flex items-center gap-1 whitespace-nowrap ${
                     i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
                   }`}
                 >
-                  <Lock className="h-3 w-3" />
+                  <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   {option.label}
                 </span>
               ))}
@@ -256,18 +256,18 @@ const Dashboard = () => {
           {/* Category Dropdown - Locked for visitors */}
           {!isLoggedIn ? (
             <div 
-              className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap flex-shrink-0"
+              className="h-7 md:h-8 px-2.5 md:px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1 text-[11px] md:text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap flex-shrink-0"
               onClick={() => {
                 navigate("/unlock");
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             >
-              <Lock className="h-3 w-3" />
+              <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
               Categorías
             </div>
           ) : (
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="h-8 w-auto min-w-[120px] text-xs rounded-full border-border/50 bg-muted/60 flex-shrink-0">
+              <SelectTrigger className="h-7 md:h-8 w-auto min-w-[100px] md:min-w-[120px] text-[11px] md:text-xs rounded-full border-border/50 bg-muted/60 flex-shrink-0">
                 <SelectValue placeholder="Categoría" />
               </SelectTrigger>
               <SelectContent>
@@ -282,8 +282,8 @@ const Dashboard = () => {
           )}
         </div>
         
-        <span className="text-xs text-muted-foreground block mt-2 md:hidden">
-          {totalCount} videos disponibles
+        <span className="text-[11px] text-muted-foreground block mt-1.5 md:hidden">
+          {totalCount} videos
         </span>
         <span className="text-xs text-muted-foreground hidden md:block mt-2">
           {totalCount} videos
@@ -302,8 +302,8 @@ const Dashboard = () => {
         </Card>
       ) : (
         <>
-          {/* Video Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
+          {/* Video Grid - 2 columns on mobile */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-5">
             {videos.map((video, index) => {
               const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
               const isFreePreview = !isLoggedIn && globalIndex < FREE_PREVIEW_LIMIT;
