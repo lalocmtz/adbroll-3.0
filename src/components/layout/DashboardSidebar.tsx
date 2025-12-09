@@ -294,9 +294,9 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             </button>
           )}
 
-          {/* For visitors: Show unlock + login buttons */}
+          {/* For visitors: Show unlock + login buttons - HIDDEN on mobile (sticky CTA handles it) */}
           {!isLoggedIn && (
-            <div className="space-y-2">
+            <div className="hidden lg:flex lg:flex-col space-y-2">
               <Button
                 className="w-full bg-primary hover:bg-primary-hover"
                 onClick={() => navigate("/unlock")}
