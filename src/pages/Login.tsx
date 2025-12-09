@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { loginSchema } from "@/lib/validations";
+import logoDark from "@/assets/logo-dark.png";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -89,7 +90,7 @@ const Login = () => {
         <CardHeader>
           <div className="text-center mb-4">
             <img 
-              src="/src/assets/logo-dark.png"
+              src={logoDark}
               alt="adbroll"
               className="h-16 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/")}

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Mail } from "lucide-react";
+import logoDark from "@/assets/logo-dark.png";
 
 const Footer = () => {
   const { t } = useLanguage();
@@ -11,9 +12,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              adbroll
-            </h2>
+            <img src={logoDark} alt="Adbroll" className="h-8" />
             <p className="text-sm text-muted-foreground">
               Descubre qué videos están vendiendo HOY en TikTok Shop México.
             </p>
