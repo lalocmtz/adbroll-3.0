@@ -89,18 +89,12 @@ const Register = () => {
       toast({
         title: "¡Cuenta creada!",
         description: referralValid
-          ? "Descuento de 50% aplicado al primer mes 🎉"
-          : "Redirigiendo a los planes...",
+          ? "Descuento de 50% disponible al suscribirte 🎉"
+          : "¡Bienvenido! Explora las herramientas.",
       });
 
-      // Redirect to pricing page with referral code if valid
-      const redirect = searchParams.get("redirect");
-      if (redirect) {
-        setTimeout(() => navigate(redirect), 1000);
-      } else {
-        const refParam = referralCode && referralValid ? `?ref=${referralCode}` : "";
-        setTimeout(() => navigate(`/pricing${refParam}`), 1000);
-      }
+      // Always redirect to /app - the paywall system will incentivize subscription
+      setTimeout(() => navigate("/app"), 1000);
     } catch (error: any) {
       let message = error.message;
       if (error.message?.includes("already registered")) {
