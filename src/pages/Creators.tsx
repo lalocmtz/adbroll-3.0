@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Flame, Video, ShoppingCart, Film, Heart, Play, Lock } from "lucide-react";
+import { Users, DollarSign, Eye, TrendingUp, ExternalLink, Flame, Video, ShoppingCart, Film, Heart, Play, Lock, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { FilterPills, DataSubtitle } from "@/components/FilterPills";
+import { FilterPills } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { openTikTokLink } from "@/lib/tiktokDeepLink";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface Creator {
   id: string;
@@ -226,41 +228,70 @@ const Creators = () => {
     );
   }
 
-  return (
-    <div className="pt-5 pb-6 px-4 md:px-6">
-      {/* Minimal header */}
-      <DataSubtitle />
+  const marketLabel = 'México';
+  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: es });
 
-      {/* Filter Pills - Locked for visitors */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        {!isLoggedIn ? (
-          <div 
-            className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
-            onClick={() => {
-              navigate("/unlock");
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            {SORT_OPTIONS.map((option, i) => (
-              <span
-                key={option.value}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 ${
-                  i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
-                }`}
-              >
-                <Lock className="h-3 w-3" />
-                {option.label}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <FilterPills
-            options={SORT_OPTIONS}
-            value={sortBy}
-            onChange={(v) => setSortBy(v as SortOption)}
-          />
-        )}
-        <span className="text-xs text-muted-foreground ml-auto">
+  return (
+    <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
+      {/* Mobile Hero Section - Dynamic Date */}
+      <div className="mb-3 md:mb-4 py-1 md:py-0">
+        <div className="md:hidden">
+          <h1 className="text-base font-bold text-foreground leading-tight">
+            ⭐ Creadores que más venden HOY
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {todayFormatted} · TikTok Shop {marketLabel}
+          </p>
+        </div>
+        
+        {/* Desktop minimal header */}
+        <div className="hidden md:block">
+          <h1 className="text-lg font-bold text-foreground leading-tight">
+            ⭐ Creadores que más venden HOY, {todayFormatted}
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            TikTok Shop {marketLabel} · Descubre quiénes están dominando
+          </p>
+        </div>
+      </div>
+
+      {/* Filter Pills - Horizontal Scroll on Mobile */}
+      <div className="mb-4 md:mb-6">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
+          {!isLoggedIn ? (
+            <div 
+              className="flex gap-1.5 flex-nowrap"
+              onClick={() => {
+                navigate("/unlock");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              {SORT_OPTIONS.map((option, i) => (
+                <span
+                  key={option.value}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 whitespace-nowrap ${
+                    i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
+                  }`}
+                >
+                  <Lock className="h-3 w-3" />
+                  {option.label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <FilterPills
+              options={SORT_OPTIONS}
+              value={sortBy}
+              onChange={(v) => setSortBy(v as SortOption)}
+            />
+          )}
+        </div>
+        
+        {/* Count below filters */}
+        <span className="text-[11px] text-muted-foreground block mt-1.5 md:hidden">
+          {sortedCreators.length} creadores
+        </span>
+        <span className="text-xs text-muted-foreground hidden md:block mt-2">
           {sortedCreators.length} creadores
         </span>
       </div>
@@ -274,7 +305,7 @@ const Creators = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-5">
             {paginatedCreators.map((creator, pageIndex) => {
               const tiktokUrl = getTikTokUrl(creator);
               const globalIndex = startIndex + pageIndex;
@@ -525,6 +556,22 @@ const Creators = () => {
             </div>
           )}
         </>
+      )}
+      
+      {/* Sticky CTA for visitors - Mobile only */}
+      {!isLoggedIn && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
+          <Button 
+            className="w-full h-12 text-sm font-semibold shadow-lg" 
+            onClick={() => {
+              navigate("/unlock");
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Desbloquear acceso completo 
+          </Button>
+        </div>
       )}
     </div>
   );

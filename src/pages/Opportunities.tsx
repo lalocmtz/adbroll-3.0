@@ -10,8 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
-import { FilterPills, DataSubtitle } from "@/components/FilterPills";
+import { FilterPills } from "@/components/FilterPills";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
+import { format } from "date-fns";
+import { es, enUS } from "date-fns/locale";
 
 interface OpportunityReason {
   commission_high: boolean;
@@ -176,69 +178,99 @@ const Opportunities = () => {
     );
   }
 
+  const marketLabel = language === 'es' ? 'México' : 'Mexico';
+  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: language === 'es' ? es : enUS });
+
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="pt-5 pb-6 px-4 md:px-6">
-        {/* Minimal header */}
-        <DataSubtitle />
-
-        {/* Filter Pills - Locked for visitors */}
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          {!isLoggedIn ? (
-            <div 
-              className="flex flex-wrap gap-1.5 opacity-60 cursor-pointer"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              {sortOptions.map((option, i) => (
-                <span
-                  key={option.value}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 ${
-                    i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
-                  }`}
-                >
-                  <Lock className="h-3 w-3" />
-                  {option.label}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <FilterPills
-              options={sortOptions}
-              value={sortBy}
-              onChange={(v) => setSortBy(v as SortOption)}
-            />
-          )}
+      <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
+        {/* Mobile Hero Section - Dynamic Date */}
+        <div className="mb-3 md:mb-4 py-1 md:py-0">
+          <div className="md:hidden">
+            <h1 className="text-base font-bold text-foreground leading-tight">
+              💎 {language === 'es' ? 'Oportunidades detectadas HOY' : 'Opportunities detected TODAY'}
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {todayFormatted} · {language === 'es' ? 'IA de AdBroll' : 'AdBroll AI'}
+            </p>
+          </div>
           
-          {/* Category Dropdown - Locked for visitors */}
-          {!isLoggedIn ? (
-            <div 
-              className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              <Lock className="h-3 w-3" />
-              {language === "es" ? "Categorías" : "Categories"}
-            </div>
-          ) : (
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-auto h-8 text-xs px-3 rounded-full border-border/50 bg-muted/60">
-                <SelectValue placeholder={language === "es" ? "Categoría" : "Category"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{language === "es" ? "Todas las categorías" : "All categories"}</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          {/* Desktop minimal header */}
+          <div className="hidden md:block">
+            <h1 className="text-lg font-bold text-foreground leading-tight">
+              💎 {language === 'es' ? `Oportunidades detectadas HOY, ${todayFormatted}` : `Opportunities detected TODAY, ${todayFormatted}`}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {language === 'es' 
+                ? 'Productos con alta comisión, fuertes ventas y baja competencia'
+                : 'Products with high commission, strong sales, and low competition'}
+            </p>
+          </div>
+        </div>
 
-          <span className="text-xs text-muted-foreground ml-auto">
+        {/* Filter Pills - Horizontal Scroll on Mobile */}
+        <div className="mb-4 md:mb-6">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
+            {!isLoggedIn ? (
+              <div 
+                className="flex gap-1.5 flex-nowrap"
+                onClick={() => {
+                  navigate("/unlock");
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                {sortOptions.map((option, i) => (
+                  <span
+                    key={option.value}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 whitespace-nowrap ${
+                      i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
+                    }`}
+                  >
+                    <Lock className="h-3 w-3" />
+                    {option.label}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <FilterPills
+                options={sortOptions}
+                value={sortBy}
+                onChange={(v) => setSortBy(v as SortOption)}
+              />
+            )}
+            
+            {/* Category Dropdown - Locked for visitors */}
+            {!isLoggedIn ? (
+              <div 
+                className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap"
+                onClick={() => {
+                  navigate("/unlock");
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                <Lock className="h-3 w-3" />
+                {language === "es" ? "Categorías" : "Categories"}
+              </div>
+            ) : (
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-auto h-8 text-xs px-3 rounded-full border-border/50 bg-muted/60">
+                  <SelectValue placeholder={language === "es" ? "Categoría" : "Category"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{language === "es" ? "Todas las categorías" : "All categories"}</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          
+          {/* Count below filters */}
+          <span className="text-[11px] text-muted-foreground block mt-1.5 md:hidden">
+            {filteredOpportunities.length} {language === "es" ? "oportunidades" : "opportunities"}
+          </span>
+          <span className="text-xs text-muted-foreground hidden md:block mt-2">
             {filteredOpportunities.length} {language === "es" ? "oportunidades" : "opportunities"}
           </span>
         </div>
@@ -270,7 +302,7 @@ const Opportunities = () => {
             </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-6">
             {filteredOpportunities.map((product, index) => {
               const isLocked = !isLoggedIn && index >= FREE_PREVIEW_LIMIT;
               
@@ -345,6 +377,22 @@ const Opportunities = () => {
               />
               );
             })}
+          </div>
+        )}
+        
+        {/* Sticky CTA for visitors - Mobile only */}
+        {!isLoggedIn && (
+          <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
+            <Button 
+              className="w-full h-12 text-sm font-semibold shadow-lg" 
+              onClick={() => {
+                navigate("/unlock");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              {language === 'es' ? 'Desbloquear acceso completo' : 'Unlock full access'}
+            </Button>
           </div>
         )}
       </div>
