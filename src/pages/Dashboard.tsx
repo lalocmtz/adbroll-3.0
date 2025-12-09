@@ -207,7 +207,7 @@ const Dashboard = () => {
           🔥 Lo que vende HOY en TikTok Shop {marketLabel}
         </h1>
         <p className="text-xs text-muted-foreground md:hidden">
-          Descubre guiones y productos que generan $$$
+          Descubre guiones y productos que generan $
         </p>
         
         {/* Desktop minimal header */}
