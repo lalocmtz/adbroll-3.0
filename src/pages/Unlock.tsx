@@ -14,7 +14,6 @@ import { NativeVideoPlayer } from "@/components/NativeVideoPlayer";
 import PricingModal from "@/components/PricingModal";
 import { EmailCaptureModal } from "@/components/EmailCaptureModal";
 import { useState, useEffect } from "react";
-
 const testimonials = [{
   text: "Adbroll me hizo pasar de adivinar qué productos grabar a saber exactamente qué vende. Ahora mis videos generan ventas todos los días.",
   image: "https://randomuser.me/api/portraits/women/11.jpg",
@@ -61,7 +60,6 @@ const testimonials = [{
   name: "Cassandra Torres",
   role: "Creadora de TikTok Shop"
 }];
-
 import mockupDashboard from "@/assets/mockup-dashboard.png";
 import mockupScriptAnalysis from "@/assets/mockup-script-analysis.png";
 import mockupOpportunities from "@/assets/mockup-opportunities.png";
@@ -69,7 +67,6 @@ import logoDark from "@/assets/logo-dark.png";
 import step1Dashboard from "@/assets/step-1-dashboard.png";
 import step2Analysis from "@/assets/step-2-analysis.png";
 import step3Variants from "@/assets/step-3-variants.png";
-
 const Unlock = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -86,29 +83,21 @@ const Unlock = () => {
       localStorage.setItem("adbroll_ref_code", urlRefCode.toUpperCase());
     }
   }, [urlRefCode]);
-
   const handleUnlock = () => {
     setEmailModalOpen(true);
   };
-
   const handleLogin = () => {
     navigate("/login");
   };
-
   const handleClose = () => {
     navigate("/app");
   };
-
-  return (
-    <div className="min-h-screen landing-light text-foreground overflow-hidden relative">
+  return <div className="min-h-screen landing-light text-foreground overflow-hidden relative">
       {/* Fixed Header - Compact on mobile */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-3 md:px-4 py-2.5 md:py-4 flex items-center justify-between">
           {/* Close button - icon only on mobile */}
-          <button 
-            onClick={handleClose} 
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <button onClick={handleClose} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <X className="h-5 w-5" />
             <span className="text-sm font-medium hidden md:inline">Volver al feed</span>
           </button>
@@ -133,19 +122,13 @@ const Unlock = () => {
       </header>
 
       {/* Hero Section */}
-      <AnimatedMarqueeHero 
-        tagline="🔥 +10,000 creadores ya usan Adbroll" 
-        title={<>
+      <AnimatedMarqueeHero tagline="🔥 +10,000 creadores ya usan Adbroll" title={<>
           De creador improvisado a{" "}
           <TextShimmer duration={2.5} spread={3} className="text-gradient font-bold">
             vendedor estratégico
           </TextShimmer>{" "}
           en <TypingAnimation text="TikTok Shop" duration={120} className="whitespace-nowrap" />
-        </>} 
-        description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA." 
-        ctaText="Desbloquear Adbroll Pro" 
-        onCtaClick={handleUnlock} 
-      />
+        </>} description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA." ctaText="Desbloquear Adbroll Pro" onCtaClick={handleUnlock} />
 
       {/* How it Works - Reduced spacing on mobile */}
       <section id="how-it-works" className="py-10 md:py-24 landing-section-alt">
@@ -156,28 +139,22 @@ const Unlock = () => {
             </h2>
           </div>
           
-          <FeatureSteps 
-            features={[{
-              step: "1",
-              title: "Qué está funcionando hoy",
-              content: "Encuentra los videos con más ventas y sus productos vinculados.",
-              image: step1Dashboard
-            }, {
-              step: "2",
-              title: "Toma el guion viral y adáptalo",
-              content: "Nuestra IA te lo da listo para grabar y optimizar.",
-              image: step2Analysis
-            }, {
-              step: "3",
-              title: "Graba. Publica. Cobra.",
-              content: "Monetiza como creador sin tener que adivinar.",
-              image: step3Variants
-            }]} 
-            title="De grabar al azar → a ganar estratégicamente en 3 pasos" 
-            subtitle="Descubre qué está vendiendo hoy, replica con IA y cobra como creador desde el día uno." 
-            autoPlayInterval={4000} 
-            className="py-0" 
-          />
+          <FeatureSteps features={[{
+          step: "1",
+          title: "Qué está funcionando hoy",
+          content: "Encuentra los videos con más ventas y sus productos vinculados.",
+          image: step1Dashboard
+        }, {
+          step: "2",
+          title: "Toma el guion viral y adáptalo",
+          content: "Nuestra IA te lo da listo para grabar y optimizar.",
+          image: step2Analysis
+        }, {
+          step: "3",
+          title: "Graba. Publica. Cobra.",
+          content: "Monetiza como creador sin tener que adivinar.",
+          image: step3Variants
+        }]} title="De grabar al azar → a ganar estratégicamente en 3 pasos" subtitle="Descubre qué está vendiendo hoy, replica con IA y cobra como creador desde el día uno." autoPlayInterval={4000} className="py-0" />
 
           <div className="text-center mt-8">
             <Button size="lg" className="bg-primary hover:bg-primary-hover btn-glow" onClick={handleUnlock}>
@@ -206,14 +183,12 @@ const Unlock = () => {
                 </span>
               </div>
               <ul className="space-y-3 md:space-y-5 mt-3 md:mt-4">
-                {["Pierdes horas buscando ideas sin claridad", "Grabas videos que no conectan ni venden", "No sabes si lo que haces dará resultados", "Terminas frustrado, sin ventas y con dudas"].map((item, index) => (
-                  <li key={index} className="flex items-start gap-2 md:gap-3">
+                {["Pierdes horas buscando ideas sin claridad", "Grabas videos que no conectan ni venden", "No sabes si lo que haces dará resultados", "Terminas frustrado, sin ventas y con dudas"].map((item, index) => <li key={index} className="flex items-start gap-2 md:gap-3">
                     <span className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full bg-red-100 flex items-center justify-center">
                       <span className="text-red-500 text-xs md:text-sm">✗</span>
                     </span>
                     <span className="text-foreground/80 text-sm md:text-base">{item}</span>
-                  </li>
-                ))}
+                  </li>)}
               </ul>
             </div>
 
@@ -225,14 +200,12 @@ const Unlock = () => {
                 </span>
               </div>
               <ul className="space-y-3 md:space-y-5 mt-3 md:mt-4">
-                {["Sabes qué productos y guiones están generando ventas", "Solo grabas lo que ya está validado por datos", "Empiezas a ganar más rápido y sin adivinar", "Tienes claridad, motivación y resultados reales"].map((item, index) => (
-                  <li key={index} className="flex items-start gap-2 md:gap-3">
+                {["Sabes qué productos y guiones están generando ventas", "Solo grabas lo que ya está validado por datos", "Empiezas a ganar más rápido y sin adivinar", "Tienes claridad, motivación y resultados reales"].map((item, index) => <li key={index} className="flex items-start gap-2 md:gap-3">
                     <span className="flex-shrink-0 w-5 h-5 md:w-6 md:h-6 rounded-full bg-green-100 flex items-center justify-center">
                       <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
                     </span>
                     <span className="text-foreground/80 text-sm md:text-base">{item}</span>
-                  </li>
-                ))}
+                  </li>)}
               </ul>
             </div>
           </div>
@@ -312,13 +285,18 @@ const Unlock = () => {
       {/* Testimonials */}
       <section className="bg-background my-20 relative">
         <div className="container z-10 mx-auto px-4">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            whileInView={{ opacity: 1, y: 0 }} 
-            transition={{ duration: 0.8, delay: 0.1 }} 
-            viewport={{ once: true }} 
-            className="flex flex-col items-center justify-center max-w-[540px] mx-auto"
-          >
+          <motion.div initial={{
+          opacity: 0,
+          y: 20
+        }} whileInView={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          duration: 0.8,
+          delay: 0.1
+        }} viewport={{
+          once: true
+        }} className="flex flex-col items-center justify-center max-w-[540px] mx-auto">
             <Badge className="badge-landing-light mb-4">Testimonios reales</Badge>
             <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold tracking-tighter mt-5 text-center">
               Creadores que cambiaron su juego con Adbroll
@@ -364,26 +342,13 @@ const Unlock = () => {
               </div>
 
               <ul className="space-y-3 mb-8">
-                {[
-                  "Acceso a todos los videos y productos",
-                  "Análisis de guiones con IA",
-                  "Generador de variantes",
-                  "Detector de oportunidades",
-                  "Herramientas de creador",
-                  "Soporte prioritario"
-                ].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-3">
+                {["Acceso a todos los videos y productos", "Análisis de guiones con IA", "Generador de variantes", "Detector de oportunidades", "Herramientas de creador", "Soporte prioritario"].map((feature, i) => <li key={i} className="flex items-center gap-3">
                     <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
                     <span>{feature}</span>
-                  </li>
-                ))}
+                  </li>)}
               </ul>
 
-              <Button 
-                size="lg" 
-                className="w-full bg-primary hover:bg-primary-hover btn-glow"
-                onClick={handleUnlock}
-              >
+              <Button size="lg" className="w-full bg-primary hover:bg-primary-hover btn-glow" onClick={handleUnlock}>
                 Desbloquear Adbroll Pro
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -403,45 +368,37 @@ const Unlock = () => {
           </div>
 
           <Accordion type="single" collapsible className="space-y-4">
-            {[
-              { q: "¿Qué es Adbroll?", a: "Adbroll es una plataforma que te ayuda a encontrar productos virales y guiones que ya están vendiendo en TikTok Shop para que puedas replicarlos." },
-              { q: "¿De dónde salen los datos?", a: "Analizamos miles de videos de TikTok Shop diariamente usando IA para identificar los que más venden." },
-              { q: "¿Cada cuánto se actualizan?", a: "Los datos se actualizan diariamente para que siempre tengas información fresca." },
-              { q: "¿Puedo cancelar cuando quiera?", a: "Sí, puedes cancelar tu suscripción en cualquier momento desde tu panel de cuenta." },
-              { q: "¿Cómo se calculan los ingresos?", a: "Utilizamos datos públicos y estimaciones basadas en vistas, engagement y ventas reportadas." },
-            ].map((faq, i) => (
-              <AccordionItem key={i} value={`item-${i}`} className="border rounded-lg px-4">
+            {[{
+            q: "¿Qué es Adbroll?",
+            a: "Adbroll es una plataforma que te ayuda a encontrar productos virales y guiones que ya están vendiendo en TikTok Shop para que puedas replicarlos."
+          }, {
+            q: "¿De dónde salen los datos?",
+            a: "Analizamos miles de videos de TikTok Shop diariamente usando IA para identificar los que más venden."
+          }, {
+            q: "¿Cada cuánto se actualizan?",
+            a: "Los datos se actualizan diariamente para que siempre tengas información fresca."
+          }, {
+            q: "¿Puedo cancelar cuando quiera?",
+            a: "Sí, puedes cancelar tu suscripción en cualquier momento desde tu panel de cuenta."
+          }, {
+            q: "¿Cómo se calculan los ingresos?",
+            a: "Utilizamos datos públicos y estimaciones basadas en vistas, engagement y ventas reportadas."
+          }].map((faq, i) => <AccordionItem key={i} value={`item-${i}`} className="border rounded-lg px-4">
                 <AccordionTrigger className="text-left font-medium">{faq.q}</AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">{faq.a}</AccordionContent>
-              </AccordionItem>
-            ))}
+              </AccordionItem>)}
           </Accordion>
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 md:py-32 landing-section-alt">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-5xl font-bold mb-6">
-            ¿Listo para empezar a ganar?
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Únete a miles de creadores que ya están monetizando con datos, no con suerte.
-          </p>
-          <Button size="lg" className="bg-primary hover:bg-primary-hover btn-glow" onClick={handleUnlock}>
-            Desbloquear Adbroll Pro
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </div>
-      </section>
+      
 
       {/* Pricing Modal */}
       <PricingModal open={pricingModalOpen} onOpenChange={setPricingModalOpen} />
       
       {/* Email Capture Modal */}
       <EmailCaptureModal open={emailModalOpen} onOpenChange={setEmailModalOpen} referralCode={refCode} />
-    </div>
-  );
+    </div>;
 };
-
 export default Unlock;
