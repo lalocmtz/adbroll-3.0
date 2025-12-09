@@ -501,50 +501,47 @@ const VideoAnalysisModalOriginal = ({
               </p>
             </div>
 
-            {/* SIGUIENTE PASO - Video + Instructions side by side */}
+            {/* SIGUIENTE PASO - Video centered + Instructions below */}
             <div className="p-3 border-b border-border bg-gradient-to-b from-amber-50 to-transparent dark:from-amber-900/10">
               {/* Red "Next Step" badge */}
-              <div className="text-[10px] uppercase tracking-wider text-red-500 font-bold mb-2 flex items-center gap-1.5">
+              <div className="text-[10px] uppercase tracking-wider text-red-500 font-bold mb-3 flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
                 Siguiente paso
               </div>
               
-              {/* Horizontal layout: Video + Instructions */}
-              <div className="flex gap-3 items-start">
-                {/* Video thumbnail/player - compact */}
-                {(video.video_mp4_url || video.thumbnail_url) && (
-                  <div className="w-20 flex-shrink-0 rounded-xl overflow-hidden bg-black aspect-[9/16]">
-                    {video.video_mp4_url ? (
-                      <video 
-                        src={video.video_mp4_url}
-                        controls
-                        playsInline
-                        className="w-full h-full object-contain"
-                        poster={video.thumbnail_url || undefined}
-                      />
-                    ) : (
-                      <button 
-                        onClick={() => setShowVideoExpanded(true)}
-                        className="w-full h-full relative group"
-                      >
-                        <img src={video.thumbnail_url || ''} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <Play className="h-5 w-5 text-white" fill="white" />
-                        </div>
-                      </button>
-                    )}
-                  </div>
-                )}
-                
-                {/* Instructions text - right side */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground leading-snug">
-                    Grábate con la <span className="font-semibold">misma energía</span> que usó el creador.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                    Usa el mismo guion o alguna de nuestras variantes optimizadas con IA. Aquí te dejamos el análisis:
-                  </p>
+              {/* Video player - Centered and larger */}
+              {(video.video_mp4_url || video.thumbnail_url) && (
+                <div className="w-full max-w-[160px] mx-auto rounded-xl overflow-hidden bg-black aspect-[9/16] mb-3">
+                  {video.video_mp4_url ? (
+                    <video 
+                      src={video.video_mp4_url}
+                      controls
+                      playsInline
+                      className="w-full h-full object-contain"
+                      poster={video.thumbnail_url || undefined}
+                    />
+                  ) : (
+                    <button 
+                      onClick={() => setShowVideoExpanded(true)}
+                      className="w-full h-full relative group"
+                    >
+                      <img src={video.thumbnail_url || ''} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <Play className="h-6 w-6 text-white" fill="white" />
+                      </div>
+                    </button>
+                  )}
                 </div>
+              )}
+              
+              {/* Instructions text - Below video, centered */}
+              <div className="text-center">
+                <p className="text-sm text-foreground leading-snug">
+                  Grábate con la <span className="font-semibold">misma energía</span> que usó el creador.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  Usa el mismo guion o alguna de nuestras variantes optimizadas con IA.
+                </p>
               </div>
             </div>
 
@@ -801,10 +798,39 @@ const VideoAnalysisModalOriginal = ({
                   <ExternalLink className="h-3.5 w-3.5" />
                   Ver en TikTok Shop
                 </Button>}
+
+              {/* Emotional Section - Desktop */}
+              <div className="card-premium p-3 bg-gradient-to-b from-primary/5 to-transparent">
+                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2 flex items-center gap-1.5">
+                  <Sparkles className="h-3 w-3" />
+                  Guion extraído con IA
+                </div>
+                <p className="text-sm font-bold text-foreground leading-snug">
+                  Este video generó {formatCurrency(video.revenue_mxn)} en ventas.
+                </p>
+                <p className="text-sm text-foreground mt-1">
+                  Comisión estimada del creador:{' '}
+                  <span className="text-base font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
+                </p>
+              </div>
+
+              {/* Next Step Section - Desktop */}
+              <div className="card-premium p-3 bg-gradient-to-b from-amber-50/50 to-transparent dark:from-amber-900/10">
+                <div className="text-[10px] uppercase tracking-wider text-red-500 font-bold mb-2 flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                  Siguiente paso
+                </div>
+                <p className="text-sm text-foreground leading-snug">
+                  Grábate con la <span className="font-semibold">misma energía</span> que usó el creador.
+                </p>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                  Usa el mismo guion o alguna de nuestras variantes optimizadas con IA.
+                </p>
+              </div>
             </div>
 
-            {/* Right: Analysis Content */}
-            <div className="flex-1 flex flex-col overflow-hidden bg-background">
+            {/* Right: Analysis Content - Hidden on mobile to avoid duplication */}
+            <div className="hidden md:flex flex-1 flex-col overflow-hidden bg-background">
               {/* Desktop Header - Hidden on mobile */}
               <div className="hidden md:flex p-5 border-b border-border items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
