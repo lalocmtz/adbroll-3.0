@@ -482,24 +482,26 @@ const VideoAnalysisModalOriginal = ({
                 </div>
               </div>}
             
-            {/* Emotional Headline Section - Script Ready */}
-            <div className="p-3 border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
-              <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2 flex items-center gap-1.5">
-                <Sparkles className="h-3 w-3" />
-                Guion extraído con IA
+            {/* Emotional Headline Section - Script Ready - Only show if revenue data exists */}
+            {video.revenue_mxn > 0 && (
+              <div className="p-3 border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
+                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2 flex items-center gap-1.5">
+                  <Sparkles className="h-3 w-3" />
+                  Guion extraído con IA
+                </div>
+                
+                {/* Sales highlight - all bold black */}
+                <p className="text-sm font-bold text-foreground leading-snug">
+                  Este video generó {formatCurrency(video.revenue_mxn)} en ventas.
+                </p>
+                
+                {/* Creator earnings - GREEN emphasis */}
+                <p className="text-sm text-foreground mt-1">
+                  Y le hizo ganar al creador una comisión aproximada de{' '}
+                  <span className="text-lg font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
+                </p>
               </div>
-              
-              {/* Sales highlight - all bold black */}
-              <p className="text-sm font-bold text-foreground leading-snug">
-                Este video generó {formatCurrency(video.revenue_mxn)} en ventas.
-              </p>
-              
-              {/* Creator earnings - GREEN emphasis */}
-              <p className="text-sm text-foreground mt-1">
-                Y le hizo ganar al creador una comisión aproximada de{' '}
-                <span className="text-lg font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
-              </p>
-            </div>
+            )}
 
             {/* SIGUIENTE PASO - Video centered + Instructions below */}
             <div className="p-3 border-b border-border bg-gradient-to-b from-amber-50 to-transparent dark:from-amber-900/10">
@@ -566,7 +568,7 @@ const VideoAnalysisModalOriginal = ({
                 </TabsList>
               </div>
 
-              <div className="p-3 pb-24">
+              <div className="p-3 pb-28 flex-1">
                 {isProcessing ? (
                   <div className="flex flex-col items-center justify-center gap-4 py-12">
                     <div className="relative">
@@ -579,8 +581,8 @@ const VideoAnalysisModalOriginal = ({
                 ) : (
                   <>
                     {/* Script Tab */}
-                    <TabsContent value="script" className="mt-0 animate-fade-in">
-                      <div className="card-premium p-4">
+                    <TabsContent value="script" className="mt-0 animate-fade-in min-h-0">
+                      <div className="card-premium p-4 flex flex-col">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <div className="h-7 w-7 rounded-lg bg-muted flex items-center justify-center">
@@ -591,8 +593,8 @@ const VideoAnalysisModalOriginal = ({
                           {transcript && <CopyButton text={transcript} field="transcript" variant="outline" />}
                         </div>
                         {transcript ? (
-                          <div className="bg-muted/30 rounded-xl p-3 border border-border/50">
-                            <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed font-mono">
+                          <div className="bg-muted/30 rounded-xl p-3 border border-border/50 min-h-0 flex-shrink-0">
+                            <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed font-mono break-words">
                               {transcript}
                             </p>
                           </div>
@@ -1096,14 +1098,17 @@ const VideoAnalysisModalOriginal = ({
             </div>
           </div>
 
-          {/* Mobile Sticky CTA for non-paid users */}
-          {!hasPaid && <div className="md:hidden sticky bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-lg border-t border-border safe-area-bottom">
-              <Button className="w-full h-11 text-sm font-semibold rounded-xl shadow-lg" onClick={() => navigate('/unlock')}>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Desbloquear acceso completo 
-              </Button>
-            </div>}
         </div>
+
+        {/* Mobile Fixed CTA for non-paid users - Always visible */}
+        {!hasPaid && (
+          <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-lg border-t border-border safe-area-bottom z-50">
+            <Button className="w-full h-11 text-sm font-semibold rounded-xl shadow-lg" onClick={() => navigate('/unlock')}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Desbloquear acceso completo 
+            </Button>
+          </div>
+        )}
 
         {/* Expanded Video Modal */}
         {showVideoExpanded && video.video_mp4_url && <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center md:hidden" onClick={() => setShowVideoExpanded(false)}>
