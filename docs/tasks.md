@@ -184,6 +184,18 @@
 - [x] Dashboard - Padding bottom for sticky CTA visibility
 - [x] VideoCardOriginal - 4:5 aspect ratio on mobile
 - [x] VideoCardOriginal - Compact CTA button "Ver guion →"
+- [x] VideoCardOriginal - Product info visible on mobile with commission
+- [x] Framer Motion animations on cards (staggered entrance, hover lift)
+- [x] EmailCaptureModal - Premium animations (sparkle, benefits stagger)
+- [x] PaywallModal - Animated entrance for features list
+
+### FASE 5: Visitor Modal UX
+- [x] VideoAnalysisModal - Header with logo + "Iniciar sesión" for visitors (no unlock button)
+- [x] VideoAnalysisModal - Flow: Product → Video → "🧠 IA analizó" headline → Transcript
+- [x] VideoAnalysisModal - Transcript non-selectable for non-paid users (user-select: none)
+- [x] VideoAnalysisModal - No copy button for non-paid users
+- [x] VideoAnalysisModal - Sticky CTA at bottom for visitors
+- [x] DashboardSidebar - Only "Iniciar sesión" button for visitors (removed unlock)
 
 ---
 
