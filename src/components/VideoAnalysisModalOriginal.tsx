@@ -719,8 +719,8 @@ const VideoAnalysisModalOriginal = ({
             </Tabs>
           </motion.div>
 
-          {/* Desktop Layout: Side by side */}
-          <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+          {/* Desktop Layout: Side by side - Hidden on mobile */}
+          <div className="hidden md:flex flex-col md:flex-row flex-1 overflow-hidden">
             
             {/* Left: Video Player - Hidden on mobile */}
             <div className="hidden md:flex w-[380px] bg-muted/20 flex-shrink-0 flex-col border-r border-border p-4 gap-3">
