@@ -53,7 +53,7 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
           <img src={logoDark} alt="adbroll" className="h-10" />
         </div>
 
-        {showMenu && (
+        {showMenu && userEmail && (
           <div className="flex items-center gap-3">
             <LanguageSelector />
             <DropdownMenu>
@@ -103,6 +103,17 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
             </DropdownMenuContent>
           </DropdownMenu>
           </div>
+        )}
+
+        {showMenu && !userEmail && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => navigate("/login")}
+            className="text-sm font-medium"
+          >
+            Iniciar sesión
+          </Button>
         )}
 
         {!showMenu && (
