@@ -16,7 +16,6 @@ interface Product {
   total_ingresos_mxn: number | null;
   total_ventas: number | null;
   creators_count: number | null;
-  // Pre-computed for matching
   normalizedName?: string;
   keywords?: string[];
 }
@@ -28,9 +27,10 @@ interface Video {
   product_name: string | null;
   product_id: string | null;
   category: string | null;
+  transcript: string | null;
 }
 
-// Simple text normalization (CPU-light)
+// Simple text normalization
 function normalizeText(text: string | null): string {
   if (!text) return '';
   return text
@@ -47,7 +47,7 @@ function extractKeywords(text: string): string[] {
   return text.split(' ').filter(w => w.length > 3);
 }
 
-// FAST: Simple word overlap score (no Levenshtein)
+// FAST: Simple word overlap score
 function quickWordOverlap(words1: string[], words2: string[]): number {
   if (words1.length === 0 || words2.length === 0) return 0;
   const set2 = new Set(words2);
@@ -58,22 +58,17 @@ function quickWordOverlap(words1: string[], words2: string[]): number {
   return matches / Math.max(words1.length, words2.length);
 }
 
-// FAST: Check if any keywords match exactly
-function hasKeywordMatch(videoKeywords: string[], productKeywords: string[]): boolean {
-  const productSet = new Set(productKeywords);
-  return videoKeywords.some(k => productSet.has(k));
-}
-
 // FAST: Check substring containment
 function hasSubstringMatch(videoText: string, productName: string): boolean {
   return videoText.includes(productName) || productName.includes(videoText);
 }
 
-// Calculate match score using FAST operations only
+// Calculate match score using FAST operations
 function calculateFastScore(
   videoTitle: string, 
   videoTitleKeywords: string[],
   videoProductName: string,
+  videoTranscript: string,
   product: Product
 ): number {
   const productName = product.normalizedName || '';
@@ -81,7 +76,7 @@ function calculateFastScore(
   
   if (!productName) return 0;
   
-  // Check 1: Exact product name match (highest priority)
+  // Check 1: Exact product name match
   if (videoProductName && videoProductName === productName) {
     return 1.0;
   }
@@ -105,7 +100,21 @@ function calculateFastScore(
     }
   }
   
-  // Check 5: Keyword overlap with title
+  // Check 5: Product name in transcript
+  if (videoTranscript && hasSubstringMatch(videoTranscript, productName)) {
+    return 0.7;
+  }
+  
+  // Check 6: Keyword overlap with transcript
+  if (videoTranscript && productKeywords.length > 0) {
+    const transcriptKeywords = extractKeywords(videoTranscript.substring(0, 500));
+    const overlap = quickWordOverlap(transcriptKeywords, productKeywords);
+    if (overlap >= 0.3) {
+      return 0.55 + (overlap * 0.25);
+    }
+  }
+  
+  // Check 7: Keyword overlap with title
   if (videoTitleKeywords.length > 0 && productKeywords.length > 0) {
     const overlap = quickWordOverlap(videoTitleKeywords, productKeywords);
     if (overlap >= 0.3) {
@@ -125,14 +134,14 @@ function findBestFastMatch(
   const videoTitle = normalizeText(video.title);
   const videoTitleKeywords = extractKeywords(videoTitle);
   const videoProductName = normalizeText(video.product_name);
+  const videoTranscript = normalizeText(video.transcript);
   
   let bestMatch: { product: Product; score: number } | null = null;
   
   for (const product of products) {
-    const score = calculateFastScore(videoTitle, videoTitleKeywords, videoProductName, product);
+    const score = calculateFastScore(videoTitle, videoTitleKeywords, videoProductName, videoTranscript, product);
     if (score >= threshold && (!bestMatch || score > bestMatch.score)) {
       bestMatch = { product, score };
-      // If perfect match, stop searching
       if (score >= 0.95) break;
     }
   }
@@ -140,7 +149,7 @@ function findBestFastMatch(
   return bestMatch;
 }
 
-// AI matching using OpenAI when fast match fails
+// AI matching using OpenAI with transcript support
 async function findAIMatch(
   video: Video, 
   products: Product[], 
@@ -148,22 +157,38 @@ async function findAIMatch(
 ): Promise<{ product: Product; score: number } | null> {
   if (!openAIKey) return null;
   
-  // Top 20 products by revenue for AI matching
-  const productList = products.slice(0, 20).map((p, idx) => ({
+  // Top 30 products by revenue for AI matching
+  const productList = products.slice(0, 30).map((p, idx) => ({
     index: idx,
     name: p.producto_nombre
   }));
   
-  const prompt = `VIDEO: "${video.title || video.product_name || 'Sin título'}"
+  // Build context from available data
+  const titlePart = video.title ? `TÍTULO: "${video.title}"` : '';
+  const productNamePart = video.product_name ? `PRODUCTO MENCIONADO: "${video.product_name}"` : '';
+  const transcriptPart = video.transcript 
+    ? `TRANSCRIPCIÓN: "${video.transcript.substring(0, 600)}"` 
+    : '';
+  
+  const videoContext = [titlePart, productNamePart, transcriptPart].filter(Boolean).join('\n');
+  
+  if (!videoContext.trim()) {
+    console.log(`⚠️ Video ${video.id} sin contexto para AI`);
+    return null;
+  }
+  
+  const prompt = `Analiza este video de TikTok Shop y determina qué producto está promocionando.
 
-PRODUCTOS:
+${videoContext}
+
+PRODUCTOS DISPONIBLES:
 ${productList.map(p => `${p.index}. ${p.name}`).join('\n')}
 
-¿Producto? Responde SOLO número o NONE:`;
+Responde SOLO con el número del producto que mejor coincide, o NONE si ninguno coincide claramente:`;
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -174,7 +199,7 @@ ${productList.map(p => `${p.index}. ${p.name}`).join('\n')}
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 3,
+        max_tokens: 5,
         temperature: 0,
       }),
       signal: controller.signal,
@@ -182,24 +207,32 @@ ${productList.map(p => `${p.index}. ${p.name}`).join('\n')}
 
     clearTimeout(timeoutId);
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error(`❌ OpenAI error: ${response.status}`);
+      return null;
+    }
 
     const data = await response.json();
     const answer = data.choices?.[0]?.message?.content?.trim();
     
-    if (!answer || answer === 'NONE' || answer.toLowerCase() === 'none') {
+    if (!answer || answer.toUpperCase() === 'NONE') {
       return null;
     }
     
-    const productIndex = parseInt(answer, 10);
+    // Extract number from response (handles "0", "0.", etc.)
+    const numMatch = answer.match(/^\d+/);
+    if (!numMatch) return null;
+    
+    const productIndex = parseInt(numMatch[0], 10);
     if (isNaN(productIndex) || productIndex < 0 || productIndex >= productList.length) {
       return null;
     }
     
-    console.log(`🤖 AI: "${products[productIndex].producto_nombre}"`);
+    console.log(`🤖 AI matched: "${products[productIndex].producto_nombre}"`);
     return { product: products[productIndex], score: 0.75 };
     
-  } catch {
+  } catch (error) {
+    console.error('AI match error:', error);
     return null;
   }
 }
@@ -210,7 +243,7 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
-  const MAX_EXECUTION_TIME = 7000; // 7 seconds
+  const MAX_EXECUTION_TIME = 8000; // 8 seconds
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -218,14 +251,14 @@ serve(async (req) => {
     const openAIKey = Deno.env.get('OPENAI_API_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let batchSize = 20; // Default smaller batch
+    let batchSize = 20;
     let offset = 0;
     let threshold = 0.5;
     let useAI = false;
     
     try {
       const body = await req.json();
-      batchSize = Math.min(body.batchSize || 20, 30); // Cap at 30
+      batchSize = Math.min(body.batchSize || 20, 30);
       offset = body.offset || 0;
       threshold = body.threshold || 0.5;
       useAI = body.useAI === true;
@@ -233,9 +266,9 @@ serve(async (req) => {
       // Use defaults
     }
 
-    // Even smaller batch with AI
+    // Smaller batch with AI
     if (useAI && openAIKey) {
-      batchSize = Math.min(batchSize, 5);
+      batchSize = Math.min(batchSize, 10);
     }
 
     console.log(`🔄 Matcher: offset=${offset}, batch=${batchSize}, AI=${useAI && !!openAIKey}`);
@@ -254,7 +287,7 @@ serve(async (req) => {
       );
     }
 
-    // Pre-compute normalized names and keywords ONCE
+    // Pre-compute normalized names and keywords
     const products: Product[] = rawProducts.map(p => ({
       ...p,
       normalizedName: normalizeText(p.producto_nombre),
@@ -263,10 +296,10 @@ serve(async (req) => {
 
     console.log(`📦 ${products.length} products ready`);
 
-    // Fetch unmatched videos - PRIORITIZE by revenue (top sellers first)
+    // Fetch unmatched videos WITH transcript
     const { data: videos, error: videosError } = await supabase
       .from('videos')
-      .select('id, title, video_url, product_name, product_id, category, revenue_mxn')
+      .select('id, title, video_url, product_name, product_id, category, revenue_mxn, transcript')
       .is('product_id', null)
       .order('revenue_mxn', { ascending: false, nullsFirst: false })
       .range(offset, offset + batchSize - 1);
@@ -292,6 +325,7 @@ serve(async (req) => {
     let aiMatches = 0;
     let processedCount = 0;
     let timedOut = false;
+    let skippedNoContext = 0;
 
     for (const video of videos) {
       if (Date.now() - startTime > MAX_EXECUTION_TIME) {
@@ -305,7 +339,7 @@ serve(async (req) => {
       let matchScore = 0;
       let matchType = 'none';
 
-      // Fast matching
+      // Fast matching first
       const fastResult = findBestFastMatch(video, products, threshold);
       if (fastResult) {
         matchedProduct = fastResult.product;
@@ -313,9 +347,14 @@ serve(async (req) => {
         matchType = 'fuzzy';
       }
 
-      // AI matching if enabled and fast failed
-      if (!matchedProduct && useAI && openAIKey) {
-        if (Date.now() - startTime > MAX_EXECUTION_TIME - 2000) {
+      // AI matching if:
+      // 1. Fast matching failed AND
+      // 2. AI is enabled AND
+      // 3. Video has SOME context (title, product_name, OR transcript)
+      const hasContext = video.title || video.product_name || video.transcript;
+      
+      if (!matchedProduct && useAI && openAIKey && hasContext) {
+        if (Date.now() - startTime > MAX_EXECUTION_TIME - 2500) {
           timedOut = true;
           break;
         }
@@ -325,6 +364,8 @@ serve(async (req) => {
           matchScore = aiResult.score;
           matchType = 'ai';
         }
+      } else if (!matchedProduct && !hasContext) {
+        skippedNoContext++;
       }
 
       if (matchedProduct) {
@@ -358,7 +399,7 @@ serve(async (req) => {
     const remainingUnmatched = Math.max(0, (totalUnmatched || 0) - matchedCount);
     const complete = !timedOut && videos.length < batchSize;
 
-    console.log(`✅ ${matchedCount}/${processedCount} matched (${fuzzyMatches} fast, ${aiMatches} AI)`);
+    console.log(`✅ ${matchedCount}/${processedCount} matched (${fuzzyMatches} fuzzy, ${aiMatches} AI, ${skippedNoContext} sin contexto)`);
 
     return new Response(
       JSON.stringify({
@@ -367,6 +408,7 @@ serve(async (req) => {
         matchedInBatch: matchedCount,
         fuzzyMatches,
         aiMatches,
+        skippedNoContext,
         remainingUnmatched,
         complete,
         timedOut,
