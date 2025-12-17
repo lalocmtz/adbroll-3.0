@@ -47,6 +47,13 @@ function extractKeywords(text: string): string[] {
   return text.split(' ').filter(w => w.length > 3);
 }
 
+// Extract hashtags from text (e.g., #ladped -> ladped)
+function extractHashtags(text: string | null): string[] {
+  if (!text) return [];
+  const matches = text.match(/#(\w+)/gi) || [];
+  return matches.map(h => h.slice(1).toLowerCase());
+}
+
 // FAST: Simple word overlap score
 function quickWordOverlap(words1: string[], words2: string[]): number {
   if (words1.length === 0 || words2.length === 0) return 0;
@@ -69,6 +76,7 @@ function calculateFastScore(
   videoTitleKeywords: string[],
   videoProductName: string,
   videoTranscript: string,
+  videoHashtags: string[],
   product: Product
 ): number {
   const productName = product.normalizedName || '';
@@ -86,12 +94,19 @@ function calculateFastScore(
     return 0.9;
   }
   
-  // Check 3: Product name substring in title
+  // Check 3: Hashtag matches product name (e.g., #ladped matches "LADPED LP80")
+  for (const hashtag of videoHashtags) {
+    if (productName.includes(hashtag) || hashtag.includes(productName.split(' ')[0])) {
+      return 0.85;
+    }
+  }
+  
+  // Check 4: Product name substring in title
   if (videoTitle && hasSubstringMatch(videoTitle, productName)) {
     return 0.8;
   }
   
-  // Check 4: Keyword overlap with video product name
+  // Check 5: Keyword overlap with video product name
   if (videoProductName) {
     const vpKeywords = extractKeywords(videoProductName);
     const overlap = quickWordOverlap(vpKeywords, productKeywords);
@@ -100,12 +115,12 @@ function calculateFastScore(
     }
   }
   
-  // Check 5: Product name in transcript
+  // Check 6: Product name in transcript
   if (videoTranscript && hasSubstringMatch(videoTranscript, productName)) {
     return 0.7;
   }
   
-  // Check 6: Keyword overlap with transcript
+  // Check 7: Keyword overlap with transcript
   if (videoTranscript && productKeywords.length > 0) {
     const transcriptKeywords = extractKeywords(videoTranscript.substring(0, 500));
     const overlap = quickWordOverlap(transcriptKeywords, productKeywords);
@@ -114,7 +129,7 @@ function calculateFastScore(
     }
   }
   
-  // Check 7: Keyword overlap with title
+  // Check 8: Keyword overlap with title
   if (videoTitleKeywords.length > 0 && productKeywords.length > 0) {
     const overlap = quickWordOverlap(videoTitleKeywords, productKeywords);
     if (overlap >= 0.3) {
@@ -135,11 +150,12 @@ function findBestFastMatch(
   const videoTitleKeywords = extractKeywords(videoTitle);
   const videoProductName = normalizeText(video.product_name);
   const videoTranscript = normalizeText(video.transcript);
+  const videoHashtags = extractHashtags(video.title);
   
   let bestMatch: { product: Product; score: number } | null = null;
   
   for (const product of products) {
-    const score = calculateFastScore(videoTitle, videoTitleKeywords, videoProductName, videoTranscript, product);
+    const score = calculateFastScore(videoTitle, videoTitleKeywords, videoProductName, videoTranscript, videoHashtags, product);
     if (score >= threshold && (!bestMatch || score > bestMatch.score)) {
       bestMatch = { product, score };
       if (score >= 0.95) break;
@@ -157,8 +173,8 @@ async function findAIMatch(
 ): Promise<{ product: Product; score: number } | null> {
   if (!openAIKey) return null;
   
-  // Top 30 products by revenue for AI matching
-  const productList = products.slice(0, 30).map((p, idx) => ({
+  // Top 100 products by revenue for AI matching (expanded from 30)
+  const productList = products.slice(0, 100).map((p, idx) => ({
     index: idx,
     name: p.producto_nombre
   }));
