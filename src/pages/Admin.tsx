@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle } from "lucide-react";
+import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
@@ -31,6 +31,7 @@ const Admin = () => {
   const [useAI, setUseAI] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
+  const shouldStopRef = useRef(false);
 
   const [stats, setStats] = useState({
     videos: 0,
@@ -133,6 +134,8 @@ const Admin = () => {
     setLastSync(now);
   };
 
+  const MAX_CONSECUTIVE_ERRORS = 3;
+
   // MASTER BUTTON: Process all pending (downloads, transcriptions, matching)
   const handleProcessPending = async () => {
     const totalPending = stats.pendingDownload + stats.pendingTranscription + stats.pendingMatch;
@@ -141,16 +144,17 @@ const Admin = () => {
       return;
     }
 
+    shouldStopRef.current = false;
     setIsProcessingPending(true);
     setProcessProgress(0);
 
-    try {
-      let downloadedCount = 0;
-      let transcribedCount = 0;
-      let matchedCount = 0;
+    let downloadStats = { successful: 0, failed: 0, skipped: false };
+    let transcriptionStats = { successful: 0, failed: 0, skipped: false };
+    let matchStats = { successful: 0, failed: 0, skipped: false };
 
+    try {
       // Phase 1: Download all pending videos
-      if (stats.pendingDownload > 0) {
+      if (stats.pendingDownload > 0 && !shouldStopRef.current) {
         setProcessPhase(`1/3 Descargando ${stats.pendingDownload} videos...`);
         setProcessProgress(5);
 
@@ -160,85 +164,129 @@ const Admin = () => {
           .update({ processing_status: "pending" })
           .eq("processing_status", "download_failed");
 
-        let continueDownload = true;
-        while (continueDownload) {
+        let consecutiveErrors = 0;
+        
+        while (!shouldStopRef.current) {
           const { data, error } = await supabase.functions.invoke("download-videos-batch", {
             body: { batchSize: 5 },
           });
 
           if (error) {
-            console.warn("Download batch error:", error.message);
-            break;
+            consecutiveErrors++;
+            console.warn(`Download error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error.message);
+            
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+              downloadStats.skipped = true;
+              toast({
+                title: "⚠️ Descargas saltadas",
+                description: `${MAX_CONSECUTIVE_ERRORS} errores consecutivos. Continuando con transcripciones...`,
+                variant: "destructive",
+              });
+              break;
+            }
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
           }
 
+          consecutiveErrors = 0; // Reset on success
+          
           if (!data || data.processed === 0 || data.remaining === 0) {
-            continueDownload = false;
-          } else {
-            downloadedCount += data.successful || 0;
-            setProcessPhase(`1/3 Descargando... (${downloadedCount} completados, ${data.remaining} pendientes)`);
-            setProcessProgress(5 + Math.min(25, (downloadedCount / Math.max(stats.pendingDownload, 1)) * 25));
-            await new Promise(r => setTimeout(r, 500));
+            break;
           }
+          
+          downloadStats.successful += data.successful || 0;
+          setProcessPhase(`1/3 Descargando... (${downloadStats.successful} completados, ${data.remaining} pendientes)`);
+          setProcessProgress(5 + Math.min(25, (downloadStats.successful / Math.max(stats.pendingDownload, 1)) * 25));
+          await new Promise(r => setTimeout(r, 500));
         }
       }
 
       // Phase 2: Transcribe all videos with MP4 but no transcript
-      await loadStats(); // Refresh to get accurate pendingTranscription count
+      await loadStats();
       
-      if (stats.pendingTranscription > 0 || downloadedCount > 0) {
+      if ((stats.pendingTranscription > 0 || downloadStats.successful > 0) && !shouldStopRef.current) {
         setProcessPhase("2/3 Transcribiendo scripts...");
         setProcessProgress(35);
 
-        let continueTranscription = true;
-        while (continueTranscription) {
+        let consecutiveErrors = 0;
+        
+        while (!shouldStopRef.current) {
           const { data, error } = await supabase.functions.invoke("transcribe-videos-batch", {
             body: { batchSize: 3 },
           });
 
           if (error) {
-            console.warn("Transcription batch error:", error.message);
-            break;
+            consecutiveErrors++;
+            console.warn(`Transcription error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error.message);
+            
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+              transcriptionStats.skipped = true;
+              toast({
+                title: "⚠️ Transcripciones saltadas",
+                description: `${MAX_CONSECUTIVE_ERRORS} errores consecutivos. Continuando con vinculación...`,
+                variant: "destructive",
+              });
+              break;
+            }
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
           }
 
+          consecutiveErrors = 0;
+
           if (!data || data.processed === 0 || data.remaining === 0 || data.complete) {
-            continueTranscription = false;
-          } else {
-            transcribedCount += data.successful || 0;
-            setProcessPhase(`2/3 Transcribiendo... (${transcribedCount} completados, ${data.remaining} pendientes)`);
-            setProcessProgress(35 + Math.min(30, (transcribedCount / Math.max(stats.pendingTranscription, 1)) * 30));
-            await new Promise(r => setTimeout(r, 1000));
+            break;
           }
+          
+          transcriptionStats.successful += data.successful || 0;
+          setProcessPhase(`2/3 Transcribiendo... (${transcriptionStats.successful} completados, ${data.remaining} pendientes)`);
+          setProcessProgress(35 + Math.min(30, (transcriptionStats.successful / Math.max(stats.pendingTranscription, 1)) * 30));
+          await new Promise(r => setTimeout(r, 1000));
         }
       }
 
       // Phase 3: Match all videos without product
-      await loadStats(); // Refresh to get accurate pendingMatch count
+      await loadStats();
       
-      if (stats.pendingMatch > 0) {
+      if (stats.pendingMatch > 0 && !shouldStopRef.current) {
         setProcessPhase(`3/3 Vinculando productos${useAI ? " (con IA)" : ""}...`);
         setProcessProgress(70);
 
-        let matchComplete = false;
+        let consecutiveErrors = 0;
         let fuzzyTotal = 0;
         let aiTotal = 0;
 
-        while (!matchComplete) {
+        while (!shouldStopRef.current) {
           const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
             body: { batchSize: useAI ? 10 : 50, threshold: 0.5, useAI },
           });
 
           if (error) {
-            console.warn("Match error:", error.message);
-            break;
+            consecutiveErrors++;
+            console.warn(`Match error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error.message);
+            
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+              matchStats.skipped = true;
+              toast({
+                title: "⚠️ Vinculación saltada",
+                description: `${MAX_CONSECUTIVE_ERRORS} errores consecutivos.`,
+                variant: "destructive",
+              });
+              break;
+            }
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
           }
 
-          matchedCount += data.matchedInBatch || 0;
+          consecutiveErrors = 0;
+          matchStats.successful += data.matchedInBatch || 0;
           fuzzyTotal += data.fuzzyMatches || 0;
           aiTotal += data.aiMatches || 0;
-          matchComplete = data.complete;
 
-          setProcessPhase(`3/3 Vinculando... (${matchedCount} vinculados${aiTotal > 0 ? `, ${aiTotal} IA` : ""})`);
-          setProcessProgress(70 + Math.min(25, (matchedCount / Math.max(stats.pendingMatch, 1)) * 25));
+          if (data.complete) break;
+
+          setProcessPhase(`3/3 Vinculando... (${matchStats.successful} vinculados${aiTotal > 0 ? `, ${aiTotal} IA` : ""})`);
+          setProcessProgress(70 + Math.min(25, (matchStats.successful / Math.max(stats.pendingMatch, 1)) * 25));
           
           if (data.timedOut) {
             await new Promise(r => setTimeout(r, 300));
@@ -246,14 +294,22 @@ const Admin = () => {
         }
       }
 
-      // Done!
+      // Build summary
+      const summary = [];
+      if (downloadStats.successful > 0) summary.push(`${downloadStats.successful} descargados`);
+      if (downloadStats.skipped) summary.push("⚠️ descargas saltadas");
+      if (transcriptionStats.successful > 0) summary.push(`${transcriptionStats.successful} transcritos`);
+      if (transcriptionStats.skipped) summary.push("⚠️ scripts saltados");
+      if (matchStats.successful > 0) summary.push(`${matchStats.successful} vinculados`);
+      if (matchStats.skipped) summary.push("⚠️ vinculación saltada");
+
       setProcessProgress(100);
-      setProcessPhase("¡Completado!");
+      setProcessPhase(shouldStopRef.current ? "⏸️ Pausado" : "¡Completado!");
       saveLastSync();
 
       toast({
-        title: "¡Proceso completado!",
-        description: `${downloadedCount} descargados, ${transcribedCount} transcritos, ${matchedCount} vinculados.`,
+        title: shouldStopRef.current ? "⏸️ Proceso pausado" : "✅ Proceso completado",
+        description: summary.join(", ") || "Sin cambios",
       });
 
       await loadStats();
@@ -269,6 +325,15 @@ const Admin = () => {
       setProcessPhase("");
       setProcessProgress(0);
     }
+  };
+
+  const handlePauseProcess = () => {
+    shouldStopRef.current = true;
+    setProcessPhase("⏸️ Pausando... (terminando batch actual)");
+    toast({
+      title: "Pausando proceso",
+      description: "Esperando a que termine el batch actual...",
+    });
   };
 
   // Process all from file upload
@@ -490,6 +555,18 @@ const Admin = () => {
                   <span className="text-muted-foreground">{processProgress}%</span>
                 </div>
                 <Progress value={processProgress} className="h-2" />
+                
+                {/* Pause Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePauseProcess}
+                  disabled={shouldStopRef.current}
+                  className="w-full border-orange-300 text-orange-600 hover:bg-orange-50"
+                >
+                  <Pause className="h-4 w-4 mr-2" />
+                  {shouldStopRef.current ? "Pausando..." : "Pausar proceso"}
+                </Button>
               </div>
             )}
 
