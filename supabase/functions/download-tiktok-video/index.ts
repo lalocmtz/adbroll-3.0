@@ -32,14 +32,14 @@ serve(async (req) => {
     console.log(`[download-tiktok-video] Processing video: ${videoId}`);
     console.log(`[download-tiktok-video] TikTok URL: ${tiktokUrl}`);
 
-    // Call RapidAPI TikTok Video No Watermark API (v10)
+    // Call TikTok Video Downloader API (elisbushaj2)
     const rapidApiResponse = await fetch(
-      `https://tiktok-video-no-watermark10.p.rapidapi.com/?url=${encodeURIComponent(tiktokUrl)}&hd=1`,
+      `https://tiktok-video-downloader-api.p.rapidapi.com/media?videoUrl=${encodeURIComponent(tiktokUrl)}`,
       {
         method: 'GET',
         headers: {
           'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': 'tiktok-video-no-watermark10.p.rapidapi.com'
+          'x-rapidapi-host': 'tiktok-video-downloader-api.p.rapidapi.com'
         }
       }
     );
@@ -54,21 +54,10 @@ serve(async (req) => {
     }
 
     const rapidApiData = await rapidApiResponse.json();
-    console.log(`[download-tiktok-video] RapidAPI response keys:`, Object.keys(rapidApiData));
-    console.log(`[download-tiktok-video] RapidAPI response:`, JSON.stringify(rapidApiData).substring(0, 800));
+    console.log(`[download-tiktok-video] RapidAPI response:`, JSON.stringify(rapidApiData).substring(0, 500));
 
-    // Extract MP4 URL from response - support multiple response formats
-    let mp4Url = rapidApiData.data?.hdplay || 
-                 rapidApiData.data?.play || 
-                 rapidApiData.data?.wmplay ||
-                 rapidApiData.hdplay ||
-                 rapidApiData.play ||
-                 rapidApiData.video?.playAddr?.[0] ||
-                 rapidApiData.video?.downloadAddr?.[0] ||
-                 rapidApiData.result?.video?.playAddr?.[0] ||
-                 rapidApiData.result?.video?.downloadAddr?.[0] ||
-                 rapidApiData.result?.hdplay ||
-                 rapidApiData.result?.play;
+    // Extract MP4 URL from elisbushaj2 API response
+    let mp4Url = rapidApiData.downloadUrl || rapidApiData.video?.downloadUrl || rapidApiData.url;
 
     if (!mp4Url) {
       console.error(`[download-tiktok-video] No MP4 URL in response:`, rapidApiData);
