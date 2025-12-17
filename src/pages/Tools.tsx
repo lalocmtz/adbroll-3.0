@@ -10,7 +10,7 @@ import {
   FileText, Copy, Loader2, Zap, PenTool, Check, AlertCircle, 
   Link2, RotateCcw, Play, Heart, Download, Sparkles, ChevronRight
 } from "lucide-react";
-import { DataSubtitle } from "@/components/FilterPills";
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -68,6 +68,7 @@ const Tools = () => {
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
   const [videoThumbnail, setVideoThumbnail] = useState<string | null>(null);
   const [videoTitle, setVideoTitle] = useState<string | null>(null);
+  const [variantCount, setVariantCount] = useState<number>(3);
   
   // Hook Generator State
   const [hookProductDesc, setHookProductDesc] = useState("");
@@ -205,7 +206,7 @@ const Tools = () => {
         body: { 
           transcript, 
           analysis: analysisData,
-          variantCount: 3,
+          variantCount: variantCount,
           changeLevel: 'medium'
         }
       });
@@ -390,7 +391,6 @@ const Tools = () => {
 
   return (
     <div className="pt-5 pb-6 px-4 md:px-6 max-w-5xl space-y-5">
-      <DataSubtitle />
 
       {/* 1. Script Extractor Tool */}
       <Card className="overflow-hidden border-border/50 shadow-sm">
@@ -476,35 +476,49 @@ const Tools = () => {
 
         {/* Success State - Modal-like View with Tabs */}
         {extractorState === "success" && transcript && (
-          <div className="flex flex-col lg:flex-row">
-            {/* Left: Video Preview */}
-            <div className="lg:w-72 bg-muted/30 p-4 border-r border-border/50 shrink-0">
-              <div className="aspect-[9/16] max-h-[320px] bg-black rounded-xl overflow-hidden flex items-center justify-center mx-auto">
-                {videoThumbnail ? (
-                  <img 
-                    src={videoThumbnail} 
-                    alt={videoTitle || "Video preview"} 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-center p-4">
-                    <Play className="h-10 w-10 text-white/40 mx-auto mb-2" />
-                    <p className="text-xs text-white/60">
-                      {language === "es" ? "Vista previa no disponible" : "Preview not available"}
-                    </p>
-                  </div>
-                )}
+          <div className="flex flex-col">
+            {/* Fixed URL Bar */}
+            <div className="px-4 py-3 bg-muted/30 border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                <Input
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder={language === "es" ? "https://tiktok.com/@usuario/video/..." : "https://tiktok.com/@user/video/..."}
+                  className="h-9 text-xs bg-background flex-1"
+                />
+                <Button 
+                  onClick={handleExtract}
+                  disabled={!videoUrl.trim() || !isValidTikTokUrl(videoUrl)}
+                  size="sm"
+                  className="shrink-0 rounded-lg h-9"
+                >
+                  <FileText className="h-3.5 w-3.5 mr-1.5" />
+                  {language === "es" ? "Extraer" : "Extract"}
+                </Button>
               </div>
-              <Button 
-                onClick={resetExtractor} 
-                variant="outline" 
-                size="sm" 
-                className="w-full mt-3 rounded-xl text-xs"
-              >
-                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                {language === "es" ? "Nuevo video" : "New video"}
-              </Button>
             </div>
+
+            <div className="flex flex-col lg:flex-row">
+              {/* Left: Video Preview */}
+              <div className="lg:w-72 bg-muted/30 p-4 border-r border-border/50 shrink-0">
+                <div className="aspect-[9/16] max-h-[320px] bg-black rounded-xl overflow-hidden flex items-center justify-center mx-auto">
+                  {videoThumbnail ? (
+                    <img 
+                      src={videoThumbnail} 
+                      alt={videoTitle || "Video preview"} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center p-4">
+                      <Play className="h-10 w-10 text-white/40 mx-auto mb-2" />
+                      <p className="text-xs text-white/60">
+                        {language === "es" ? "Vista previa no disponible" : "Preview not available"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
 
             {/* Right: Tabs Content */}
             <div className="flex-1 min-w-0">
@@ -587,6 +601,27 @@ const Tools = () => {
                         <p className="text-sm text-muted-foreground mb-4">
                           {language === "es" ? "Genera variantes del guión con IA" : "Generate script variants with AI"}
                         </p>
+                        
+                        {/* Variant Count Selector */}
+                        <div className="flex items-center justify-center gap-3 mb-4">
+                          <span className="text-xs text-muted-foreground">
+                            {language === "es" ? "Cantidad:" : "Count:"}
+                          </span>
+                          <div className="flex gap-1">
+                            {[1, 2, 3].map((num) => (
+                              <Button
+                                key={num}
+                                variant={variantCount === num ? "default" : "outline"}
+                                size="sm"
+                                className="w-8 h-8 p-0 text-xs rounded-lg"
+                                onClick={() => setVariantCount(num)}
+                              >
+                                {num}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        
                         <Button 
                           onClick={handleGenerateVariants} 
                           disabled={isGeneratingVariants}
@@ -597,7 +632,9 @@ const Tools = () => {
                           ) : (
                             <Sparkles className="h-4 w-4 mr-2" />
                           )}
-                          {language === "es" ? "Generar Variantes IA" : "Generate AI Variants"}
+                          {language === "es" 
+                            ? `Generar ${variantCount} Variante${variantCount > 1 ? 's' : ''} IA` 
+                            : `Generate ${variantCount} AI Variant${variantCount > 1 ? 's' : ''}`}
                         </Button>
                       </div>
                     ) : (
@@ -642,6 +679,7 @@ const Tools = () => {
                 </div>
               </Tabs>
             </div>
+          </div>
           </div>
         )}
       </Card>
