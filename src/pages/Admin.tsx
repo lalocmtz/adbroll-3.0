@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Brain, Globe } from "lucide-react";
+import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Brain, Globe, AlertTriangle, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
@@ -25,6 +25,7 @@ const Admin = () => {
   const [isMatching, setIsMatching] = useState(false);
   const [isAIMatching, setIsAIMatching] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRetryingFailed, setIsRetryingFailed] = useState(false);
   const [processPhase, setProcessPhase] = useState("");
   const [processProgress, setProcessProgress] = useState(0);
   const [isFounder, setIsFounder] = useState(false);
@@ -49,6 +50,7 @@ const Admin = () => {
     pendingDownload: 0,
     pendingTranscription: 0,
     readyToShow: 0,
+    downloadFailed: 0,
   });
 
   useEffect(() => {
@@ -72,10 +74,11 @@ const Admin = () => {
   const loadStats = async () => {
     setIsRefreshing(true);
     try {
-      const [videosRes, productsRes, creatorsRes] = await Promise.all([
+      const [videosRes, productsRes, creatorsRes, failedRes] = await Promise.all([
         supabase.from("videos").select("id, product_id, video_mp4_url, transcript"),
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("creators").select("id", { count: "exact", head: true }),
+        supabase.from("videos").select("id", { count: "exact", head: true }).eq("processing_status", "download_failed"),
       ]);
 
       const videos = videosRes.data || [];
@@ -96,6 +99,7 @@ const Admin = () => {
         pendingDownload: videos.length - downloaded,
         pendingTranscription,
         readyToShow,
+        downloadFailed: failedRes.count || 0,
       });
     } finally {
       setIsRefreshing(false);
@@ -143,6 +147,64 @@ const Admin = () => {
     });
     localStorage.setItem("adbroll_last_sync", now);
     setLastSync(now);
+  };
+
+  // Retry failed downloads
+  const handleRetryFailed = async () => {
+    if (stats.downloadFailed === 0) {
+      toast({ title: "Sin fallidos", description: "No hay descargas fallidas para reintentar." });
+      return;
+    }
+
+    setIsRetryingFailed(true);
+    let downloadedCount = 0;
+
+    try {
+      // Step 1: Reset download_failed → pending
+      const { error: updateError } = await supabase
+        .from("videos")
+        .update({ processing_status: "pending" })
+        .eq("processing_status", "download_failed");
+
+      if (updateError) throw updateError;
+
+      toast({ title: "Estado reseteado", description: `${stats.downloadFailed} videos marcados como pendientes.` });
+
+      // Step 2: Execute download batches
+      let continueDownload = true;
+      while (continueDownload) {
+        const { data, error } = await supabase.functions.invoke("download-videos-batch", {
+          body: { batchSize: 5 },
+        });
+
+        if (error) {
+          console.warn("Download batch error:", error.message);
+          break;
+        }
+
+        if (!data || data.processed === 0 || data.remaining === 0) {
+          continueDownload = false;
+        } else {
+          downloadedCount += data.successful || 0;
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+
+      saveLastSync();
+      toast({
+        title: "Reintento completado",
+        description: `${downloadedCount} videos descargados exitosamente.`,
+      });
+      await loadStats();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRetryingFailed(false);
+    }
   };
 
   // Standard matching (fuzzy only)
@@ -502,7 +564,7 @@ const Admin = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
           <Card className="border-green-200 bg-green-50/50">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
@@ -525,6 +587,28 @@ const Admin = () => {
                 </div>
                 <Video className="h-6 w-6 text-orange-500" />
               </div>
+            </CardContent>
+          </Card>
+          {/* Failed Downloads Card with Retry Button */}
+          <Card className="border-red-200 bg-red-50/50">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Descargas fallidas</p>
+                  <p className="text-2xl font-bold text-red-600">{stats.downloadFailed}</p>
+                </div>
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-7 text-xs border-red-300 hover:bg-red-100"
+                onClick={handleRetryFailed}
+                disabled={isRetryingFailed || stats.downloadFailed === 0}
+              >
+                <RotateCcw className={`h-3 w-3 mr-1 ${isRetryingFailed ? 'animate-spin' : ''}`} />
+                {isRetryingFailed ? "Reintentando..." : "Reintentar"}
+              </Button>
             </CardContent>
           </Card>
           <Card className="border-blue-200 bg-blue-50/50">
