@@ -42,14 +42,14 @@ async function downloadSingleVideo(
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Call RapidAPI TikTok Video No Watermark API (v10)
+    // Call TikTok Video Downloader API (elisbushaj2)
     const rapidApiResponse = await fetch(
-      `https://tiktok-video-no-watermark10.p.rapidapi.com/?url=${encodeURIComponent(tiktokUrl)}&hd=1`,
+      `https://tiktok-video-downloader-api.p.rapidapi.com/media?videoUrl=${encodeURIComponent(tiktokUrl)}`,
       {
         method: 'GET',
         headers: {
           'x-rapidapi-key': rapidApiKey,
-          'x-rapidapi-host': 'tiktok-video-no-watermark10.p.rapidapi.com'
+          'x-rapidapi-host': 'tiktok-video-downloader-api.p.rapidapi.com'
         }
       }
     );
@@ -61,18 +61,10 @@ async function downloadSingleVideo(
     }
 
     const rapidApiData = await rapidApiResponse.json();
-    console.log(`[download] API response keys for ${videoId}:`, Object.keys(rapidApiData));
+    console.log(`[download] API response for ${videoId}:`, JSON.stringify(rapidApiData).substring(0, 300));
     
-    // Extract MP4 URL - support multiple formats
-    const mp4Url = rapidApiData.data?.hdplay || 
-                   rapidApiData.data?.play || 
-                   rapidApiData.data?.wmplay ||
-                   rapidApiData.hdplay ||
-                   rapidApiData.play ||
-                   rapidApiData.video?.playAddr?.[0] ||
-                   rapidApiData.result?.video?.playAddr?.[0] ||
-                   rapidApiData.result?.hdplay ||
-                   rapidApiData.result?.play;
+    // Extract MP4 URL from elisbushaj2 API response
+    const mp4Url = rapidApiData.downloadUrl || rapidApiData.video?.downloadUrl || rapidApiData.url;
 
     if (!mp4Url) {
       console.error(`[download] No MP4 URL for ${videoId}`);
