@@ -52,11 +52,14 @@ async function downloadSingleVideo(
 
     console.log(`[download] Got MP4 URL for ${videoId}`);
 
-    // Download the video file
-    const videoResponse = await fetch(mp4Url);
+    // Download the video file with 60s timeout
+    const videoResponse = await fetch(mp4Url, {
+      signal: AbortSignal.timeout(60000) // 60 second timeout
+    });
     if (!videoResponse.ok) {
+      console.error(`[download] MP4 fetch failed for ${videoId}: ${videoResponse.status} ${videoResponse.statusText}`);
       await supabase.from('videos').update({ processing_status: 'download_failed' }).eq('id', videoId);
-      return { success: false, error: 'Failed to download MP4 file' };
+      return { success: false, error: `MP4 fetch failed: ${videoResponse.status}` };
     }
 
     const videoBuffer = await videoResponse.arrayBuffer();
@@ -156,12 +159,26 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const batchSize = body.batchSize || 5;
 
+    // Reset videos stuck in 'downloading' status for more than 5 minutes
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { data: resetVideos, error: resetError } = await supabase
+      .from('videos')
+      .update({ processing_status: 'pending' })
+      .eq('processing_status', 'downloading')
+      .lt('imported_at', fiveMinutesAgo)
+      .select('id');
+    
+    if (resetVideos && resetVideos.length > 0) {
+      console.log(`[batch] Reset ${resetVideos.length} stuck 'downloading' videos to pending`);
+    }
+
     // Get pending videos that need download - PRIORITIZE by revenue (top sellers first)
+    // Include 'downloading' to retry stuck videos
     const { data: pendingVideos, error: queryError } = await supabase
       .from('videos')
       .select('id, video_url, revenue_mxn')
       .is('video_mp4_url', null)
-      .in('processing_status', ['pending', 'download_failed', 'no_mp4_url'])
+      .in('processing_status', ['pending', 'downloading', 'download_failed', 'no_mp4_url'])
       .order('revenue_mxn', { ascending: false, nullsFirst: false })
       .limit(batchSize);
 
@@ -211,12 +228,12 @@ serve(async (req) => {
     const successCount = results.filter(r => r.success).length;
     const failCount = results.filter(r => !r.success).length;
 
-    // Get remaining count
+    // Get remaining count (include 'downloading' for consistency)
     const { count: remainingCount } = await supabase
       .from('videos')
       .select('id', { count: 'exact', head: true })
       .is('video_mp4_url', null)
-      .in('processing_status', ['pending', 'download_failed', 'no_mp4_url']);
+      .in('processing_status', ['pending', 'downloading', 'download_failed', 'no_mp4_url']);
 
     return new Response(
       JSON.stringify({
