@@ -66,6 +66,8 @@ const Tools = () => {
   const [transcriptCopied, setTranscriptCopied] = useState(false);
   const [activeExtractorTab, setActiveExtractorTab] = useState("script");
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
+  const [videoThumbnail, setVideoThumbnail] = useState<string | null>(null);
+  const [videoTitle, setVideoTitle] = useState<string | null>(null);
   
   // Hook Generator State
   const [hookProductDesc, setHookProductDesc] = useState("");
@@ -147,6 +149,17 @@ const Tools = () => {
     }
 
     setExtractorState("loading");
+
+    // Fetch thumbnail from TikTok oEmbed API (non-blocking)
+    fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(videoUrl.trim())}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          setVideoThumbnail(data.thumbnail_url || null);
+          setVideoTitle(data.title || null);
+        }
+      })
+      .catch(() => console.log("Could not fetch thumbnail"));
 
     try {
       const { data, error } = await supabase.functions.invoke("transcribe-assemblyai", {
@@ -236,6 +249,8 @@ const Tools = () => {
     setAnalysisData(null);
     setVariants(null);
     setActiveExtractorTab("script");
+    setVideoThumbnail(null);
+    setVideoTitle(null);
   };
 
   const handleGenerateHooks = async () => {
@@ -465,12 +480,20 @@ const Tools = () => {
             {/* Left: Video Preview */}
             <div className="lg:w-72 bg-muted/30 p-4 border-r border-border/50 shrink-0">
               <div className="aspect-[9/16] max-h-[320px] bg-black rounded-xl overflow-hidden flex items-center justify-center mx-auto">
-                <div className="text-center p-4">
-                  <Play className="h-10 w-10 text-white/40 mx-auto mb-2" />
-                  <p className="text-xs text-white/60">
-                    {language === "es" ? "Vista previa no disponible" : "Preview not available"}
-                  </p>
-                </div>
+                {videoThumbnail ? (
+                  <img 
+                    src={videoThumbnail} 
+                    alt={videoTitle || "Video preview"} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center p-4">
+                    <Play className="h-10 w-10 text-white/40 mx-auto mb-2" />
+                    <p className="text-xs text-white/60">
+                      {language === "es" ? "Vista previa no disponible" : "Preview not available"}
+                    </p>
+                  </div>
+                )}
               </div>
               <Button 
                 onClick={resetExtractor} 
