@@ -6,15 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MAX_DOWNLOAD_ATTEMPTS = 5;
+
 // Download a single video from TikTok
 async function downloadSingleVideo(
   videoId: string,
   tiktokUrl: string,
   rapidApiKey: string,
-  supabase: any
-): Promise<{ success: boolean; error?: string }> {
+  supabase: any,
+  currentAttempts: number
+): Promise<{ success: boolean; error?: string; permanentlyFailed?: boolean }> {
   try {
-    console.log(`[download] Starting: ${videoId}`);
+    console.log(`[download] Starting: ${videoId} (attempt ${currentAttempts + 1}/${MAX_DOWNLOAD_ATTEMPTS})`);
     
     // Update status to downloading
     await supabase.from('videos').update({ processing_status: 'downloading' }).eq('id', videoId);
@@ -33,9 +36,8 @@ async function downloadSingleVideo(
 
     if (!rapidApiResponse.ok) {
       const errorText = await rapidApiResponse.text();
-      console.error(`[download] RapidAPI error: ${errorText}`);
-      await supabase.from('videos').update({ processing_status: 'download_failed' }).eq('id', videoId);
-      return { success: false, error: 'RapidAPI request failed' };
+      console.error(`[download] RapidAPI error for ${videoId}: ${errorText}`);
+      return await handleDownloadFailure(supabase, videoId, currentAttempts, 'RapidAPI request failed');
     }
 
     const rapidApiData = await rapidApiResponse.json();
@@ -46,8 +48,7 @@ async function downloadSingleVideo(
 
     if (!mp4Url) {
       console.error(`[download] No MP4 URL in response for ${videoId}`);
-      await supabase.from('videos').update({ processing_status: 'no_mp4_url' }).eq('id', videoId);
-      return { success: false, error: 'No MP4 URL in API response' };
+      return await handleDownloadFailure(supabase, videoId, currentAttempts, 'No MP4 URL in API response');
     }
 
     console.log(`[download] Got MP4 URL for ${videoId}`);
@@ -58,8 +59,7 @@ async function downloadSingleVideo(
     });
     if (!videoResponse.ok) {
       console.error(`[download] MP4 fetch failed for ${videoId}: ${videoResponse.status} ${videoResponse.statusText}`);
-      await supabase.from('videos').update({ processing_status: 'download_failed' }).eq('id', videoId);
-      return { success: false, error: `MP4 fetch failed: ${videoResponse.status}` };
+      return await handleDownloadFailure(supabase, videoId, currentAttempts, `MP4 fetch failed: ${videoResponse.status}`);
     }
 
     const videoBuffer = await videoResponse.arrayBuffer();
@@ -76,8 +76,7 @@ async function downloadSingleVideo(
 
     if (uploadError) {
       console.error(`[download] Upload error: ${uploadError.message}`);
-      await supabase.from('videos').update({ processing_status: 'upload_failed' }).eq('id', videoId);
-      return { success: false, error: uploadError.message };
+      return await handleDownloadFailure(supabase, videoId, currentAttempts, uploadError.message);
     }
 
     // Get public URL
@@ -85,12 +84,13 @@ async function downloadSingleVideo(
       .from('videos')
       .getPublicUrl(fileName);
 
-    // Update database with success
+    // Update database with success - reset attempts on success
     await supabase
       .from('videos')
       .update({ 
         video_mp4_url: publicUrlData.publicUrl,
-        processing_status: 'downloaded'
+        processing_status: 'downloaded',
+        download_attempts: 0
       })
       .eq('id', videoId);
 
@@ -99,9 +99,43 @@ async function downloadSingleVideo(
 
   } catch (error: any) {
     console.error(`[download] Error for ${videoId}:`, error.message);
-    await supabase.from('videos').update({ processing_status: 'download_failed' }).eq('id', videoId);
-    return { success: false, error: error.message };
+    return await handleDownloadFailure(supabase, videoId, currentAttempts, error.message);
   }
+}
+
+// Handle download failure with attempt tracking
+async function handleDownloadFailure(
+  supabase: any, 
+  videoId: string, 
+  currentAttempts: number, 
+  errorMessage: string
+): Promise<{ success: boolean; error: string; permanentlyFailed?: boolean }> {
+  const newAttempts = currentAttempts + 1;
+  
+  if (newAttempts >= MAX_DOWNLOAD_ATTEMPTS) {
+    // Mark as permanently failed - won't be retried
+    console.log(`[download] ⛔ Video ${videoId} permanently failed after ${newAttempts} attempts`);
+    await supabase
+      .from('videos')
+      .update({ 
+        processing_status: 'permanently_failed',
+        download_attempts: newAttempts
+      })
+      .eq('id', videoId);
+    return { success: false, error: errorMessage, permanentlyFailed: true };
+  }
+  
+  // Mark as failed but can retry
+  await supabase
+    .from('videos')
+    .update({ 
+      processing_status: 'download_failed',
+      download_attempts: newAttempts
+    })
+    .eq('id', videoId);
+  
+  console.log(`[download] ❌ Video ${videoId} failed (attempt ${newAttempts}/${MAX_DOWNLOAD_ATTEMPTS})`);
+  return { success: false, error: errorMessage };
 }
 
 serve(async (req) => {
@@ -161,7 +195,7 @@ serve(async (req) => {
 
     // Reset videos stuck in 'downloading' status for more than 5 minutes
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { data: resetVideos, error: resetError } = await supabase
+    const { data: resetVideos } = await supabase
       .from('videos')
       .update({ processing_status: 'pending' })
       .eq('processing_status', 'downloading')
@@ -172,13 +206,14 @@ serve(async (req) => {
       console.log(`[batch] Reset ${resetVideos.length} stuck 'downloading' videos to pending`);
     }
 
-    // Get pending videos that need download - PRIORITIZE by revenue (top sellers first)
-    // Include 'downloading' to retry stuck videos
+    // Get pending videos that need download
+    // EXCLUDE videos with >= MAX_DOWNLOAD_ATTEMPTS (they're permanently failed)
     const { data: pendingVideos, error: queryError } = await supabase
       .from('videos')
-      .select('id, video_url, revenue_mxn')
+      .select('id, video_url, revenue_mxn, download_attempts')
       .is('video_mp4_url', null)
       .in('processing_status', ['pending', 'downloading', 'download_failed', 'no_mp4_url'])
+      .lt('download_attempts', MAX_DOWNLOAD_ATTEMPTS)
       .order('revenue_mxn', { ascending: false, nullsFirst: false })
       .limit(batchSize);
 
@@ -202,6 +237,7 @@ serve(async (req) => {
           success: true,
           message: "No pending videos to download",
           processed: 0,
+          remaining: 0,
           status_counts: counts
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -212,14 +248,21 @@ serve(async (req) => {
 
     // Process each video in the batch
     const results = [];
+    let permanentlyFailedCount = 0;
+    
     for (const video of pendingVideos) {
       const result = await downloadSingleVideo(
         video.id,
         video.video_url,
         rapidApiKey,
-        supabase
+        supabase,
+        video.download_attempts || 0
       );
       results.push({ id: video.id, ...result });
+      
+      if (result.permanentlyFailed) {
+        permanentlyFailedCount++;
+      }
       
       // Small delay between downloads
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -228,12 +271,13 @@ serve(async (req) => {
     const successCount = results.filter(r => r.success).length;
     const failCount = results.filter(r => !r.success).length;
 
-    // Get remaining count (include 'downloading' for consistency)
+    // Get remaining count (exclude permanently_failed and those with max attempts)
     const { count: remainingCount } = await supabase
       .from('videos')
       .select('id', { count: 'exact', head: true })
       .is('video_mp4_url', null)
-      .in('processing_status', ['pending', 'downloading', 'download_failed', 'no_mp4_url']);
+      .in('processing_status', ['pending', 'downloading', 'download_failed', 'no_mp4_url'])
+      .lt('download_attempts', MAX_DOWNLOAD_ATTEMPTS);
 
     return new Response(
       JSON.stringify({
@@ -241,6 +285,7 @@ serve(async (req) => {
         processed: pendingVideos.length,
         successful: successCount,
         failed: failCount,
+        permanentlyFailed: permanentlyFailedCount,
         remaining: remainingCount || 0,
         results
       }),

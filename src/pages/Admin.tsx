@@ -65,7 +65,7 @@ const Admin = () => {
     setIsRefreshing(true);
     try {
       const [videosRes, productsRes, creatorsRes] = await Promise.all([
-        supabase.from("videos").select("id, product_id, video_mp4_url, transcript"),
+        supabase.from("videos").select("id, product_id, video_mp4_url, transcript, processing_status, download_attempts"),
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("creators").select("id", { count: "exact", head: true }),
       ]);
@@ -73,16 +73,22 @@ const Admin = () => {
       const videos = videosRes.data || [];
       const withProduct = videos.filter(v => v.product_id).length;
       const downloaded = videos.filter(v => v.video_mp4_url).length;
-      const transcribed = videos.filter(v => v.transcript).length;
       const readyToShow = videos.filter(v => v.video_mp4_url && v.product_id).length;
       const pendingTranscription = videos.filter(v => v.video_mp4_url && !v.transcript).length;
+      
+      // Exclude permanently_failed and videos with max attempts from pending count
+      const pendingDownload = videos.filter(v => 
+        !v.video_mp4_url && 
+        v.processing_status !== 'permanently_failed' &&
+        (v.download_attempts || 0) < 5
+      ).length;
       
       setStats({
         videos: videos.length,
         products: productsRes.count || 0,
         creators: creatorsRes.count || 0,
         readyToShow,
-        pendingDownload: videos.length - downloaded,
+        pendingDownload,
         pendingTranscription,
         pendingMatch: videos.length - withProduct,
       });
@@ -158,13 +164,10 @@ const Admin = () => {
         setProcessPhase(`1/3 Descargando ${stats.pendingDownload} videos...`);
         setProcessProgress(5);
 
-        // First reset any failed downloads to pending
-        await supabase
-          .from("videos")
-          .update({ processing_status: "pending" })
-          .eq("processing_status", "download_failed");
+        // NO automatic reset of download_failed - let attempt counter handle retries
 
         let consecutiveErrors = 0;
+        let noProgressCount = 0; // Track batches with 0 successful downloads
         
         while (!shouldStopRef.current) {
           const { data, error } = await supabase.functions.invoke("download-videos-batch", {
@@ -190,12 +193,34 @@ const Admin = () => {
 
           consecutiveErrors = 0; // Reset on success
           
+          // Check if no videos remain to process
           if (!data || data.processed === 0 || data.remaining === 0) {
             break;
           }
           
+          // Detect "no progress" - all videos in batch failed
+          if (data.successful === 0 && data.failed > 0) {
+            noProgressCount++;
+            console.warn(`No download progress (${noProgressCount}/3): ${data.failed} failed, ${data.permanentlyFailed || 0} permanently failed`);
+            
+            if (noProgressCount >= 3) {
+              // 3 consecutive batches with no success - skip phase
+              downloadStats.skipped = true;
+              toast({
+                title: "⚠️ Descargas saltadas",
+                description: `Videos restantes no se pueden descargar (${data.remaining} con errores). Continuando...`,
+              });
+              break;
+            }
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
+          
+          noProgressCount = 0; // Reset on any success
           downloadStats.successful += data.successful || 0;
-          setProcessPhase(`1/3 Descargando... (${downloadStats.successful} completados, ${data.remaining} pendientes)`);
+          downloadStats.failed += data.permanentlyFailed || 0;
+          
+          setProcessPhase(`1/3 Descargando... (${downloadStats.successful} OK, ${data.remaining} pendientes)`);
           setProcessProgress(5 + Math.min(25, (downloadStats.successful / Math.max(stats.pendingDownload, 1)) * 25));
           await new Promise(r => setTimeout(r, 500));
         }

@@ -852,6 +852,7 @@ export type Database = {
           creator_handle: string | null
           creator_id: string | null
           creator_name: string | null
+          download_attempts: number | null
           duration: number | null
           id: string
           imported_at: string | null
@@ -884,6 +885,7 @@ export type Database = {
           creator_handle?: string | null
           creator_id?: string | null
           creator_name?: string | null
+          download_attempts?: number | null
           duration?: number | null
           id?: string
           imported_at?: string | null
@@ -916,6 +918,7 @@ export type Database = {
           creator_handle?: string | null
           creator_id?: string | null
           creator_name?: string | null
+          download_attempts?: number | null
           duration?: number | null
           id?: string
           imported_at?: string | null
