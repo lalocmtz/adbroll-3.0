@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Video, Package, Users, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Brain, Globe, AlertTriangle, RotateCcw } from "lucide-react";
+import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
@@ -22,35 +22,24 @@ const Admin = () => {
   const [creatorFile, setCreatorFile] = useState<File | null>(null);
   const [selectedMarket, setSelectedMarket] = useState<Market>("mx");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isMatching, setIsMatching] = useState(false);
-  const [isAIMatching, setIsAIMatching] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isRetryingFailed, setIsRetryingFailed] = useState(false);
+  const [isProcessingPending, setIsProcessingPending] = useState(false);
   const [processPhase, setProcessPhase] = useState("");
   const [processProgress, setProcessProgress] = useState(0);
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [useAI, setUseAI] = useState(true);
-  const [lastMatchStats, setLastMatchStats] = useState<{
-    fuzzy: number;
-    ai: number;
-    total: number;
-  } | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
 
   const [stats, setStats] = useState({
     videos: 0,
     products: 0,
     creators: 0,
-    videosWithProduct: 0,
-    videosDownloaded: 0,
-    videosTranscribed: 0,
-    pendingMatch: 0,
+    readyToShow: 0,
     pendingDownload: 0,
     pendingTranscription: 0,
-    readyToShow: 0,
-    downloadFailed: 0,
+    pendingMatch: 0,
   });
 
   useEffect(() => {
@@ -74,11 +63,10 @@ const Admin = () => {
   const loadStats = async () => {
     setIsRefreshing(true);
     try {
-      const [videosRes, productsRes, creatorsRes, failedRes] = await Promise.all([
+      const [videosRes, productsRes, creatorsRes] = await Promise.all([
         supabase.from("videos").select("id, product_id, video_mp4_url, transcript"),
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("creators").select("id", { count: "exact", head: true }),
-        supabase.from("videos").select("id", { count: "exact", head: true }).eq("processing_status", "download_failed"),
       ]);
 
       const videos = videosRes.data || [];
@@ -92,14 +80,10 @@ const Admin = () => {
         videos: videos.length,
         products: productsRes.count || 0,
         creators: creatorsRes.count || 0,
-        videosWithProduct: withProduct,
-        videosDownloaded: downloaded,
-        videosTranscribed: transcribed,
-        pendingMatch: videos.length - withProduct,
+        readyToShow,
         pendingDownload: videos.length - downloaded,
         pendingTranscription,
-        readyToShow,
-        downloadFailed: failedRes.count || 0,
+        pendingMatch: videos.length - withProduct,
       });
     } finally {
       setIsRefreshing(false);
@@ -149,191 +133,145 @@ const Admin = () => {
     setLastSync(now);
   };
 
-  // Retry failed downloads
-  const handleRetryFailed = async () => {
-    if (stats.downloadFailed === 0) {
-      toast({ title: "Sin fallidos", description: "No hay descargas fallidas para reintentar." });
+  // MASTER BUTTON: Process all pending (downloads, transcriptions, matching)
+  const handleProcessPending = async () => {
+    const totalPending = stats.pendingDownload + stats.pendingTranscription + stats.pendingMatch;
+    if (totalPending === 0) {
+      toast({ title: "Todo listo", description: "No hay pendientes por procesar." });
       return;
     }
 
-    setIsRetryingFailed(true);
-    let downloadedCount = 0;
+    setIsProcessingPending(true);
+    setProcessProgress(0);
 
     try {
-      // Step 1: Reset download_failed → pending
-      const { error: updateError } = await supabase
-        .from("videos")
-        .update({ processing_status: "pending" })
-        .eq("processing_status", "download_failed");
+      let downloadedCount = 0;
+      let transcribedCount = 0;
+      let matchedCount = 0;
 
-      if (updateError) throw updateError;
+      // Phase 1: Download all pending videos
+      if (stats.pendingDownload > 0) {
+        setProcessPhase(`1/3 Descargando ${stats.pendingDownload} videos...`);
+        setProcessProgress(5);
 
-      toast({ title: "Estado reseteado", description: `${stats.downloadFailed} videos marcados como pendientes.` });
+        // First reset any failed downloads to pending
+        await supabase
+          .from("videos")
+          .update({ processing_status: "pending" })
+          .eq("processing_status", "download_failed");
 
-      // Step 2: Execute download batches
-      let continueDownload = true;
-      while (continueDownload) {
-        const { data, error } = await supabase.functions.invoke("download-videos-batch", {
-          body: { batchSize: 5 },
-        });
+        let continueDownload = true;
+        while (continueDownload) {
+          const { data, error } = await supabase.functions.invoke("download-videos-batch", {
+            body: { batchSize: 5 },
+          });
 
-        if (error) {
-          console.warn("Download batch error:", error.message);
-          break;
-        }
-
-        if (!data || data.processed === 0 || data.remaining === 0) {
-          continueDownload = false;
-        } else {
-          downloadedCount += data.successful || 0;
-          await new Promise(r => setTimeout(r, 500));
-        }
-      }
-
-      saveLastSync();
-      toast({
-        title: "Reintento completado",
-        description: `${downloadedCount} videos descargados exitosamente.`,
-      });
-      await loadStats();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsRetryingFailed(false);
-    }
-  };
-
-  // Standard matching (fuzzy only)
-  const handleMatchPending = async () => {
-    if (stats.pendingMatch === 0) {
-      toast({ title: "Todo vinculado", description: "No hay videos pendientes." });
-      return;
-    }
-
-    setIsMatching(true);
-    let totalMatched = 0;
-    let fuzzyTotal = 0;
-    let aiTotal = 0;
-
-    try {
-      let complete = false;
-      while (!complete) {
-        const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-          body: { batchSize: 100, threshold: 0.5, useAI: false } // Fuzzy only
-        });
-
-        if (error) throw error;
-        
-        totalMatched += data.matchedInBatch || 0;
-        fuzzyTotal += data.fuzzyMatches || 0;
-        complete = data.complete;
-      }
-
-      setLastMatchStats({ fuzzy: fuzzyTotal, ai: 0, total: totalMatched });
-      saveLastSync();
-      toast({
-        title: "Vinculación completada",
-        description: `${totalMatched} videos vinculados (fuzzy matching).`,
-      });
-      await loadStats();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsMatching(false);
-    }
-  };
-
-  // AI-powered matching with auto-retry on timeout
-  const [aiMatchProgress, setAiMatchProgress] = useState<string>("");
-  
-  const handleAIMatch = async () => {
-    if (stats.pendingMatch === 0) {
-      toast({ title: "Todo vinculado", description: "No hay videos pendientes." });
-      return;
-    }
-
-    setIsAIMatching(true);
-    setAiMatchProgress("Iniciando...");
-    let totalMatched = 0;
-    let fuzzyTotal = 0;
-    let aiTotal = 0;
-    let batchCount = 0;
-    let currentOffset = 0;
-
-    try {
-      let complete = false;
-      let maxRetries = 100; // Safety limit
-      
-      while (!complete && maxRetries > 0) {
-        maxRetries--;
-        batchCount++;
-        
-        setAiMatchProgress(`Lote ${batchCount}: procesando desde offset ${currentOffset}...`);
-        
-        const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-          body: { 
-            batchSize: 10, // Small batches for AI
-            offset: currentOffset,
-            threshold: 0.5, 
-            useAI: true 
+          if (error) {
+            console.warn("Download batch error:", error.message);
+            break;
           }
-        });
 
-        if (error) throw error;
-        
-        totalMatched += data.matchedInBatch || 0;
-        fuzzyTotal += data.fuzzyMatches || 0;
-        aiTotal += data.aiMatches || 0;
-        
-        // Update progress
-        const remaining = data.remainingUnmatched || 0;
-        setAiMatchProgress(`Lote ${batchCount}: ${totalMatched} vinculados (${aiTotal} IA), ${remaining} pendientes`);
-        
-        // Check if complete or need to continue
-        if (data.complete) {
-          complete = true;
-        } else if (data.timedOut && data.nextOffset !== null) {
-          // Continue from where we left off
-          currentOffset = data.nextOffset;
-          // Small delay between batches to avoid overwhelming
-          await new Promise(r => setTimeout(r, 300));
-        } else if (data.nextOffset !== null) {
-          currentOffset = data.nextOffset;
-        } else {
-          complete = true;
+          if (!data || data.processed === 0 || data.remaining === 0) {
+            continueDownload = false;
+          } else {
+            downloadedCount += data.successful || 0;
+            setProcessPhase(`1/3 Descargando... (${downloadedCount} completados, ${data.remaining} pendientes)`);
+            setProcessProgress(5 + Math.min(25, (downloadedCount / Math.max(stats.pendingDownload, 1)) * 25));
+            await new Promise(r => setTimeout(r, 500));
+          }
         }
       }
 
-      setLastMatchStats({ fuzzy: fuzzyTotal, ai: aiTotal, total: totalMatched });
-      saveLastSync();
-      setAiMatchProgress("");
+      // Phase 2: Transcribe all videos with MP4 but no transcript
+      await loadStats(); // Refresh to get accurate pendingTranscription count
       
+      if (stats.pendingTranscription > 0 || downloadedCount > 0) {
+        setProcessPhase("2/3 Transcribiendo scripts...");
+        setProcessProgress(35);
+
+        let continueTranscription = true;
+        while (continueTranscription) {
+          const { data, error } = await supabase.functions.invoke("transcribe-videos-batch", {
+            body: { batchSize: 3 },
+          });
+
+          if (error) {
+            console.warn("Transcription batch error:", error.message);
+            break;
+          }
+
+          if (!data || data.processed === 0 || data.remaining === 0 || data.complete) {
+            continueTranscription = false;
+          } else {
+            transcribedCount += data.successful || 0;
+            setProcessPhase(`2/3 Transcribiendo... (${transcribedCount} completados, ${data.remaining} pendientes)`);
+            setProcessProgress(35 + Math.min(30, (transcribedCount / Math.max(stats.pendingTranscription, 1)) * 30));
+            await new Promise(r => setTimeout(r, 1000));
+          }
+        }
+      }
+
+      // Phase 3: Match all videos without product
+      await loadStats(); // Refresh to get accurate pendingMatch count
+      
+      if (stats.pendingMatch > 0) {
+        setProcessPhase(`3/3 Vinculando productos${useAI ? " (con IA)" : ""}...`);
+        setProcessProgress(70);
+
+        let matchComplete = false;
+        let fuzzyTotal = 0;
+        let aiTotal = 0;
+
+        while (!matchComplete) {
+          const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
+            body: { batchSize: useAI ? 10 : 50, threshold: 0.5, useAI },
+          });
+
+          if (error) {
+            console.warn("Match error:", error.message);
+            break;
+          }
+
+          matchedCount += data.matchedInBatch || 0;
+          fuzzyTotal += data.fuzzyMatches || 0;
+          aiTotal += data.aiMatches || 0;
+          matchComplete = data.complete;
+
+          setProcessPhase(`3/3 Vinculando... (${matchedCount} vinculados${aiTotal > 0 ? `, ${aiTotal} IA` : ""})`);
+          setProcessProgress(70 + Math.min(25, (matchedCount / Math.max(stats.pendingMatch, 1)) * 25));
+          
+          if (data.timedOut) {
+            await new Promise(r => setTimeout(r, 300));
+          }
+        }
+      }
+
+      // Done!
+      setProcessProgress(100);
+      setProcessPhase("¡Completado!");
+      saveLastSync();
+
       toast({
-        title: "Vinculación IA completada",
-        description: `${totalMatched} videos vinculados en ${batchCount} lotes (${fuzzyTotal} fuzzy, ${aiTotal} IA).`,
+        title: "¡Proceso completado!",
+        description: `${downloadedCount} descargados, ${transcribedCount} transcritos, ${matchedCount} vinculados.`,
       });
+
       await loadStats();
+
     } catch (error: any) {
-      setAiMatchProgress("");
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
     } finally {
-      setIsAIMatching(false);
-      setAiMatchProgress("");
+      setIsProcessingPending(false);
+      setProcessPhase("");
+      setProcessProgress(0);
     }
   };
 
+  // Process all from file upload
   const handleProcessAll = async () => {
     if (!videoFile && !productFile && !creatorFile) {
       toast({
@@ -350,7 +288,7 @@ const Admin = () => {
     try {
       // Step 1: Import Creators FIRST
       if (creatorFile) {
-        setProcessPhase("1/6 Importando creadores...");
+        setProcessPhase("1/4 Importando creadores...");
         setProcessProgress(5);
         
         const formData = new FormData();
@@ -366,8 +304,8 @@ const Admin = () => {
 
       // Step 2: Import Products SECOND
       if (productFile) {
-        setProcessPhase("2/6 Importando productos...");
-        setProcessProgress(10);
+        setProcessPhase("2/4 Importando productos...");
+        setProcessProgress(15);
         
         const formData = new FormData();
         formData.append("file", productFile);
@@ -382,8 +320,8 @@ const Admin = () => {
 
       // Step 3: Import Videos THIRD
       if (videoFile) {
-        setProcessPhase("3/6 Importando videos...");
-        setProcessProgress(20);
+        setProcessPhase("3/4 Importando videos...");
+        setProcessProgress(25);
         
         const formData = new FormData();
         formData.append("file", videoFile);
@@ -396,113 +334,23 @@ const Admin = () => {
         setVideoFile(null);
       }
 
-      // Step 4: Download pending videos
-      setProcessPhase("4/6 Descargando videos de TikTok...");
-      setProcessProgress(30);
-      
-      let downloadedCount = 0;
-      let continueDownload = true;
-      
-      while (continueDownload) {
-        const { data, error } = await supabase.functions.invoke("download-videos-batch", {
-          body: { batchSize: 5 },
-        });
-        
-        if (error) {
-          console.warn("Download batch error:", error.message);
-          break;
-        }
-        
-        if (!data || data.processed === 0 || data.remaining === 0) {
-          continueDownload = false;
-        } else {
-          downloadedCount += data.successful || 0;
-          const progress = 30 + Math.min(15, (downloadedCount / 50) * 15);
-          setProcessProgress(progress);
-          setProcessPhase(`4/6 Descargando videos... (${downloadedCount} completados)`);
-          await new Promise(r => setTimeout(r, 500));
-          
-          if (downloadedCount >= 100) break;
-        }
-      }
-
-      // Step 5: Match all videos with products (using AI toggle setting)
-      setProcessPhase(`5/6 Vinculando videos ${useAI ? "(con IA)" : "(fuzzy)"}...`);
-      setProcessProgress(50);
-      
-      let matchComplete = false;
-      let totalMatched = 0;
-      let fuzzyTotal = 0;
-      let aiTotal = 0;
-      
-      while (!matchComplete) {
-        const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-          body: { batchSize: useAI ? 50 : 100, threshold: 0.5, useAI }
-        });
-        
-        if (error) {
-          console.warn("Match error:", error.message);
-          break;
-        }
-        
-        totalMatched += data.matchedInBatch || 0;
-        fuzzyTotal += data.fuzzyMatches || 0;
-        aiTotal += data.aiMatches || 0;
-        matchComplete = data.complete;
-        
-        const progress = 50 + Math.min(15, (totalMatched / 100) * 15);
-        setProcessProgress(progress);
-        setProcessPhase(`5/6 Vinculando... (${totalMatched} vinculados${aiTotal > 0 ? `, ${aiTotal} IA` : ""})`);
-      }
-
-      setLastMatchStats({ fuzzy: fuzzyTotal, ai: aiTotal, total: totalMatched });
-
-      // Step 6: Transcribe and analyze all videos with MP4
-      setProcessPhase("6/6 Transcribiendo y analizando scripts...");
-      setProcessProgress(70);
-      
-      let transcribedCount = 0;
-      let continueTranscription = true;
-      
-      while (continueTranscription) {
-        const { data, error } = await supabase.functions.invoke("transcribe-videos-batch", {
-          body: { batchSize: 3 },
-        });
-        
-        if (error) {
-          console.warn("Transcription batch error:", error.message);
-          break;
-        }
-        
-        if (!data || data.processed === 0 || data.remaining === 0 || data.complete) {
-          continueTranscription = false;
-        } else {
-          transcribedCount += data.successful || 0;
-          const progress = 70 + Math.min(25, (transcribedCount / 50) * 25);
-          setProcessProgress(progress);
-          setProcessPhase(`6/6 Transcribiendo scripts... (${transcribedCount} completados, ${data.remaining} pendientes)`);
-          await new Promise(r => setTimeout(r, 1000));
-          
-          // Limit to 100 videos per run to avoid timeout
-          if (transcribedCount >= 100) break;
-        }
-      }
-
-      // Done!
-      setProcessProgress(100);
-      setProcessPhase("¡Proceso completado!");
-      saveLastSync();
-      
-      toast({
-        title: "¡Proceso completado!",
-        description: `${downloadedCount} videos descargados, ${totalMatched} productos vinculados, ${transcribedCount} scripts transcritos.`,
-      });
-
-      await loadStats();
-      
       // Reset file inputs
       const inputs = document.querySelectorAll('input[type="file"]') as NodeListOf<HTMLInputElement>;
       inputs.forEach(input => input.value = '');
+
+      setProcessPhase("4/4 Archivos importados. Ejecutando proceso...");
+      setProcessProgress(30);
+
+      // Now run the pending processor
+      await loadStats();
+      
+      toast({
+        title: "Archivos importados",
+        description: "Ahora haz clic en 'Procesar Pendientes' para descargar y transcribir.",
+      });
+
+      setProcessProgress(100);
+      saveLastSync();
 
     } catch (error: any) {
       toast({
@@ -527,8 +375,7 @@ const Admin = () => {
 
   if (!isFounder) return null;
 
-  const matchPercent = stats.videos > 0 ? ((stats.videosWithProduct / stats.videos) * 100).toFixed(0) : 0;
-  const downloadPercent = stats.videos > 0 ? ((stats.videosDownloaded / stats.videos) * 100).toFixed(0) : 0;
+  const totalPending = stats.pendingDownload + stats.pendingTranscription + stats.pendingMatch;
 
   return (
     <div className="min-h-screen bg-background">
@@ -544,185 +391,131 @@ const Admin = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Last Sync & Quick Actions */}
+        {/* Last Sync & Refresh */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="h-4 w-4" />
             <span>Última sincronización: {lastSync || "Nunca"}</span>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadStats}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Actualizar
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadStats}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+        {/* Simplified Stats: 4 Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card className="border-green-200 bg-green-50/50">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Listos para mostrar</p>
+                  <p className="text-xs text-muted-foreground">✅ Completos</p>
                   <p className="text-2xl font-bold text-green-600">{stats.readyToShow}</p>
-                  <p className="text-xs text-green-600">Videos completos</p>
+                  <p className="text-xs text-green-600">Listos para mostrar</p>
                 </div>
                 <CheckCircle className="h-6 w-6 text-green-500" />
               </div>
             </CardContent>
           </Card>
+
           <Card className="border-orange-200 bg-orange-50/50">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Pendientes descarga</p>
+                  <p className="text-xs text-muted-foreground">📥 Sin MP4</p>
                   <p className="text-2xl font-bold text-orange-600">{stats.pendingDownload}</p>
-                  <p className="text-xs text-orange-600">Sin MP4</p>
+                  <p className="text-xs text-orange-600">Pendientes descarga</p>
                 </div>
                 <Video className="h-6 w-6 text-orange-500" />
               </div>
             </CardContent>
           </Card>
-          {/* Failed Downloads Card with Retry Button */}
-          <Card className="border-red-200 bg-red-50/50">
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-xs text-muted-foreground">Descargas fallidas</p>
-                  <p className="text-2xl font-bold text-red-600">{stats.downloadFailed}</p>
-                </div>
-                <AlertTriangle className="h-6 w-6 text-red-500" />
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full h-7 text-xs border-red-300 hover:bg-red-100"
-                onClick={handleRetryFailed}
-                disabled={isRetryingFailed || stats.downloadFailed === 0}
-              >
-                <RotateCcw className={`h-3 w-3 mr-1 ${isRetryingFailed ? 'animate-spin' : ''}`} />
-                {isRetryingFailed ? "Reintentando..." : "Reintentar"}
-              </Button>
-            </CardContent>
-          </Card>
+
           <Card className="border-blue-200 bg-blue-50/50">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Pendientes transcribir</p>
+                  <p className="text-xs text-muted-foreground">📝 Sin script</p>
                   <p className="text-2xl font-bold text-blue-600">{stats.pendingTranscription}</p>
-                  <p className="text-xs text-blue-600">Sin script</p>
+                  <p className="text-xs text-blue-600">Pendientes transcribir</p>
                 </div>
                 <FileSpreadsheet className="h-6 w-6 text-blue-500" />
               </div>
             </CardContent>
           </Card>
+
           <Card className="border-purple-200 bg-purple-50/50">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Pendientes vincular</p>
+                  <p className="text-xs text-muted-foreground">🔗 Sin producto</p>
                   <p className="text-2xl font-bold text-purple-600">{stats.pendingMatch}</p>
-                  <p className="text-xs text-purple-600">Sin producto</p>
+                  <p className="text-xs text-purple-600">Pendientes vincular</p>
                 </div>
                 <Link2 className="h-6 w-6 text-purple-500" />
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total videos</p>
-                  <p className="text-2xl font-bold">{stats.videos}</p>
-                  <p className="text-xs text-muted-foreground">{stats.videosTranscribed} con script</p>
-                </div>
-                <Package className="h-6 w-6 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
-        {/* AI Matching Section */}
-        <Card className="mb-6 border-purple-200 bg-gradient-to-r from-purple-50/50 to-indigo-50/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-base">
-              <Brain className="h-5 w-5 mr-2 text-purple-600" />
-              Vinculación Inteligente
-            </CardTitle>
-            <CardDescription>
-              La IA analiza títulos de videos y encuentra coincidencias semánticas cuando el matching normal falla
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* AI Toggle */}
-            <div className="flex items-center justify-between p-3 rounded-lg bg-background border">
+        {/* MASTER BUTTON: Procesar Pendientes */}
+        <Card className="mb-6 border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50">
+          <CardContent className="pt-6 pb-6 space-y-4">
+            {/* AI Toggle - Inline */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-background/80 border">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-5 w-5 text-purple-500" />
                 <div>
-                  <p className="text-sm font-medium">Usar IA en procesamiento</p>
-                  <p className="text-xs text-muted-foreground">
-                    OpenAI GPT-4o-mini como fallback cuando fuzzy matching falla
-                  </p>
+                  <p className="text-sm font-medium">Usar IA en vinculación</p>
+                  <p className="text-xs text-muted-foreground">GPT-4 como fallback si fuzzy falla</p>
                 </div>
               </div>
               <Switch
                 checked={useAI}
                 onCheckedChange={setUseAI}
-                disabled={isProcessing || isMatching || isAIMatching}
+                disabled={isProcessing || isProcessingPending}
               />
             </div>
 
-            {/* Matching Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                onClick={handleMatchPending}
-                disabled={isMatching || isAIMatching || stats.pendingMatch === 0}
-                className="h-12"
-              >
-                <Link2 className={`h-4 w-4 mr-2 ${isMatching ? 'animate-pulse' : ''}`} />
-                {isMatching ? "Vinculando..." : `Fuzzy (${stats.pendingMatch})`}
-              </Button>
-              <Button
-                onClick={handleAIMatch}
-                disabled={isMatching || isAIMatching || stats.pendingMatch === 0}
-                className="h-12 bg-purple-600 hover:bg-purple-700"
-              >
-                <Brain className={`h-4 w-4 mr-2 ${isAIMatching ? 'animate-pulse' : ''}`} />
-                {isAIMatching ? "IA procesando..." : `🤖 Vincular con IA (${stats.pendingMatch})`}
-              </Button>
-            </div>
-
-            {/* AI Matching Progress */}
-            {isAIMatching && aiMatchProgress && (
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 border border-purple-200">
-                <div className="animate-spin h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full" />
-                <p className="text-sm text-purple-800">{aiMatchProgress}</p>
+            {/* Progress */}
+            {isProcessingPending && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="font-medium">{processPhase}</span>
+                  <span className="text-muted-foreground">{processProgress}%</span>
+                </div>
+                <Progress value={processProgress} className="h-2" />
               </div>
             )}
 
-            {/* Last Match Stats */}
-            {!isAIMatching && lastMatchStats && lastMatchStats.total > 0 && (
-              <div className="flex items-center gap-4 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                <span>Último match:</span>
-                <span className="text-foreground font-medium">{lastMatchStats.total} total</span>
-                <span>•</span>
-                <span>{lastMatchStats.fuzzy} fuzzy</span>
-                {lastMatchStats.ai > 0 && (
-                  <>
-                    <span>•</span>
-                    <span className="text-purple-600 font-medium">{lastMatchStats.ai} IA</span>
-                  </>
-                )}
-              </div>
-            )}
+            {/* Main Button */}
+            <Button
+              onClick={handleProcessPending}
+              disabled={isProcessingPending || isProcessing || totalPending === 0}
+              size="lg"
+              className="w-full h-14 text-lg font-semibold bg-green-600 hover:bg-green-700"
+            >
+              {isProcessingPending ? (
+                <>
+                  <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                  {processPhase || "Procesando..."}
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="h-5 w-5 mr-2" />
+                  🔄 Procesar Pendientes ({totalPending})
+                </>
+              )}
+            </Button>
+
+            <p className="text-xs text-center text-muted-foreground">
+              Ejecuta automáticamente: Descargas → Transcripciones → Vinculación{useAI ? " (con IA)" : ""}
+            </p>
           </CardContent>
         </Card>
 
@@ -734,15 +527,15 @@ const Admin = () => {
               Archivos de Kalodata (.xlsx)
             </CardTitle>
             <CardDescription>
-              Orden de procesamiento: Creadores → Productos → Videos
+              Sube nuevos archivos para agregar datos al sistema
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Market Selector - MANDATORY */}
+            {/* Market Selector */}
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
               <Label className="flex items-center gap-2 text-sm font-semibold mb-3">
                 <Globe className="h-4 w-4" />
-                Selecciona el mercado del archivo:
+                Mercado del archivo:
               </Label>
               <RadioGroup
                 value={selectedMarket}
@@ -752,125 +545,125 @@ const Admin = () => {
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="mx" id="market-mx" />
                   <Label htmlFor="market-mx" className="cursor-pointer font-medium">
-                    🇲🇽 México (MX)
+                    🇲🇽 México
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="us" id="market-us" />
                   <Label htmlFor="market-us" className="cursor-pointer font-medium">
-                    🇺🇸 Estados Unidos (US)
+                    🇺🇸 Estados Unidos
                   </Label>
                 </div>
               </RadioGroup>
             </div>
-            {/* Creators File - FIRST */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">1</div>
-              <div className="flex-1">
-                <Label htmlFor="creator-file" className="text-sm font-medium">Creadores</Label>
-                <Input
-                  id="creator-file"
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={(e) => setCreatorFile(e.target.files?.[0] || null)}
-                  className="mt-1"
-                  disabled={isProcessing}
-                />
-              </div>
-              {creatorFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
-            </div>
 
-            {/* Products File - SECOND */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">2</div>
-              <div className="flex-1">
-                <Label htmlFor="product-file" className="text-sm font-medium">Productos</Label>
-                <Input
-                  id="product-file"
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={(e) => setProductFile(e.target.files?.[0] || null)}
-                  className="mt-1"
-                  disabled={isProcessing}
-                />
-              </div>
-              {productFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
-            </div>
-
-            {/* Videos File - THIRD */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">3</div>
-              <div className="flex-1">
-                <Label htmlFor="video-file" className="text-sm font-medium">Videos</Label>
-                <Input
-                  id="video-file"
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                  className="mt-1"
-                  disabled={isProcessing}
-                />
-              </div>
-              {videoFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
-            </div>
-
-            <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded space-y-1">
-              <p className="font-medium">💡 Importación inteligente (UPSERT):</p>
-              <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-                <li>Creadores: match por <code className="bg-muted px-1 rounded">username</code></li>
-                <li>Productos: match por <code className="bg-muted px-1 rounded">nombre + URL</code></li>
-                <li>Videos: match por <code className="bg-muted px-1 rounded">URL de TikTok</code></li>
-              </ul>
-              <p className="mt-2">Los datos existentes se actualizan, los nuevos se crean.</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Process Button */}
-        <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 mb-6">
-          <CardContent className="pt-6 pb-6 space-y-4">
-            {isProcessing && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">{processPhase}</span>
-                  <span className="text-muted-foreground">{processProgress}%</span>
+            {/* File Inputs */}
+            <div className="grid gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">1</div>
+                <div className="flex-1">
+                  <Label htmlFor="creator-file" className="text-sm font-medium">Creadores</Label>
+                  <Input
+                    id="creator-file"
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={(e) => setCreatorFile(e.target.files?.[0] || null)}
+                    className="mt-1"
+                    disabled={isProcessing}
+                  />
                 </div>
-                <Progress value={processProgress} className="h-2" />
+                {creatorFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">2</div>
+                <div className="flex-1">
+                  <Label htmlFor="product-file" className="text-sm font-medium">Productos</Label>
+                  <Input
+                    id="product-file"
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={(e) => setProductFile(e.target.files?.[0] || null)}
+                    className="mt-1"
+                    disabled={isProcessing}
+                  />
+                </div>
+                {productFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">3</div>
+                <div className="flex-1">
+                  <Label htmlFor="video-file" className="text-sm font-medium">Videos</Label>
+                  <Input
+                    id="video-file"
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                    className="mt-1"
+                    disabled={isProcessing}
+                  />
+                </div>
+                {videoFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
+              </div>
+            </div>
+
+            {/* Import Button */}
+            {(videoFile || productFile || creatorFile) && (
+              <div className="pt-2">
+                {isProcessing && (
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{processPhase}</span>
+                      <span className="text-muted-foreground">{processProgress}%</span>
+                    </div>
+                    <Progress value={processProgress} className="h-2" />
+                  </div>
+                )}
+                
+                <Button 
+                  onClick={handleProcessAll}
+                  disabled={isProcessing || isProcessingPending}
+                  className="w-full"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Zap className="h-4 w-4 mr-2 animate-pulse" />
+                      {processPhase || "Importando..."}
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-4 w-4 mr-2" />
+                      Importar Archivos
+                    </>
+                  )}
+                </Button>
               </div>
             )}
-            
-            <Button 
-              onClick={handleProcessAll}
-              disabled={isProcessing || (!videoFile && !productFile && !creatorFile)}
-              size="lg"
-              className="w-full h-14 text-lg font-semibold"
-            >
-              {isProcessing ? (
-                <>
-                  <Zap className="h-5 w-5 mr-2 animate-pulse" />
-                  {processPhase || "Procesando..."}
-                </>
-              ) : (
-                <>
-                  <Zap className="h-5 w-5 mr-2" />
-                  🚀 Procesar Todo {useAI && <span className="ml-2 text-xs bg-purple-500/20 px-2 py-0.5 rounded">+ IA</span>}
-                </>
-              )}
-            </Button>
 
-            <p className="text-xs text-center text-muted-foreground">
-              Creadores → Productos → Videos → Descarga MP4 → Vinculación {useAI ? "(con IA)" : "(fuzzy)"}
-            </p>
+            <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded">
+              <p className="font-medium">💡 Los datos existentes se actualizan, los nuevos se crean.</p>
+            </div>
           </CardContent>
         </Card>
 
         {/* Asset Uploader */}
         <AssetUploader />
 
-        {/* Pending Links Section */}
+        {/* Pending Links Section (Manual Assignment) */}
         {stats.pendingMatch > 0 && (
           <PendingLinks />
         )}
+
+        {/* Summary Stats */}
+        <Card className="mt-6">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Total en base de datos:</span>
+              <span>{stats.videos} videos • {stats.products} productos • {stats.creators} creadores</span>
+            </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
