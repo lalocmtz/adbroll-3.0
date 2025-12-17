@@ -135,9 +135,9 @@ serve(async (req) => {
   try {
     const { videoUrl, videoId } = await req.json();
 
-    if (!videoUrl || !videoId) {
+    if (!videoUrl) {
       return new Response(
-        JSON.stringify({ error: 'Missing videoUrl or videoId' }),
+        JSON.stringify({ error: 'Missing videoUrl' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -157,22 +157,24 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check if transcript already exists
-    const { data: existing } = await supabase
-      .from('daily_feed')
-      .select('transcripcion_original')
-      .eq('id', videoId)
-      .maybeSingle();
+    // Check if transcript already exists (only if videoId provided)
+    if (videoId) {
+      const { data: existing } = await supabase
+        .from('daily_feed')
+        .select('transcripcion_original')
+        .eq('id', videoId)
+        .maybeSingle();
 
-    if (existing?.transcripcion_original) {
-      console.log('Transcript already exists, returning cached version');
-      return new Response(
-        JSON.stringify({ 
-          status: 'completed',
-          transcript: existing.transcripcion_original 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (existing?.transcripcion_original) {
+        console.log('Transcript already exists, returning cached version');
+        return new Response(
+          JSON.stringify({ 
+            status: 'completed',
+            transcript: existing.transcripcion_original 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Step 1: Extract direct video URL from TikTok
@@ -262,15 +264,17 @@ serve(async (req) => {
       );
     }
 
-    // Save to database
-    console.log('Saving transcript to database...');
-    const { error: updateError } = await supabase
-      .from('daily_feed')
-      .update({ transcripcion_original: transcript })
-      .eq('id', videoId);
+    // Save to database only if videoId provided
+    if (videoId) {
+      console.log('Saving transcript to database...');
+      const { error: updateError } = await supabase
+        .from('daily_feed')
+        .update({ transcripcion_original: transcript })
+        .eq('id', videoId);
 
-    if (updateError) {
-      console.error('Error saving transcript:', updateError);
+      if (updateError) {
+        console.error('Error saving transcript:', updateError);
+      }
     }
 
     console.log('Transcription completed successfully');
