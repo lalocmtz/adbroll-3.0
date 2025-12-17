@@ -280,6 +280,7 @@ const Admin = () => {
         let consecutiveErrors = 0;
         let fuzzyTotal = 0;
         let aiTotal = 0;
+        let noProgressCount = 0;
 
         while (!shouldStopRef.current) {
           const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
@@ -307,6 +308,24 @@ const Admin = () => {
           matchStats.successful += data.matchedInBatch || 0;
           fuzzyTotal += data.fuzzyMatches || 0;
           aiTotal += data.aiMatches || 0;
+
+          // Detect no progress - all videos processed but none matched
+          if (data.matchedInBatch === 0 && data.batchProcessed > 0) {
+            noProgressCount++;
+            console.warn(`No match progress (${noProgressCount}/3) - ${data.remainingUnmatched} sin vincular`);
+            
+            if (noProgressCount >= 3) {
+              toast({
+                title: "⚠️ Vinculación completada",
+                description: `${data.remainingUnmatched || 0} videos sin producto correspondiente (requieren vinculación manual).`,
+              });
+              break;
+            }
+            await new Promise(r => setTimeout(r, 500));
+            continue;
+          }
+          
+          noProgressCount = 0; // Reset on progress
 
           if (data.complete) break;
 
