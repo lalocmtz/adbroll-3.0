@@ -6,6 +6,7 @@ export type SubmissionStatus =
   | "pending_review"
   | "approved"
   | "rejected"
+  | "changes_requested"
   | "pending_sparkcode"
   | "completed"
   | "cancelled";
