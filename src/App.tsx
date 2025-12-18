@@ -37,6 +37,10 @@ import NotFound from "./pages/NotFound";
 import Campaigns from "./pages/Campaigns";
 import CampaignDetail from "./pages/CampaignDetail";
 import MySubmissions from "./pages/MySubmissions";
+import BrandDashboard from "./pages/brand/BrandDashboard";
+import BrandCampaigns from "./pages/brand/BrandCampaigns";
+import BrandSubmissions from "./pages/brand/BrandSubmissions";
+import BrandUpgrade from "./pages/brand/BrandUpgrade";
 
 const queryClient = new QueryClient();
 
@@ -250,6 +254,44 @@ const App = () => {
                         <MySubmissions />
                       </AppRoute>
                     }
+                  />
+                  
+                  {/* Brand routes - require auth */}
+                  <Route
+                    path="/brand/dashboard"
+                    element={
+                      <AppRoute session={session} requiresAuth>
+                        <BrandDashboard />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/brand/campaigns"
+                    element={
+                      <AppRoute session={session} requiresAuth>
+                        <BrandCampaigns />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/brand/campaigns/:id/submissions"
+                    element={
+                      <AppRoute session={session} requiresAuth>
+                        <BrandSubmissions />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/brand/upgrade"
+                    element={
+                      <AppRoute session={session} requiresAuth>
+                        <BrandUpgrade />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/brand"
+                    element={<Navigate to="/brand/dashboard" replace />}
                   />
                   
                   {/* Admin routes - require auth */}
