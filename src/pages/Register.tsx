@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Gift } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
-import { sendEmail, emailTemplates } from "@/lib/email";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -87,13 +86,16 @@ const Register = () => {
         });
       }
 
-      // Send welcome email
+      // Send welcome email using edge function template
       try {
-        const welcomeEmail = emailTemplates.welcome(result.data.fullName);
-        await sendEmail({
-          to: result.data.email,
-          subject: welcomeEmail.subject,
-          html: welcomeEmail.html,
+        await supabase.functions.invoke("send-email", {
+          body: {
+            to: result.data.email,
+            template: "welcome_free",
+            templateData: {
+              name: result.data.fullName || "",
+            },
+          },
         });
       } catch (emailError) {
         console.error("Error sending welcome email:", emailError);

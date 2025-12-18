@@ -280,17 +280,34 @@ pending_review → approved → pending_sparkcode → completed
 
 ---
 
-## 🔧 CONFIGURACIÓN PENDIENTE
+## ✅ ANALYTICS Y EMAILS AUTOMATIZADOS (Diciembre 2024)
 
 ### Facebook Pixel + Google Analytics
-- [ ] Reemplazar `YOUR_PIXEL_ID` con ID real de Meta Pixel
-- [ ] Reemplazar `YOUR_GA_ID` con ID real de Google Analytics 4
-- [ ] Configurar eventos de conversión en Meta Business Suite
-- [ ] Verificar tracking en GA4 Real-Time
+- [x] Meta Pixel ID configurado: `1180309310977788`
+- [x] Google Analytics ID configurado: `G-7P6H9LCTKV`
+- [x] Server-side Meta Conversions API (`meta-conversions` edge function)
+- [x] Dual tracking: Browser + Server-side para mayor precisión
 
-### Sistema de Carrito Abandonado
-- [ ] Edge function `send-abandoned-cart` para emails 24h después
-- [ ] CRON job para procesar email_captures no convertidos
+### Sistema de Emails Automatizados
+- [x] **Templates en send-email**: welcome, welcome_free, subscription_confirmed, subscription_cancelled, payment_failed, account_setup, affiliate_commission, abandoned_cart, free_user_reminder, renewal_reminder
+- [x] **send-abandoned-cart-emails** - Edge function para emails 24h después de captura sin conversión
+- [x] **send-scheduled-emails** - Edge function para recordatorios (renovación 3 días antes, free users 3 días después)
+- [x] **Register.tsx** - Envía email `welcome_free` al registrarse
+- [x] **stripe-webhook** - Envía email `subscription_confirmed` al pagar
+
+### Para Ejecutar Automáticamente (CRON Jobs)
+Para activar los emails automáticos, configurar en Supabase cron:
+```sql
+-- Abandonos (cada hora)
+SELECT cron.schedule('abandoned-cart-emails', '0 * * * *', $$
+  SELECT net.http_post(url:='https://gcntnilurlulejwwtpaa.supabase.co/functions/v1/send-abandoned-cart-emails', headers:='{"Authorization": "Bearer YOUR_ANON_KEY"}'::jsonb);
+$$);
+
+-- Recordatorios (una vez al día)
+SELECT cron.schedule('scheduled-emails', '0 9 * * *', $$
+  SELECT net.http_post(url:='https://gcntnilurlulejwwtpaa.supabase.co/functions/v1/send-scheduled-emails', headers:='{"Authorization": "Bearer YOUR_ANON_KEY"}'::jsonb);
+$$);
+```
 
 ---
 
