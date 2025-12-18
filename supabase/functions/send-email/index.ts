@@ -20,11 +20,14 @@ const BRAND = {
 
 interface EmailRequest {
   to: string;
-  subject: string;
-  html: string;
+  subject?: string;
+  html?: string;
   from?: string;
   template?: string;
   templateData?: Record<string, string>;
+  // Resend Template API mode
+  template_id?: string;
+  template_data?: Record<string, string>;
 }
 
 // Email wrapper with branding
@@ -376,6 +379,129 @@ const templates: Record<string, (data: Record<string, string>) => { subject: str
       </p>
     `),
   }),
+
+  // BRAND REGISTERED - When a brand creates their profile
+  brand_registered: (data) => ({
+    subject: "🏢 ¡Tu perfil de marca está listo!",
+    html: emailWrapper(`
+      <h1 style="color: ${BRAND.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">
+        ¡Bienvenido${data.name ? ` ${data.name}` : ""}! 🎉
+      </h1>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+        Tu perfil de marca ha sido creado exitosamente en <strong>AdBroll</strong>.
+      </p>
+      <div style="background: #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <p style="margin: 0 0 12px; font-size: 14px; color: ${BRAND.mutedColor}; font-weight: 600;">Ahora puedes:</p>
+        <ul style="color: ${BRAND.textColor}; font-size: 15px; line-height: 1.8; margin: 0; padding-left: 20px;">
+          <li>📹 Crear campañas de UGC</li>
+          <li>👥 Recibir videos de creadores</li>
+          <li>✅ Aprobar y pagar por contenido</li>
+          <li>🚀 Obtener SparkCodes para ads</li>
+        </ul>
+      </div>
+      <div style="text-align: center;">
+        ${ctaButton("Crear mi primera campaña", `${BRAND.baseUrl}/brand/campaigns`)}
+      </div>
+      <p style="color: ${BRAND.mutedColor}; font-size: 14px; margin-top: 32px; text-align: center;">
+        — El equipo de AdBroll
+      </p>
+    `),
+  }),
+
+  // CAMPAIGN NEW - When a brand creates a new campaign
+  campaign_new: (data) => ({
+    subject: `🎬 Tu campaña "${data.campaign}" está lista`,
+    html: emailWrapper(`
+      <h1 style="color: ${BRAND.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">
+        ¡Campaña creada! 🎬
+      </h1>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+        Hola ${data.name || ""},
+      </p>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
+        Tu campaña <strong>"${data.campaign}"</strong> ha sido creada exitosamente.
+      </p>
+      <div style="background: #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size: 14px; color: ${BRAND.mutedColor};">Presupuesto por video:</td>
+            <td style="font-size: 14px; color: ${BRAND.textColor}; font-weight: 600; text-align: right;">
+              ${data.min_payment} - ${data.max_payment} MXN
+            </td>
+          </tr>
+        </table>
+      </div>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+        Publica tu campaña para que los creadores empiecen a enviarte videos.
+      </p>
+      <div style="text-align: center;">
+        ${ctaButton("Ver mi campaña", data.cta_url || `${BRAND.baseUrl}/brand/campaigns`)}
+      </div>
+      <p style="color: ${BRAND.mutedColor}; font-size: 14px; margin-top: 32px; text-align: center;">
+        — El equipo de AdBroll
+      </p>
+    `),
+  }),
+
+  // VIDEO APPROVED - When a brand approves a creator's video
+  video_approved: (data) => ({
+    subject: `✅ ¡Tu video fue aprobado!`,
+    html: emailWrapper(`
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; background: #DCFCE7; border-radius: 50%; padding: 16px;">
+          <span style="font-size: 32px;">✅</span>
+        </div>
+      </div>
+      <h1 style="color: ${BRAND.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700; text-align: center;">
+        ¡Video aprobado!
+      </h1>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
+        Hola ${data.name || ""}, tu video para la campaña <strong>"${data.campaign}"</strong> ha sido aprobado por la marca.
+      </p>
+      <div style="background: linear-gradient(135deg, #DCFCE7, #D1FAE5); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #86EFAC; text-align: center;">
+        <p style="margin: 0 0 8px; font-size: 14px; color: #166534; font-weight: 600;">
+          🎉 Siguiente paso: Enviar SparkCode
+        </p>
+        <p style="margin: 0; font-size: 14px; color: #166534;">
+          Genera tu SparkCode en TikTok y envíalo para completar el proceso.
+        </p>
+      </div>
+      <div style="text-align: center;">
+        ${ctaButton("Enviar SparkCode", data.cta_url || `${BRAND.baseUrl}/my-submissions`)}
+      </div>
+      <p style="color: ${BRAND.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
+        Una vez que envíes el SparkCode, recibirás tu pago.
+      </p>
+    `),
+  }),
+
+  // VIDEO PURCHASED - When a brand purchases/pays for a video
+  video_purchased: (data) => ({
+    subject: `💰 ¡Recibiste un pago de ${data.price}!`,
+    html: emailWrapper(`
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; background: #DCFCE7; border-radius: 50%; padding: 16px;">
+          <span style="font-size: 32px;">💰</span>
+        </div>
+      </div>
+      <h1 style="color: ${BRAND.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700; text-align: center;">
+        ¡Pago recibido!
+      </h1>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
+        Hola ${data.name || ""}, la marca ha pagado por tu video en la campaña <strong>"${data.campaign}"</strong>.
+      </p>
+      <div style="background: #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+        <p style="margin: 0 0 8px; font-size: 14px; color: ${BRAND.mutedColor};">Monto recibido</p>
+        <p style="margin: 0; font-size: 32px; font-weight: 700; color: #10B981;">${data.price}</p>
+      </div>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px; text-align: center;">
+        ¡Gracias por tu contenido! Sigue creando para ganar más.
+      </p>
+      <div style="text-align: center;">
+        ${ctaButton("Ver mis pagos", `${BRAND.baseUrl}/my-submissions`)}
+      </div>
+    `),
+  }),
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -386,20 +512,79 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const body: EmailRequest = await req.json();
     
+    // Mode 1: Resend Template API (template_id + template_data)
+    if (body.template_id) {
+      console.log(`Sending email via Resend template: ${body.template_id} to ${body.to}`);
+      
+      const emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: body.from || BRAND.fromEmail,
+          to: [body.to],
+          subject: body.subject || "", // Resend templates include subject
+          react: undefined,
+          html: undefined,
+          // Resend uses dynamic data in templates
+          ...(body.template_data && Object.keys(body.template_data).length > 0 
+            ? { headers: { "X-Entity-Ref-ID": body.template_id } } 
+            : {}),
+        }),
+      });
+
+      // Note: Resend doesn't currently support template_id via REST API directly
+      // We'll use the inline template approach with template_id as key
+      const templateKey = body.template_id.replace(/-/g, '_');
+      if (templates[templateKey]) {
+        const templateResult = templates[templateKey](body.template_data || {});
+        const sendResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: body.from || BRAND.fromEmail,
+            to: [body.to],
+            subject: templateResult.subject,
+            html: templateResult.html,
+          }),
+        });
+
+        const data = await sendResponse.json();
+        if (!sendResponse.ok) {
+          console.error("Resend error:", data);
+          return new Response(
+            JSON.stringify({ error: data }),
+            { status: sendResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+        console.log(`Email sent to ${body.to}: ${templateResult.subject}`);
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+    
     let subject: string;
     let html: string;
 
-    // Check if using template or direct HTML
+    // Mode 2: Inline template (template + templateData)
     if (body.template && templates[body.template]) {
       const templateResult = templates[body.template](body.templateData || {});
       subject = templateResult.subject;
       html = templateResult.html;
     } else if (body.subject && body.html) {
+      // Mode 3: Direct HTML (subject + html)
       subject = body.subject;
       html = body.html;
     } else {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: (template) or (subject + html)" }),
+        JSON.stringify({ error: "Missing required fields: (template_id) or (template) or (subject + html)" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }

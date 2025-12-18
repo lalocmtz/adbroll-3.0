@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { emailEvents } from "@/lib/transactionalEmail";
 
 export interface Campaign {
   id: string;
@@ -147,6 +148,30 @@ export const useCampaigns = (options: UseCampaignsOptions = {}) => {
         .single();
 
       if (error) throw error;
+
+      // Send email notification (async, don't block)
+      try {
+        // Get brand profile email
+        const { data: brandProfile } = await supabase
+          .from("brand_profiles")
+          .select("company_name, contact_email")
+          .eq("id", brandId)
+          .single();
+
+        if (brandProfile?.contact_email) {
+          const campaign = data as Campaign;
+          emailEvents.campaignCreated(
+            brandProfile.contact_email,
+            brandProfile.company_name || "",
+            campaign.title,
+            `$${campaign.min_payment_mxn}`,
+            `$${campaign.max_payment_mxn}`,
+            `${window.location.origin}/brand/campaigns/${campaign.id}`
+          );
+        }
+      } catch (emailErr) {
+        console.error("Error sending campaign email:", emailErr);
+      }
 
       toast.success("Campaña creada exitosamente");
       await fetchCampaigns();

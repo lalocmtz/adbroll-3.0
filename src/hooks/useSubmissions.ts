@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { emailEvents } from "@/lib/transactionalEmail";
 
 export type SubmissionStatus =
   | "pending_review"
@@ -273,6 +274,30 @@ export const useSubmissions = (options: UseSubmissionsOptions = {}) => {
     } as Partial<Submission>);
 
     if (success) {
+      // Send email to creator (async, don't block)
+      try {
+        const submission = await getSubmission(submissionId);
+        if (submission) {
+          // Get creator email from profiles
+          const { data: creatorProfile } = await supabase
+            .from("profiles")
+            .select("email, full_name")
+            .eq("id", submission.creator_id)
+            .single();
+
+          if (creatorProfile?.email) {
+            emailEvents.videoApproved(
+              creatorProfile.email,
+              creatorProfile.full_name || "",
+              submission.campaigns?.title || "",
+              `${window.location.origin}/my-submissions`
+            );
+          }
+        }
+      } catch (emailErr) {
+        console.error("Error sending video approved email:", emailErr);
+      }
+
       toast.success("Video aprobado");
     }
     return success;
