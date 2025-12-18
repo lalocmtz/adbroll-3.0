@@ -23,6 +23,8 @@ import {
   Unlock,
   LogOut,
   FolderOpen,
+  Megaphone,
+  Send,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import logoDark from "@/assets/logo-dark.png";
@@ -38,9 +40,11 @@ const navItems = [
   { to: "/products", label: "products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: false },
   { to: "/creadores", label: "creators", labelEs: "Creadores", labelEn: "Creators", icon: Users, lockedForVisitor: false },
   { to: "/opportunities", label: "opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
+  { to: "/campaigns", label: "campaigns", labelEs: "Campañas", labelEn: "Campaigns", icon: Megaphone, lockedForVisitor: false },
   { to: "/favorites", label: "favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
   { to: "/library", label: "library", labelEs: "Mi Biblioteca", labelEn: "My Library", icon: FolderOpen, lockedForVisitor: true },
   { to: "/tools", label: "tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true },
+  { to: "/my-submissions", label: "submissions", labelEs: "Mis Envíos", labelEn: "My Submissions", icon: Send, lockedForVisitor: true },
 ];
 
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
