@@ -96,11 +96,11 @@ const VideoAnalysisModalOriginal = ({
   const [generatedVariants, setGeneratedVariants] = useState<GeneratedVariant[]>([]);
   const [generatorOpen, setGeneratorOpen] = useState(true);
 
-  // Calculate earning per sale from product data
-  const productPrice = video.product?.price || 0;
+  // Calculate earnings - unified formula matching VideoCardOriginal
   const commissionRate = video.product?.commission || 6;
+  const totalCreatorEarnings = (video.revenue_mxn || 0) * (commissionRate / 100);
+  const productPrice = video.product?.price || 0;
   const earningPerSale = productPrice * (commissionRate / 100);
-  const totalCreatorEarnings = (video.sales || 0) * earningPerSale;
 
   // Handle locked tabs for visitors
   const handleTabChange = (value: string) => {
