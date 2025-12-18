@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { 
   FolderPlus, 
   Upload, 
-  Grid3X3, 
-  List, 
   Search, 
   ArrowLeft,
   Clock,
@@ -47,7 +45,6 @@ const Library = () => {
     fetchRecentFiles,
   } = useLibrary();
 
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [currentFolder, setCurrentFolder] = useState<LibraryFolder | null>(null);
@@ -175,19 +172,23 @@ const Library = () => {
         </div>
       </div>
 
-      {/* Storage Bar */}
-      <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-        <HardDrive className="h-5 w-5 text-muted-foreground" />
-        <div className="flex-1">
-          <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-muted-foreground">Almacenamiento</span>
-            <span className="font-medium">
-              {formatStorageSize(totalStorageUsed)} / {formatStorageSize(storageLimit)}
-            </span>
+      {/* Storage Bar - only show if usage > 25% */}
+      {storagePercentage > 25 && (
+        <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+          <HardDrive className="h-5 w-5 text-muted-foreground" />
+          <div className="flex-1">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-muted-foreground">
+                {language === "es" ? "Almacenamiento" : "Storage"}
+              </span>
+              <span className="font-medium">
+                {formatStorageSize(totalStorageUsed)} / {formatStorageSize(storageLimit)}
+              </span>
+            </div>
+            <Progress value={storagePercentage} className="h-1.5" />
           </div>
-          <Progress value={storagePercentage} className="h-1.5" />
         </div>
-      </div>
+      )}
 
       {/* Uploader */}
       {showUploader && (
@@ -198,35 +199,15 @@ const Library = () => {
         />
       )}
 
-      {/* Search and View Toggle */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={language === "es" ? "Buscar archivos..." : "Search files..."}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex items-center border rounded-lg p-1">
-          <Button
-            variant={viewMode === "grid" ? "secondary" : "ghost"}
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setViewMode("grid")}
-          >
-            <Grid3X3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "list" ? "secondary" : "ghost"}
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setViewMode("list")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder={language === "es" ? "Buscar archivos..." : "Search files..."}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {/* Recent Files (only on root) */}
@@ -248,7 +229,6 @@ const Library = () => {
                   onRename={renameFile}
                   onDelete={deleteFile}
                   onMove={moveFile}
-                  viewMode="grid"
                 />
               </div>
             ))}
@@ -271,10 +251,7 @@ const Library = () => {
               <h2 className="text-sm font-medium text-muted-foreground mb-3">
                 {language === "es" ? "Carpetas" : "Folders"}
               </h2>
-              <div className={viewMode === "grid" 
-                ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
-                : "space-y-2"
-              }>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {filteredFolders.map((folder) => (
                   <LibraryFolderCard
                     key={folder.id}
@@ -317,10 +294,7 @@ const Library = () => {
                 </Button>
               </div>
             ) : (
-              <div className={viewMode === "grid" 
-                ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
-                : "space-y-2"
-              }>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredFiles.map((file) => (
                   <LibraryFileCard
                     key={file.id}
@@ -330,7 +304,7 @@ const Library = () => {
                     onRename={renameFile}
                     onDelete={deleteFile}
                     onMove={moveFile}
-                    viewMode={viewMode}
+                    viewMode="grid"
                   />
                 ))}
               </div>

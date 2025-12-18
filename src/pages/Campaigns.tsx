@@ -185,10 +185,7 @@ const Campaigns = () => {
   });
 
   const handleCampaignClick = (campaign: Campaign) => {
-    if (!isLoggedIn) {
-      setPaywallOpen(true);
-      return;
-    }
+    // Allow all users to view campaign details
     navigate(`/campaigns/${campaign.id}`);
   };
 
@@ -243,26 +240,13 @@ const Campaigns = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {isLoading
           ? Array.from({ length: 8 }).map((_, i) => <CampaignCardSkeleton key={i} />)
-          : filteredCampaigns.map((campaign, index) => {
-              // Show first 3 fully, blur rest for visitors
-              if (!isLoggedIn && index >= 3) {
-                return (
-                  <BlurOverlay key={campaign.id} intensity="full">
-                    <CampaignCard
-                      campaign={campaign}
-                      onClick={() => setPaywallOpen(true)}
-                    />
-                  </BlurOverlay>
-                );
-              }
-              return (
-                <CampaignCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  onClick={() => handleCampaignClick(campaign)}
-                />
-              );
-            })}
+          : filteredCampaigns.map((campaign) => (
+              <CampaignCard
+                key={campaign.id}
+                campaign={campaign}
+                onClick={() => handleCampaignClick(campaign)}
+              />
+            ))}
       </div>
 
       {/* Paywall Modal */}

@@ -248,6 +248,52 @@ pending_review → approved → pending_sparkcode → completed
 
 ---
 
+## ✅ AUDITORÍA Y OPTIMIZACIÓN (Diciembre 2024)
+
+### Seguridad
+- [x] **Subscriptions RLS** - Política existente protege datos correctamente
+- [x] **Webhook price fix** - Actualizado de $29 a $14.99
+
+### UX Renaming
+- [x] **"Mis Envíos" → "Colaboraciones"** - Sidebar y página actualizados
+- [x] **Iconos y textos** - Actualizados para reflejar concepto de colaboración
+
+### Sistema de Captura de Emails
+- [x] **Tabla email_captures** - Almacena leads antes de checkout
+- [x] **EmailCaptureModal** - Guarda email en BD antes de Stripe
+- [x] **stripe-webhook** - Marca email como convertido post-pago
+
+### Analytics y Tracking
+- [x] **src/lib/analytics.ts** - Utilidades para FB Pixel y GA
+- [x] **index.html** - Scripts de Meta Pixel y Google Analytics (IDs por configurar)
+- [x] **Eventos definidos** - PageView, ViewContent, InitiateCheckout, Purchase, Lead, SignUp
+
+### Campañas Públicas
+- [x] **Campaigns.tsx** - Todas las campañas visibles para todos
+- [x] **CampaignDetail.tsx** - Paywall al intentar enviar video (no al ver)
+- [x] **Sin blur** - Campañas 100% públicas, paywall solo al aplicar
+
+### Simplificación Biblioteca
+- [x] **Grid único** - Eliminado toggle grid/list (solo vista grid)
+- [x] **Storage bar condicional** - Solo visible si uso > 25%
+- [x] **Imports limpiados** - Removidos Grid3X3 y List icons no usados
+
+---
+
+## 🔧 CONFIGURACIÓN PENDIENTE
+
+### Facebook Pixel + Google Analytics
+- [ ] Reemplazar `YOUR_PIXEL_ID` con ID real de Meta Pixel
+- [ ] Reemplazar `YOUR_GA_ID` con ID real de Google Analytics 4
+- [ ] Configurar eventos de conversión en Meta Business Suite
+- [ ] Verificar tracking en GA4 Real-Time
+
+### Sistema de Carrito Abandonado
+- [ ] Edge function `send-abandoned-cart` para emails 24h después
+- [ ] CRON job para procesar email_captures no convertidos
+
+---
+
 ## 🔄 PENDIENTE
 
 ### Sistema de Pagos para Marcas
@@ -263,6 +309,11 @@ pending_review → approved → pending_sparkcode → completed
 ### Verificación de Marcas
 - [ ] Proceso de verificación manual (badge verified)
 - [ ] Requisitos para verificación
+
+### Analytics Dashboard (Admin)
+- [ ] Integración con PostHog o Mixpanel para sesiones
+- [ ] Heatmaps y grabaciones de sesión
+- [ ] Dashboard interno con métricas clave
 
 ---
 

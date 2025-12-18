@@ -238,7 +238,7 @@ const MySubmissions = () => {
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
           <h2 className="text-lg font-semibold mb-2">
-            {language === "es" ? "Inicia sesión para ver tus envíos" : "Sign in to see your submissions"}
+            {language === "es" ? "Inicia sesión para ver tus colaboraciones" : "Sign in to see your collaborations"}
           </h2>
           <Button onClick={() => navigate("/login")}>
             {language === "es" ? "Iniciar sesión" : "Sign in"}
@@ -278,12 +278,12 @@ const MySubmissions = () => {
       {/* Header */}
       <div className="mb-4">
         <h1 className="text-lg md:text-xl font-bold flex items-center gap-2">
-          📤 {language === "es" ? "Mis Envíos" : "My Submissions"}
+          🤝 {language === "es" ? "Mis Colaboraciones" : "My Collaborations"}
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
           {language === "es"
-            ? "Videos que has enviado a campañas"
-            : "Videos you've submitted to campaigns"}
+            ? "Videos que has enviado a campañas de marcas"
+            : "Videos you've submitted to brand campaigns"}
         </p>
       </div>
 
@@ -343,12 +343,12 @@ const MySubmissions = () => {
             <FileVideo className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="font-semibold text-lg mb-2">
-            {language === "es" ? "No tienes envíos" : "No submissions yet"}
+            {language === "es" ? "No tienes colaboraciones" : "No collaborations yet"}
           </h3>
           <p className="text-sm text-muted-foreground max-w-md mb-4">
             {language === "es"
-              ? "Explora campañas abiertas y envía tu primer video para comenzar a ganar."
-              : "Explore open campaigns and submit your first video to start earning."}
+              ? "Explora campañas abiertas y envía tu primer video para comenzar a colaborar."
+              : "Explore open campaigns and submit your first video to start collaborating."}
           </p>
           <Button onClick={() => navigate("/campaigns")}>
             {language === "es" ? "Ver campañas" : "View campaigns"}
