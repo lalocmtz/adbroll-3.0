@@ -567,6 +567,175 @@ export type Database = {
         }
         Relationships: []
       }
+      library_files: {
+        Row: {
+          created_at: string | null
+          duration_seconds: number | null
+          file_size: number | null
+          file_type: string
+          file_url: string
+          folder_id: string | null
+          id: string
+          last_used_at: string | null
+          metadata: Json | null
+          mime_type: string | null
+          name: string
+          tags: string[] | null
+          thumbnail_url: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          folder_id?: string | null
+          id?: string
+          last_used_at?: string | null
+          metadata?: Json | null
+          mime_type?: string | null
+          name: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          folder_id?: string | null
+          id?: string
+          last_used_at?: string | null
+          metadata?: Json | null
+          mime_type?: string | null
+          name?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "library_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      library_folders: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          icon: string | null
+          id: string
+          name: string
+          parent_folder_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          parent_folder_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_folder_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_folders_parent_folder_id_fkey"
+            columns: ["parent_folder_id"]
+            isOneToOne: false
+            referencedRelation: "library_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      library_project_files: {
+        Row: {
+          file_id: string
+          id: string
+          position: number | null
+          project_id: string
+        }
+        Insert: {
+          file_id: string
+          id?: string
+          position?: number | null
+          project_id: string
+        }
+        Update: {
+          file_id?: string
+          id?: string
+          position?: number | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_project_files_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "library_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "library_project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "library_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      library_projects: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           categoria: string | null
