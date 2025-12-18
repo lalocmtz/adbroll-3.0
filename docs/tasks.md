@@ -107,21 +107,6 @@
 
 ---
 
-## 🔄 PENDIENTE
-
-- [x] VideoAnalysisModal - Columna de negocio con producto vinculado ✅
-- [x] VideoAnalysisModal - Panel de controles Variantes IA (FASE 2) ✅
-- [x] VideoAnalysisModal - Integración IA real para variantes (FASE 3) ✅
-- [x] VideoAnalysisModal - Rediseño premium completo (FASE 4) ✅
-- [x] VideoAnalysisModal - Guardar variantes a favoritos ✅
-- [x] Página /pricing con 3 planes (FREE, CREATOR, STUDIO) ✅
-- [x] Detección automática código referido en /pricing ✅
-- [x] FAQ en página de precios ✅
-- [x] Stripe webhook para comisión de afiliados ✅
-- [x] Deep links a TikTok Shop ✅
-
----
-
 ## ✅ STRIPE INTEGRATION (Diciembre 2024)
 
 ### Backend
@@ -190,6 +175,94 @@
 - [x] Dashboard - Padding bottom for sticky CTA visibility
 - [x] VideoCardOriginal - 4:5 aspect ratio on mobile
 - [x] VideoCardOriginal - Compact CTA button "Ver guion →"
+
+---
+
+## ✅ SISTEMA DE CAMPAÑAS DIGITALES (Diciembre 2024)
+
+### Concepto
+Sistema "Campañas Abiertas" que conecta marcas digitales (apps, SaaS, servicios) con creadores de TikTok. Sin productos físicos - creadores producen UGC original para promocionar productos digitales.
+
+### Base de Datos
+- [x] **brand_profiles** - Perfil de marca (company_name, logo, website, industry, verified)
+- [x] **campaigns** - Campañas (title, product_name, brief, rules, min/max_payment_mxn, requires_spark_code, video_duration)
+- [x] **campaign_submissions** - Envíos de videos (status workflow, proposed/approved_price, spark_code, legal_consent)
+- [x] **campaign_transactions** - Transacciones de pago (amount, platform_fee, stripe_payment_intent)
+- [x] **user_roles** - Roles de usuario (creator/brand/founder)
+
+### Estados de Submission
+```
+pending_review → rejected
+pending_review → changes_requested → pending_review
+pending_review → approved → pending_sparkcode → completed
+```
+
+### FASE 1: Base de Datos (Diciembre 2024)
+- [x] Tablas creadas con RLS policies
+- [x] Función `is_brand()` para verificación de rol
+- [x] Enum `app_role` con valores: user, founder, brand
+
+### FASE 2: Hooks y Utilidades (Diciembre 2024)
+- [x] **useAccountType.ts** - Hook para determinar tipo de cuenta (creator/brand)
+- [x] **useCampaigns.ts** - Hook para CRUD de campañas
+- [x] **useSubmissions.ts** - Hook para gestión de envíos con acciones por rol
+
+### FASE 3: Páginas del Creador (Diciembre 2024)
+- [x] **/campaigns** - Grid de campañas abiertas con filtros
+- [x] **/campaigns/:id** - Detalle de campaña con formulario de envío
+- [x] **/my-submissions** - Mis envíos con tabs por estado
+
+### FASE 4: Páginas de Marca (Diciembre 2024)
+- [x] **/brand/dashboard** - Panel principal con métricas
+- [x] **/brand/campaigns** - Gestión de campañas (crear, editar, pausar)
+- [x] **/brand/campaigns/:id/submissions** - Revisar videos enviados
+- [x] **/brand/upgrade** - Página de upgrade para marcas
+
+### FASE 5: Navegación y UX (Diciembre 2024)
+- [x] **DashboardSidebar reorganizado** - Secciones: EXPLORA, GANA DINERO, TU CENTRO, CUENTA, PANEL MARCA
+- [x] **Sidebar adaptativo** - Muestra PANEL MARCA solo para usuarios con rol brand
+- [x] **CTA "¿Eres una marca?"** - Visible para creadores logueados, lleva a /brand/register
+
+### FASE 6: Registro de Marcas (Diciembre 2024)
+- [x] **/brand/register** - Formulario de registro de marca
+- [x] Creación automática de brand_profile + asignación rol brand
+- [x] **Settings.tsx actualizado** - Muestra tipo de cuenta (Creador/Marca)
+- [x] Navegación a panel de marca desde Settings
+
+### FASE 7: Emails de Campañas (Diciembre 2024)
+- [x] **campaignSubmissionReceived** - Para marcas cuando reciben un video
+- [x] **submissionApproved** - Para creadores cuando se aprueba su video
+- [x] **submissionRejected** - Para creadores cuando se rechaza
+- [x] **sparkCodeRequested** - Para creadores cuando deben enviar SparkCode
+- [x] **campaignPaymentComplete** - Para creadores cuando reciben pago
+- [x] **changesRequested** - Para creadores cuando la marca pide cambios
+
+### Flujo Completo
+1. **Marca se registra**: /brand/register → brand_profile + rol brand
+2. **Marca crea campaña**: /brand/campaigns → brief, budget, requisitos
+3. **Creador ve campañas**: /campaigns → grid con filtros
+4. **Creador aplica**: /campaigns/:id → sube video, propone precio
+5. **Marca revisa**: /brand/campaigns/:id/submissions → aprobar/rechazar
+6. **Si aprobado**: Creador recibe email, envía SparkCode
+7. **Pago**: Transacción procesada, creador recibe confirmación
+
+---
+
+## 🔄 PENDIENTE
+
+### Sistema de Pagos para Marcas
+- [ ] Stripe Connect para marcas (depósito de fondos)
+- [ ] Procesamiento de transacciones campaign_transactions
+- [ ] Liberación de pagos a creadores post-SparkCode
+
+### Mejoras UX Campañas
+- [ ] Notificaciones in-app para nuevos envíos
+- [ ] Preview de video en modal de revisión
+- [ ] Filtros avanzados en /campaigns (por industria, pago)
+
+### Verificación de Marcas
+- [ ] Proceso de verificación manual (badge verified)
+- [ ] Requisitos para verificación
 
 ---
 

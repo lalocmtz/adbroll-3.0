@@ -41,6 +41,7 @@ import BrandDashboard from "./pages/brand/BrandDashboard";
 import BrandCampaigns from "./pages/brand/BrandCampaigns";
 import BrandSubmissions from "./pages/brand/BrandSubmissions";
 import BrandUpgrade from "./pages/brand/BrandUpgrade";
+import BrandRegister from "./pages/brand/BrandRegister";
 
 const queryClient = new QueryClient();
 
@@ -286,6 +287,14 @@ const App = () => {
                     element={
                       <AppRoute session={session} requiresAuth>
                         <BrandUpgrade />
+                      </AppRoute>
+                    }
+                    />
+                  <Route
+                    path="/brand/register"
+                    element={
+                      <AppRoute session={session} requiresAuth>
+                        <BrandRegister />
                       </AppRoute>
                     }
                   />

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAccountType } from "@/hooks/useAccountType";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings as SettingsIcon, User, Globe, LogOut, CreditCard, Loader2, ExternalLink, Calendar } from "lucide-react";
+import { Settings as SettingsIcon, User, Globe, LogOut, CreditCard, Loader2, ExternalLink, Calendar, Building2, ArrowRight } from "lucide-react";
 
 interface SubscriptionData {
   status: string;
@@ -26,6 +27,7 @@ interface SubscriptionData {
 
 const Settings = () => {
   const { language, setLanguage, currency, setCurrency } = useLanguage();
+  const { isBrand, brandProfile, isLoading: accountLoading } = useAccountType();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState("");
@@ -136,6 +138,79 @@ const Settings = () => {
               </span>
             </div>
           </div>
+        </Card>
+
+        {/* Account Type Section */}
+        <Card className="p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <Building2 className="h-5 w-5 text-muted-foreground" />
+            <h2 className="font-semibold">
+              {language === "es" ? "Tipo de Cuenta" : "Account Type"}
+            </h2>
+          </div>
+          
+          {accountLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">{language === "es" ? "Cargando..." : "Loading..."}</span>
+            </div>
+          ) : isBrand ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-violet-500/10 text-violet-600 border-violet-500/20">
+                    {language === "es" ? "Marca" : "Brand"}
+                  </Badge>
+                  {brandProfile?.verified && (
+                    <Badge variant="outline" className="text-green-600 border-green-500/30">
+                      {language === "es" ? "Verificada" : "Verified"}
+                    </Badge>
+                  )}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate("/brand/dashboard")}
+                  className="gap-2"
+                >
+                  {language === "es" ? "Panel de marca" : "Brand panel"}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+              {brandProfile && (
+                <p className="text-sm text-muted-foreground">
+                  {brandProfile.company_name}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Badge variant="secondary">
+                  {language === "es" ? "Creador" : "Creator"}
+                </Badge>
+              </div>
+              <div className="pt-2 border-t border-border/50">
+                <button
+                  onClick={() => navigate("/brand/register")}
+                  className="flex items-center gap-3 p-3 rounded-xl w-full transition-all duration-200 bg-gradient-to-r from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20"
+                >
+                  <Building2 className="h-5 w-5 text-violet-500" />
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-medium text-violet-600 dark:text-violet-400">
+                      {language === "es" ? "¿Eres una marca?" : "Are you a brand?"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {language === "es" 
+                        ? "Registra tu empresa y lanza campañas"
+                        : "Register your company and launch campaigns"}
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-violet-500" />
+                </button>
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Subscription Section */}
