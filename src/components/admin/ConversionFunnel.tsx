@@ -21,27 +21,39 @@ export const ConversionFunnel = () => {
 
   const loadFunnelData = async () => {
     try {
-      const [usersRes, emailsRes, subsRes] = await Promise.all([
+      // Get date 30 days ago for visitor tracking
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const [usersRes, emailsRes, subsRes, pageViewsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("email_captures").select("id, converted_at"),
         supabase.from("subscriptions").select("id, status"),
+        supabase.from("page_views")
+          .select("session_id")
+          .gte("created_at", thirtyDaysAgo.toISOString()),
       ]);
 
       const totalUsers = usersRes.count || 0;
       const emails = emailsRes.data || [];
       const subs = subsRes.data || [];
+      const pageViews = pageViewsRes.data || [];
 
       const emailsCaptured = emails.length;
       const emailsConverted = emails.filter(e => e.converted_at).length;
       const activeSubs = subs.filter(s => s.status === "active").length;
 
-      // Note: Visitors requires GA4 - show placeholder
-      const estimatedVisitors = Math.max(totalUsers * 5, 100); // Rough estimate
+      // Count unique visitors by session_id
+      const uniqueSessions = new Set(pageViews.map(v => v.session_id).filter(Boolean));
+      const uniqueVisitors = uniqueSessions.size;
+
+      // Use real data if we have page views, otherwise show 0
+      const displayVisitors = uniqueVisitors > 0 ? uniqueVisitors : 0;
 
       const funnelSteps: FunnelStep[] = [
         {
-          label: "Visitantes (estimado)",
-          count: estimatedVisitors,
+          label: "Visitantes (30d)",
+          count: displayVisitors,
           icon: <Eye className="h-5 w-5" />,
           color: "bg-slate-100 text-slate-600 border-slate-200",
         },
@@ -49,7 +61,7 @@ export const ConversionFunnel = () => {
           label: "Registros",
           count: totalUsers,
           icon: <UserPlus className="h-5 w-5" />,
-          percentage: Math.round((totalUsers / estimatedVisitors) * 100),
+          percentage: displayVisitors > 0 ? Math.round((totalUsers / displayVisitors) * 100) : undefined,
           color: "bg-blue-50 text-blue-600 border-blue-200",
         },
         {
@@ -61,7 +73,7 @@ export const ConversionFunnel = () => {
         },
         {
           label: "Checkout iniciado",
-          count: emailsCaptured, // Same as email captured in current flow
+          count: emailsCaptured,
           icon: <CreditCard className="h-5 w-5" />,
           percentage: 100,
           color: "bg-purple-50 text-purple-600 border-purple-200",
@@ -102,9 +114,11 @@ export const ConversionFunnel = () => {
         <CardTitle className="text-lg flex items-center gap-2">
           📊 Embudo de Conversión
         </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          💡 Configura Google Analytics para ver visitantes reales
-        </p>
+        {steps[0].count === 0 && (
+          <p className="text-xs text-muted-foreground">
+            Los visitantes se empezarán a registrar automáticamente
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
@@ -150,6 +164,9 @@ export const ConversionFunnel = () => {
             )}
             {steps[1].count === 0 && (
               <li>• Sin registros todavía - activa campañas de adquisición</li>
+            )}
+            {steps[0].count > 0 && steps[1].count > 0 && (
+              <li>• Tasa de registro: {Math.round((steps[1].count / steps[0].count) * 100)}% de visitantes</li>
             )}
           </ul>
         </div>
