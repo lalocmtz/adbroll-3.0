@@ -34,6 +34,9 @@ import Pricing from "./pages/Pricing";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import CheckoutCancel from "./pages/CheckoutCancel";
 import NotFound from "./pages/NotFound";
+import Campaigns from "./pages/Campaigns";
+import CampaignDetail from "./pages/CampaignDetail";
+import MySubmissions from "./pages/MySubmissions";
 
 const queryClient = new QueryClient();
 
@@ -219,6 +222,32 @@ const App = () => {
                     element={
                       <AppRoute session={session}>
                         <RelatedVideos />
+                      </AppRoute>
+                    }
+                  />
+                  
+                  {/* Campaigns routes */}
+                  <Route
+                    path="/campaigns"
+                    element={
+                      <AppRoute session={session}>
+                        <Campaigns />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/campaigns/:id"
+                    element={
+                      <AppRoute session={session}>
+                        <CampaignDetail />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/my-submissions"
+                    element={
+                      <AppRoute session={session}>
+                        <MySubmissions />
                       </AppRoute>
                     }
                   />
