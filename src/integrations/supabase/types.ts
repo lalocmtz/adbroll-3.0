@@ -203,6 +203,271 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_profiles: {
+        Row: {
+          company_name: string
+          contact_email: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          industry: string | null
+          logo_url: string | null
+          stripe_customer_id: string | null
+          updated_at: string | null
+          user_id: string
+          verified: boolean | null
+          website: string | null
+        }
+        Insert: {
+          company_name: string
+          contact_email?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          industry?: string | null
+          logo_url?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          verified?: boolean | null
+          website?: string | null
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          industry?: string | null
+          logo_url?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          verified?: boolean | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      campaign_submissions: {
+        Row: {
+          approved_at: string | null
+          approved_price_mxn: number | null
+          brand_feedback: string | null
+          campaign_id: string
+          completed_at: string | null
+          created_at: string | null
+          creator_id: string
+          creator_note: string | null
+          duration_seconds: number | null
+          id: string
+          legal_consent_accepted: boolean | null
+          legal_consent_accepted_at: string | null
+          proposed_price_mxn: number
+          rejected_at: string | null
+          spark_code: string | null
+          spark_code_submitted_at: string | null
+          status: string
+          thumbnail_url: string | null
+          updated_at: string | null
+          video_file_url: string | null
+          video_url: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_price_mxn?: number | null
+          brand_feedback?: string | null
+          campaign_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          creator_id: string
+          creator_note?: string | null
+          duration_seconds?: number | null
+          id?: string
+          legal_consent_accepted?: boolean | null
+          legal_consent_accepted_at?: string | null
+          proposed_price_mxn: number
+          rejected_at?: string | null
+          spark_code?: string | null
+          spark_code_submitted_at?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string | null
+          video_file_url?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_price_mxn?: number | null
+          brand_feedback?: string | null
+          campaign_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          creator_id?: string
+          creator_note?: string | null
+          duration_seconds?: number | null
+          id?: string
+          legal_consent_accepted?: boolean | null
+          legal_consent_accepted_at?: string | null
+          proposed_price_mxn?: number
+          rejected_at?: string | null
+          spark_code?: string | null
+          spark_code_submitted_at?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string | null
+          video_file_url?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_submissions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_transactions: {
+        Row: {
+          amount_mxn: number
+          brand_id: string
+          created_at: string | null
+          creator_id: string
+          id: string
+          paid_at: string | null
+          platform_fee_mxn: number | null
+          status: string
+          stripe_payment_intent_id: string | null
+          submission_id: string
+        }
+        Insert: {
+          amount_mxn: number
+          brand_id: string
+          created_at?: string | null
+          creator_id: string
+          id?: string
+          paid_at?: string | null
+          platform_fee_mxn?: number | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          submission_id: string
+        }
+        Update: {
+          amount_mxn?: number
+          brand_id?: string
+          created_at?: string | null
+          creator_id?: string
+          id?: string
+          paid_at?: string | null
+          platform_fee_mxn?: number | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_transactions_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brand_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_transactions_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          approved_count: number | null
+          brand_id: string
+          brief: string
+          created_at: string | null
+          ends_at: string | null
+          id: string
+          max_payment_mxn: number
+          max_submissions: number | null
+          min_payment_mxn: number
+          objective: string
+          product_image_url: string | null
+          product_name: string
+          product_url: string | null
+          requires_spark_code: boolean | null
+          rules: string | null
+          starts_at: string | null
+          status: string
+          submissions_count: number | null
+          title: string
+          total_spent_mxn: number | null
+          updated_at: string | null
+          video_duration_max: number | null
+          video_duration_min: number | null
+        }
+        Insert: {
+          approved_count?: number | null
+          brand_id: string
+          brief: string
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          max_payment_mxn?: number
+          max_submissions?: number | null
+          min_payment_mxn?: number
+          objective?: string
+          product_image_url?: string | null
+          product_name: string
+          product_url?: string | null
+          requires_spark_code?: boolean | null
+          rules?: string | null
+          starts_at?: string | null
+          status?: string
+          submissions_count?: number | null
+          title: string
+          total_spent_mxn?: number | null
+          updated_at?: string | null
+          video_duration_max?: number | null
+          video_duration_min?: number | null
+        }
+        Update: {
+          approved_count?: number | null
+          brand_id?: string
+          brief?: string
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          max_payment_mxn?: number
+          max_submissions?: number | null
+          min_payment_mxn?: number
+          objective?: string
+          product_image_url?: string | null
+          product_name?: string
+          product_url?: string | null
+          requires_spark_code?: boolean | null
+          rules?: string | null
+          starts_at?: string | null
+          status?: string
+          submissions_count?: number | null
+          title?: string
+          total_spent_mxn?: number | null
+          updated_at?: string | null
+          video_duration_max?: number | null
+          video_duration_min?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brand_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creators: {
         Row: {
           avatar_url: string | null
@@ -1235,6 +1500,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_brand: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "user" | "founder" | "brand"
