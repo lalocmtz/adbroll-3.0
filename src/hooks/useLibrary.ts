@@ -48,6 +48,59 @@ const STORAGE_LIMITS = {
   pro: 5 * 1024 * 1024 * 1024, // 5GB
 };
 
+// Generate thumbnail from video file
+const generateVideoThumbnail = (file: File): Promise<{ blob: Blob; duration: number } | null> => {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    
+    video.onloadedmetadata = () => {
+      // Seek to 1 second or 10% of duration, whichever is smaller
+      video.currentTime = Math.min(1, video.duration * 0.1);
+    };
+    
+    video.onseeked = () => {
+      // Set canvas size (max 320px width for thumbnail)
+      const scale = Math.min(1, 320 / video.videoWidth);
+      canvas.width = video.videoWidth * scale;
+      canvas.height = video.videoHeight * scale;
+      
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(video.src);
+          if (blob) {
+            resolve({ blob, duration: Math.round(video.duration) });
+          } else {
+            resolve(null);
+          }
+        }, "image/jpeg", 0.8);
+      } else {
+        URL.revokeObjectURL(video.src);
+        resolve(null);
+      }
+    };
+    
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src);
+      resolve(null);
+    };
+    
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      URL.revokeObjectURL(video.src);
+      resolve(null);
+    }, 10000);
+    
+    video.src = URL.createObjectURL(file);
+  });
+};
+
 export const useLibrary = () => {
   const [folders, setFolders] = useState<LibraryFolder[]>([]);
   const [files, setFiles] = useState<LibraryFile[]>([]);
@@ -270,6 +323,35 @@ export const useLibrary = () => {
           .from("user-library")
           .getPublicUrl(fileName);
 
+        let thumbnailUrl: string | null = null;
+        let durationSeconds: number | null = null;
+
+        // Generate thumbnail for videos
+        if (fileType === "video") {
+          const thumbnailResult = await generateVideoThumbnail(file);
+          if (thumbnailResult) {
+            durationSeconds = thumbnailResult.duration;
+            
+            // Upload thumbnail
+            const thumbFileName = `${user.id}/thumbs/${Date.now()}-thumb.jpg`;
+            const { error: thumbError } = await supabase.storage
+              .from("user-library")
+              .upload(thumbFileName, thumbnailResult.blob, { contentType: "image/jpeg" });
+
+            if (!thumbError) {
+              const { data: thumbUrlData } = supabase.storage
+                .from("user-library")
+                .getPublicUrl(thumbFileName);
+              thumbnailUrl = thumbUrlData.publicUrl;
+            }
+          }
+        }
+
+        // For images, use the image itself as thumbnail
+        if (fileType === "image") {
+          thumbnailUrl = urlData.publicUrl;
+        }
+
         // Create file record
         const { data: fileRecord, error: insertError } = await supabase
           .from("library_files")
@@ -280,7 +362,9 @@ export const useLibrary = () => {
             file_type: fileType,
             mime_type: file.type,
             file_url: urlData.publicUrl,
+            thumbnail_url: thumbnailUrl,
             file_size: file.size,
+            duration_seconds: durationSeconds,
           })
           .select()
           .single();
