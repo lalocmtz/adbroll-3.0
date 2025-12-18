@@ -166,7 +166,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       stripe_subscription_id: subscriptionId,
       stripe_customer_id: customerId,
       status: "active",
-      price_usd: 29,
+      price_usd: 14.99,
       created_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
 
@@ -174,6 +174,12 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     console.error("Error creating subscription:", error);
   } else {
     console.log(`Subscription created for user: ${userId}`);
+
+    // Mark email as converted in email_captures
+    await supabaseAdmin
+      .from("email_captures")
+      .update({ converted_at: new Date().toISOString() })
+      .eq("email", guestEmail || "");
     
     // Send subscription confirmation email
     const { data: profile } = await supabaseAdmin
@@ -183,7 +189,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       .single();
     
     if (profile?.email && !isNewAccount) {
-      await sendEmail(profile.email, "subscription_confirmed", { price: "29" });
+      await sendEmail(profile.email, "subscription_confirmed", { price: "14.99" });
     }
   }
 }
@@ -216,12 +222,12 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   // Only send confirmation for renewal payments (not first payment which is handled in checkout)
   const isRenewal = invoice.billing_reason === "subscription_cycle";
   if (isRenewal && profile.email) {
-    await sendEmail(profile.email, "subscription_confirmed", { price: "29" });
+    await sendEmail(profile.email, "subscription_confirmed", { price: "14.99" });
   }
 
-  // Calculate affiliate commission
+  // Calculate affiliate commission (30% of $14.99 = $4.50)
   if (profile.referral_code_used) {
-    await calculateAffiliateCommission(profile.id, profile.referral_code_used, 29, profile.email);
+    await calculateAffiliateCommission(profile.id, profile.referral_code_used, 14.99, profile.email);
   }
 }
 

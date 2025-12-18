@@ -91,12 +91,14 @@ const CampaignDetail = () => {
     fetchCampaign();
   }, [id]);
 
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!isLoading && !isLoggedIn) {
+  // Show paywall when trying to submit without login or subscription
+  const handleSubmitClick = () => {
+    if (!isLoggedIn || !hasPaid) {
       setPaywallOpen(true);
+      return;
     }
-  }, [isLoading, isLoggedIn]);
+    setShowSubmitForm(true);
+  };
 
   const formatDate = (date: string | null) => {
     if (!date) return null;
@@ -358,7 +360,7 @@ const CampaignDetail = () => {
 
           {/* Submit CTA */}
           {!showSubmitForm ? (
-            <Button className="w-full h-12 text-base" onClick={() => setShowSubmitForm(true)}>
+            <Button className="w-full h-12 text-base" onClick={handleSubmitClick}>
               <FileVideo className="h-5 w-5 mr-2" />
               {language === "es" ? "Enviar mi video" : "Submit my video"}
             </Button>

@@ -648,6 +648,33 @@ export type Database = {
           },
         ]
       }
+      email_captures: {
+        Row: {
+          converted_at: string | null
+          created_at: string | null
+          email: string
+          id: string
+          referral_code: string | null
+          source: string | null
+        }
+        Insert: {
+          converted_at?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          referral_code?: string | null
+          source?: string | null
+        }
+        Update: {
+          converted_at?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          referral_code?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           created_at: string | null

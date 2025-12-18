@@ -121,6 +121,20 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
     setLoading(true);
 
     try {
+      // Save email to database for abandoned cart tracking
+      const { error: captureError } = await supabase
+        .from("email_captures")
+        .insert({
+          email: email.trim(),
+          referral_code: codeValid ? referralCode.trim().toUpperCase() : null,
+          source: "checkout_modal",
+        });
+
+      if (captureError) {
+        console.error("Error saving email capture:", captureError);
+        // Continue anyway - don't block checkout for capture errors
+      }
+
       // Call edge function to create checkout session for guest
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout-guest", {
         body: { 

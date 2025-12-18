@@ -67,7 +67,7 @@ const exploreItems: NavItem[] = [
 // GANA DINERO - Monetization
 const earnItems: NavItem[] = [
   { to: "/campaigns", labelEs: "Campañas", labelEn: "Campaigns", icon: Megaphone, lockedForVisitor: false },
-  { to: "/my-submissions", labelEs: "Mis Envíos", labelEn: "My Submissions", icon: Send, lockedForVisitor: true },
+  { to: "/my-submissions", labelEs: "Colaboraciones", labelEn: "Collaborations", icon: Send, lockedForVisitor: true },
   { to: "/affiliates", labelEs: "Afiliados", labelEn: "Affiliates", icon: Coins, lockedForVisitor: true },
 ];
 
