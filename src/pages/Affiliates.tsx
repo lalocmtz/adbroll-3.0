@@ -309,8 +309,8 @@ const Affiliates = () => {
             </p>
             <p className="text-sm font-medium text-green-600 mb-4">
               {language === "es" 
-                ? "≈ $8.70 USD al mes por cada usuario activo"
-                : "≈ $8.70 USD per month for each active user"}
+                ? "≈ $4.50 USD al mes por cada usuario activo"
+                : "≈ $4.50 USD per month for each active user"}
             </p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="gap-1">

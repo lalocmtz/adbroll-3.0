@@ -90,7 +90,7 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
             transition={{ duration: 0.3, delay: 0.1 }}
             className="text-center mb-6"
           >
-            <div className="text-3xl font-bold text-foreground">$29<span className="text-lg font-normal text-muted-foreground">/mes</span></div>
+            <div className="text-3xl font-bold text-foreground">$14.99<span className="text-lg font-normal text-muted-foreground">/mes</span></div>
             <p className="text-sm text-muted-foreground mt-1">Cancela cuando quieras</p>
           </motion.div>
 

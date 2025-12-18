@@ -401,7 +401,7 @@ const Landing = () => {
           <div className="text-center mb-16">
             <Badge className="badge-landing-light mb-4">Plan único</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Adbroll Pro — $29 USD/mes
+              Adbroll Pro — $14.99 USD/mes
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Un solo plan con acceso completo. Si vienes con código de referido, obtienes <span className="text-primary font-semibold">50% OFF</span> tu primer mes.
@@ -422,15 +422,15 @@ const Landing = () => {
                 <h3 className="text-2xl font-bold mb-2">Adbroll Pro</h3>
                 <p className="text-muted-foreground text-sm mb-4">Todo lo que necesitas para vender más en TikTok Shop</p>
                 <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-5xl font-bold">$29</span>
+                  <span className="text-5xl font-bold">$14.99</span>
                   <span className="text-muted-foreground">/mes</span>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">~$499 MXN/mes</p>
+                <p className="text-sm text-muted-foreground mt-1">~$300 MXN/mes</p>
               </div>
 
               <ul className="space-y-3 mb-6">
                 {[
-                  "Acceso completo a TikTok Shop México y USA",
+                  "Acceso completo a TikTok Shop México",
                   "Scripts reales + extractor automático",
                   "Variantes IA ilimitadas",
                   "Hooks generados por IA",
@@ -467,16 +467,16 @@ const Landing = () => {
             <Accordion type="single" collapsible className="space-y-4">
               {[{
                 question: "¿Cuánto cuesta Adbroll?",
-                answer: "Adbroll Pro cuesta $29 USD/mes (~$499 MXN/mes). Un solo plan con acceso completo a todas las funciones."
+                answer: "Adbroll Pro cuesta $14.99 USD/mes (~$300 MXN/mes). Un solo plan con acceso completo a todas las funciones."
               }, {
                 question: "¿Qué tan precisos son los datos?",
                 answer: "Nuestros datos provienen directamente de Kalodata, la fuente más confiable para métricas de TikTok Shop. Actualizamos los rankings y videos diariamente para darte información real y actualizada."
               }, {
-                question: "¿Funciona para México y Estados Unidos?",
-                answer: "Sí, funciona para TikTok Shop México y Estados Unidos. Puedes cambiar de país dentro del panel."
+                question: "¿Funciona para TikTok Shop México?",
+                answer: "Sí, funciona para TikTok Shop México con datos actualizados diariamente."
               }, {
                 question: "¿Puedo ganar dinero recomendando Adbroll?",
-                answer: "¡Sí! Con nuestro programa de afiliados ganas el 30% de comisión recurrente por cada usuario que se suscriba con tu código. Eso es aproximadamente $8.70 USD al mes por cada usuario activo."
+                answer: "¡Sí! Con nuestro programa de afiliados ganas el 30% de comisión recurrente por cada usuario que se suscriba con tu código. Eso es aproximadamente $4.50 USD al mes por cada usuario activo."
               }, {
                 question: "¿Puedo cancelar cuando quiera?",
                 answer: "Absolutamente. No hay contratos ni compromisos a largo plazo. Puedes cancelar tu suscripción en cualquier momento desde tu panel de configuración."
