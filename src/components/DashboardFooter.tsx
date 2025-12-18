@@ -45,7 +45,7 @@ const DashboardFooter = () => {
           </a>
           <div className="flex gap-2">
             <a
-              href="https://tiktok.com/@adbroll"
+              href="https://www.tiktok.com/@adbroll"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors"
@@ -56,7 +56,7 @@ const DashboardFooter = () => {
               </svg>
             </a>
             <a
-              href="https://instagram.com/adbroll"
+              href="https://www.instagram.com/adbrollapp/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors"
@@ -67,7 +67,7 @@ const DashboardFooter = () => {
               </svg>
             </a>
             <a
-              href="https://youtube.com/@adbroll"
+              href="https://www.youtube.com/@Adbroll"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors"
