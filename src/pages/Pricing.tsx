@@ -75,7 +75,7 @@ const Pricing = () => {
 
   const features = language === "es" 
     ? [
-        "Acceso completo a TikTok Shop México y Estados Unidos",
+        "Acceso completo a TikTok Shop México",
         "Scripts reales + extractor automático",
         "Variantes IA ilimitadas",
         "Hooks generados por IA",
@@ -85,7 +85,7 @@ const Pricing = () => {
         "Soporte prioritario",
       ]
     : [
-        "Full access to TikTok Shop Mexico and United States",
+        "Full access to TikTok Shop Mexico",
         "Real scripts + automatic extractor",
         "Unlimited AI variants",
         "AI-generated hooks",
@@ -103,8 +103,8 @@ const Pricing = () => {
           : "How much does Adbroll cost?",
       answer:
         language === "es"
-          ? "Adbroll Pro cuesta $29 USD/mes (~$499 MXN/mes). Un solo plan con acceso completo a todas las funciones."
-          : "Adbroll Pro is $29/month. One plan with full access to all features.",
+          ? "Adbroll Pro cuesta $14.99 USD/mes (~$300 MXN/mes). Un solo plan con acceso completo a todas las funciones."
+          : "Adbroll Pro is $14.99/month. One plan with full access to all features.",
     },
     {
       question:
@@ -119,12 +119,12 @@ const Pricing = () => {
     {
       question:
         language === "es"
-          ? "¿Funciona para México y Estados Unidos?"
-          : "Does it work for Mexico and the United States?",
+          ? "¿Funciona para TikTok Shop México?"
+          : "Does it work for TikTok Shop Mexico?",
       answer:
         language === "es"
-          ? "Sí, funciona para TikTok Shop México y Estados Unidos. Puedes cambiar de país dentro del panel."
-          : "Yes, it works for TikTok Shop Mexico and US. You can switch markets inside the dashboard.",
+          ? "Sí, funciona para TikTok Shop México con datos actualizados diariamente."
+          : "Yes, it works for TikTok Shop Mexico with daily updated data.",
     },
     {
       question:
@@ -133,8 +133,8 @@ const Pricing = () => {
           : "Can I earn money recommending Adbroll?",
       answer:
         language === "es"
-          ? "¡Absolutamente! Con nuestro programa de afiliados, ganas el 30% de comisión recurrente por cada usuario que se suscriba con tu código. Eso es aproximadamente $8.70 USD al mes por cada usuario activo."
-          : "Absolutely! With our affiliate program, you earn 30% recurring commission for every user who subscribes with your code. That's approximately $8.70 USD per month for each active user.",
+          ? "¡Absolutamente! Con nuestro programa de afiliados, ganas el 30% de comisión recurrente por cada usuario que se suscriba con tu código. Eso es aproximadamente $4.50 USD al mes por cada usuario activo."
+          : "Absolutely! With our affiliate program, you earn 30% recurring commission for every user who subscribes with your code. That's approximately $4.50 USD per month for each active user.",
     },
   ];
 
@@ -174,7 +174,7 @@ const Pricing = () => {
     }
   };
 
-  const price = 29;
+  const price = 14.99;
   const discountedPrice = referralValid ? price * 0.5 : price;
 
   return (
@@ -274,7 +274,7 @@ const Pricing = () => {
               </div>
               
               <p className="text-sm text-muted-foreground">
-                {language === "es" ? "~$499 MXN/mes" : "~$499 MXN/month"}
+                {language === "es" ? "~$300 MXN/mes" : "~$300 MXN/month"}
               </p>
 
               {referralValid && (

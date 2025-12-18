@@ -158,8 +158,8 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
     { icon: Zap, text: "Actualizaciones diarias" },
   ];
 
-  const displayPrice = codeValid ? "$14.50" : "$29";
-  const originalPrice = codeValid ? "$29" : null;
+  const displayPrice = codeValid ? "$7.50" : "$14.99";
+  const originalPrice = codeValid ? "$14.99" : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -336,9 +336,10 @@ const Unlock = () => {
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-bold mb-2">Adbroll Pro</h3>
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl font-bold">$29</span>
+                  <span className="text-5xl font-bold">$14.99</span>
                   <span className="text-muted-foreground">/mes</span>
                 </div>
+                <p className="text-sm text-muted-foreground mt-1">~$300 MXN/mes</p>
               </div>
 
               <ul className="space-y-3 mb-8">

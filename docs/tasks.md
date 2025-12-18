@@ -130,7 +130,7 @@
 - [x] Edge function `create-checkout` - Crea sesión de Stripe Checkout
 - [x] Edge function `stripe-webhook` - Maneja eventos de Stripe (checkout.session.completed, invoice.paid, invoice.payment_failed, subscription.deleted/updated)
 - [x] Edge function `customer-portal` - Portal de gestión de suscripción
-- [x] Lógica de comisión de afiliados (30% = $8.70 por pago)
+- [x] Lógica de comisión de afiliados (30% = $4.50 por pago)
 
 ### Frontend
 - [x] PaywallModal - Conectado a Stripe Checkout
@@ -145,6 +145,12 @@
 - [x] Usuarios pagados: hasPaid = true, accessLevel = 'paid', sin blur
 - [x] Usuarios free: accessLevel = 'free', blur parcial
 - [x] Visitantes: accessLevel = 'visitor', blur completo
+
+### Pricing Migration (Diciembre 2024)
+- [x] Precio actualizado: $29 USD → $14.99 USD (~$300 MXN)
+- [x] Descuento referido: $14.50 → $7.50 (50% off)
+- [x] Comisión afiliados: $8.70 → $4.50 (30%)
+- [x] Mercado simplificado: Solo TikTok Shop México (eliminado USA)
 
 ---
 

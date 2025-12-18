@@ -117,7 +117,7 @@ export const emailTemplates = {
   }),
 
   // 2. Subscription confirmed
-  subscriptionConfirmed: (email: string, price: string = "$29 USD") => ({
+  subscriptionConfirmed: (email: string, price: string = "$14.99 USD") => ({
     subject: "✅ ¡Tu suscripción a AdBroll Pro está activa!",
     html: emailWrapper(`
       <div style="text-align: center; margin-bottom: 24px;">
@@ -284,7 +284,7 @@ export const emailTemplates = {
   }),
 
   // 8. Renewal reminder (3 days before)
-  renewalReminder: (renewDate: string, price: string = "$29 USD") => ({
+  renewalReminder: (renewDate: string, price: string = "$14.99 USD") => ({
     subject: "📅 Tu suscripción se renovará pronto",
     html: emailWrapper(`
       <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">

@@ -56,14 +56,14 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
 
   const features = language === "es" 
     ? [
-        "Acceso completo a TikTok Shop México y USA",
+        "Acceso completo a TikTok Shop México",
         "Scripts reales + extractor automático",
         "Variantes IA ilimitadas",
         "Hooks generados por IA",
         "Panel de afiliados (30% recurrente)",
       ]
     : [
-        "Full access to TikTok Shop Mexico and US",
+        "Full access to TikTok Shop Mexico",
         "Real scripts + automatic extractor",
         "Unlimited AI variants",
         "AI-generated hooks",
@@ -81,7 +81,7 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
     }
   };
 
-  const price = 29;
+  const price = 14.99;
   const discountedPrice = referralValid ? price * 0.5 : price;
 
   return (
@@ -139,7 +139,7 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
             </div>
 
             <p className="text-xs text-muted-foreground mt-1">
-              ~$499 MXN/{language === "es" ? "mes" : "month"}
+              ~$300 MXN/{language === "es" ? "mes" : "month"}
             </p>
 
             {referralValid && (

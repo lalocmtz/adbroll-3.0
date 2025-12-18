@@ -19,7 +19,7 @@ export const PricingCard = ({
   const { language } = useLanguage();
   const { referralCodeUsed, referralDiscount } = useReferralCode();
   
-  const price = 29;
+  const price = 14.99;
   const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied;
   const discountedPrice = hasDiscount ? price * 0.5 : price;
 
@@ -55,7 +55,7 @@ export const PricingCard = ({
           </span>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          ~$499 MXN/{language === "es" ? "mes" : "mo"}
+          ~$300 MXN/{language === "es" ? "mes" : "mo"}
         </p>
         {hasDiscount && (
           <p className="text-sm text-green-600 mt-2 font-medium">
