@@ -49,7 +49,7 @@ interface NavItem {
 
 // Section labels
 const sectionLabels = {
-  explore: { es: "EXPLORA", en: "EXPLORE" },
+  explore: { es: "EXPLORA TIKTOKSHOP", en: "EXPLORE TIKTOKSHOP" },
   earn: { es: "GANA DINERO", en: "EARN MONEY" },
   workspace: { es: "TU CENTRO", en: "YOUR HUB" },
   account: { es: "CUENTA", en: "ACCOUNT" },
