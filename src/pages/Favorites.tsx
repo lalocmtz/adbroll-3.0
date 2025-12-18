@@ -212,11 +212,8 @@ const Favorites = () => {
   };
 
   const getAvatarUrl = (creator: Creator): string => {
-    if (creator.avatar_url && creator.avatar_url.startsWith("http")) {
-      return creator.avatar_url;
-    }
     const name = encodeURIComponent(creator.nombre_completo || creator.usuario_creador);
-    return `https://ui-avatars.com/api/?name=${name}&background=0D8ABC&color=fff&bold=true&size=128`;
+    return `https://ui-avatars.com/api/?name=${name}&background=F31260&color=fff&bold=true&size=128&format=svg`;
   };
 
   if (loading) {
