@@ -23,7 +23,6 @@ interface EmailRequest {
   subject: string;
   html: string;
   from?: string;
-  // Pre-built template support
   template?: string;
   templateData?: Record<string, string>;
 }
@@ -83,6 +82,7 @@ const ctaButton = (text: string, url: string) => `
 
 // Pre-built templates
 const templates: Record<string, (data: Record<string, string>) => { subject: string; html: string }> = {
+  // WELCOME - For paid users (existing)
   welcome: (data) => ({
     subject: "🎉 ¡Bienvenido a AdBroll!",
     html: emailWrapper(`
@@ -103,6 +103,144 @@ const templates: Record<string, (data: Record<string, string>) => { subject: str
       ${ctaButton("Explorar Dashboard", `${BRAND.baseUrl}/app`)}
       <p style="color: ${BRAND.mutedColor}; font-size: 14px; margin-top: 32px;">
         — El equipo de AdBroll
+      </p>
+    `),
+  }),
+
+  // WELCOME FREE - For free registrations
+  welcome_free: (data) => ({
+    subject: "🎉 ¡Tu cuenta de AdBroll está lista!",
+    html: emailWrapper(`
+      <h1 style="color: ${BRAND.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">
+        ¡Hola${data.name ? ` ${data.name}` : ""}! 👋
+      </h1>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+        Tu cuenta gratuita de <strong>AdBroll</strong> está lista. Ya puedes explorar la plataforma.
+      </p>
+      <div style="background: #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <p style="margin: 0 0 12px; font-size: 14px; color: ${BRAND.mutedColor}; font-weight: 600;">Con tu cuenta gratuita puedes:</p>
+        <ul style="color: ${BRAND.textColor}; font-size: 15px; line-height: 1.8; margin: 0; padding-left: 20px;">
+          <li>Ver los Top 20 videos del día</li>
+          <li>Explorar productos trending</li>
+          <li>Conocer a los mejores creadores</li>
+        </ul>
+      </div>
+      <div style="background: linear-gradient(135deg, #FDF2F8, #FCE7F3); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #FBCFE8;">
+        <p style="margin: 0 0 8px; font-size: 16px; font-weight: 700; color: ${BRAND.primaryColor};">
+          ✨ Desbloquea todas las funciones
+        </p>
+        <p style="margin: 0; font-size: 14px; color: ${BRAND.textColor};">
+          Con AdBroll Pro accedes a guiones transcritos, análisis de scripts, variantes de hooks y mucho más.
+        </p>
+      </div>
+      <div style="text-align: center;">
+        ${ctaButton("Explorar Dashboard", `${BRAND.baseUrl}/app`)}
+      </div>
+      <p style="color: ${BRAND.mutedColor}; font-size: 14px; margin-top: 32px; text-align: center;">
+        — El equipo de AdBroll
+      </p>
+    `),
+  }),
+
+  // ABANDONED CART - 24h after email capture without conversion
+  abandoned_cart: (data) => ({
+    subject: "📊 Tus videos rentables te esperan",
+    html: emailWrapper(`
+      <h1 style="color: ${BRAND.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">
+        ¿Te quedaste con ganas de más?
+      </h1>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+        Notamos que empezaste a explorar AdBroll pero no completaste tu suscripción.
+      </p>
+      <div style="background: #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <p style="margin: 0 0 12px; font-size: 14px; color: ${BRAND.mutedColor}; font-weight: 600;">
+          Esto es lo que te estás perdiendo:
+        </p>
+        <ul style="color: ${BRAND.textColor}; font-size: 15px; line-height: 1.8; margin: 0; padding-left: 20px;">
+          <li>🎯 Guiones transcritos de videos que VENDEN</li>
+          <li>📈 Análisis de estructura de scripts exitosos</li>
+          <li>🔄 Generación de variantes de hooks con IA</li>
+          <li>💎 Descubridor de productos oportunidad</li>
+        </ul>
+      </div>
+      ${data.hasDiscount === 'true' ? `
+        <div style="background: linear-gradient(135deg, #DCFCE7, #D1FAE5); border-radius: 12px; padding: 20px; margin-bottom: 24px; border: 1px solid #86EFAC; text-align: center;">
+          <p style="margin: 0; font-size: 18px; font-weight: 700; color: #166534;">
+            🎉 Tu código de 50% OFF sigue activo
+          </p>
+        </div>
+      ` : ''}
+      <div style="text-align: center;">
+        ${ctaButton("Completar mi suscripción", `${BRAND.baseUrl}/pricing`)}
+      </div>
+      <p style="color: ${BRAND.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
+        ¿Preguntas? Responde a este email y te ayudamos.
+      </p>
+    `),
+  }),
+
+  // FREE USER REMINDER - 3 days after registration without subscription
+  free_user_reminder: (data) => ({
+    subject: "💡 ¿Ya viste estos videos rentables?",
+    html: emailWrapper(`
+      <h1 style="color: ${BRAND.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">
+        Hola${data.name ? ` ${data.name}` : ""} 👋
+      </h1>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+        Han pasado unos días desde que creaste tu cuenta. ¿Ya exploraste todas las funciones?
+      </p>
+      <div style="background: #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <p style="margin: 0 0 8px; font-size: 14px; color: ${BRAND.mutedColor};">Esta semana en AdBroll:</p>
+        <p style="margin: 0; font-size: 24px; font-weight: 700; color: ${BRAND.textColor};">
+          +50 nuevos videos analizados
+        </p>
+        <p style="margin: 8px 0 0; font-size: 14px; color: ${BRAND.mutedColor};">
+          Productos nuevos, creadores top, y scripts que están vendiendo HOY
+        </p>
+      </div>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+        Con <strong>AdBroll Pro</strong> puedes ver los guiones completos de cada video y generar tus propias versiones.
+      </p>
+      <div style="text-align: center;">
+        ${ctaButton("Ver qué hay de nuevo", `${BRAND.baseUrl}/app`)}
+      </div>
+      <p style="color: ${BRAND.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
+        — El equipo de AdBroll
+      </p>
+    `),
+  }),
+
+  // RENEWAL REMINDER - 3 days before subscription renewal
+  renewal_reminder: (data) => ({
+    subject: "🔄 Tu suscripción se renueva pronto",
+    html: emailWrapper(`
+      <h1 style="color: ${BRAND.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">
+        Recordatorio de renovación
+      </h1>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+        Tu suscripción a <strong>AdBroll Pro</strong> se renovará automáticamente en 3 días.
+      </p>
+      <div style="background: #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size: 14px; color: ${BRAND.mutedColor};">Plan:</td>
+            <td style="font-size: 14px; color: ${BRAND.textColor}; font-weight: 600; text-align: right;">AdBroll Pro</td>
+          </tr>
+          <tr>
+            <td style="font-size: 14px; color: ${BRAND.mutedColor}; padding-top: 8px;">Monto:</td>
+            <td style="font-size: 14px; color: ${BRAND.textColor}; font-weight: 600; text-align: right; padding-top: 8px;">$${data.price || "29"} USD/mes</td>
+          </tr>
+          <tr>
+            <td style="font-size: 14px; color: ${BRAND.mutedColor}; padding-top: 8px;">Fecha de renovación:</td>
+            <td style="font-size: 14px; color: ${BRAND.textColor}; font-weight: 600; text-align: right; padding-top: 8px;">${data.renewDate || "Próximamente"}</td>
+          </tr>
+        </table>
+      </div>
+      <p style="color: ${BRAND.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
+        No tienes que hacer nada. Tu acceso continuará sin interrupción.
+      </p>
+      <p style="color: ${BRAND.mutedColor}; font-size: 14px; margin-top: 24px;">
+        Si deseas cancelar o modificar tu suscripción, puedes hacerlo desde tu <a href="${BRAND.baseUrl}/settings" style="color: ${BRAND.primaryColor};">configuración</a>.
       </p>
     `),
   }),

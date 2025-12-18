@@ -653,6 +653,7 @@ export type Database = {
           converted_at: string | null
           created_at: string | null
           email: string
+          followup_sent_at: string | null
           id: string
           referral_code: string | null
           source: string | null
@@ -661,6 +662,7 @@ export type Database = {
           converted_at?: string | null
           created_at?: string | null
           email: string
+          followup_sent_at?: string | null
           id?: string
           referral_code?: string | null
           source?: string | null
@@ -669,6 +671,7 @@ export type Database = {
           converted_at?: string | null
           created_at?: string | null
           email?: string
+          followup_sent_at?: string | null
           id?: string
           referral_code?: string | null
           source?: string | null
@@ -1142,8 +1145,10 @@ export type Database = {
           marketplace: string | null
           plan: Database["public"]["Enums"]["user_plan"] | null
           referral_code_used: string | null
+          reminder_email_sent_at: string | null
           stripe_customer_id: string | null
           updated_at: string | null
+          welcome_email_sent_at: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1156,8 +1161,10 @@ export type Database = {
           marketplace?: string | null
           plan?: Database["public"]["Enums"]["user_plan"] | null
           referral_code_used?: string | null
+          reminder_email_sent_at?: string | null
           stripe_customer_id?: string | null
           updated_at?: string | null
+          welcome_email_sent_at?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -1170,8 +1177,10 @@ export type Database = {
           marketplace?: string | null
           plan?: Database["public"]["Enums"]["user_plan"] | null
           referral_code_used?: string | null
+          reminder_email_sent_at?: string | null
           stripe_customer_id?: string | null
           updated_at?: string | null
+          welcome_email_sent_at?: string | null
         }
         Relationships: []
       }
@@ -1219,6 +1228,7 @@ export type Database = {
           id: string
           price_usd: number
           renew_at: string | null
+          renewal_reminder_sent_at: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -1229,6 +1239,7 @@ export type Database = {
           id?: string
           price_usd?: number
           renew_at?: string | null
+          renewal_reminder_sent_at?: string | null
           status: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -1239,6 +1250,7 @@ export type Database = {
           id?: string
           price_usd?: number
           renew_at?: string | null
+          renewal_reminder_sent_at?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
