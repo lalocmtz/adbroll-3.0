@@ -22,6 +22,7 @@ import {
   Lock,
   Unlock,
   LogOut,
+  FolderOpen,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import logoDark from "@/assets/logo-dark.png";
@@ -38,6 +39,7 @@ const navItems = [
   { to: "/creadores", label: "creators", labelEs: "Creadores", labelEn: "Creators", icon: Users, lockedForVisitor: false },
   { to: "/opportunities", label: "opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
   { to: "/favorites", label: "favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
+  { to: "/library", label: "library", labelEs: "Mi Biblioteca", labelEn: "My Library", icon: FolderOpen, lockedForVisitor: true },
   { to: "/tools", label: "tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true },
 ];
 

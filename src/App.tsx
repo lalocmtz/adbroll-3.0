@@ -17,6 +17,7 @@ import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Creators from "./pages/Creators";
 import Favorites from "./pages/Favorites";
+import Library from "./pages/Library";
 import Tools from "./pages/Tools";
 import Settings from "./pages/Settings";
 import Support from "./pages/Support";
@@ -154,6 +155,14 @@ const App = () => {
                     element={
                       <AppRoute session={session}>
                         <Favorites />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/library"
+                    element={
+                      <AppRoute session={session}>
+                        <Library />
                       </AppRoute>
                     }
                   />
