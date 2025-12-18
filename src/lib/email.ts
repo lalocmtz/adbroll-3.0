@@ -314,6 +314,191 @@ export const emailTemplates = {
       </p>
     `),
   }),
+
+  // =========================================
+  // CAMPAIGN EMAIL TEMPLATES
+  // =========================================
+
+  // 9. Campaign submission received (for brands)
+  campaignSubmissionReceived: (brandName: string, campaignTitle: string, creatorName: string) => ({
+    subject: `📹 Nuevo video recibido para "${campaignTitle}"`,
+    html: emailWrapper(`
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; background: #DBEAFE; border-radius: 50%; padding: 16px; margin-bottom: 16px;">
+          <span style="font-size: 32px;">📹</span>
+        </div>
+      </div>
+      <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700; text-align: center;">
+        ¡Nuevo video recibido!
+      </h1>
+      <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
+        Hola <strong>${brandName}</strong>, un creador ha enviado un video para tu campaña.
+      </p>
+      <div style="background: #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="font-size: 14px; color: ${brandStyles.mutedColor};">Campaña</td>
+            <td style="font-size: 14px; color: ${brandStyles.textColor}; text-align: right; font-weight: 600;">${campaignTitle}</td>
+          </tr>
+          <tr>
+            <td style="font-size: 14px; color: ${brandStyles.mutedColor}; padding-top: 12px;">Creador</td>
+            <td style="font-size: 14px; color: ${brandStyles.textColor}; text-align: right; font-weight: 600; padding-top: 12px;">${creatorName}</td>
+          </tr>
+        </table>
+      </div>
+      <div style="text-align: center;">
+        ${ctaButton("Revisar video", "https://adbroll.com/brand/dashboard")}
+      </div>
+      <p style="color: ${brandStyles.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
+        Revisa el video y apruébalo o solicita cambios desde tu panel de marca.
+      </p>
+    `),
+  }),
+
+  // 10. Submission approved (for creators)
+  submissionApproved: (creatorName: string, campaignTitle: string, approvedPrice: string) => ({
+    subject: `✅ ¡Tu video fue aprobado! - "${campaignTitle}"`,
+    html: emailWrapper(`
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; background: #DCFCE7; border-radius: 50%; padding: 16px; margin-bottom: 16px;">
+          <span style="font-size: 32px;">✅</span>
+        </div>
+      </div>
+      <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700; text-align: center;">
+        ¡Video aprobado!
+      </h1>
+      <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
+        Felicidades <strong>${creatorName}</strong>, tu video para la campaña "${campaignTitle}" ha sido aprobado.
+      </p>
+      <div style="background: #DCFCE7; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+        <p style="margin: 0 0 8px; font-size: 14px; color: #166534;">Pago aprobado</p>
+        <p style="margin: 0; font-size: 32px; font-weight: 700; color: #166534;">${approvedPrice}</p>
+      </div>
+      <div style="background: #FEF3C7; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #F59E0B;">
+        <p style="margin: 0; font-size: 14px; color: #92400E;">
+          <strong>Siguiente paso:</strong><br>
+          Envía tu SparkCode para completar la transacción y recibir tu pago.
+        </p>
+      </div>
+      <div style="text-align: center;">
+        ${ctaButton("Enviar SparkCode", "https://adbroll.com/my-submissions")}
+      </div>
+    `),
+  }),
+
+  // 11. Submission rejected (for creators)
+  submissionRejected: (creatorName: string, campaignTitle: string, feedback?: string) => ({
+    subject: `Tu video para "${campaignTitle}" no fue aprobado`,
+    html: emailWrapper(`
+      <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">
+        Video no aprobado
+      </h1>
+      <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
+        Hola <strong>${creatorName}</strong>, lamentamos informarte que tu video para la campaña "${campaignTitle}" no fue aprobado.
+      </p>
+      ${feedback ? `
+        <div style="background: #FEF2F2; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #EF4444;">
+          <p style="margin: 0 0 8px; font-size: 12px; color: #991B1B; font-weight: 600;">FEEDBACK DE LA MARCA:</p>
+          <p style="margin: 0; font-size: 14px; color: #991B1B;">${feedback}</p>
+        </div>
+      ` : ''}
+      <p style="color: ${brandStyles.mutedColor}; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
+        No te desanimes. Puedes aplicar a otras campañas disponibles en la plataforma.
+      </p>
+      ${ctaButton("Ver más campañas", "https://adbroll.com/campaigns")}
+    `),
+  }),
+
+  // 12. SparkCode requested (for creators)
+  sparkCodeRequested: (creatorName: string, campaignTitle: string) => ({
+    subject: `📲 Envía tu SparkCode para "${campaignTitle}"`,
+    html: emailWrapper(`
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; background: #DBEAFE; border-radius: 50%; padding: 16px; margin-bottom: 16px;">
+          <span style="font-size: 32px;">📲</span>
+        </div>
+      </div>
+      <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700; text-align: center;">
+        SparkCode requerido
+      </h1>
+      <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
+        Hola <strong>${creatorName}</strong>, la marca ha aprobado tu video para "${campaignTitle}".
+      </p>
+      <div style="background: #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <p style="margin: 0 0 16px; font-size: 14px; color: ${brandStyles.textColor}; font-weight: 600;">
+          ¿Cómo obtener tu SparkCode?
+        </p>
+        <ol style="color: ${brandStyles.textColor}; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+          <li>Abre TikTok y ve a tu video publicado</li>
+          <li>Toca los 3 puntos (...) → Configuración de anuncios</li>
+          <li>Activa "Autorización de anuncios"</li>
+          <li>Genera el código y cópialo</li>
+        </ol>
+      </div>
+      <div style="text-align: center;">
+        ${ctaButton("Enviar SparkCode", "https://adbroll.com/my-submissions")}
+      </div>
+      <p style="color: ${brandStyles.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
+        Una vez enviado el SparkCode, recibirás tu pago.
+      </p>
+    `),
+  }),
+
+  // 13. Campaign payment complete (for creators)
+  campaignPaymentComplete: (creatorName: string, campaignTitle: string, amount: string) => ({
+    subject: `💰 ¡Pago recibido! - "${campaignTitle}"`,
+    html: emailWrapper(`
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; background: #DCFCE7; border-radius: 50%; padding: 16px; margin-bottom: 16px;">
+          <span style="font-size: 32px;">💰</span>
+        </div>
+      </div>
+      <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700; text-align: center;">
+        ¡Pago completado!
+      </h1>
+      <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
+        Felicidades <strong>${creatorName}</strong>, has recibido el pago por tu video en "${campaignTitle}".
+      </p>
+      <div style="background: #DCFCE7; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+        <p style="margin: 0 0 8px; font-size: 14px; color: #166534;">Monto recibido</p>
+        <p style="margin: 0; font-size: 36px; font-weight: 700; color: #166534;">${amount}</p>
+      </div>
+      <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
+        ¡Gracias por tu excelente trabajo! Sigue creando contenido increíble.
+      </p>
+      <div style="text-align: center;">
+        ${ctaButton("Ver más campañas", "https://adbroll.com/campaigns")}
+      </div>
+    `),
+  }),
+
+  // 14. Changes requested (for creators)
+  changesRequested: (creatorName: string, campaignTitle: string, feedback: string) => ({
+    subject: `⚠️ Cambios solicitados para "${campaignTitle}"`,
+    html: emailWrapper(`
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; background: #FEF3C7; border-radius: 50%; padding: 16px; margin-bottom: 16px;">
+          <span style="font-size: 32px;">⚠️</span>
+        </div>
+      </div>
+      <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700; text-align: center;">
+        Cambios solicitados
+      </h1>
+      <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
+        Hola <strong>${creatorName}</strong>, la marca ha solicitado algunos cambios en tu video para "${campaignTitle}".
+      </p>
+      <div style="background: #FEF3C7; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #F59E0B;">
+        <p style="margin: 0 0 8px; font-size: 12px; color: #92400E; font-weight: 600;">FEEDBACK DE LA MARCA:</p>
+        <p style="margin: 0; font-size: 14px; color: #92400E;">${feedback}</p>
+      </div>
+      <p style="color: ${brandStyles.mutedColor}; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
+        Realiza los cambios y vuelve a enviar tu video actualizado.
+      </p>
+      <div style="text-align: center;">
+        ${ctaButton("Ver detalles", "https://adbroll.com/my-submissions")}
+      </div>
+    `),
+  }),
 };
 
 // Export email types for the edge function
