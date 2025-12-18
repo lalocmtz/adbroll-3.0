@@ -45,6 +45,18 @@ const getFacebookCookies = () => {
   return cookies;
 };
 
+// Generate or retrieve session ID for visitor tracking
+const getSessionId = (): string => {
+  if (typeof window === "undefined") return "";
+  
+  let sessionId = sessionStorage.getItem("adbroll_session_id");
+  if (!sessionId) {
+    sessionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    sessionStorage.setItem("adbroll_session_id", sessionId);
+  }
+  return sessionId;
+};
+
 // Send event to server-side Meta Conversions API
 const sendServerEvent = async (events: ConversionEvent[]) => {
   try {
@@ -86,6 +98,32 @@ const sendServerEvent = async (events: ConversionEvent[]) => {
   }
 };
 
+// Track page view internally for analytics
+const trackInternalPageView = async (pageName: string) => {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (!supabaseUrl) return;
+
+    const sessionId = getSessionId();
+    
+    await fetch(`${supabaseUrl}/functions/v1/track-page-view`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        page_path: pageName,
+        session_id: sessionId,
+        referrer: document.referrer || null,
+        user_agent: navigator.userAgent || null,
+      }),
+    });
+  } catch (error) {
+    // Silent fail - don't block user experience
+    console.error('[Internal Analytics] Failed to track:', error);
+  }
+};
+
 // Facebook Pixel Events (browser-side)
 export const trackFBEvent = (eventName: string, params?: Record<string, any>) => {
   if (typeof window !== "undefined" && window.fbq) {
@@ -109,12 +147,15 @@ export const trackGAEvent = (eventName: string, params?: Record<string, any>) =>
   }
 };
 
-// Combined tracking functions for common events (browser + server)
+// Combined tracking functions for common events (browser + server + internal)
 export const trackPageView = (pageName: string) => {
   trackFBEvent("PageView");
   trackGAEvent("page_view", { page_title: pageName });
   
-  // Server-side
+  // Internal tracking for admin dashboard
+  trackInternalPageView(pageName);
+  
+  // Server-side Meta
   sendServerEvent([{
     event_name: "PageView",
     custom_data: {

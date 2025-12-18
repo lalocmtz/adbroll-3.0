@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.send-scheduled-emails]
 verify_jwt = false
+
+[functions.track-page-view]
+verify_jwt = false
