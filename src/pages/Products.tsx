@@ -324,7 +324,7 @@ const Products = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-5">
             {paginatedProducts.map((product, index) => {
               const globalIndex = (currentPage - 1) * PRODUCTS_PER_PAGE + index;
               const displayRank = globalIndex + 1;
@@ -345,9 +345,9 @@ const Products = () => {
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
-                    <div className="blur-[6px] pointer-events-none bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5 shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
+                    <div className="blur-[6px] pointer-events-none bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-border/50 dark:border-border p-3 md:p-5 shadow-sm">
                       {/* Product Image - 1:1 aspect ratio */}
-                      <div className="relative aspect-square bg-muted rounded-2xl overflow-hidden mb-4">
+                      <div className="relative aspect-square bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-4">
                         <img
                           src={product.imagen_url || PLACEHOLDER_IMAGE}
                           alt={product.producto_nombre}
@@ -356,38 +356,38 @@ const Products = () => {
                             (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
                           }}
                         />
-                        <span className={`absolute top-3 left-3 text-[13px] font-bold px-2.5 py-1 rounded-full shadow-lg ${
+                        <span className={`absolute top-2 md:top-3 left-2 md:left-3 text-[11px] md:text-[13px] font-bold px-2 py-0.5 md:py-1 rounded-full shadow-lg ${
                           isTop5 
-                            ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white' 
-                            : 'bg-white/95 text-[#0F172A] border border-[#E2E8F0]'
+                            ? 'bg-gradient-to-r from-primary to-primary/80 text-white' 
+                            : 'bg-white/95 text-foreground border border-border'
                         }`}>
                           #{displayRank} {isTop5 && '🔥'}
                         </span>
                       </div>
                       {/* Content */}
-                      <div className="space-y-3">
-                        <h3 className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground truncate">
+                      <div className="space-y-2 md:space-y-3">
+                        <h3 className="text-[13px] md:text-[15px] font-semibold text-foreground truncate leading-tight">
                           {product.producto_nombre}
                         </h3>
                         {product.categoria && (
-                          <p className="text-[13px] text-[#94A3B8]">{product.categoria}</p>
+                          <p className="text-[11px] md:text-[13px] text-muted-foreground truncate">{product.categoria}</p>
                         )}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="p-3 rounded-xl bg-[#ECFDF5]">
-                            <p className="text-[11px] text-[#94A3B8]">Ingresos 30D</p>
-                            <p className="text-sm font-bold text-[#0F172A]">{formatCurrency(getRevenue(product))}</p>
+                        <div className="grid grid-cols-2 gap-1.5 md:gap-3">
+                          <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
+                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Ingresos</p>
+                            <p className="text-[11px] md:text-sm font-bold text-foreground">{formatCurrency(getRevenue(product))}</p>
                           </div>
-                          <div className="p-3 rounded-xl bg-[#F8FAFC]">
-                            <p className="text-[11px] text-[#94A3B8]">Ventas 30D</p>
-                            <p className="text-sm font-bold text-[#0F172A]">{formatNumber(getSales(product))}</p>
+                          <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-muted">
+                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Ventas</p>
+                            <p className="text-[11px] md:text-sm font-bold text-foreground">{formatNumber(getSales(product))}</p>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-[20px]">
-                      <div className="text-center p-4">
-                        <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm font-medium text-foreground">Desbloquear</p>
+                    <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-2xl md:rounded-[20px]">
+                      <div className="text-center p-3 md:p-4">
+                        <Lock className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-1.5 md:mb-2 text-muted-foreground" />
+                        <p className="text-xs md:text-sm font-medium text-foreground">Desbloquear</p>
                       </div>
                     </div>
                   </div>
@@ -397,10 +397,10 @@ const Products = () => {
               return (
                 <div 
                   key={product.id}
-                  className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-5 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-300 group"
+                  className="bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-border/50 dark:border-border p-3 md:p-5 shadow-sm hover:shadow-md transition-all duration-300 group"
                 >
                   {/* Product Image - 1:1 aspect ratio */}
-                  <div className="relative aspect-square bg-muted rounded-2xl overflow-hidden mb-4">
+                  <div className="relative aspect-square bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-4">
                     <img
                       src={product.imagen_url || PLACEHOLDER_IMAGE}
                       alt={product.producto_nombre}
@@ -411,16 +411,16 @@ const Products = () => {
                     />
                     
                     {/* Top bar */}
-                    <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between">
-                      <span className={`text-[13px] font-bold px-2.5 py-1 rounded-full shadow-lg ${
+                    <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-10 flex items-center justify-between">
+                      <span className={`text-[11px] md:text-[13px] font-bold px-2 py-0.5 md:py-1 rounded-full shadow-lg ${
                         isTop5 
-                          ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white' 
-                          : 'bg-white/95 text-[#0F172A] border border-[#E2E8F0]'
+                          ? 'bg-gradient-to-r from-primary to-primary/80 text-white' 
+                          : 'bg-white/95 text-foreground border border-border'
                       }`}>
                         #{displayRank} {isTop5 && '🔥'}
                       </span>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 md:gap-2">
                         {product.producto_url && (
                           <button
                             onClick={(e) => {
@@ -432,9 +432,9 @@ const Products = () => {
                               }
                               window.open(product.producto_url!, '_blank');
                             }}
-                            className="h-8 w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                            className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
                           >
-                            <ExternalLink className="h-[18px] w-[18px] text-[#CBD5E1] hover:text-[#1E293B] transition-colors" />
+                            <ExternalLink className="h-3.5 w-3.5 md:h-[18px] md:w-[18px] text-muted-foreground hover:text-foreground transition-colors" />
                           </button>
                         )}
                         
@@ -448,95 +448,91 @@ const Products = () => {
                             }
                             toggleFavorite(product.id, e);
                           }}
-                          className="h-8 w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                          className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
                         >
-                          <Heart className={`h-[18px] w-[18px] transition-colors ${isFav ? 'text-[#F31260] fill-[#F31260]' : 'text-[#CBD5E1] hover:text-[#1E293B]'}`} />
+                          <Heart className={`h-3.5 w-3.5 md:h-[18px] md:w-[18px] transition-colors ${isFav ? 'text-primary fill-primary' : 'text-muted-foreground hover:text-foreground'}`} />
                         </button>
                       </div>
                     </div>
                     
-                    {/* Rating badge */}
-                    {product.rating && (
-                      <span className="absolute bottom-3 right-3 bg-white/95 text-[#0F172A] text-xs font-medium px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        {product.rating.toFixed(1)}
-                      </span>
-                    )}
-                    
-                    {/* Earnings badge */}
+                    {/* Earnings badge - Only on desktop */}
                     {earningsPerSale > 0 && (
-                      <span className="absolute bottom-3 left-3 z-10 bg-[#EEF2FF] text-[#6366F1] text-xs font-medium px-2 py-1 rounded-md shadow-sm">
-                        💰 Gana {formatCurrency(earningsPerSale)}
+                      <span className="absolute bottom-2 md:bottom-3 left-2 md:left-3 z-10 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-md shadow-sm">
+                        💰 {formatCurrency(earningsPerSale)}
                       </span>
                     )}
                   </div>
 
                   {/* Content */}
-                  <div className="space-y-4">
+                  <div className="space-y-2 md:space-y-4">
                     <div>
                       <h3 
-                        className="text-[15px] font-semibold text-[#0F172A] dark:text-foreground truncate cursor-help"
+                        className="text-[13px] md:text-[15px] font-semibold text-foreground truncate cursor-help leading-tight"
                         title={product.producto_nombre}
                       >
                         {product.producto_nombre}
                       </h3>
                       {product.categoria && (
-                        <p className="text-[13px] text-[#94A3B8] mt-1">{product.categoria}</p>
+                        <p className="text-[11px] md:text-[13px] text-muted-foreground mt-0.5 md:mt-1 truncate">{product.categoria}</p>
                       )}
                     </div>
 
-                    {/* Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 rounded-xl bg-[#ECFDF5] dark:bg-success/10">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <TrendingUp className="h-3.5 w-3.5 text-[#475569]" />
-                          <span className="text-[11px] text-[#94A3B8]">Ingresos 30D</span>
+                    {/* Metrics Grid - Compact on mobile */}
+                    <div className="grid grid-cols-2 gap-1.5 md:gap-3">
+                      <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
+                        <div className="hidden md:flex items-center gap-1.5 mb-1">
+                          <TrendingUp className="h-3.5 w-3.5 text-foreground/60" />
+                          <span className="text-[11px] text-muted-foreground">Ingresos</span>
                         </div>
-                        <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+                        <p className="text-[9px] md:hidden text-muted-foreground">Ingresos</p>
+                        <p className="text-[11px] md:text-sm font-bold text-foreground">
                           {formatCurrency(getRevenue(product))}
                         </p>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <ShoppingCart className="h-3.5 w-3.5 text-[#475569]" />
-                          <span className="text-[11px] text-[#94A3B8]">Ventas 30D</span>
+                      <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-muted">
+                        <div className="hidden md:flex items-center gap-1.5 mb-1">
+                          <ShoppingCart className="h-3.5 w-3.5 text-foreground/60" />
+                          <span className="text-[11px] text-muted-foreground">Ventas</span>
                         </div>
-                        <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+                        <p className="text-[9px] md:hidden text-muted-foreground">Ventas</p>
+                        <p className="text-[11px] md:text-sm font-bold text-foreground">
                           {formatNumber(getSales(product))}
                         </p>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
+                      {/* Price and Commission - Hidden on mobile */}
+                      <div className="hidden md:block p-3 rounded-xl bg-muted">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <DollarSign className="h-3.5 w-3.5 text-[#475569]" />
-                          <span className="text-[11px] text-[#94A3B8]">Precio</span>
+                          <DollarSign className="h-3.5 w-3.5 text-foreground/60" />
+                          <span className="text-[11px] text-muted-foreground">Precio</span>
                         </div>
-                        <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+                        <p className="text-sm font-bold text-foreground">
                           {formatCurrency(price)}
                         </p>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-[#FEF3C7] dark:bg-amber-950/30">
+                      <div className="hidden md:block p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <Percent className="h-3.5 w-3.5 text-[#475569]" />
-                          <span className="text-[11px] text-[#94A3B8]">Comisión</span>
+                          <Percent className="h-3.5 w-3.5 text-foreground/60" />
+                          <span className="text-[11px] text-muted-foreground">Comisión</span>
                         </div>
-                        <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
+                        <p className="text-sm font-bold text-foreground">
                           {product.commission ? `${product.commission}%` : "6%"}
                         </p>
                       </div>
                     </div>
 
+                    {/* Creators count - Hidden on mobile */}
                     {(product.creators_count || 0) > 0 && (
-                      <div className="flex items-center gap-1.5 text-[13px] text-[#94A3B8]">
-                        <Users className="h-3.5 w-3.5 text-[#475569]" />
+                      <div className="hidden md:flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                        <Users className="h-3.5 w-3.5 text-foreground/60" />
                         <span>{product.creators_count} creadores</span>
                       </div>
                     )}
 
                     <Button
-                      className="w-full h-10"
+                      className="w-full h-8 md:h-10 text-xs md:text-sm"
                       onClick={() => {
                         if (!isLoggedIn) {
                           navigate("/unlock");
@@ -546,7 +542,7 @@ const Products = () => {
                         navigate(`/videos/product/${product.id}`);
                       }}
                     >
-                      <Play className="h-4 w-4" />
+                      <Play className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-1.5" />
                       Ver videos
                     </Button>
                   </div>

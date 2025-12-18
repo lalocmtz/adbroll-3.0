@@ -302,7 +302,7 @@ const Opportunities = () => {
             </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-6">
             {filteredOpportunities.map((product, index) => {
               const isLocked = !isLoggedIn && index >= FREE_PREVIEW_LIMIT;
               
@@ -327,37 +327,37 @@ const Opportunities = () => {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-muted/30 rounded-t-xl">
-                            <Gem className="h-12 w-12 text-muted-foreground/30" />
+                            <Gem className="h-8 w-8 md:h-12 md:w-12 text-muted-foreground/30" />
                           </div>
                         )}
                         {/* IO Score Badge */}
-                        <div className="absolute top-3 left-3">
-                          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 gap-1.5 shadow-md px-2.5 py-1 text-xs font-semibold">
-                            <TrendingUp className="h-3.5 w-3.5" />
+                        <div className="absolute top-2 md:top-3 left-2 md:left-3">
+                          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 gap-1 shadow-md px-2 py-0.5 md:py-1 text-[10px] md:text-xs font-semibold">
+                            <TrendingUp className="h-3 w-3 md:h-3.5 md:w-3.5" />
                             IO {product.io_score?.toFixed(0) || 0}
                           </Badge>
                         </div>
                         {/* Rank Badge */}
-                        <div className="absolute top-3 right-3">
-                          <Badge variant="secondary" className="font-bold bg-white/95 text-foreground shadow-sm px-2 py-0.5">
+                        <div className="absolute top-2 md:top-3 right-2 md:right-3">
+                          <Badge variant="secondary" className="font-bold bg-white/95 text-foreground shadow-sm px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs">
                             #{index + 1}
                           </Badge>
                         </div>
                       </div>
                       {/* Content */}
-                      <div className="p-6">
-                        <h3 className="font-semibold text-[15px] text-foreground line-clamp-2 leading-tight">
+                      <div className="p-3 md:p-6">
+                        <h3 className="font-semibold text-[13px] md:text-[15px] text-foreground line-clamp-2 leading-tight">
                           {product.producto_nombre}
                         </h3>
                         {product.categoria && (
-                          <p className="text-[12px] text-muted-foreground mt-2">{product.categoria}</p>
+                          <p className="text-[10px] md:text-[12px] text-muted-foreground mt-1 md:mt-2 truncate">{product.categoria}</p>
                         )}
                       </div>
                     </Card>
                     <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-xl">
-                      <div className="text-center p-4">
-                        <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm font-medium text-foreground">Desbloquear</p>
+                      <div className="text-center p-3 md:p-4">
+                        <Lock className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-1.5 md:mb-2 text-muted-foreground" />
+                        <p className="text-xs md:text-sm font-medium text-foreground">Desbloquear</p>
                       </div>
                     </div>
                   </div>
@@ -497,11 +497,11 @@ const OpportunityCard = ({
         </div>
       </div>
 
-      {/* Content - 24px padding */}
-      <div className="p-6 flex flex-col flex-1 gap-4">
+      {/* Content - Reduced padding on mobile */}
+      <div className="p-3 md:p-6 flex flex-col flex-1 gap-2 md:gap-4">
         {/* Product Name - max 2 lines */}
         <h3 
-          className="font-semibold text-[15px] text-foreground line-clamp-2 leading-tight"
+          className="font-semibold text-[13px] md:text-[15px] text-foreground line-clamp-2 leading-tight"
           title={product.producto_nombre}
         >
           {product.producto_nombre}
@@ -509,12 +509,12 @@ const OpportunityCard = ({
 
         {/* Category */}
         {product.categoria && (
-          <p className="text-[12px] text-muted-foreground -mt-2">{product.categoria}</p>
+          <p className="text-[10px] md:text-[12px] text-muted-foreground -mt-1 md:-mt-2 truncate">{product.categoria}</p>
         )}
 
-        {/* Tags as Bullet List */}
+        {/* Tags as Bullet List - Hidden on mobile */}
         {tags.length > 0 && (
-          <ul className="space-y-1.5">
+          <ul className="hidden md:block space-y-1.5">
             {tags.map((tag, i) => {
               const tooltipText = tagTooltips[tag]?.[language === "es" ? "es" : "en"] || tag;
               return (
@@ -534,10 +534,10 @@ const OpportunityCard = ({
           </ul>
         )}
 
-        {/* Metrics Grid - 16px spacing */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Metrics Grid - Compact on mobile */}
+        <div className="grid grid-cols-2 gap-1.5 md:gap-4">
           <MetricBox
-            icon={<Percent className="h-3.5 w-3.5" />}
+            icon={<Percent className="h-3 w-3 md:h-3.5 md:w-3.5" />}
             value={product.commission ? `${product.commission}%` : "-"}
             label={language === "es" ? "Comisión" : "Commission"}
             colorClass="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30"
@@ -546,16 +546,16 @@ const OpportunityCard = ({
               : "Percentage you receive per sale. Higher commission = more earnings."}
           />
           <MetricBox
-            icon={<DollarSign className="h-3.5 w-3.5" />}
+            icon={<DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5" />}
             value={formatCurrency(product.gmv_30d_calc, currency)}
-            label="GMV 30d"
+            label="GMV"
             colorClass="text-blue-600 bg-blue-50 dark:bg-blue-950/30"
             tooltip={language === "es" 
               ? "Volumen de ventas en 30 días. Alto GMV = demanda comprobada." 
               : "Sales volume in 30 days. High GMV = proven demand."}
           />
           <MetricBox
-            icon={<Users className="h-3.5 w-3.5" />}
+            icon={<Users className="h-3 w-3 md:h-3.5 md:w-3.5" />}
             value={product.creators_active_calc?.toString() || "0"}
             label={language === "es" ? "Creadores" : "Creators"}
             colorClass="text-purple-600 bg-purple-50 dark:bg-purple-950/30"
@@ -564,7 +564,7 @@ const OpportunityCard = ({
               : `Active creators (niche avg: ${Math.round(product.creators_niche_avg || 0)}). Fewer = less competition.`}
           />
           <MetricBox
-            icon={<DollarSign className="h-3.5 w-3.5" />}
+            icon={<DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5" />}
             value={formatCurrency(product.earning_per_sale, currency)}
             label={language === "es" ? "Ganancia" : "Earnings"}
             colorClass="text-amber-600 bg-amber-50 dark:bg-amber-950/30"
@@ -577,11 +577,11 @@ const OpportunityCard = ({
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Actions - uniform at bottom */}
-        <div className="flex gap-2 pt-2">
+        {/* Actions - Compact on mobile */}
+        <div className="flex gap-1.5 md:gap-2 pt-1 md:pt-2">
           <Button 
             size="sm" 
-            className="flex-1 h-9 text-xs rounded-lg font-medium"
+            className="flex-1 h-8 md:h-9 text-[11px] md:text-xs rounded-lg font-medium"
             onClick={(e) => {
               e.stopPropagation();
               if (!isLoggedIn) {
@@ -592,23 +592,26 @@ const OpportunityCard = ({
               navigate(`/videos/product/${product.id}`);
             }}
           >
-            {language === "es" ? "Ver videos" : "View videos"}
+            {language === "es" ? "Videos" : "Videos"}
           </Button>
           
-          <WhyOpportunityModal 
-            product={product} 
-            language={language} 
-            currency={currency}
-            formatCurrency={formatCurrency}
-            isLoggedIn={isLoggedIn}
-            navigate={navigate}
-          />
+          {/* Why modal - Hidden on mobile */}
+          <div className="hidden md:block">
+            <WhyOpportunityModal 
+              product={product} 
+              language={language} 
+              currency={currency}
+              formatCurrency={formatCurrency}
+              isLoggedIn={isLoggedIn}
+              navigate={navigate}
+            />
+          </div>
           
           {product.producto_url && (
             <Button 
               size="sm" 
               variant="outline"
-              className="h-9 w-9 p-0 rounded-lg"
+              className="h-8 md:h-9 w-8 md:w-9 p-0 rounded-lg"
               onClick={(e) => {
                 e.stopPropagation();
                 if (!isLoggedIn) {
@@ -619,7 +622,7 @@ const OpportunityCard = ({
                 window.open(product.producto_url!, '_blank');
               }}
             >
-              <ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-3 w-3 md:h-3.5 md:w-3.5" />
             </Button>
           )}
         </div>
@@ -628,7 +631,7 @@ const OpportunityCard = ({
   );
 };
 
-// Metric Box Component
+// Metric Box Component - Responsive
 const MetricBox = ({ 
   icon, 
   value, 
@@ -644,11 +647,11 @@ const MetricBox = ({
 }) => (
   <Tooltip>
     <TooltipTrigger asChild>
-      <div className={`flex items-center gap-2 p-3 rounded-lg cursor-help transition-all hover:ring-1 hover:ring-primary/20 ${colorClass}`}>
-        {icon}
-        <div className="min-w-0">
-          <p className="font-bold text-[12px] truncate">{value}</p>
-          <p className="text-[10px] text-muted-foreground truncate">{label}</p>
+      <div className={`flex items-center gap-1.5 md:gap-2 p-2 md:p-3 rounded-lg cursor-help transition-all hover:ring-1 hover:ring-primary/20 ${colorClass}`}>
+        <span className="hidden md:block">{icon}</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-[11px] md:text-[12px] truncate">{value}</p>
+          <p className="text-[9px] md:text-[10px] text-muted-foreground truncate">{label}</p>
         </div>
       </div>
     </TooltipTrigger>
