@@ -7,11 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause, BarChart3, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
 import { AssetUploader } from "@/components/AssetUploader";
+import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
+import { ConversionFunnel } from "@/components/admin/ConversionFunnel";
+import { EmailLeadsList } from "@/components/admin/EmailLeadsList";
+import { ApiUsageMonitor } from "@/components/admin/ApiUsageMonitor";
 
 type Market = "mx" | "us";
 
@@ -491,7 +496,7 @@ const Admin = () => {
       {/* Header */}
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">Panel de Importación</h1>
+          <h1 className="text-2xl font-bold text-foreground">Panel de Admin</h1>
           <Button variant="ghost" onClick={() => navigate("/app")}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver
@@ -499,7 +504,33 @@ const Admin = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
+      <main className="container mx-auto px-4 py-6 max-w-5xl">
+        <Tabs defaultValue="analytics" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="import" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Importación
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <AnalyticsDashboard />
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <ConversionFunnel />
+              <EmailLeadsList />
+            </div>
+            
+            <ApiUsageMonitor />
+          </TabsContent>
+
+          {/* Import Tab */}
+          <TabsContent value="import" className="space-y-6">
         {/* Last Sync & Refresh */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -785,6 +816,8 @@ const Admin = () => {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
