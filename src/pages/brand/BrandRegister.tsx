@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Building2, Mail, Globe, FileText, Briefcase, Loader2, CheckCircle2, Megaphone, Users, TrendingUp } from "lucide-react";
+import { emailEvents } from "@/lib/transactionalEmail";
 
 const industries = [
   { value: "technology", labelEs: "Tecnología / Apps", labelEn: "Technology / Apps" },
@@ -114,6 +115,9 @@ const BrandRegister = () => {
         console.error("Role assignment error:", roleError);
         // Don't throw - profile was created successfully
       }
+
+      // Send welcome email (async, don't block navigation)
+      emailEvents.creatorRegistered(formData.contactEmail, formData.companyName);
 
       toast({
         title: language === "es" ? "¡Registro exitoso!" : "Registration successful!",
