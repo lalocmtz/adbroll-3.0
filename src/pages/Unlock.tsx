@@ -165,6 +165,30 @@ const Unlock = () => {
         </div>
       </section>
 
+      {/* Video Demo Section */}
+      <section className="py-12 md:py-20 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-8">
+            <Badge className="badge-landing-light mb-4">🎬 Mira cómo funciona</Badge>
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-4">
+              Adbroll por dentro
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Mira cómo cientos de creadores están generando ingresos sin adivinar, sin complicaciones y sin ser expertos.
+            </p>
+          </div>
+          
+          <div className="max-w-4xl mx-auto">
+            <div className="rounded-2xl overflow-hidden shadow-2xl border border-border">
+              <NativeVideoPlayer 
+                videoUrl="https://gcntnilurlulejwwtpaa.supabase.co/storage/v1/object/public/assets/landing-video-1766294993055.mp4"
+                className="w-full aspect-video"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Comparison Section - Reduced spacing */}
       <section className="py-12 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
