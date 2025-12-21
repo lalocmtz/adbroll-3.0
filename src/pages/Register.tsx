@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Gift } from "lucide-react";
+import { Gift, Loader2 } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
 
 const Register = () => {
@@ -16,7 +16,10 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
+  const [grantCode, setGrantCode] = useState(searchParams.get("grant") || "");
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
+  const [grantValid, setGrantValid] = useState<boolean | null>(null);
+  const [grantData, setGrantData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string }>({});
@@ -43,6 +46,30 @@ const Register = () => {
     const timeout = setTimeout(validateCode, 500);
     return () => clearTimeout(timeout);
   }, [referralCode]);
+
+  // Validate grant code on change
+  useEffect(() => {
+    const validateGrant = async () => {
+      if (!grantCode || grantCode.length < 10) {
+        setGrantValid(null);
+        setGrantData(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("creator_program_applications")
+        .select("*")
+        .eq("grant_code", grantCode.toUpperCase())
+        .eq("status", "approved")
+        .maybeSingle();
+
+      setGrantValid(!!data);
+      setGrantData(data);
+    };
+
+    const timeout = setTimeout(validateGrant, 500);
+    return () => clearTimeout(timeout);
+  }, [grantCode]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +110,38 @@ const Register = () => {
         await supabase.rpc("apply_referral_code", {
           p_user_id: signUpData.user.id,
           p_code: referralCode,
+        });
+      }
+
+      // If grant code is valid, activate the grant
+      if (grantCode && grantValid && grantData && signUpData.user) {
+        const now = new Date();
+        const endDate = new Date(now.getTime() + (grantData.granted_days || 30) * 24 * 60 * 60 * 1000);
+
+        // Create subscription with granted status
+        await supabase
+          .from("subscriptions")
+          .insert({
+            user_id: signUpData.user.id,
+            status: "active",
+            price_usd: 0,
+            renew_at: endDate.toISOString(),
+          });
+
+        // Update grant to active
+        await supabase
+          .from("creator_program_applications")
+          .update({
+            status: "active",
+            user_id: signUpData.user.id,
+            subscription_starts_at: now.toISOString(),
+            subscription_ends_at: endDate.toISOString(),
+          })
+          .eq("grant_code", grantCode.toUpperCase());
+
+        toast({
+          title: "¡Acceso activado!",
+          description: `Tienes ${grantData.granted_days || 30} días de acceso completo 🎉`,
         });
       }
 

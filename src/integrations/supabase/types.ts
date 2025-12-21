@@ -468,6 +468,66 @@ export type Database = {
           },
         ]
       }
+      creator_program_applications: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          email: string
+          full_name: string
+          grant_code: string | null
+          granted_days: number | null
+          id: string
+          notes: string | null
+          status: string
+          subscription_ends_at: string | null
+          subscription_starts_at: string | null
+          tiktok_url: string
+          updated_at: string
+          user_id: string | null
+          video_url: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          grant_code?: string | null
+          granted_days?: number | null
+          id?: string
+          notes?: string | null
+          status?: string
+          subscription_ends_at?: string | null
+          subscription_starts_at?: string | null
+          tiktok_url: string
+          updated_at?: string
+          user_id?: string | null
+          video_url?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          grant_code?: string | null
+          granted_days?: number | null
+          id?: string
+          notes?: string | null
+          status?: string
+          subscription_ends_at?: string | null
+          subscription_starts_at?: string | null
+          tiktok_url?: string
+          updated_at?: string
+          user_id?: string | null
+          video_url?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       creators: {
         Row: {
           avatar_url: string | null
@@ -1561,6 +1621,7 @@ export type Database = {
         Returns: boolean
       }
       generate_affiliate_code: { Args: never; Returns: string }
+      generate_grant_code: { Args: never; Returns: string }
       generate_ref_code: { Args: never; Returns: string }
       has_role: {
         Args: {

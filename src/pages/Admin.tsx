@@ -17,6 +17,7 @@ import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { ConversionFunnel } from "@/components/admin/ConversionFunnel";
 import { EmailLeadsList } from "@/components/admin/EmailLeadsList";
 import { ApiUsageMonitor } from "@/components/admin/ApiUsageMonitor";
+import CreatorProgramManager from "@/components/admin/CreatorProgramManager";
 
 type Market = "mx" | "us";
 
@@ -506,10 +507,14 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Analytics
+            </TabsTrigger>
+            <TabsTrigger value="creators" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Programa Creadores
             </TabsTrigger>
             <TabsTrigger value="import" className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
@@ -527,6 +532,11 @@ const Admin = () => {
             </div>
             
             <ApiUsageMonitor />
+          </TabsContent>
+
+          {/* Creator Program Tab */}
+          <TabsContent value="creators">
+            <CreatorProgramManager />
           </TabsContent>
 
           {/* Import Tab */}

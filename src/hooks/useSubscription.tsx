@@ -9,6 +9,8 @@ export const useSubscription = () => {
   const [loading, setLoading] = useState(true);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [isFounder, setIsFounder] = useState(false);
+  const [isGrantedAccess, setIsGrantedAccess] = useState(false);
+  const [grantExpiresAt, setGrantExpiresAt] = useState<string | null>(null);
 
   useEffect(() => {
     checkSubscription();
@@ -38,6 +40,24 @@ export const useSubscription = () => {
         return;
       }
 
+      // Check for active creator program grant
+      const { data: grantData } = await supabase
+        .from("creator_program_applications")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .gte("subscription_ends_at", new Date().toISOString())
+        .maybeSingle();
+
+      if (grantData) {
+        setIsGrantedAccess(true);
+        setGrantExpiresAt(grantData.subscription_ends_at);
+        setHasActiveSubscription(true);
+        setLoading(false);
+        return;
+      }
+
+      // Check regular subscription
       const { data, error } = await supabase
         .from("subscriptions")
         .select("*")
@@ -64,6 +84,8 @@ export const useSubscription = () => {
     loading,
     hasActiveSubscription,
     isFounder,
+    isGrantedAccess,
+    grantExpiresAt,
     refetch: checkSubscription,
   };
 };
