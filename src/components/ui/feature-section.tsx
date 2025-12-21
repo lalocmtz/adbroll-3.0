@@ -45,24 +45,24 @@ export function FeatureSteps({
   }, [progress, features.length, autoPlayInterval])
 
   return (
-    <div className={cn("p-8 md:p-12", className)}>
+    <div className={cn("p-4 md:p-12", className)}>
       <div className="max-w-7xl mx-auto w-full">
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-center text-foreground">
+        <h2 className="text-lg md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4 text-center text-foreground">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-center text-muted-foreground text-lg md:text-xl mb-10 max-w-2xl mx-auto">
+          <p className="text-center text-muted-foreground text-sm md:text-lg mb-6 md:mb-10 max-w-2xl mx-auto">
             {subtitle}
           </p>
         )}
 
-        <div className="flex flex-col md:grid md:grid-cols-2 gap-6 md:gap-10">
-          <div className="order-2 md:order-1 space-y-8">
+        <div className="flex flex-col md:grid md:grid-cols-2 gap-4 md:gap-10">
+          <div className="order-2 md:order-1 space-y-3 md:space-y-8">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
                 className={cn(
-                  "flex items-start gap-6 md:gap-8 cursor-pointer p-4 rounded-2xl transition-all duration-300",
+                  "flex items-start gap-4 md:gap-8 cursor-pointer p-3 md:p-4 rounded-xl md:rounded-2xl transition-all duration-300",
                   index === currentFeature ? "bg-primary/5" : "hover:bg-muted/50"
                 )}
                 initial={{ opacity: 0.5 }}
@@ -75,27 +75,27 @@ export function FeatureSteps({
               >
                 <motion.div
                   className={cn(
-                    "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 shrink-0 transition-all duration-300",
+                    "w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center border-2 shrink-0 transition-all duration-300",
                     index === currentFeature
                       ? "bg-primary border-primary text-primary-foreground scale-110"
                       : "bg-muted border-border text-muted-foreground",
                   )}
                 >
                   {index < currentFeature ? (
-                    <span className="text-lg font-bold">✓</span>
+                    <span className="text-sm md:text-lg font-bold">✓</span>
                   ) : (
-                    <span className="text-lg font-semibold">{index + 1}</span>
+                    <span className="text-sm md:text-lg font-semibold">{index + 1}</span>
                   )}
                 </motion.div>
 
                 <div className="flex-1">
                   <h3 className={cn(
-                    "text-xl md:text-2xl font-semibold mb-1 transition-colors duration-300",
+                    "text-base md:text-xl font-semibold mb-0.5 md:mb-1 transition-colors duration-300",
                     index === currentFeature ? "text-foreground" : "text-muted-foreground"
                   )}>
                     {feature.title || feature.step}
                   </h3>
-                  <p className="text-sm md:text-base text-muted-foreground">
+                  <p className="text-xs md:text-base text-muted-foreground">
                     {feature.content}
                   </p>
                 </div>
@@ -105,7 +105,7 @@ export function FeatureSteps({
 
           <div
             className={cn(
-              "order-1 md:order-2 relative h-[250px] md:h-[350px] lg:h-[450px] overflow-hidden rounded-2xl border border-border shadow-lg"
+              "order-1 md:order-2 relative h-[180px] md:h-[350px] lg:h-[450px] overflow-hidden rounded-xl md:rounded-2xl border border-border shadow-lg"
             )}
           >
             <AnimatePresence mode="wait">
