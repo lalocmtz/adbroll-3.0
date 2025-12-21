@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, Gift, Video, DollarSign, Users, Send, Loader2 } from "lucide-react";
 import { z } from "zod";
+import logoDark from "@/assets/logo-dark.png";
 
 const applicationSchema = z.object({
   full_name: z.string().min(2, "Nombre debe tener al menos 2 caracteres").max(100),
@@ -180,7 +181,7 @@ const CreatorProgram = () => {
       <div className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <img
-            src="/src/assets/logo-dark.png"
+            src={logoDark}
             alt="adbroll"
             className="h-10 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate("/")}
