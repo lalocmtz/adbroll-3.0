@@ -337,27 +337,8 @@ const CreatorProgram = () => {
                   {applicationStatus === "pending_video" && (
                     <div className="space-y-4">
                       <p className="text-sm text-muted-foreground">
-                        Crea tu video siguiendo el brief de la derecha y pega el link aquí:
+                        Un asesor te guiará por WhatsApp para los siguientes pasos.
                       </p>
-                      <Input
-                        value={videoUrl}
-                        onChange={(e) => setVideoUrl(e.target.value)}
-                        placeholder="https://tiktok.com/@tuusuario/video/..."
-                      />
-                      <Button 
-                        onClick={handleSubmitVideoUrl} 
-                        className="w-full"
-                        disabled={isSubmitting || !videoUrl}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Enviando...
-                          </>
-                        ) : (
-                          "Enviar link del video"
-                        )}
-                      </Button>
                     </div>
                   )}
 
