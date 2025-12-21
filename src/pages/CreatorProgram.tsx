@@ -8,13 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Gift, Video, DollarSign, Users, Send, MessageCircle, Download, ExternalLink, Loader2 } from "lucide-react";
+import { CheckCircle, Gift, Video, DollarSign, Users, Send, Loader2 } from "lucide-react";
 import { z } from "zod";
 
 const applicationSchema = z.object({
   full_name: z.string().min(2, "Nombre debe tener al menos 2 caracteres").max(100),
   email: z.string().email("Email inválido").max(255),
-  whatsapp: z.string().min(10, "WhatsApp debe tener al menos 10 dígitos").max(20).optional().or(z.literal("")),
+  whatsapp: z.string().min(10, "WhatsApp debe tener al menos 10 dígitos").max(20),
   tiktok_url: z.string().url("URL de TikTok inválida").includes("tiktok.com", { message: "Debe ser un link de TikTok" }),
 });
 
@@ -112,8 +112,11 @@ const CreatorProgram = () => {
         setApplicationStatus("pending_video");
         toast({
           title: "¡Solicitud enviada!",
-          description: "Ahora crea tu video siguiendo el brief abajo.",
+          description: "Redirigiendo a WhatsApp...",
         });
+        // Redirect to WhatsApp with pre-filled message
+        const whatsappMessage = encodeURIComponent("He llenado mi solicitud. Estoy listo para el siguiente paso.");
+        window.open(`https://wa.me/522213267653?text=${whatsappMessage}`, '_blank');
       }
     } catch (error: any) {
       toast({
@@ -171,13 +174,6 @@ const CreatorProgram = () => {
     { icon: Users, title: "Comunidad", description: "Únete a creadores top de TikTok Shop" },
   ];
 
-  const briefSteps = [
-    "Menciona el problema: \"¿Te cuesta encontrar productos que vendan en TikTok Shop?\"",
-    "Presenta la solución: \"Descubrí Adbroll, una herramienta que te muestra los videos más rentables\"",
-    "Muestra la app: Graba tu pantalla navegando por el dashboard",
-    "Call to action: \"Link en mi bio para probarlo gratis\"",
-  ];
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -221,7 +217,7 @@ const CreatorProgram = () => {
           ))}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="max-w-md mx-auto">
           {/* Application Form or Status */}
           <div>
             {!applicationStatus ? (
@@ -269,14 +265,18 @@ const CreatorProgram = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="whatsapp">WhatsApp (opcional)</Label>
+                      <Label htmlFor="whatsapp">WhatsApp</Label>
                       <Input
                         id="whatsapp"
                         name="whatsapp"
                         value={formData.whatsapp}
                         onChange={handleInputChange}
                         placeholder="+52 55 1234 5678"
+                        className={errors.whatsapp ? "border-destructive" : ""}
                       />
+                      {errors.whatsapp && (
+                        <p className="text-sm text-destructive">{errors.whatsapp}</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -389,86 +389,6 @@ const CreatorProgram = () => {
               </Card>
             )}
 
-            {/* WhatsApp Contact */}
-            <Card className="mt-4 border-green-500/30 bg-green-500/5">
-              <CardContent className="py-4">
-                <a
-                  href="https://wa.me/5215512345678?text=Hola!%20Quiero%20unirme%20al%20programa%20de%20creadores%20de%20Adbroll"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 text-green-600 hover:text-green-700"
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  <span className="font-medium">¿Dudas? Contáctanos por WhatsApp</span>
-                  <ExternalLink className="h-4 w-4 ml-auto" />
-                </a>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Brief & Resources */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Video className="h-5 w-5 text-primary" />
-                  Brief del video
-                </CardTitle>
-                <CardDescription>
-                  Sigue esta estructura para tu video (30-60 segundos)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ol className="space-y-3">
-                  {briefSteps.map((step, index) => (
-                    <li key={index} className="flex gap-3">
-                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-medium flex items-center justify-center">
-                        {index + 1}
-                      </span>
-                      <p className="text-sm text-muted-foreground">{step}</p>
-                    </li>
-                  ))}
-                </ol>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Download className="h-5 w-5 text-primary" />
-                  Recursos
-                </CardTitle>
-                <CardDescription>
-                  Descarga estos assets para tu video
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <a
-                  href="/src/assets/logo-dark.png"
-                  download="adbroll-logo.png"
-                  className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                >
-                  <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
-                    <img src="/src/assets/logo-dark.png" alt="Logo" className="h-6" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Logo Adbroll</p>
-                    <p className="text-xs text-muted-foreground">PNG transparente</p>
-                  </div>
-                  <Download className="h-4 w-4 ml-auto text-muted-foreground" />
-                </a>
-
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm font-medium mb-2">Tips para el video:</p>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• Formato vertical (9:16)</li>
-                    <li>• Muestra tu cara + pantalla de la app</li>
-                    <li>• Usa música trending de TikTok</li>
-                    <li>• Menciona "TikTok Shop" y "Adbroll"</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
