@@ -823,15 +823,7 @@ export type Database = {
           script_id?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "favorites_scripts_script_id_fkey"
-            columns: ["script_id"]
-            isOneToOne: false
-            referencedRelation: "guiones_personalizados"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       favorites_videos: {
         Row: {
