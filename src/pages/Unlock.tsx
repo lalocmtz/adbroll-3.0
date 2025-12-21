@@ -131,17 +131,17 @@ const Unlock = () => {
         </>} description="Encuentra productos virales, copia guiones que venden y gana dinero creando. Todo con IA." ctaText="Desbloquear Adbroll Pro" onCtaClick={handleUnlock} />
 
       {/* How it Works - Reduced spacing on mobile */}
-      <section id="how-it-works" className="py-10 md:py-24 landing-section-alt">
+      <section id="how-it-works" className="py-6 md:py-24 landing-section-alt">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-6 md:mb-10">
-            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-foreground">
+          <div className="text-center mb-4 md:mb-10">
+            <h2 className="text-lg md:text-3xl lg:text-4xl font-bold text-foreground">
               ¿Cómo funciona?
             </h2>
           </div>
           
           {/* Demo Video - Clean autoplay without controls */}
-          <div className="max-w-4xl mx-auto mb-10 md:mb-16">
-            <div className="rounded-2xl overflow-hidden shadow-2xl border border-border">
+          <div className="max-w-4xl mx-auto mb-6 md:mb-16">
+            <div className="rounded-xl md:rounded-2xl overflow-hidden shadow-lg md:shadow-2xl border border-border">
               <video
                 src="https://gcntnilurlulejwwtpaa.supabase.co/storage/v1/object/public/assets/landing-video-1766294993055.mp4"
                 autoPlay
@@ -181,10 +181,10 @@ const Unlock = () => {
 
 
       {/* Comparison Section - Reduced spacing */}
-      <section className="py-12 md:py-32 landing-section-alt">
+      <section className="py-8 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8 md:mb-16">
-            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-4">
+          <div className="text-center mb-6 md:mb-16">
+            <h2 className="text-lg md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
               Con Adbroll <span className="text-xl md:text-3xl lg:text-4xl">😎</span> vs Sin Adbroll <span className="text-xl md:text-3xl lg:text-4xl">😡</span>
             </h2>
           </div>
@@ -228,11 +228,11 @@ const Unlock = () => {
       </section>
 
       {/* Product Tour - Reduced spacing */}
-      <section className="py-12 md:py-32">
+      <section className="py-8 md:py-32">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8 md:mb-16">
-            <Badge className="badge-landing-light mb-3 md:mb-4">Dentro de Adbroll</Badge>
-            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
+          <div className="text-center mb-6 md:mb-16">
+            <Badge className="badge-landing-light mb-2 md:mb-4">Dentro de Adbroll</Badge>
+            <h2 className="text-lg md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4">
               Datos reales. IA integrada. Resultados más rápidos.
             </h2>
           </div>
@@ -298,7 +298,7 @@ const Unlock = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="bg-background my-20 relative">
+      <section className="bg-background my-10 md:my-20 relative">
         <div className="container z-10 mx-auto px-4">
           <motion.div initial={{
           opacity: 0,
@@ -312,11 +312,11 @@ const Unlock = () => {
         }} viewport={{
           once: true
         }} className="flex flex-col items-center justify-center max-w-[540px] mx-auto">
-            <Badge className="badge-landing-light mb-4">Testimonios reales</Badge>
-            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold tracking-tighter mt-5 text-center">
+            <Badge className="badge-landing-light mb-2 md:mb-4">Testimonios reales</Badge>
+            <h2 className="text-lg md:text-3xl lg:text-4xl font-bold tracking-tighter mt-3 md:mt-5 text-center">
               Creadores que cambiaron su juego con Adbroll
             </h2>
-            <p className="text-center mt-5 text-muted-foreground">
+            <p className="text-center mt-3 md:mt-5 text-sm md:text-base text-muted-foreground">
               Historias reales de creadores como tú.
             </p>
           </motion.div>
@@ -330,36 +330,36 @@ const Unlock = () => {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-20 md:py-32 landing-section-alt">
+      <section className="py-10 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <Badge className="badge-landing-light mb-4">💸 Precio simple</Badge>
-            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold mb-4">
+          <div className="text-center mb-8 md:mb-12">
+            <Badge className="badge-landing-light mb-2 md:mb-4">💸 Precio simple</Badge>
+            <h2 className="text-lg md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4">
               Un solo plan. Todo incluido.
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto">
               Sin planes confusos. Un solo acceso a todo lo que necesitas para convertir tu contenido en ventas.
             </p>
           </div>
 
           <div className="max-w-lg mx-auto">
-            <Card className="p-8 border-2 border-primary/20 relative overflow-hidden bg-white shadow-xl">
-              <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-4 py-1 rounded-bl-lg">
+            <Card className="p-5 md:p-8 border-2 border-primary/20 relative overflow-hidden bg-white shadow-xl">
+              <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 md:px-4 py-1 rounded-bl-lg">
                 POPULAR
               </div>
               
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold mb-2">Adbroll Pro</h3>
+              <div className="text-center mb-4 md:mb-6">
+                <h3 className="text-xl md:text-2xl font-bold mb-2">Adbroll Pro</h3>
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl font-bold">$14.99</span>
-                  <span className="text-muted-foreground">/mes</span>
+                  <span className="text-4xl md:text-5xl font-bold">$14.99</span>
+                  <span className="text-muted-foreground text-sm md:text-base">/mes</span>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">~$300 MXN/mes</p>
+                <p className="text-xs md:text-sm text-muted-foreground mt-1">~$300 MXN/mes</p>
               </div>
 
-              <ul className="space-y-3 mb-8">
-                {["Acceso a todos los videos y productos", "Análisis de guiones con IA", "Generador de variantes", "Detector de oportunidades", "Herramientas de creador", "Soporte prioritario"].map((feature, i) => <li key={i} className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+              <ul className="space-y-2 md:space-y-3 mb-6 md:mb-8">
+                {["Acceso a todos los videos y productos", "Análisis de guiones con IA", "Generador de variantes", "Detector de oportunidades", "Herramientas de creador", "Soporte prioritario"].map((feature, i) => <li key={i} className="flex items-center gap-2 md:gap-3 text-sm md:text-base">
+                    <Check className="h-4 w-4 md:h-5 md:w-5 text-green-500 flex-shrink-0" />
                     <span>{feature}</span>
                   </li>)}
               </ul>
@@ -374,11 +374,11 @@ const Unlock = () => {
       </section>
 
       {/* FAQ */}
-      <section className="py-20 md:py-32">
+      <section className="py-10 md:py-32">
         <div className="container mx-auto px-4 max-w-3xl">
-          <div className="text-center mb-12">
-            <Badge className="badge-landing-light mb-4">FAQ</Badge>
-            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold">
+          <div className="text-center mb-8 md:mb-12">
+            <Badge className="badge-landing-light mb-2 md:mb-4">FAQ</Badge>
+            <h2 className="text-lg md:text-3xl lg:text-4xl font-bold">
               Preguntas frecuentes
             </h2>
           </div>
