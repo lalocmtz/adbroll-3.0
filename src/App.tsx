@@ -42,6 +42,8 @@ import BrandCampaigns from "./pages/brand/BrandCampaigns";
 import BrandSubmissions from "./pages/brand/BrandSubmissions";
 import BrandUpgrade from "./pages/brand/BrandUpgrade";
 import BrandRegister from "./pages/brand/BrandRegister";
+import CreatorProgram from "./pages/CreatorProgram";
+import Redeem from "./pages/Redeem";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +134,8 @@ const App = () => {
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/checkout/success" element={<CheckoutSuccess />} />
                   <Route path="/checkout/cancel" element={<CheckoutCancel />} />
+                  <Route path="/programa-creadores" element={<CreatorProgram />} />
+                  <Route path="/canjear" element={<Redeem />} />
                   
                   {/* APP-FIRST: Main app routes (viewable by all, gated by blur) */}
                   <Route
