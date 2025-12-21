@@ -340,30 +340,24 @@ const VideoAnalysisModalOriginal = ({
         return;
       }
 
-      // First insert into guiones_personalizados
+      // Generate a unique script ID and save directly to favorites_scripts
+      const scriptId = crypto.randomUUID();
       const fullScript = `Hook:\n${variant.hook}\n\nCuerpo:\n${variant.body}\n\nCTA:\n${variant.cta}`;
-      const {
-        data: scriptData,
-        error: scriptError
-      } = await supabase.from('guiones_personalizados').insert({
-        user_id: user.id,
-        video_id: video.id,
-        contenido: fullScript
-      }).select().single();
-      if (scriptError) throw scriptError;
 
-      // Then save to favorites_scripts
       const {
         error: favError
       } = await supabase.from('favorites_scripts').insert({
         user_id: user.id,
-        script_id: scriptData.id,
+        script_id: scriptId,
         script_data: {
+          content: fullScript,
           hook: variant.hook,
           body: variant.body,
           cta: variant.cta,
           strategy_note: variant.strategy_note,
-          video_title: video.title,
+          video_title: video.title || 'Video sin título',
+          video_id: video.id,
+          video_url: video.video_url,
           created_from: 'variant_generator',
           change_level: changeLevel
         }
