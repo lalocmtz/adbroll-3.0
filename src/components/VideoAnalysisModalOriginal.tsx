@@ -673,7 +673,7 @@ const VideoAnalysisModalOriginal = ({
                       )}
                     </TabsContent>
 
-                    {/* Variants Tab */}
+                    {/* Variants Tab - Mobile (matches desktop functionality) */}
                     <TabsContent value="variants" className="mt-0 animate-fade-in">
                       {!hasPaid ? (
                         <div className="card-premium p-6 text-center">
@@ -683,35 +683,147 @@ const VideoAnalysisModalOriginal = ({
                             Desbloquear
                           </Button>
                         </div>
-                      ) : variants && variants.length > 0 ? (
+                      ) : (
                         <div className="space-y-3">
-                          {variants.map((variant, index) => (
-                            <div key={index} className="card-premium p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-medium text-primary">Variante {index + 1}</span>
-                                <div className="flex gap-1">
-                                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => copyVariant(variant, index)}>
-                                    <Copy className="h-3 w-3 mr-1" />
-                                    Copiar
-                                  </Button>
-                                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => saveVariantToFavorites(variant, index)}>
-                                    <Heart className="h-3 w-3 mr-1" />
-                                    Guardar
+                          {/* Collapsible Generator Panel - Mobile optimized */}
+                          <Collapsible open={generatorOpen} onOpenChange={setGeneratorOpen}>
+                            <div className="card-premium bg-gradient-to-br from-primary/[0.02] via-background to-accent/[0.02]">
+                              <CollapsibleTrigger asChild>
+                                <button className="w-full p-3 flex items-center justify-between hover:bg-primary/5 transition-colors rounded-xl">
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
+                                      <FlaskConical className="h-4 w-4 text-white" />
+                                    </div>
+                                    <div className="text-left">
+                                      <h3 className="font-semibold text-xs text-foreground">Generador de Variantes IA</h3>
+                                      <p className="text-[10px] text-muted-foreground">
+                                        {generatedVariants.length > 0 ? `${generatedVariants.length} variante(s) generada(s)` : 'Crea guiones optimizados'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {generatorOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                                </button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <div className="px-3 pb-3 space-y-3">
+                                  {/* Quantity Selector */}
+                                  <div>
+                                    <Label className="text-[10px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wider">
+                                      Cantidad
+                                    </Label>
+                                    <div className="flex gap-2">
+                                      {[1, 2, 3].map(num => (
+                                        <Button 
+                                          key={num} 
+                                          size="sm" 
+                                          variant={variantCount === num ? 'default' : 'outline'} 
+                                          className={`flex-1 h-8 rounded-lg text-xs transition-all ${variantCount === num ? 'shadow-sm' : ''}`} 
+                                          onClick={() => setVariantCount(num)}
+                                        >
+                                          {num}
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Change Level */}
+                                  <div>
+                                    <Label className="text-[10px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wider">
+                                      Nivel de cambio
+                                    </Label>
+                                    <RadioGroup value={changeLevel} onValueChange={v => setChangeLevel(v as 'light' | 'medium' | 'aggressive')} className="flex gap-2">
+                                      {[
+                                        { value: 'light', label: 'Suave' }, 
+                                        { value: 'medium', label: 'Medio' }, 
+                                        { value: 'aggressive', label: 'Fuerte' }
+                                      ].map(level => (
+                                        <div key={level.value} className="flex-1">
+                                          <RadioGroupItem value={level.value} id={`mobile-${level.value}`} className="peer sr-only" />
+                                          <Label 
+                                            htmlFor={`mobile-${level.value}`} 
+                                            className={`flex items-center justify-center h-8 px-2 rounded-lg text-xs font-medium cursor-pointer border transition-all ${
+                                              changeLevel === level.value 
+                                                ? 'bg-primary text-primary-foreground border-primary' 
+                                                : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                                            }`}
+                                          >
+                                            {level.label}
+                                          </Label>
+                                        </div>
+                                      ))}
+                                    </RadioGroup>
+                                  </div>
+
+                                  {/* Generate Button */}
+                                  <Button 
+                                    className="w-full h-9 rounded-lg gap-2 text-sm" 
+                                    onClick={generateVariants} 
+                                    disabled={isGeneratingVariants || !transcript}
+                                  >
+                                    {isGeneratingVariants ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Generando...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Wand2 className="h-4 w-4" />
+                                        Generar Variantes
+                                      </>
+                                    )}
                                   </Button>
                                 </div>
-                              </div>
-                              <p className="text-sm text-foreground/80 whitespace-pre-wrap">{variant.full_script || `${variant.hook}\n\n${variant.body}\n\n${variant.cta}`}</p>
+                              </CollapsibleContent>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <Wand2 className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
-                          <p className="text-muted-foreground text-sm mb-3">Sin variantes generadas</p>
-                          <Button onClick={generateVariants} disabled={isGeneratingVariants} className="rounded-xl" size="sm">
-                            <Wand2 className="h-4 w-4 mr-2" />
-                            Generar variantes
-                          </Button>
+                          </Collapsible>
+
+                          {/* Generated Variants List */}
+                          <div className="space-y-3">
+                            {generatedVariants.map((variant, index) => (
+                              <Card key={index} className="p-3 border border-border/50">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className="font-semibold text-xs text-primary">Variante {index + 1}</h4>
+                                  <div className="flex gap-1">
+                                    <Button size="sm" variant="ghost" className="h-7 text-[10px] px-2" onClick={() => copyVariant(variant, index)}>
+                                      <Copy className="h-3 w-3 mr-1" />
+                                      Copiar
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-7 text-[10px] px-2" onClick={() => saveVariantToFavorites(variant, index)} disabled={isSavingVariant}>
+                                      <Save className="h-3 w-3 mr-1" />
+                                      Guardar
+                                    </Button>
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-2 text-xs">
+                                  <div>
+                                    <span className="font-medium text-primary">🎣 Hook:</span>
+                                    <p className="text-foreground/80 mt-0.5">{variant.hook}</p>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-accent">📝 Cuerpo:</span>
+                                    <p className="text-foreground/80 mt-0.5">{variant.body}</p>
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-success">🎯 CTA:</span>
+                                    <p className="text-foreground/80 mt-0.5">{variant.cta}</p>
+                                  </div>
+                                  {variant.strategy_note && (
+                                    <div className="pt-2 border-t border-border/50">
+                                      <span className="text-[10px] text-muted-foreground">💡 {variant.strategy_note}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </Card>
+                            ))}
+                            
+                            {generatedVariants.length === 0 && !isGeneratingVariants && (
+                              <div className="text-center py-4 text-muted-foreground text-xs">
+                                <Wand2 className="h-6 w-6 mx-auto mb-2 opacity-30" />
+                                <p>Usa el generador para crear variantes</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </TabsContent>
