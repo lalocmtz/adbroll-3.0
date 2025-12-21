@@ -568,7 +568,7 @@ const VideoAnalysisModalOriginal = ({
                 </TabsList>
               </div>
 
-              <div className="p-3 pb-28 flex-1">
+              <div className="p-3 pb-40 flex-1">
                 {isProcessing ? (
                   <div className="flex flex-col items-center justify-center gap-4 py-12">
                     <div className="relative">
