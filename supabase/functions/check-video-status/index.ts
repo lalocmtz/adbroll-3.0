@@ -70,14 +70,14 @@ serve(async (req) => {
       );
     }
 
-    // Poll Kie.ai for status
+    // Poll Kie.ai for status using Runway API endpoint
     const KIE_API_KEY = Deno.env.get("KIE_API_KEY");
     if (!KIE_API_KEY) {
       throw new Error("KIE_API_KEY not configured");
     }
 
     const kieResponse = await fetch(
-      `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${generatedVideo.kie_task_id}`,
+      `https://api.kie.ai/api/v1/runway/record-detail?taskId=${generatedVideo.kie_task_id}`,
       {
         headers: {
           "Authorization": `Bearer ${KIE_API_KEY}`,
@@ -89,22 +89,25 @@ serve(async (req) => {
     console.log(`Kie.ai status for ${generatedVideo.kie_task_id}:`, kieData);
 
     if (kieData.code !== 200 || !kieData.data) {
+      // If record not found yet, it might still be initializing
+      if (kieData.msg === "recordInfo is null" || kieData.code === 422) {
+        return new Response(
+          JSON.stringify({
+            id: generatedVideo.id,
+            status: "processing",
+            kieState: "initializing",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       throw new Error(`Kie.ai error: ${kieData.msg || "Unknown error"}`);
     }
 
     const taskState = kieData.data.state;
 
     if (taskState === "success") {
-      // Parse result to get video URL
-      let videoUrl = null;
-      try {
-        const result = typeof kieData.data.resultJson === "string" 
-          ? JSON.parse(kieData.data.resultJson) 
-          : kieData.data.resultJson;
-        videoUrl = result?.resultUrls?.[0] || null;
-      } catch (e) {
-        console.error("Error parsing resultJson:", e);
-      }
+      // Get video URL from videoInfo
+      const videoUrl = kieData.data.videoInfo?.videoUrl || null;
 
       if (videoUrl) {
         // Update database
