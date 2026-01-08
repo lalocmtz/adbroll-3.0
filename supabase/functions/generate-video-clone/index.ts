@@ -102,7 +102,7 @@ serve(async (req) => {
 
     console.log(`Generated prompt: ${prompt.substring(0, 100)}...`);
 
-    // Call Kie.ai API
+    // Call Kie.ai API (Runway endpoint)
     const KIE_API_KEY = Deno.env.get("KIE_API_KEY");
     if (!KIE_API_KEY) {
       throw new Error("KIE_API_KEY not configured");
@@ -110,19 +110,24 @@ serve(async (req) => {
 
     const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/video-generation-callback`;
 
-    const kieResponse = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
+    // Map duration to Kie.ai format
+    const kieDuration = duration === "10" ? "5" : duration === "25" ? "10" : "5";
+    const kieModel = kieDuration === "10" ? "runway-duration-10-generate" : "runway-duration-5-generate";
+
+    const kieResponse = await fetch("https://api.kie.ai/api/v1/runway/generate", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${KIE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "sora-2-pro-storyboard",
-        input: {
-          n_frames: duration,
-          image_urls: [productImageUrl],
-          aspect_ratio: "portrait", // TikTok vertical format
-        },
+        prompt: prompt,
+        imageUrl: productImageUrl,
+        model: kieModel,
+        aspectRatio: "vertical", // TikTok 9:16 format
+        duration: parseInt(kieDuration),
+        quality: "720p",
+        waterMark: "",
         callBackUrl: callbackUrl,
       }),
     });
@@ -131,7 +136,7 @@ serve(async (req) => {
     console.log("Kie.ai response:", kieData);
 
     if (kieData.code !== 200 || !kieData.data?.taskId) {
-      throw new Error(`Kie.ai error: ${kieData.msg || "Unknown error"}`);
+      throw new Error(`Kie.ai error: ${kieData.msg || JSON.stringify(kieData)}`);
     }
 
     const kieTaskId = kieData.data.taskId;
