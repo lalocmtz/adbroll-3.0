@@ -311,6 +311,37 @@ $$);
 
 ---
 
+## ✅ SISTEMA DE GENERACIÓN DE VIDEOS IA (Enero 2025)
+
+### Sora 2 Pro Integration via Kie.ai
+- [x] **video_credits** - Tabla para créditos de generación (credits_total, credits_used)
+- [x] **generated_videos** - Tabla para videos generados (kie_task_id, status, video_url, prompt_used)
+- [x] **KIE_API_KEY** - Secret configurado para Kie.ai API
+- [x] **generate-video-clone** - Edge function para iniciar generación
+- [x] **video-generation-callback** - Webhook para callback de Kie.ai
+- [x] **check-video-status** - Edge function para polling manual de estado
+- [x] **useVideoCredits.ts** - Hook para gestión de créditos
+- [x] **useVideoGeneration.ts** - Hook para flujo de generación
+- [x] **VideoGeneratorTab.tsx** - UI de generación integrada en modal
+- [x] **MyGeneratedVideos.tsx** - Página /my-generated-videos
+- [x] **DashboardSidebar** - Link "Mis Videos IA" añadido
+- [x] **App.tsx** - Ruta /my-generated-videos configurada
+- [x] **VideoAnalysisModalOriginal** - Tab "Generar" integrado
+
+### Flujo
+1. Usuario sube imagen de producto
+2. Selecciona duración (10s/15s/25s)
+3. Sistema genera prompt optimizado con GPT-5-mini
+4. Envía a Kie.ai (Sora 2 Pro Standard)
+5. Polling o callback actualiza estado
+6. Video disponible para descarga
+
+### Pendiente
+- [ ] stripe-webhook actualiza video_credits al suscribirse
+- [ ] Ajustar créditos por plan (Creator: 5, Studio: 15)
+
+---
+
 ## 🔄 PENDIENTE
 
 ### Sistema de Pagos para Marcas
@@ -334,4 +365,4 @@ $$);
 
 ---
 
-**Última actualización:** Diciembre 2024
+**Última actualización:** Enero 2025
