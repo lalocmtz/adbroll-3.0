@@ -28,11 +28,11 @@ serve(async (req) => {
     const payload = await req.json();
     console.log("Kie.ai callback received:", JSON.stringify(payload, null, 2));
 
-    // Extract task info from Kie.ai callback
-    // Callback structure matches Query Task API response
+    // Extract task info from Kie.ai Runway callback
+    // Runway API callback format has videoInfo with videoUrl
     const taskId = payload.data?.taskId || payload.taskId;
     const state = payload.data?.state || payload.state;
-    const resultJson = payload.data?.resultJson || payload.resultJson;
+    const videoInfo = payload.data?.videoInfo || payload.videoInfo;
     const failMsg = payload.data?.failMsg || payload.failMsg;
 
     if (!taskId) {
@@ -50,7 +50,7 @@ serve(async (req) => {
       .from("generated_videos")
       .select("*")
       .eq("kie_task_id", taskId)
-      .single();
+      .maybeSingle();
 
     if (findError || !generatedVideo) {
       console.error(`No generated video found for task ${taskId}:`, findError);
@@ -61,14 +61,8 @@ serve(async (req) => {
     }
 
     if (state === "success") {
-      // Parse result JSON to get video URL
-      let videoUrl = null;
-      try {
-        const result = typeof resultJson === "string" ? JSON.parse(resultJson) : resultJson;
-        videoUrl = result?.resultUrls?.[0] || null;
-      } catch (e) {
-        console.error("Error parsing resultJson:", e);
-      }
+      // Get video URL from videoInfo (Runway API format)
+      const videoUrl = videoInfo?.videoUrl || null;
 
       if (!videoUrl) {
         console.error("No video URL in success response");
