@@ -18,6 +18,52 @@ const DURATION_CREDITS: Record<number, number> = {
   25: 2,
 };
 
+// Helper to upload base64 image to Supabase Storage and get public URL
+async function uploadBase64ToStorage(base64Data: string, userId: string): Promise<string> {
+  // Extract the base64 content and mime type
+  const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+  if (!matches) {
+    throw new Error("Invalid base64 data URL format");
+  }
+
+  const mimeType = matches[1];
+  const base64Content = matches[2];
+  
+  // Determine file extension
+  const extension = mimeType.includes("png") ? "png" : mimeType.includes("jpeg") || mimeType.includes("jpg") ? "jpg" : "png";
+  
+  // Convert base64 to Uint8Array
+  const binaryString = atob(base64Content);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // Generate unique filename
+  const fileName = `lipsync-images/${userId}/${Date.now()}.${extension}`;
+
+  // Upload to Supabase Storage
+  const { data, error } = await supabaseAdmin.storage
+    .from("generated-content")
+    .upload(fileName, bytes, {
+      contentType: mimeType,
+      upsert: true,
+    });
+
+  if (error) {
+    console.error("Storage upload error:", error);
+    throw new Error(`Failed to upload image: ${error.message}`);
+  }
+
+  // Get public URL
+  const { data: publicUrlData } = supabaseAdmin.storage
+    .from("generated-content")
+    .getPublicUrl(fileName);
+
+  console.log("Uploaded image to storage:", publicUrlData.publicUrl);
+  return publicUrlData.publicUrl;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -81,13 +127,20 @@ serve(async (req) => {
       throw new Error("KIE_API_KEY not configured");
     }
 
+    // Handle base64 images - upload to storage first
+    let finalImageUrl = imageUrl;
+    if (imageUrl.startsWith("data:")) {
+      console.log("Detected base64 image, uploading to storage...");
+      finalImageUrl = await uploadBase64ToStorage(imageUrl, user.id);
+    }
+
     // Build prompt for InfiniteTalk
     const prompt = `Young Latin American content creator talking naturally to camera in a casual home setting. 
 The person appears friendly and enthusiastic while presenting ${productName || 'a product'}. 
 Natural facial expressions, subtle head movements, authentic TikTok UGC style. 
 Professional lighting, iPhone-quality video aesthetic.`;
 
-    console.log("Calling Kie.ai InfiniteTalk API with:", { imageUrl, audioUrl: audioUrl.substring(0, 50) + "...", prompt });
+    console.log("Calling Kie.ai InfiniteTalk API with:", { imageUrl: finalImageUrl.substring(0, 100) + "...", audioUrl: audioUrl.substring(0, 50) + "...", prompt });
 
     // Call Kie.ai InfiniteTalk API
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -97,7 +150,7 @@ Professional lighting, iPhone-quality video aesthetic.`;
       model: "infinitalk/from-audio",
       callBackUrl: callbackUrl,
       input: {
-        image_url: imageUrl,
+        image_url: finalImageUrl,
         audio_url: audioUrl,
         prompt: prompt,
         resolution: "720p",
@@ -130,7 +183,7 @@ Professional lighting, iPhone-quality video aesthetic.`;
       .insert({
         user_id: user.id,
         source_video_id: videoId || null,
-        product_image_url: imageUrl,
+        product_image_url: finalImageUrl,
         duration_seconds: durationSeconds,
         status: "processing",
         kie_task_id: taskId,
