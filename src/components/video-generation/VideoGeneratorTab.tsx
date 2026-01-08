@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Video, 
-  Upload, 
   Loader2, 
   Sparkles, 
   Clock, 
@@ -19,6 +19,10 @@ import {
   X,
   AlertCircle,
   Lock,
+  FileText,
+  Wand2,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { useVideoCredits } from '@/hooks/useVideoCredits';
 import { useVideoGeneration } from '@/hooks/useVideoGeneration';
@@ -31,6 +35,7 @@ interface VideoGeneratorTabProps {
   videoId?: string;
   transcript?: string;
   productName?: string;
+  variantScript?: string; // AI-improved variant from analysis
 }
 
 const DURATION_OPTIONS = [
@@ -42,15 +47,24 @@ const DURATION_OPTIONS = [
 export const VideoGeneratorTab = ({ 
   videoId, 
   transcript, 
-  productName 
+  productName,
+  variantScript,
 }: VideoGeneratorTabProps) => {
   const [duration, setDuration] = useState('15');
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
+  
+  // Script selection state
+  const [scriptType, setScriptType] = useState<'original' | 'variant'>('variant');
+  const [showScriptPreview, setShowScriptPreview] = useState(false);
+  
+  // UGC Image generation state
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [ugcImageUrl, setUgcImageUrl] = useState<string | null>(null);
 
-  const { availableCredits, loading: creditsLoading, getCreditsForDuration, refetch: refetchCredits } = useVideoCredits();
+  const { availableCredits, loading: creditsLoading, getCreditsForDuration } = useVideoCredits();
   const { 
     status, 
     generatedVideo, 
@@ -66,12 +80,15 @@ export const VideoGeneratorTab = ({
 
   const creditsRequired = getCreditsForDuration(duration);
   const hasEnoughCredits = availableCredits >= creditsRequired;
+  
+  // Get the selected script content
+  const selectedScript = scriptType === 'original' ? transcript : (variantScript || transcript);
+  const hasVariant = !!variantScript && variantScript !== transcript;
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       toast({
         title: 'Formato no válido',
@@ -109,6 +126,9 @@ export const VideoGeneratorTab = ({
         .getPublicUrl(fileName);
 
       setProductImageUrl(publicUrl);
+      // Reset UGC image when product image changes
+      setUgcImageUrl(null);
+      
       toast({
         title: '✓ Imagen subida',
         description: 'Lista para generar tu video',
@@ -125,8 +145,50 @@ export const VideoGeneratorTab = ({
     }
   };
 
+  const handleGenerateUGCImage = async () => {
+    if (!productName && !productImageUrl) {
+      toast({
+        title: 'Falta información',
+        description: 'Sube una imagen de producto primero',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-ugc-image', {
+        body: {
+          productName: productName || 'producto',
+          productImageUrl: productImageUrl,
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setUgcImageUrl(data.imageUrl);
+      toast({
+        title: '✓ Imagen generada',
+        description: 'Imagen de creador lista para animar',
+      });
+    } catch (err: any) {
+      console.error('UGC image generation error:', err);
+      toast({
+        title: 'Error generando imagen',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
   const handleGenerate = async () => {
-    if (!productImageUrl) {
+    // We can use either the UGC image or the product image
+    const imageToUse = ugcImageUrl || productImageUrl;
+    
+    if (!imageToUse) {
       toast({
         title: 'Sube una imagen',
         description: 'Necesitas subir la imagen de tu producto',
@@ -137,9 +199,12 @@ export const VideoGeneratorTab = ({
 
     await generateVideo({
       videoId,
-      productImageUrl,
+      productImageUrl: imageToUse,
       duration,
       customPrompt: customPrompt || undefined,
+      scriptType,
+      scriptContent: selectedScript,
+      ugcImageUrl: ugcImageUrl || undefined,
     });
   };
 
@@ -147,6 +212,11 @@ export const VideoGeneratorTab = ({
     if (generatedVideo?.videoUrl) {
       window.open(generatedVideo.videoUrl, '_blank');
     }
+  };
+
+  const handleReset = () => {
+    reset();
+    setUgcImageUrl(null);
   };
 
   const { hasPaid, openPaywall } = useBlurGateContext();
@@ -160,7 +230,7 @@ export const VideoGeneratorTab = ({
         </div>
         <h3 className="font-semibold text-lg mb-2">Genera Videos con IA</h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-          Sube la imagen de tu producto y genera un video estilo TikTok usando Sora 2 Pro.
+          Clona guiones virales y genera videos UGC orgánicos con Sora 2.
         </p>
         <Button onClick={() => openPaywall('Generador de Videos IA')} className="rounded-xl">
           <Sparkles className="h-4 w-4 mr-2" />
@@ -182,11 +252,10 @@ export const VideoGeneratorTab = ({
           <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-3">
             <Check className="h-6 w-6 text-green-600" />
           </div>
-          <h3 className="font-semibold text-lg">¡Video generado!</h3>
-          <p className="text-sm text-muted-foreground">Tu video está listo para descargar</p>
+          <h3 className="font-semibold text-lg">¡Video UGC generado!</h3>
+          <p className="text-sm text-muted-foreground">Tu video orgánico está listo</p>
         </div>
 
-        {/* Video Preview */}
         <div className="w-full max-w-[200px] mx-auto rounded-xl overflow-hidden bg-black aspect-[9/16]">
           <video 
             src={generatedVideo.videoUrl}
@@ -200,7 +269,7 @@ export const VideoGeneratorTab = ({
           <Button 
             variant="outline" 
             className="flex-1 rounded-xl"
-            onClick={reset}
+            onClick={handleReset}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Generar otro
@@ -210,7 +279,7 @@ export const VideoGeneratorTab = ({
             onClick={handleDownload}
           >
             <Download className="h-4 w-4 mr-2" />
-            Descargar MP4
+            Descargar
           </Button>
         </div>
       </motion.div>
@@ -226,7 +295,7 @@ export const VideoGeneratorTab = ({
         </div>
         <h3 className="font-semibold text-lg mb-2">Error en la generación</h3>
         <p className="text-sm text-muted-foreground mb-4">{error || 'Algo salió mal. Tu crédito fue reembolsado.'}</p>
-        <Button onClick={reset} className="rounded-xl">
+        <Button onClick={handleReset} className="rounded-xl">
           <RefreshCw className="h-4 w-4 mr-2" />
           Intentar de nuevo
         </Button>
@@ -248,12 +317,13 @@ export const VideoGeneratorTab = ({
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </motion.div>
-        <h3 className="font-semibold text-lg mb-1">Generando tu video...</h3>
+        <h3 className="font-semibold text-lg mb-1">Generando video UGC...</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Sora 2 Pro está creando tu video. Esto puede tomar 1-2 minutos.
+          Creando tu video orgánico estilo TikTok. ~1-2 minutos.
         </p>
-        <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-          <p>💡 Tip: No cierres esta ventana</p>
+        <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 space-y-1">
+          <p>💡 Tu video se verá como un creador real</p>
+          <p>📱 Formato vertical 9:16 para TikTok</p>
         </div>
       </div>
     );
@@ -267,7 +337,7 @@ export const VideoGeneratorTab = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Coins className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Créditos disponibles</span>
+            <span className="text-sm font-medium">Créditos</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold text-primary">
@@ -279,35 +349,146 @@ export const VideoGeneratorTab = ({
               className="h-6 px-2 text-xs"
               onClick={() => navigate('/settings')}
             >
-              Ver más
+              +
             </Button>
           </div>
         </div>
       </Card>
 
+      {/* Script Type Selector (only show if we have a transcript) */}
+      {transcript && (
+        <div className="space-y-2">
+          <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Guion para el video
+          </Label>
+          <RadioGroup 
+            value={scriptType} 
+            onValueChange={(v) => setScriptType(v as 'original' | 'variant')}
+            className="grid grid-cols-2 gap-2"
+          >
+            <div>
+              <RadioGroupItem value="original" id="script-original" className="peer sr-only" />
+              <Label 
+                htmlFor="script-original"
+                className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${
+                  scriptType === 'original' 
+                    ? 'bg-primary text-primary-foreground border-primary' 
+                    : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50'
+                }`}
+              >
+                <FileText className="h-4 w-4" />
+                <div className="text-left">
+                  <div className="font-medium text-sm">Original</div>
+                  <div className="text-[10px] opacity-80">Guion exacto</div>
+                </div>
+              </Label>
+            </div>
+            <div>
+              <RadioGroupItem value="variant" id="script-variant" className="peer sr-only" />
+              <Label 
+                htmlFor="script-variant"
+                className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${
+                  scriptType === 'variant' 
+                    ? 'bg-primary text-primary-foreground border-primary' 
+                    : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50'
+                } ${!hasVariant ? 'opacity-50' : ''}`}
+              >
+                <Wand2 className="h-4 w-4" />
+                <div className="text-left">
+                  <div className="font-medium text-sm">Mejorado</div>
+                  <div className="text-[10px] opacity-80">Variante IA</div>
+                </div>
+              </Label>
+            </div>
+          </RadioGroup>
+          
+          {/* Script Preview Toggle */}
+          <button 
+            onClick={() => setShowScriptPreview(!showScriptPreview)}
+            className="flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            {showScriptPreview ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            {showScriptPreview ? 'Ocultar guion' : 'Ver guion seleccionado'}
+          </button>
+          
+          <AnimatePresence>
+            {showScriptPreview && selectedScript && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+              >
+                <ScrollArea className="h-24 rounded-lg border bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                    {selectedScript}
+                  </p>
+                </ScrollArea>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
       {/* Product Image Upload */}
-      <div>
-        <Label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wider">
+      <div className="space-y-2">
+        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           Imagen de tu producto
         </Label>
         {productImageUrl ? (
-          <div className="relative w-full aspect-square max-w-[150px] mx-auto rounded-xl overflow-hidden bg-muted">
-            <img src={productImageUrl} alt="Producto" className="w-full h-full object-cover" />
-            <button 
-              onClick={() => setProductImageUrl(null)}
-              className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-            >
-              <X className="h-3 w-3" />
-            </button>
+          <div className="flex gap-3">
+            <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-muted flex-shrink-0">
+              <img src={productImageUrl} alt="Producto" className="w-full h-full object-cover" />
+              <button 
+                onClick={() => {
+                  setProductImageUrl(null);
+                  setUgcImageUrl(null);
+                }}
+                className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+            
+            {/* UGC Image Generation */}
+            <div className="flex-1 space-y-2">
+              {ugcImageUrl ? (
+                <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-muted">
+                  <img src={ugcImageUrl} alt="Creador UGC" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-green-500 text-white text-[9px] rounded-full">
+                    ✓ UGC
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-20 rounded-xl flex flex-col gap-1"
+                  onClick={handleGenerateUGCImage}
+                  disabled={isGeneratingImage}
+                >
+                  {isGeneratingImage ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <span className="text-[10px]">Generar creador</span>
+                    </>
+                  )}
+                </Button>
+              )}
+              <p className="text-[10px] text-muted-foreground text-center">
+                {ugcImageUrl ? 'Imagen de creador lista' : 'Opcional: crear imagen de creador'}
+              </p>
+            </div>
           </div>
         ) : (
-          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/30 rounded-xl cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all">
+          <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-muted-foreground/30 rounded-xl cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all">
             {isUploading ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             ) : (
               <>
                 <ImageIcon className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                <span className="text-sm text-muted-foreground">Click para subir imagen</span>
+                <span className="text-sm text-muted-foreground">Subir imagen de producto</span>
                 <span className="text-xs text-muted-foreground/60">JPG, PNG, WebP (max 10MB)</span>
               </>
             )}
@@ -363,17 +544,25 @@ export const VideoGeneratorTab = ({
           onClick={() => setShowPrompt(!showPrompt)}
           className="text-xs text-primary hover:underline mb-2"
         >
-          {showPrompt ? 'Ocultar prompt personalizado' : '+ Agregar prompt personalizado (opcional)'}
+          {showPrompt ? 'Ocultar prompt personalizado' : '+ Prompt personalizado (opcional)'}
         </button>
-        {showPrompt && (
-          <Textarea
-            value={customPrompt}
-            onChange={(e) => setCustomPrompt(e.target.value)}
-            placeholder="Describe el estilo de video que quieres. Ej: 'Video moderno con movimientos de cámara suaves, iluminación cálida...'"
-            className="text-sm"
-            rows={3}
-          />
-        )}
+        <AnimatePresence>
+          {showPrompt && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+            >
+              <Textarea
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                placeholder="Describe el estilo de video que quieres. Ej: 'Creador entusiasta hablando del producto, gestos naturales...'"
+                className="text-sm"
+                rows={3}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* No credits warning */}
@@ -394,13 +583,17 @@ export const VideoGeneratorTab = ({
 
       {/* Generate Button */}
       <Button 
-        className="w-full h-11 rounded-xl gap-2"
+        className="w-full h-12 rounded-xl gap-2 text-base"
         onClick={handleGenerate}
         disabled={!productImageUrl || !hasEnoughCredits || isUploading}
       >
-        <Video className="h-4 w-4" />
-        Generar Video ({creditsRequired} crédito{creditsRequired > 1 ? 's' : ''})
+        <Video className="h-5 w-5" />
+        Generar Video UGC ({creditsRequired} crédito{creditsRequired > 1 ? 's' : ''})
       </Button>
+      
+      <p className="text-[10px] text-center text-muted-foreground">
+        Video vertical 9:16 • Estilo TikTok orgánico • ~1-2 min
+      </p>
     </div>
   );
 };

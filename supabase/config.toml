@@ -110,3 +110,6 @@ verify_jwt = false
 
 [functions.check-video-status]
 verify_jwt = true
+
+[functions.generate-ugc-image]
+verify_jwt = true

@@ -25,6 +25,44 @@ const DURATION_CREDITS: Record<string, number> = {
   "25": 2,
 };
 
+// Master prompt for UGC organic videos
+const UGC_VIDEO_PROMPT_TEMPLATE = `Vertical 9:16 video of a content creator talking directly to camera.
+
+SCENE:
+- Creator in casual home setting (bedroom or living room)
+- Natural window lighting throughout the video
+- Static background, no scene changes
+- Warm, inviting atmosphere
+
+MOVEMENT & EXPRESSION:
+- Subtle natural head movements
+- Hand gestures while explaining
+- Natural facial expressions changing throughout
+- Lips moving as if speaking enthusiastically
+- Occasional blinks and micro-expressions
+- Small body shifts for authenticity
+- Eye contact with camera maintained
+
+STYLE:
+- Raw, authentic TikTok UGC style
+- NOT cinematic, NOT professional
+- Like a real selfie video recorded on phone
+- Very subtle handheld camera micro-shake
+- No transitions, no effects, no music overlay
+- No dramatic lighting changes
+- Feels like watching a real person's video
+
+AVOID:
+- Studio or professional settings
+- Dramatic camera movements or zooms
+- Scene cuts or transitions
+- Text overlays or graphics
+- Special effects or filters
+- Multiple camera angles
+- Artificial or commercial feel
+
+DURATION: {{DURATION}} seconds`;
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -46,8 +84,17 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { videoId, productImageUrl, duration = "15", customPrompt } = await req.json();
-    console.log(`Generate video clone for user ${user.id}, video ${videoId}, duration ${duration}s`);
+    const { 
+      videoId, 
+      productImageUrl, 
+      duration = "15", 
+      customPrompt,
+      scriptType = "variant", // 'original' | 'variant'
+      scriptContent,
+      ugcImageUrl, // Pre-generated UGC creator image
+    } = await req.json();
+
+    console.log(`Generate UGC video for user ${user.id}, video ${videoId}, duration ${duration}s, scriptType: ${scriptType}`);
 
     // Validate duration
     if (!["10", "15", "25"].includes(duration)) {
@@ -80,8 +127,9 @@ serve(async (req) => {
       );
     }
 
-    // Get source video info for prompt generation
+    // Get source video info
     let sourceVideo = null;
+    let productName = "";
     if (videoId) {
       const { data: video } = await supabaseAdmin
         .from("videos")
@@ -89,18 +137,30 @@ serve(async (req) => {
         .eq("id", videoId)
         .single();
       sourceVideo = video;
+      productName = video?.product?.producto_nombre || video?.product_name || "producto";
     }
 
-    // Generate optimized prompt for Sora 2
+    // Determine which image to use for video generation
+    // Priority: ugcImageUrl (pre-generated creator) > productImageUrl
+    const imageForVideo = ugcImageUrl || productImageUrl;
+    
+    if (!imageForVideo) {
+      throw new Error("No image provided for video generation");
+    }
+
+    // Generate UGC-optimized prompt
     let prompt = customPrompt;
-    if (!prompt && sourceVideo) {
-      prompt = await generateSora2Prompt(sourceVideo);
-    }
     if (!prompt) {
-      prompt = "A TikTok-style product showcase video with dynamic camera movements, good lighting, and engaging presentation. Modern aesthetic, 9:16 vertical format.";
+      prompt = await generateUGCVideoPrompt(
+        sourceVideo, 
+        productName, 
+        scriptType, 
+        scriptContent, 
+        duration
+      );
     }
 
-    console.log(`Generated prompt: ${prompt.substring(0, 100)}...`);
+    console.log(`Generated UGC prompt: ${prompt.substring(0, 200)}...`);
 
     // Call Kie.ai API (Runway endpoint)
     const KIE_API_KEY = Deno.env.get("KIE_API_KEY");
@@ -122,7 +182,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         prompt: prompt,
-        imageUrl: productImageUrl,
+        imageUrl: imageForVideo,
         model: kieModel,
         aspectRatio: "vertical", // TikTok 9:16 format
         duration: parseInt(kieDuration),
@@ -149,7 +209,7 @@ serve(async (req) => {
         user_id: user.id,
         source_video_id: videoId || null,
         prompt_used: prompt,
-        product_image_url: productImageUrl,
+        product_image_url: imageForVideo,
         kie_task_id: kieTaskId,
         duration_seconds: parseInt(duration),
         status: "processing",
@@ -171,7 +231,7 @@ serve(async (req) => {
       })
       .eq("user_id", user.id);
 
-    console.log(`Video generation started. Task ID: ${kieTaskId}, Credits used: ${creditsRequired}`);
+    console.log(`UGC video generation started. Task ID: ${kieTaskId}, Credits used: ${creditsRequired}`);
 
     return new Response(
       JSON.stringify({
@@ -194,17 +254,27 @@ serve(async (req) => {
   }
 });
 
-// Generate an optimized prompt for Sora 2 based on source video
-async function generateSora2Prompt(video: any): Promise<string> {
+// Generate an optimized UGC-style prompt for organic TikTok videos
+async function generateUGCVideoPrompt(
+  video: any, 
+  productName: string,
+  scriptType: string,
+  scriptContent: string | undefined,
+  duration: string
+): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  
+  // Use the master template as base
+  let basePrompt = UGC_VIDEO_PROMPT_TEMPLATE.replace("{{DURATION}}", duration);
+  
   if (!LOVABLE_API_KEY) {
-    console.log("LOVABLE_API_KEY not set, using default prompt");
-    return "";
+    console.log("LOVABLE_API_KEY not set, using template prompt");
+    return basePrompt;
   }
 
   try {
-    const transcript = video.transcript || "";
-    const productName = video.product?.producto_nombre || video.product_name || "product";
+    // Get the script to base the video on
+    const script = scriptContent || video?.transcript || "";
     
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -213,37 +283,63 @@ async function generateSora2Prompt(video: any): Promise<string> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
           {
             role: "system",
-            content: "You are an expert at creating video generation prompts for Sora 2. Create cinematic, dynamic prompts that describe TikTok-style product videos. Focus on camera movements, lighting, mood, and visual style. Keep prompts between 50-80 words in English."
+            content: `You are an expert at creating video generation prompts for Sora 2 and Runway that produce ORGANIC, AUTHENTIC TikTok UGC (User Generated Content) videos.
+
+Your prompts must create videos that look like a REAL PERSON recorded with their phone, NOT professional production.
+
+CRITICAL RULES:
+1. Always request VERTICAL 9:16 format
+2. Always describe a creator TALKING to camera (lips moving)
+3. Always include NATURAL movements (head tilts, hand gestures)
+4. NEVER include professional lighting, studio settings, or cinematic elements
+5. Keep the prompt focused on ORGANIC, RAW, AUTHENTIC feel
+6. Describe the ENERGY and EMOTION of someone genuinely excited about a product
+7. Output only the prompt, no explanations, maximum 100 words in English`
           },
           {
             role: "user",
-            content: `Create a Sora 2 video prompt for a TikTok Shop video about "${productName}". 
-            
-The original script was: "${transcript.substring(0, 500)}"
+            content: `Create a Sora 2 video prompt for an organic TikTok UGC video about "${productName}".
 
-Generate a prompt that describes:
-- Camera movements (slow pan, zoom in, tracking shot)
-- Lighting style (natural, studio, golden hour)
-- Visual mood (energetic, calm, luxurious)
-- Product showcase angles
-- Modern TikTok aesthetic
-- 9:16 vertical format
+The creator should appear to be saying this script naturally:
+"${script.substring(0, 400)}"
 
-Output only the prompt, no explanations.`
+The video should feel like a real TikTok creator genuinely recommending this product from their home.
+
+Requirements:
+- Vertical 9:16 (TikTok format)
+- ${duration} seconds duration
+- Creator talking directly to camera
+- Natural home setting
+- Raw, authentic UGC style
+- Hand gestures and expressions matching the script energy
+
+Output only the prompt.`
           }
         ],
         max_tokens: 200,
       }),
     });
 
+    if (!response.ok) {
+      console.error("Error from Lovable AI:", response.status);
+      return basePrompt;
+    }
+
     const data = await response.json();
-    return data.choices?.[0]?.message?.content || "";
+    const generatedPrompt = data.choices?.[0]?.message?.content;
+    
+    if (generatedPrompt) {
+      // Append critical requirements to ensure format
+      return `${generatedPrompt}\n\nCRITICAL: Vertical 9:16 format. ${duration} seconds. Lips moving as if speaking. Natural head movements and hand gestures. Raw authentic UGC style, NOT professional.`;
+    }
+    
+    return basePrompt;
   } catch (error) {
-    console.error("Error generating prompt:", error);
-    return "";
+    console.error("Error generating UGC prompt:", error);
+    return basePrompt;
   }
 }
