@@ -849,6 +849,59 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_videos: {
+        Row: {
+          cost_usd: number | null
+          created_at: string | null
+          duration_seconds: number | null
+          error_message: string | null
+          id: string
+          kie_task_id: string | null
+          product_image_url: string | null
+          prompt_used: string | null
+          source_video_id: string | null
+          status: string | null
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          cost_usd?: number | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          kie_task_id?: string | null
+          product_image_url?: string | null
+          prompt_used?: string | null
+          source_video_id?: string | null
+          status?: string | null
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          cost_usd?: number | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          error_message?: string | null
+          id?: string
+          kie_task_id?: string | null
+          product_image_url?: string | null
+          prompt_used?: string | null
+          source_video_id?: string | null
+          status?: string | null
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_videos_source_video_id_fkey"
+            columns: ["source_video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guiones_personalizados: {
         Row: {
           contenido: string
@@ -1393,6 +1446,33 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      video_credits: {
+        Row: {
+          created_at: string | null
+          credits_total: number | null
+          credits_used: number | null
+          id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          credits_total?: number | null
+          credits_used?: number | null
+          id?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          credits_total?: number | null
+          credits_used?: number | null
+          id?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

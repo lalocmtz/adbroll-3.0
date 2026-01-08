@@ -30,6 +30,7 @@ import {
   LayoutDashboard,
   FolderKanban,
   ArrowUpCircle,
+  Video,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import logoDark from "@/assets/logo-dark.png";
@@ -74,6 +75,7 @@ const earnItems: NavItem[] = [
 // TU CENTRO - Work tools
 const workspaceItems: NavItem[] = [
   { to: "/tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true },
+  { to: "/my-generated-videos", labelEs: "Mis Videos IA", labelEn: "My AI Videos", icon: Video, lockedForVisitor: true },
   { to: "/library", labelEs: "Mi Biblioteca", labelEn: "My Library", icon: FolderOpen, lockedForVisitor: true },
   { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
 ];
