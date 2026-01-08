@@ -116,3 +116,9 @@ verify_jwt = true
 
 [functions.elevenlabs-tts]
 verify_jwt = false
+
+[functions.generate-lipsync-video]
+verify_jwt = true
+
+[functions.lipsync-callback]
+verify_jwt = false

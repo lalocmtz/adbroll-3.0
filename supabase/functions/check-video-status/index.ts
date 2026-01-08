@@ -70,14 +70,22 @@ serve(async (req) => {
       );
     }
 
-    // Poll Kie.ai for status using Runway API endpoint
+    // Poll Kie.ai for status
     const KIE_API_KEY = Deno.env.get("KIE_API_KEY");
     if (!KIE_API_KEY) {
       throw new Error("KIE_API_KEY not configured");
     }
 
-    const kieResponse = await fetch(
-      `https://api.kie.ai/api/v1/runway/record-detail?taskId=${generatedVideo.kie_task_id}`,
+    const taskId = generatedVideo.kie_task_id;
+    
+    // Determine which API endpoint to use based on task type
+    // InfiniteTalk tasks use the jobs API, Runway tasks use runway API
+    let kieResponse;
+    let isInfiniteTalk = false;
+
+    // First try the jobs API (for InfiniteTalk tasks)
+    kieResponse = await fetch(
+      `https://api.kie.ai/api/v1/jobs/${taskId}`,
       {
         headers: {
           "Authorization": `Bearer ${KIE_API_KEY}`,
@@ -85,12 +93,28 @@ serve(async (req) => {
       }
     );
 
-    const kieData = await kieResponse.json();
-    console.log(`Kie.ai status for ${generatedVideo.kie_task_id}:`, kieData);
+    let kieData = await kieResponse.json();
+    console.log(`Kie.ai jobs API status for ${taskId}:`, kieData);
+
+    // If jobs API doesn't find it, try Runway API
+    if (kieData.code !== 200 || !kieData.data) {
+      kieResponse = await fetch(
+        `https://api.kie.ai/api/v1/runway/record-detail?taskId=${taskId}`,
+        {
+          headers: {
+            "Authorization": `Bearer ${KIE_API_KEY}`,
+          },
+        }
+      );
+      kieData = await kieResponse.json();
+      console.log(`Kie.ai runway API status for ${taskId}:`, kieData);
+    } else {
+      isInfiniteTalk = true;
+    }
 
     if (kieData.code !== 200 || !kieData.data) {
       // If record not found yet, it might still be initializing
-      if (kieData.msg === "recordInfo is null" || kieData.code === 422) {
+      if (kieData.msg === "recordInfo is null" || kieData.code === 422 || kieData.code === 404) {
         return new Response(
           JSON.stringify({
             id: generatedVideo.id,
@@ -103,11 +127,15 @@ serve(async (req) => {
       throw new Error(`Kie.ai error: ${kieData.msg || "Unknown error"}`);
     }
 
-    const taskState = kieData.data.state;
+    const taskState = kieData.data.state || kieData.data.status;
 
-    if (taskState === "success") {
-      // Get video URL from videoInfo
-      const videoUrl = kieData.data.videoInfo?.videoUrl || null;
+    if (taskState === "success" || taskState === "completed") {
+      // Get video URL - different format for InfiniteTalk vs Runway
+      const videoUrl = kieData.data.videoInfo?.videoUrl 
+        || kieData.data.videoInfo?.video_url
+        || kieData.data.output?.video_url
+        || kieData.data.video_url
+        || null;
 
       if (videoUrl) {
         // Update database
@@ -128,8 +156,8 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-    } else if (taskState === "fail") {
-      const errorMsg = kieData.data.failMsg || "Generation failed";
+    } else if (taskState === "fail" || taskState === "failed") {
+      const errorMsg = kieData.data.failMsg || kieData.data.error || "Generation failed";
       
       // Update database
       await supabaseAdmin
