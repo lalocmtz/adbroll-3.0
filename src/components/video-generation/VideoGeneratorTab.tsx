@@ -63,7 +63,6 @@ export const VideoGeneratorTab = ({
   } = useVideoGeneration();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { hasPaid } = useBlurGateContext();
 
   const creditsRequired = getCreditsForDuration(duration);
   const hasEnoughCredits = availableCredits >= creditsRequired;
@@ -150,6 +149,8 @@ export const VideoGeneratorTab = ({
     }
   };
 
+  const { hasPaid, openPaywall } = useBlurGateContext();
+
   // Locked state for non-paid users
   if (!hasPaid) {
     return (
@@ -161,7 +162,7 @@ export const VideoGeneratorTab = ({
         <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
           Sube la imagen de tu producto y genera un video estilo TikTok usando Sora 2 Pro.
         </p>
-        <Button onClick={() => navigate('/unlock')} className="rounded-xl">
+        <Button onClick={() => openPaywall('Generador de Videos IA')} className="rounded-xl">
           <Sparkles className="h-4 w-4 mr-2" />
           Desbloquear
         </Button>
