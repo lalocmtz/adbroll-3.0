@@ -24,7 +24,6 @@ import {
   ChevronDown,
   ChevronUp,
   Volume2,
-  VolumeX,
   Mic,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -36,7 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useVideoCredits } from '@/hooks/useVideoCredits';
-import { useVideoGeneration } from '@/hooks/useVideoGeneration';
+import { useLipsyncGeneration } from '@/hooks/useLipsyncGeneration';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -46,7 +45,7 @@ interface VideoGeneratorTabProps {
   videoId?: string;
   transcript?: string;
   productName?: string;
-  variantScript?: string; // AI-improved variant from analysis
+  variantScript?: string;
 }
 
 const DURATION_OPTIONS = [
@@ -73,8 +72,6 @@ export const VideoGeneratorTab = ({
   const [duration, setDuration] = useState('15');
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [customPrompt, setCustomPrompt] = useState('');
-  const [showPrompt, setShowPrompt] = useState(false);
   
   // Script selection state
   const [scriptType, setScriptType] = useState<'original' | 'variant'>('variant');
@@ -85,22 +82,24 @@ export const VideoGeneratorTab = ({
   const [ugcImageUrl, setUgcImageUrl] = useState<string | null>(null);
   
   // Audio generation state
-  const [generateAudio, setGenerateAudio] = useState(true);
   const [voiceType, setVoiceType] = useState('matilda');
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  // Generation step tracking
+  const [generationStep, setGenerationStep] = useState<'idle' | 'audio' | 'image' | 'video'>('idle');
 
   const { availableCredits, loading: creditsLoading, getCreditsForDuration } = useVideoCredits();
   const { 
     status, 
     generatedVideo, 
     error, 
-    generateVideo, 
+    generateLipsyncVideo, 
     reset,
     isGenerating, 
     isCompleted, 
     isFailed 
-  } = useVideoGeneration();
+  } = useLipsyncGeneration();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -152,7 +151,6 @@ export const VideoGeneratorTab = ({
         .getPublicUrl(fileName);
 
       setProductImageUrl(publicUrl);
-      // Reset UGC image when product image changes
       setUgcImageUrl(null);
       
       toast({
@@ -171,17 +169,18 @@ export const VideoGeneratorTab = ({
     }
   };
 
-  const handleGenerateUGCImage = async () => {
+  const handleGenerateUGCImage = async (): Promise<string | null> => {
     if (!productName && !productImageUrl) {
       toast({
         title: 'Falta información',
         description: 'Sube una imagen de producto primero',
         variant: 'destructive',
       });
-      return;
+      return null;
     }
 
     setIsGeneratingImage(true);
+    setGenerationStep('image');
     try {
       const { data, error } = await supabase.functions.invoke('generate-ugc-image', {
         body: {
@@ -196,8 +195,9 @@ export const VideoGeneratorTab = ({
       setUgcImageUrl(data.imageUrl);
       toast({
         title: '✓ Imagen generada',
-        description: 'Imagen de creador lista para animar',
+        description: 'Imagen de creador lista',
       });
+      return data.imageUrl;
     } catch (err: any) {
       console.error('UGC image generation error:', err);
       toast({
@@ -205,22 +205,24 @@ export const VideoGeneratorTab = ({
         description: err.message,
         variant: 'destructive',
       });
+      return null;
     } finally {
       setIsGeneratingImage(false);
     }
   };
 
-  const handleGenerateAudio = async () => {
+  const generateAudio = async (): Promise<string | null> => {
     if (!selectedScript) {
       toast({
         title: 'Sin guion',
         description: 'Necesitas un guion para generar audio',
         variant: 'destructive',
       });
-      return;
+      return null;
     }
 
     setIsGeneratingAudio(true);
+    setGenerationStep('audio');
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
@@ -244,13 +246,30 @@ export const VideoGeneratorTab = ({
       }
 
       const data = await response.json();
-      const audioDataUrl = `data:audio/mpeg;base64,${data.audioContent}`;
-      setAudioUrl(audioDataUrl);
+      
+      // Upload audio to storage for persistent URL
+      const audioBlob = await fetch(`data:audio/mpeg;base64,${data.audioContent}`).then(r => r.blob());
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No autenticado');
+
+      const fileName = `${user.id}/audio-${Date.now()}.mp3`;
+      const { error: uploadError } = await supabase.storage
+        .from('assets')
+        .upload(fileName, audioBlob, { contentType: 'audio/mpeg' });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('assets')
+        .getPublicUrl(fileName);
+
+      setAudioUrl(publicUrl);
       
       toast({
         title: '✓ Audio generado',
-        description: 'Voz en español lista para tu video',
+        description: 'Voz en español lista',
       });
+      return publicUrl;
     } catch (err: any) {
       console.error('Audio generation error:', err);
       toast({
@@ -258,38 +277,77 @@ export const VideoGeneratorTab = ({
         description: err.message,
         variant: 'destructive',
       });
+      return null;
     } finally {
       setIsGeneratingAudio(false);
     }
   };
 
   const handleGenerate = async () => {
-    // We can use either the UGC image or the product image
-    const imageToUse = ugcImageUrl || productImageUrl;
-    
-    if (!imageToUse) {
+    if (!selectedScript) {
       toast({
-        title: 'Sube una imagen',
-        description: 'Necesitas subir la imagen de tu producto',
+        title: 'Sin guion',
+        description: 'Necesitas un guion para generar el video',
         variant: 'destructive',
       });
       return;
     }
 
-    // Generate audio first if enabled and not already generated
-    if (generateAudio && selectedScript && !audioUrl) {
-      await handleGenerateAudio();
-    }
+    try {
+      // Step 1: Generate audio if not already done
+      let finalAudioUrl = audioUrl;
+      if (!finalAudioUrl) {
+        toast({
+          title: '🎙️ Paso 1/3: Generando audio...',
+          description: 'Creando voz con ElevenLabs',
+        });
+        finalAudioUrl = await generateAudio();
+        if (!finalAudioUrl) return;
+      }
 
-    await generateVideo({
-      videoId,
-      productImageUrl: imageToUse,
-      duration,
-      customPrompt: customPrompt || undefined,
-      scriptType,
-      scriptContent: selectedScript,
-      ugcImageUrl: ugcImageUrl || undefined,
-    });
+      // Step 2: Generate UGC image if not already done
+      let finalImageUrl = ugcImageUrl;
+      if (!finalImageUrl) {
+        if (!productImageUrl) {
+          toast({
+            title: 'Sube una imagen',
+            description: 'Necesitas subir la imagen de tu producto',
+            variant: 'destructive',
+          });
+          return;
+        }
+        toast({
+          title: '📸 Paso 2/3: Generando imagen...',
+          description: 'Creando imagen de creador UGC',
+        });
+        finalImageUrl = await handleGenerateUGCImage();
+        if (!finalImageUrl) return;
+      }
+
+      // Step 3: Generate lip-sync video
+      toast({
+        title: '🎬 Paso 3/3: Generando video...',
+        description: 'Sincronizando labios con audio',
+      });
+      setGenerationStep('video');
+      
+      await generateLipsyncVideo({
+        imageUrl: finalImageUrl,
+        audioUrl: finalAudioUrl,
+        productName,
+        duration,
+        videoId,
+      });
+
+    } catch (err: any) {
+      console.error('Generation error:', err);
+      toast({
+        title: 'Error',
+        description: err.message,
+        variant: 'destructive',
+      });
+      setGenerationStep('idle');
+    }
   };
 
   const handleDownload = () => {
@@ -298,19 +356,11 @@ export const VideoGeneratorTab = ({
     }
   };
 
-  const handleDownloadAudio = () => {
-    if (audioUrl) {
-      const link = document.createElement('a');
-      link.href = audioUrl;
-      link.download = 'audio-ugc.mp3';
-      link.click();
-    }
-  };
-
   const handleReset = () => {
     reset();
     setUgcImageUrl(null);
     setAudioUrl(null);
+    setGenerationStep('idle');
   };
 
   const { hasPaid, openPaywall } = useBlurGateContext();
@@ -324,7 +374,7 @@ export const VideoGeneratorTab = ({
         </div>
         <h3 className="font-semibold text-lg mb-2">Genera Videos con IA</h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-          Clona guiones virales y genera videos UGC orgánicos con Sora 2.
+          Clona guiones virales y genera videos UGC con lip-sync automático.
         </p>
         <Button onClick={() => openPaywall('Generador de Videos IA')} className="rounded-xl">
           <Sparkles className="h-4 w-4 mr-2" />
@@ -346,8 +396,8 @@ export const VideoGeneratorTab = ({
           <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-3">
             <Check className="h-6 w-6 text-green-600" />
           </div>
-          <h3 className="font-semibold text-lg">¡Video UGC generado!</h3>
-          <p className="text-sm text-muted-foreground">Tu video orgánico está listo</p>
+          <h3 className="font-semibold text-lg">¡Video listo para publicar!</h3>
+          <p className="text-sm text-muted-foreground">Audio sincronizado con labios incluido</p>
         </div>
 
         <div className="w-full max-w-[200px] mx-auto rounded-xl overflow-hidden bg-black aspect-[9/16]">
@@ -359,30 +409,17 @@ export const VideoGeneratorTab = ({
           />
         </div>
 
-        {/* Audio download if generated */}
-        {audioUrl && (
-          <Card className="p-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Volume2 className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-green-700 dark:text-green-400">Audio generado</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-green-700 hover:bg-green-100 dark:text-green-400"
-                onClick={handleDownloadAudio}
-              >
-                <Download className="h-3 w-3 mr-1" />
-                MP3
-              </Button>
-            </div>
-            <audio src={audioUrl} controls className="w-full h-8 mt-2" />
-            <p className="text-[10px] text-green-600 dark:text-green-500 mt-1">
-              💡 Combina el audio con tu video en CapCut o tu editor favorito
-            </p>
-          </Card>
-        )}
+        <Card className="p-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+          <div className="flex items-center gap-2">
+            <Volume2 className="h-4 w-4 text-green-600" />
+            <span className="text-sm font-medium text-green-700 dark:text-green-400">
+              Audio + Lip-sync incluidos
+            </span>
+          </div>
+          <p className="text-[10px] text-green-600 dark:text-green-500 mt-1">
+            El video ya incluye el audio sincronizado. ¡Listo para TikTok!
+          </p>
+        </Card>
 
         <div className="flex gap-2">
           <Button 
@@ -423,7 +460,13 @@ export const VideoGeneratorTab = ({
   }
 
   // Generating state
-  if (isGenerating) {
+  if (isGenerating || generationStep !== 'idle') {
+    const steps = [
+      { key: 'audio', label: 'Generando voz', icon: Mic, active: generationStep === 'audio' || isGeneratingAudio },
+      { key: 'image', label: 'Creando imagen', icon: ImageIcon, active: generationStep === 'image' || isGeneratingImage },
+      { key: 'video', label: 'Sincronizando video', icon: Video, active: generationStep === 'video' || isGenerating },
+    ];
+
     return (
       <div className="p-6 text-center">
         <motion.div 
@@ -436,12 +479,36 @@ export const VideoGeneratorTab = ({
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </motion.div>
-        <h3 className="font-semibold text-lg mb-1">Generando video UGC...</h3>
+        
+        <h3 className="font-semibold text-lg mb-3">Generando video con lip-sync...</h3>
+        
+        <div className="space-y-2 text-left max-w-[200px] mx-auto mb-4">
+          {steps.map((step, index) => (
+            <div 
+              key={step.key}
+              className={`flex items-center gap-2 text-sm ${
+                step.active ? 'text-primary font-medium' : 
+                steps.findIndex(s => s.active) > index ? 'text-green-600' : 'text-muted-foreground'
+              }`}
+            >
+              {steps.findIndex(s => s.active) > index ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : step.active ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <step.icon className="h-4 w-4" />
+              )}
+              <span>{step.label}</span>
+            </div>
+          ))}
+        </div>
+        
         <p className="text-sm text-muted-foreground mb-4">
-          Creando tu video orgánico estilo TikTok. ~1-2 minutos.
+          Tiempo estimado: 2-3 minutos
         </p>
+        
         <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 space-y-1">
-          <p>💡 Tu video se verá como un creador real</p>
+          <p>💡 Tu video incluirá el audio sincronizado</p>
           <p>📱 Formato vertical 9:16 para TikTok</p>
         </div>
       </div>
@@ -568,7 +635,7 @@ export const VideoGeneratorTab = ({
               </button>
             </div>
             
-            {/* UGC Image Generation */}
+            {/* UGC Image Preview (auto-generated) */}
             <div className="flex-1 space-y-2">
               {ugcImageUrl ? (
                 <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-muted">
@@ -578,25 +645,13 @@ export const VideoGeneratorTab = ({
                   </div>
                 </div>
               ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full h-20 rounded-xl flex flex-col gap-1"
-                  onClick={handleGenerateUGCImage}
-                  disabled={isGeneratingImage}
-                >
-                  {isGeneratingImage ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Sparkles className="h-5 w-5 text-primary" />
-                      <span className="text-[10px]">Generar creador</span>
-                    </>
-                  )}
-                </Button>
+                <div className="w-20 h-20 rounded-xl border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground/50">
+                  <Sparkles className="h-5 w-5 mb-1" />
+                  <span className="text-[8px]">Auto</span>
+                </div>
               )}
               <p className="text-[10px] text-muted-foreground text-center">
-                {ugcImageUrl ? 'Imagen de creador lista' : 'Opcional: crear imagen de creador'}
+                {ugcImageUrl ? 'Imagen de creador lista' : 'Se genera automáticamente'}
               </p>
             </div>
           </div>
@@ -657,122 +712,55 @@ export const VideoGeneratorTab = ({
         </RadioGroup>
       </div>
 
-      {/* Audio Generation Section */}
+      {/* Voice Selection */}
       {selectedScript && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <Mic className="h-3 w-3" />
-              Voz con IA (ElevenLabs)
-            </Label>
-            <Switch
-              checked={generateAudio}
-              onCheckedChange={setGenerateAudio}
-            />
-          </div>
+          <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <Mic className="h-3 w-3" />
+            Voz del creador (ElevenLabs)
+          </Label>
           
-          <AnimatePresence>
-            {generateAudio && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="space-y-3"
-              >
-                {/* Voice Selector */}
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Voz:</Label>
-                  <Select value={voiceType} onValueChange={setVoiceType}>
-                    <SelectTrigger className="h-8 text-xs flex-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VOICE_OPTIONS.map(voice => (
-                        <SelectItem key={voice.value} value={voice.value}>
-                          <span className="font-medium">{voice.label}</span>
-                          <span className="text-muted-foreground ml-1">- {voice.desc}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap">Voz:</Label>
+            <Select value={voiceType} onValueChange={setVoiceType}>
+              <SelectTrigger className="h-8 text-xs flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VOICE_OPTIONS.map(voice => (
+                  <SelectItem key={voice.value} value={voice.value}>
+                    <span className="font-medium">{voice.label}</span>
+                    <span className="text-muted-foreground ml-1">- {voice.desc}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-                {/* Audio Preview/Generate */}
-                {audioUrl ? (
-                  <Card className="p-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Volume2 className="h-4 w-4 text-green-600" />
-                      <span className="text-xs font-medium text-green-700 dark:text-green-400">Audio listo</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs ml-auto"
-                        onClick={() => setAudioUrl(null)}
-                      >
-                        Regenerar
-                      </Button>
-                    </div>
-                    <audio src={audioUrl} controls className="w-full h-8" />
-                  </Card>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full rounded-xl"
-                    onClick={handleGenerateAudio}
-                    disabled={isGeneratingAudio || !selectedScript}
-                  >
-                    {isGeneratingAudio ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generando voz...
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 className="h-4 w-4 mr-2" />
-                        Pre-generar audio (opcional)
-                      </>
-                    )}
-                  </Button>
-                )}
-                
-                <p className="text-[10px] text-muted-foreground">
-                  {audioUrl 
-                    ? '✓ Audio en español listo. Se generará junto con el video.' 
-                    : 'El audio se genera automáticamente al crear el video.'}
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Audio Preview if pre-generated */}
+          {audioUrl && (
+            <Card className="p-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+              <div className="flex items-center gap-2 mb-2">
+                <Volume2 className="h-4 w-4 text-green-600" />
+                <span className="text-xs font-medium text-green-700 dark:text-green-400">Audio listo</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs ml-auto"
+                  onClick={() => setAudioUrl(null)}
+                >
+                  Cambiar
+                </Button>
+              </div>
+              <audio src={audioUrl} controls className="w-full h-8" />
+            </Card>
+          )}
+          
+          <p className="text-[10px] text-muted-foreground">
+            ✓ El audio se sincroniza automáticamente con los labios del video
+          </p>
         </div>
       )}
-
-      {/* Custom Prompt (optional) */}
-      <div>
-        <button 
-          onClick={() => setShowPrompt(!showPrompt)}
-          className="text-xs text-primary hover:underline mb-2"
-        >
-          {showPrompt ? 'Ocultar prompt personalizado' : '+ Prompt personalizado (opcional)'}
-        </button>
-        <AnimatePresence>
-          {showPrompt && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-            >
-              <Textarea
-                value={customPrompt}
-                onChange={(e) => setCustomPrompt(e.target.value)}
-                placeholder="Describe el estilo de video que quieres. Ej: 'Creador entusiasta hablando del producto, gestos naturales...'"
-                className="text-sm"
-                rows={3}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
       {/* No credits warning */}
       {!hasEnoughCredits && !creditsLoading && (
@@ -794,14 +782,14 @@ export const VideoGeneratorTab = ({
       <Button 
         className="w-full h-12 rounded-xl gap-2 text-base"
         onClick={handleGenerate}
-        disabled={!productImageUrl || !hasEnoughCredits || isUploading}
+        disabled={!productImageUrl || !hasEnoughCredits || isUploading || !selectedScript}
       >
         <Video className="h-5 w-5" />
-        Generar Video UGC ({creditsRequired} crédito{creditsRequired > 1 ? 's' : ''})
+        Generar Video con Lip-Sync ({creditsRequired} crédito{creditsRequired > 1 ? 's' : ''})
       </Button>
       
       <p className="text-[10px] text-center text-muted-foreground">
-        Video vertical 9:16 • Estilo TikTok orgánico • ~1-2 min
+        Audio + Imagen + Video sincronizado • ~2-3 min
       </p>
     </div>
   );
