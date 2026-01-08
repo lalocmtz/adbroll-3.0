@@ -16,6 +16,9 @@ interface GenerateVideoParams {
   productImageUrl: string;
   duration: string;
   customPrompt?: string;
+  scriptType?: 'original' | 'variant';
+  scriptContent?: string;
+  ugcImageUrl?: string;
 }
 
 export const useVideoGeneration = () => {
@@ -89,6 +92,9 @@ export const useVideoGeneration = () => {
     productImageUrl,
     duration,
     customPrompt,
+    scriptType,
+    scriptContent,
+    ugcImageUrl,
   }: GenerateVideoParams) => {
     setStatus('generating');
     setError(null);
@@ -101,6 +107,9 @@ export const useVideoGeneration = () => {
           productImageUrl,
           duration,
           customPrompt,
+          scriptType,
+          scriptContent,
+          ugcImageUrl,
         },
       });
 
