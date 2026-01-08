@@ -23,7 +23,18 @@ import {
   Wand2,
   ChevronDown,
   ChevronUp,
+  Volume2,
+  VolumeX,
+  Mic,
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useVideoCredits } from '@/hooks/useVideoCredits';
 import { useVideoGeneration } from '@/hooks/useVideoGeneration';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,6 +53,15 @@ const DURATION_OPTIONS = [
   { value: '10', label: '10s', credits: 1 },
   { value: '15', label: '15s', credits: 1, recommended: true },
   { value: '25', label: '25s', credits: 2 },
+];
+
+const VOICE_OPTIONS = [
+  { value: 'matilda', label: 'Matilda', desc: 'Femenina cálida' },
+  { value: 'jessica', label: 'Jessica', desc: 'Femenina energética' },
+  { value: 'sarah', label: 'Sarah', desc: 'Femenina profesional' },
+  { value: 'charlie', label: 'Charlie', desc: 'Masculina casual' },
+  { value: 'george', label: 'George', desc: 'Masculina confiada' },
+  { value: 'brian', label: 'Brian', desc: 'Masculina profunda' },
 ];
 
 export const VideoGeneratorTab = ({ 
@@ -63,6 +83,12 @@ export const VideoGeneratorTab = ({
   // UGC Image generation state
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [ugcImageUrl, setUgcImageUrl] = useState<string | null>(null);
+  
+  // Audio generation state
+  const [generateAudio, setGenerateAudio] = useState(true);
+  const [voiceType, setVoiceType] = useState('matilda');
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const { availableCredits, loading: creditsLoading, getCreditsForDuration } = useVideoCredits();
   const { 
@@ -70,7 +96,7 @@ export const VideoGeneratorTab = ({
     generatedVideo, 
     error, 
     generateVideo, 
-    reset, 
+    reset,
     isGenerating, 
     isCompleted, 
     isFailed 
@@ -184,6 +210,59 @@ export const VideoGeneratorTab = ({
     }
   };
 
+  const handleGenerateAudio = async () => {
+    if (!selectedScript) {
+      toast({
+        title: 'Sin guion',
+        description: 'Necesitas un guion para generar audio',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGeneratingAudio(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ 
+            text: selectedScript,
+            voiceType,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error generando audio');
+      }
+
+      const data = await response.json();
+      const audioDataUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+      setAudioUrl(audioDataUrl);
+      
+      toast({
+        title: '✓ Audio generado',
+        description: 'Voz en español lista para tu video',
+      });
+    } catch (err: any) {
+      console.error('Audio generation error:', err);
+      toast({
+        title: 'Error generando audio',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+
   const handleGenerate = async () => {
     // We can use either the UGC image or the product image
     const imageToUse = ugcImageUrl || productImageUrl;
@@ -195,6 +274,11 @@ export const VideoGeneratorTab = ({
         variant: 'destructive',
       });
       return;
+    }
+
+    // Generate audio first if enabled and not already generated
+    if (generateAudio && selectedScript && !audioUrl) {
+      await handleGenerateAudio();
     }
 
     await generateVideo({
@@ -214,9 +298,19 @@ export const VideoGeneratorTab = ({
     }
   };
 
+  const handleDownloadAudio = () => {
+    if (audioUrl) {
+      const link = document.createElement('a');
+      link.href = audioUrl;
+      link.download = 'audio-ugc.mp3';
+      link.click();
+    }
+  };
+
   const handleReset = () => {
     reset();
     setUgcImageUrl(null);
+    setAudioUrl(null);
   };
 
   const { hasPaid, openPaywall } = useBlurGateContext();
@@ -264,6 +358,31 @@ export const VideoGeneratorTab = ({
             className="w-full h-full object-contain"
           />
         </div>
+
+        {/* Audio download if generated */}
+        {audioUrl && (
+          <Card className="p-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Volume2 className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">Audio generado</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-green-700 hover:bg-green-100 dark:text-green-400"
+                onClick={handleDownloadAudio}
+              >
+                <Download className="h-3 w-3 mr-1" />
+                MP3
+              </Button>
+            </div>
+            <audio src={audioUrl} controls className="w-full h-8 mt-2" />
+            <p className="text-[10px] text-green-600 dark:text-green-500 mt-1">
+              💡 Combina el audio con tu video en CapCut o tu editor favorito
+            </p>
+          </Card>
+        )}
 
         <div className="flex gap-2">
           <Button 
@@ -537,6 +656,96 @@ export const VideoGeneratorTab = ({
           ))}
         </RadioGroup>
       </div>
+
+      {/* Audio Generation Section */}
+      {selectedScript && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Mic className="h-3 w-3" />
+              Voz con IA (ElevenLabs)
+            </Label>
+            <Switch
+              checked={generateAudio}
+              onCheckedChange={setGenerateAudio}
+            />
+          </div>
+          
+          <AnimatePresence>
+            {generateAudio && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="space-y-3"
+              >
+                {/* Voice Selector */}
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Voz:</Label>
+                  <Select value={voiceType} onValueChange={setVoiceType}>
+                    <SelectTrigger className="h-8 text-xs flex-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VOICE_OPTIONS.map(voice => (
+                        <SelectItem key={voice.value} value={voice.value}>
+                          <span className="font-medium">{voice.label}</span>
+                          <span className="text-muted-foreground ml-1">- {voice.desc}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Audio Preview/Generate */}
+                {audioUrl ? (
+                  <Card className="p-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Volume2 className="h-4 w-4 text-green-600" />
+                      <span className="text-xs font-medium text-green-700 dark:text-green-400">Audio listo</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs ml-auto"
+                        onClick={() => setAudioUrl(null)}
+                      >
+                        Regenerar
+                      </Button>
+                    </div>
+                    <audio src={audioUrl} controls className="w-full h-8" />
+                  </Card>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full rounded-xl"
+                    onClick={handleGenerateAudio}
+                    disabled={isGeneratingAudio || !selectedScript}
+                  >
+                    {isGeneratingAudio ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generando voz...
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="h-4 w-4 mr-2" />
+                        Pre-generar audio (opcional)
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                <p className="text-[10px] text-muted-foreground">
+                  {audioUrl 
+                    ? '✓ Audio en español listo. Se generará junto con el video.' 
+                    : 'El audio se genera automáticamente al crear el video.'}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Custom Prompt (optional) */}
       <div>
