@@ -6,7 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, DollarSign, ShoppingCart, Percent, Eye, FlaskConical, X, Sparkles, TrendingUp, Save, Play, Volume2, Maximize2, ChevronDown, ChevronUp, Lock, Package } from 'lucide-react';
+import { Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, DollarSign, ShoppingCart, Percent, Eye, FlaskConical, X, Sparkles, TrendingUp, Save, Play, Volume2, Maximize2, ChevronDown, ChevronUp, Lock, Package, Video } from 'lucide-react';
+import { VideoGeneratorTab } from '@/components/video-generation/VideoGeneratorTab';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -104,7 +105,7 @@ const VideoAnalysisModalOriginal = ({
 
   // Handle locked tabs for visitors
   const handleTabChange = (value: string) => {
-    if (!hasPaid && (value === 'analysis' || value === 'variants')) {
+    if (!hasPaid && (value === 'analysis' || value === 'variants' || value === 'generate')) {
       navigate('/unlock');
       return;
     }
@@ -559,6 +560,11 @@ const VideoAnalysisModalOriginal = ({
                     <Wand2 className="h-3.5 w-3.5" />
                     Variantes
                   </TabsTrigger>
+                  <TabsTrigger value="generate" className="gap-1.5 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs">
+                    {!hasPaid && <Lock className="h-3 w-3" />}
+                    <Video className="h-3.5 w-3.5" />
+                    Generar
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -819,6 +825,25 @@ const VideoAnalysisModalOriginal = ({
                             )}
                           </div>
                         </div>
+                      )}
+                    </TabsContent>
+
+                    {/* Generate Video Tab - Mobile */}
+                    <TabsContent value="generate" className="mt-0 animate-fade-in">
+                      {!hasPaid ? (
+                        <div className="card-premium p-6 text-center">
+                          <Lock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                          <p className="text-sm text-muted-foreground mb-4">Desbloquea la generación IA</p>
+                          <Button onClick={() => navigate('/unlock')} className="rounded-xl" size="sm">
+                            Desbloquear
+                          </Button>
+                        </div>
+                      ) : (
+                        <VideoGeneratorTab 
+                          videoId={video.id} 
+                          transcript={transcript} 
+                          productName={video.product?.producto_nombre || video.product_name || undefined}
+                        />
                       )}
                     </TabsContent>
                   </>
@@ -1196,6 +1221,15 @@ const VideoAnalysisModalOriginal = ({
                               <p>Usa el generador para crear variantes</p>
                             </div>}
                         </div>
+                      </TabsContent>
+
+                      {/* Generate Video Tab */}
+                      <TabsContent value="generate" className="mt-0 h-full animate-fade-in">
+                        <VideoGeneratorTab 
+                          videoId={video.id} 
+                          transcript={transcript} 
+                          productName={video.product?.producto_nombre || video.product_name || undefined}
+                        />
                       </TabsContent>
                     </>}
                   </div>

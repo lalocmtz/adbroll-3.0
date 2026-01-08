@@ -45,6 +45,7 @@ import BrandUpgrade from "./pages/brand/BrandUpgrade";
 import BrandRegister from "./pages/brand/BrandRegister";
 import CreatorProgram from "./pages/CreatorProgram";
 import Redeem from "./pages/Redeem";
+import MyGeneratedVideos from "./pages/MyGeneratedVideos";
 
 const queryClient = new QueryClient();
 
@@ -258,6 +259,14 @@ const App = () => {
                     element={
                       <AppRoute session={session}>
                         <MySubmissions />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/my-generated-videos"
+                    element={
+                      <AppRoute session={session}>
+                        <MyGeneratedVideos />
                       </AppRoute>
                     }
                   />
