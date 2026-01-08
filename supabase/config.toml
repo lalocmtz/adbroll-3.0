@@ -113,3 +113,6 @@ verify_jwt = true
 
 [functions.generate-ugc-image]
 verify_jwt = true
+
+[functions.elevenlabs-tts]
+verify_jwt = false
