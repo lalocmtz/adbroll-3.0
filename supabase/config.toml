@@ -101,3 +101,12 @@ verify_jwt = false
 
 [functions.track-page-view]
 verify_jwt = false
+
+[functions.generate-video-clone]
+verify_jwt = true
+
+[functions.video-generation-callback]
+verify_jwt = false
+
+[functions.check-video-status]
+verify_jwt = true
