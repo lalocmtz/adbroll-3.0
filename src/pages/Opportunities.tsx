@@ -84,9 +84,11 @@ const Opportunities = () => {
 
   const fetchOpportunities = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from("product_opportunities")
-        .select("id, producto_nombre, producto_url, categoria, imagen_url, precio_mxn, commission, gmv_30d_calc, creators_active_calc, creators_niche_avg, io_score, earning_per_sale, is_hidden_gem, opportunity_reason, commission_percentile, gmv30d_percentile, profit_percentile")
+        .select("id, producto_nombre, producto_url, categoria, imagen_url, precio_mxn, commission, gmv_30d_calc, creators_active_calc, creators_niche_avg, io_score, earning_per_sale, is_hidden_gem, opportunity_reason, commission_percentile, gmv30d_percentile, profit_percentile, market")
+        .eq("market", market) // Filter by market
         .gte("commission", 10)
         .order("io_score", { ascending: false, nullsFirst: false })
         .limit(100);

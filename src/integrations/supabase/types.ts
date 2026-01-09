@@ -1665,6 +1665,7 @@ export type Database = {
           is_opportunity: boolean | null
           last_import: string | null
           last_imported_from_kalodata_at: string | null
+          market: string | null
           opportunity_index: number | null
           opportunity_reason: Json | null
           precio_mxn: number | null

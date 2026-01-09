@@ -342,6 +342,26 @@ $$);
 
 ---
 
+## ✅ MARKET SWITCHER MX/USA (Enero 2025)
+
+### Switch entre TikTok Shop México y USA
+- [x] **MarketSwitcher.tsx** - Componente de switch con banderas MX/US
+- [x] **MarketContext actualizado** - `marketCountry` para queries DB
+- [x] **Dashboard.tsx** - Filtro `.eq("country", market)` en videos
+- [x] **Products.tsx** - Filtro `.eq("market", market)` en productos
+- [x] **Creators.tsx** - Filtro `.eq("country", marketCountry)` en creadores
+- [x] **Opportunities.tsx** - Filtro `.eq("market", market)` en oportunidades
+- [x] **product_opportunities view** - Actualizada para incluir campo market
+- [x] **DashboardSidebar** - MarketSwitcher prominente en sidebar
+- [x] **GlobalHeader** - MarketSwitcher compacto en header
+- [x] **Auto-sync** - Cambiar mercado sincroniza idioma y moneda automáticamente
+
+### Flujo
+- Usuario selecciona 🇲🇽 México → idioma ES, moneda MXN, datos market='mx'
+- Usuario selecciona 🇺🇸 USA → idioma EN, moneda USD, datos market='us'
+
+---
+
 ## 🔄 PENDIENTE
 
 ### Sistema de Pagos para Marcas
