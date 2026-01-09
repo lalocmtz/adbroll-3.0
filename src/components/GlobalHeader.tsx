@@ -8,11 +8,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, Settings, Globe, DollarSign, LogOut } from "lucide-react";
+import { User, Settings, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
-import { LanguageSelector } from "./LanguageSelector";
+import { MarketSwitcher } from "./MarketSwitcher";
 import logoDark from "@/assets/logo-dark.png";
 
 interface GlobalHeaderProps {
@@ -55,7 +55,7 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
 
         {showMenu && userEmail && (
           <div className="flex items-center gap-3">
-            <LanguageSelector />
+            <MarketSwitcher variant="compact" />
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -79,14 +79,6 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
               <DropdownMenuItem className="cursor-pointer">
                 <User className="mr-2 h-4 w-4" />
                 <span>Perfil</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <Globe className="mr-2 h-4 w-4" />
-                <span>Idioma</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <DollarSign className="mr-2 h-4 w-4" />
-                <span>Moneda</span>
               </DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />

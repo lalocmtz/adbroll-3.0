@@ -33,6 +33,7 @@ import {
   Video,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
+import MarketSwitcher from "@/components/MarketSwitcher";
 import logoDark from "@/assets/logo-dark.png";
 
 interface DashboardSidebarProps {
@@ -251,6 +252,11 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
           >
             <img src={logoDark} alt="adbroll" className="h-9" />
           </button>
+        </div>
+
+        {/* Market Switcher */}
+        <div className="px-3 py-3">
+          <MarketSwitcher variant="tabs" className="w-full" />
         </div>
 
         {/* Navigation */}

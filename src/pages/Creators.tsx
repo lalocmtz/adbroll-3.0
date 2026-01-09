@@ -9,8 +9,10 @@ import { FilterPills } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { openTikTokLink } from "@/lib/tiktokDeepLink";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
+import { useMarket } from "@/contexts/MarketContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, enUS } from "date-fns/locale";
 
 interface Creator {
   id: string;
@@ -46,6 +48,8 @@ const Creators = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isLoggedIn } = useBlurGateContext();
+  const { market, marketLabel, marketCountry } = useMarket();
+  const { language } = useLanguage();
   const [creators, setCreators] = useState<Creator[]>([]);
   const [sortedCreators, setSortedCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +60,7 @@ const Creators = () => {
   useEffect(() => {
     fetchCreators();
     fetchFavorites();
-  }, []);
+  }, [market]); // Re-fetch when market changes
 
   useEffect(() => {
     applySorting();
@@ -65,9 +69,11 @@ const Creators = () => {
 
   const fetchCreators = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from("creators")
         .select("*")
+        .eq("country", marketCountry) // Filter by market country
         .order("total_ingresos_mxn", { ascending: false })
         .limit(50);
 
@@ -226,8 +232,7 @@ const Creators = () => {
     );
   }
 
-  const marketLabel = 'México';
-  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: es });
+  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: language === 'es' ? es : enUS });
 
   return (
     <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
