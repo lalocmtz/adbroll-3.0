@@ -78,6 +78,7 @@ const workspaceItems: NavItem[] = [
   { to: "/my-generated-videos", labelEs: "Mis Videos IA", labelEn: "My AI Videos", icon: Video, lockedForVisitor: true },
   { to: "/library", labelEs: "Mi Biblioteca", labelEn: "My Library", icon: FolderOpen, lockedForVisitor: true },
   { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
+  { to: "/affiliates", labelEs: "Afiliados", labelEn: "Affiliates", icon: Coins, lockedForVisitor: true },
 ];
 
 // PANEL MARCA - Brand specific
@@ -260,12 +261,12 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             {exploreItems.map(renderNavItem)}
           </div>
 
-          {/* GANA DINERO Section */}
-          {renderSectionLabel("earn")}
+          {/* GANA DINERO Section - Hidden temporarily, code preserved for future use */}
+          {/* {renderSectionLabel("earn")}
           <div className="space-y-0.5">
             {earnItems.filter(i => i.to !== "/affiliates").map(renderNavItem)}
             {renderAffiliateItem()}
-          </div>
+          </div> */}
 
           {/* TU CENTRO Section */}
           {renderSectionLabel("workspace")}
@@ -273,8 +274,8 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             {workspaceItems.map(renderNavItem)}
           </div>
 
-          {/* PANEL MARCA Section - Only for brands */}
-          {isLoggedIn && isBrand && (
+          {/* PANEL MARCA Section - Hidden temporarily, code preserved for future use */}
+          {/* {isLoggedIn && isBrand && (
             <>
               <div className="py-3 px-3">
                 <Separator className="bg-border" />
@@ -284,10 +285,10 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
                 {brandItems.map(renderNavItem)}
               </div>
             </>
-          )}
+          )} */}
 
-          {/* Become a Brand CTA - Only for logged in non-brands */}
-          {isLoggedIn && !isBrand && (
+          {/* Become a Brand CTA - Hidden temporarily, code preserved for future use */}
+          {/* {isLoggedIn && !isBrand && (
             <div className="mt-4 mx-0">
               <button
                 onClick={() => {
@@ -305,7 +306,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
                 </div>
               </button>
             </div>
-          )}
+          )} */}
         </nav>
 
         {/* Bottom section */}
