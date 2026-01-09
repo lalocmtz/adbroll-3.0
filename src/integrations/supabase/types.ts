@@ -612,6 +612,36 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_purchases: {
+        Row: {
+          amount_usd: number
+          created_at: string | null
+          credits_purchased: number
+          id: string
+          pack_type: string
+          stripe_session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_usd: number
+          created_at?: string | null
+          credits_purchased: number
+          id?: string
+          pack_type: string
+          stripe_session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string | null
+          credits_purchased?: number
+          id?: string
+          pack_type?: string
+          stripe_session_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_feed: {
         Row: {
           ai_variants: Json | null
@@ -1279,6 +1309,7 @@ export type Database = {
           language: string | null
           marketplace: string | null
           plan: Database["public"]["Enums"]["user_plan"] | null
+          plan_tier: string | null
           referral_code_used: string | null
           reminder_email_sent_at: string | null
           stripe_customer_id: string | null
@@ -1295,6 +1326,7 @@ export type Database = {
           language?: string | null
           marketplace?: string | null
           plan?: Database["public"]["Enums"]["user_plan"] | null
+          plan_tier?: string | null
           referral_code_used?: string | null
           reminder_email_sent_at?: string | null
           stripe_customer_id?: string | null
@@ -1311,6 +1343,7 @@ export type Database = {
           language?: string | null
           marketplace?: string | null
           plan?: Database["public"]["Enums"]["user_plan"] | null
+          plan_tier?: string | null
           referral_code_used?: string | null
           reminder_email_sent_at?: string | null
           stripe_customer_id?: string | null
@@ -1453,25 +1486,34 @@ export type Database = {
       video_credits: {
         Row: {
           created_at: string | null
+          credits_monthly: number | null
+          credits_purchased: number | null
           credits_total: number | null
           credits_used: number | null
           id: string
+          last_monthly_reset: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          credits_monthly?: number | null
+          credits_purchased?: number | null
           credits_total?: number | null
           credits_used?: number | null
           id?: string
+          last_monthly_reset?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
+          credits_monthly?: number | null
+          credits_purchased?: number | null
           credits_total?: number | null
           credits_used?: number | null
           id?: string
+          last_monthly_reset?: string | null
           updated_at?: string | null
           user_id?: string
         }

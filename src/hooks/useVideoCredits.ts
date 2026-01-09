@@ -6,6 +6,9 @@ interface VideoCredits {
   user_id: string;
   credits_total: number;
   credits_used: number;
+  credits_monthly: number;
+  credits_purchased: number;
+  last_monthly_reset: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -57,7 +60,11 @@ export const useVideoCredits = () => {
     };
   }, [fetchCredits]);
 
-  const availableCredits = credits ? credits.credits_total - credits.credits_used : 0;
+  // Calculate available credits: (monthly + purchased) - used
+  const monthlyCredits = credits?.credits_monthly || 0;
+  const purchasedCredits = credits?.credits_purchased || 0;
+  const usedCredits = credits?.credits_used || 0;
+  const availableCredits = Math.max(0, (monthlyCredits + purchasedCredits) - usedCredits);
 
   const hasCredits = (required: number = 1) => availableCredits >= required;
 
@@ -68,6 +75,9 @@ export const useVideoCredits = () => {
   return {
     credits,
     availableCredits,
+    monthlyCredits,
+    purchasedCredits,
+    usedCredits,
     loading,
     error,
     hasCredits,
