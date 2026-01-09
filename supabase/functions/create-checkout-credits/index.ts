@@ -7,6 +7,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Credit pack configurations
+const CREDIT_PACKS = {
+  pack_3: {
+    credits: 3,
+    priceUsd: 9.99,
+    priceIdEnvVar: "STRIPE_PRICE_ID_PACK_3",
+  },
+  pack_10: {
+    credits: 10,
+    priceUsd: 24.99,
+    priceIdEnvVar: "STRIPE_PRICE_ID_PACK_10",
+  },
+};
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -40,10 +54,19 @@ serve(async (req) => {
     }
 
     const user = userData.user;
-    const { referral_code, plan } = await req.json();
+    const { pack } = await req.json();
 
-    // Validate plan type - defaults to 'pro' if not specified
-    const planType = plan === 'premium' ? 'premium' : 'pro';
+    // Validate pack type
+    if (!pack || !CREDIT_PACKS[pack as keyof typeof CREDIT_PACKS]) {
+      throw new Error("Invalid pack type. Must be 'pack_3' or 'pack_10'");
+    }
+
+    const packConfig = CREDIT_PACKS[pack as keyof typeof CREDIT_PACKS];
+    const priceId = Deno.env.get(packConfig.priceIdEnvVar);
+
+    if (!priceId) {
+      throw new Error(`Price ID not configured for pack: ${pack}`);
+    }
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
@@ -69,35 +92,17 @@ serve(async (req) => {
       });
       customerId = customer.id;
 
-      // Save customer ID to profile using admin client to bypass RLS
-      const { error: updateError } = await supabaseAdmin
+      // Save customer ID to profile
+      await supabaseAdmin
         .from("profiles")
         .update({ stripe_customer_id: customerId })
         .eq("id", user.id);
-      
-      if (updateError) {
-        console.error("Error updating stripe_customer_id:", updateError);
-      } else {
-        console.log(`Saved stripe_customer_id ${customerId} for user ${user.id}`);
-      }
     }
 
-    // Get the correct price ID based on plan
-    const priceId = planType === 'premium' 
-      ? Deno.env.get("STRIPE_PRICE_ID_PREMIUM")
-      : Deno.env.get("STRIPE_PRICE_ID_PRO");
-
-    if (!priceId) {
-      throw new Error(`Price ID not configured for plan: ${planType}`);
-    }
-
-    // Get price amount for display
-    const priceAmount = planType === 'premium' ? 29.99 : 14.99;
-
-    // Build checkout session params
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    // Create one-time payment checkout session
+    const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      mode: "subscription",
+      mode: "payment",
       payment_method_types: ["card"],
       line_items: [
         {
@@ -105,36 +110,18 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      success_url: `${req.headers.get("origin")}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${req.headers.get("origin")}/checkout/success?session_id={CHECKOUT_SESSION_ID}&type=credits`,
       cancel_url: `${req.headers.get("origin")}/checkout/cancel`,
       metadata: {
         supabase_user_id: user.id,
-        plan_type: planType,
-        price_usd: priceAmount.toString(),
+        purchase_type: "credits",
+        pack_type: pack,
+        credits_purchased: packConfig.credits.toString(),
+        amount_usd: packConfig.priceUsd.toString(),
       },
-    };
+    });
 
-    // Apply referral coupon if valid code provided
-    if (referral_code) {
-      const { data: validCode } = await supabaseClient
-        .from("affiliate_codes")
-        .select("code")
-        .eq("code", referral_code.toUpperCase())
-        .maybeSingle();
-
-      if (validCode) {
-        sessionParams.discounts = [
-          {
-            coupon: Deno.env.get("STRIPE_COUPON_ID"),
-          },
-        ];
-        console.log(`Applying referral coupon for code: ${referral_code}`);
-      }
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionParams);
-
-    console.log(`Checkout session created: ${session.id} for user: ${user.id}, plan: ${planType}`);
+    console.log(`Credit pack checkout session created: ${session.id} for user: ${user.id}, pack: ${pack}`);
 
     return new Response(
       JSON.stringify({ url: session.url }),
@@ -145,7 +132,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error creating checkout session:", error);
+    console.error("Error creating credit checkout session:", error);
     return new Response(
       JSON.stringify({ error: errorMessage }),
       {

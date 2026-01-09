@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 
 export type Subscription = Tables<"subscriptions">;
+export type PlanTier = "free" | "pro" | "premium";
 
 export const useSubscription = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -11,6 +12,7 @@ export const useSubscription = () => {
   const [isFounder, setIsFounder] = useState(false);
   const [isGrantedAccess, setIsGrantedAccess] = useState(false);
   const [grantExpiresAt, setGrantExpiresAt] = useState<string | null>(null);
+  const [planTier, setPlanTier] = useState<PlanTier>("free");
 
   useEffect(() => {
     checkSubscription();
@@ -25,6 +27,17 @@ export const useSubscription = () => {
         return;
       }
 
+      // Get plan tier from profile
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("plan_tier")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileData?.plan_tier) {
+        setPlanTier(profileData.plan_tier as PlanTier);
+      }
+
       // Check for founder role using server-side RLS protected table
       const { data: roleData } = await supabase
         .from("user_roles")
@@ -36,6 +49,7 @@ export const useSubscription = () => {
       if (roleData) {
         setIsFounder(true);
         setHasActiveSubscription(true);
+        setPlanTier("premium"); // Founders get premium access
         setLoading(false);
         return;
       }
@@ -53,6 +67,7 @@ export const useSubscription = () => {
         setIsGrantedAccess(true);
         setGrantExpiresAt(grantData.subscription_ends_at);
         setHasActiveSubscription(true);
+        setPlanTier("premium"); // Granted access gets premium
         setLoading(false);
         return;
       }
@@ -79,6 +94,11 @@ export const useSubscription = () => {
     }
   };
 
+  // Derived states
+  const isPro = planTier === "pro" || planTier === "premium";
+  const isPremium = planTier === "premium";
+  const canGenerateVideos = isPremium || isFounder || isGrantedAccess;
+
   return {
     subscription,
     loading,
@@ -86,6 +106,10 @@ export const useSubscription = () => {
     isFounder,
     isGrantedAccess,
     grantExpiresAt,
+    planTier,
+    isPro,
+    isPremium,
+    canGenerateVideos,
     refetch: checkSubscription,
   };
 };
