@@ -347,14 +347,16 @@ $$);
 ### Switch entre TikTok Shop México y USA
 - [x] **MarketSwitcher.tsx** - Componente de switch con banderas MX/US
 - [x] **MarketContext actualizado** - `marketCountry` para queries DB
-- [x] **Dashboard.tsx** - Filtro `.eq("country", market)` en videos
+- [x] **Dashboard.tsx** - Filtro `.eq("country", market)` en videos (lowercase 'mx'/'us')
 - [x] **Products.tsx** - Filtro `.eq("market", market)` en productos
-- [x] **Creators.tsx** - Filtro `.eq("country", marketCountry)` en creadores
+- [x] **Creators.tsx** - Filtro `.eq("country", market)` en creadores (lowercase 'mx'/'us')
 - [x] **Opportunities.tsx** - Filtro `.eq("market", market)` en oportunidades
 - [x] **product_opportunities view** - Actualizada para incluir campo market
 - [x] **DashboardSidebar** - MarketSwitcher prominente en sidebar
 - [x] **GlobalHeader** - MarketSwitcher compacto en header
 - [x] **Auto-sync** - Cambiar mercado sincroniza idioma y moneda automáticamente
+- [x] **BD: creators.country normalizado** - Convertido a lowercase ('mx'/'us') para consistencia
+- [x] **BD: Índices únicos compuestos** - `(usuario_creador, country)` y `(creator_handle, country)` permiten creadores en múltiples mercados
 
 ### Flujo
 - Usuario selecciona 🇲🇽 México → idioma ES, moneda MXN, datos market='mx'

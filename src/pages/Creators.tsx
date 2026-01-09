@@ -73,7 +73,7 @@ const Creators = () => {
       const { data, error } = await supabase
         .from("creators")
         .select("*")
-        .eq("country", marketCountry) // Filter by market country
+        .eq("country", market) // Filter by market (lowercase 'mx' or 'us')
         .order("total_ingresos_mxn", { ascending: false })
         .limit(50);
 
