@@ -9,6 +9,7 @@ import { Gem, TrendingUp, Users, DollarSign, Percent, ExternalLink, Check, X, Sp
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useMarket } from "@/contexts/MarketContext";
 import { useNavigate } from "react-router-dom";
 import { FilterPills } from "@/components/FilterPills";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
@@ -69,6 +70,7 @@ const FREE_PREVIEW_LIMIT = 3;
 const Opportunities = () => {
   const { toast } = useToast();
   const { language, currency } = useLanguage();
+  const { market, marketLabel } = useMarket();
   const navigate = useNavigate();
   const { isLoggedIn } = useBlurGateContext();
   const [opportunities, setOpportunities] = useState<OpportunityProduct[]>([]);
@@ -78,7 +80,7 @@ const Opportunities = () => {
 
   useEffect(() => {
     fetchOpportunities();
-  }, []);
+  }, [market]); // Re-fetch when market changes
 
   const fetchOpportunities = async () => {
     try {
@@ -178,7 +180,6 @@ const Opportunities = () => {
     );
   }
 
-  const marketLabel = language === 'es' ? 'México' : 'Mexico';
   const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: language === 'es' ? es : enUS });
 
   return (

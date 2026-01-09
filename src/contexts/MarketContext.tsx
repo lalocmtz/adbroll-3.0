@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 
 export type Market = "mx" | "us";
 
@@ -6,6 +6,7 @@ interface MarketContextType {
   market: Market;
   setMarket: (market: Market) => void;
   marketLabel: string;
+  marketCountry: string; // For DB queries: 'MX' or 'US'
 }
 
 const MarketContext = createContext<MarketContextType | undefined>(undefined);
@@ -31,9 +32,10 @@ export const MarketProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const marketLabel = market === "mx" ? "México" : "Estados Unidos";
+  const marketCountry = market === "mx" ? "MX" : "US"; // Uppercase for DB queries
 
   return (
-    <MarketContext.Provider value={{ market, setMarket, marketLabel }}>
+    <MarketContext.Provider value={{ market, setMarket, marketLabel, marketCountry }}>
       {children}
     </MarketContext.Provider>
   );

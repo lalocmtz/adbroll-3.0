@@ -119,6 +119,9 @@ const Dashboard = () => {
 
       // Use JOIN to get product data
       // ONLY show videos that are COMPLETE (downloaded AND have product assigned)
+      // Filter by market/country
+      const countryFilter = market === 'mx' ? 'MX' : 'US';
+      
       let query = supabase.from("videos").select(`
           *,
           product:products (
@@ -136,7 +139,8 @@ const Dashboard = () => {
         `, {
         count: "exact"
       }).not("video_mp4_url", "is", null) // Must be downloaded
-      .not("product_id", "is", null); // Must have product assigned
+      .not("product_id", "is", null) // Must have product assigned
+      .eq("country", countryFilter); // Filter by market
 
       // Apply sorting first (before category filter which happens client-side)
       if (sortOrder === "revenue") {

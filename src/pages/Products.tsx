@@ -8,8 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 import { FilterPills } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
+import { useMarket } from "@/contexts/MarketContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, enUS } from "date-fns/locale";
 
 interface Product {
   id: string;
@@ -47,6 +49,8 @@ const Products = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isLoggedIn } = useBlurGateContext();
+  const { market, marketLabel } = useMarket();
+  const { language, formatMoney } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +64,7 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
     fetchFavorites();
-  }, []);
+  }, [market]); // Re-fetch when market changes
 
   useEffect(() => {
     applyFiltersAndSort();
@@ -68,9 +72,11 @@ const Products = () => {
 
   const fetchProducts = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from("products")
         .select("*")
+        .eq("market", market) // Filter by market
         .order("rank", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
@@ -219,8 +225,7 @@ const Products = () => {
     );
   }
 
-  const marketLabel = 'México';
-  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: es });
+  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: language === 'es' ? es : enUS });
 
   return (
     <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
