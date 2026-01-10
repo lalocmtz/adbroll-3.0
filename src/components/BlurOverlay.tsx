@@ -1,9 +1,8 @@
 import { ReactNode, useState } from "react";
 import { useBlurGate } from "@/hooks/useBlurGate";
-import { PaywallModal } from "./PaywallModal";
+import { SimpleEmailCaptureModal } from "./SimpleEmailCaptureModal";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 interface BlurOverlayProps {
   children: ReactNode;
   feature?: string;
@@ -58,9 +57,9 @@ export const BlurOverlay = ({
         )}
       </div>
       
-      <PaywallModal 
+      <SimpleEmailCaptureModal 
         open={showPaywall} 
-        onClose={() => setShowPaywall(false)} 
+        onOpenChange={setShowPaywall} 
         feature={feature}
       />
     </>
