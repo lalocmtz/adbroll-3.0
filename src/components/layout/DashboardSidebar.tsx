@@ -392,16 +392,9 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             </button>
           )}
 
-          {/* For visitors: Show unlock + login buttons */}
+          {/* For visitors: Show login button only */}
           {!isLoggedIn && (
             <div className="flex flex-col space-y-2 pt-2">
-              <Button
-                className="w-full bg-primary hover:bg-primary/90"
-                onClick={() => navigate("/unlock")}
-              >
-                <Unlock className="h-4 w-4 mr-2" />
-                {language === "es" ? "Desbloquear todo" : "Unlock everything"}
-              </Button>
               <Button
                 variant="outline"
                 className="w-full"
