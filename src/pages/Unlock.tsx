@@ -13,6 +13,7 @@ import { TestimonialsColumn } from "@/components/ui/testimonials-columns-1";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SimpleEmailCaptureModal } from "@/components/SimpleEmailCaptureModal";
 
 const testimonials = [{
   text: "Adbroll me hizo pasar de adivinar qué productos grabar a saber exactamente qué vende. Ahora mis videos generan ventas todos los días.",
@@ -73,6 +74,8 @@ const Unlock = () => {
   const [searchParams] = useSearchParams();
   const urlRefCode = searchParams.get("ref");
   const [loadingPlan, setLoadingPlan] = useState<"pro" | "premium" | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<"pro" | "premium" | null>(null);
 
   // Get refCode from URL or localStorage
   const refCode = urlRefCode || localStorage.getItem("adbroll_ref_code");
@@ -97,22 +100,28 @@ const Unlock = () => {
   }, []);
 
   const handleSelectPlan = async (plan: "pro" | "premium") => {
+    // Get email from localStorage (saved by SimpleEmailCaptureModal)
+    const prospectEmail = localStorage.getItem("adbroll_prospect_email");
+    
+    if (!prospectEmail) {
+      // If no email saved, show email capture modal
+      setPendingPlan(plan);
+      setShowEmailModal(true);
+      return;
+    }
+
+    // Proceed to checkout
+    await processCheckout(plan, prospectEmail);
+  };
+
+  const processCheckout = async (plan: "pro" | "premium", email: string) => {
     setLoadingPlan(plan);
 
     try {
-      // Get email from localStorage (saved by SimpleEmailCaptureModal)
-      const prospectEmail = localStorage.getItem("adbroll_prospect_email");
-      
-      if (!prospectEmail) {
-        // If no email saved, redirect to register
-        navigate("/register");
-        return;
-      }
-
       // Create checkout session
       const { data, error } = await supabase.functions.invoke("create-checkout-guest", {
         body: {
-          email: prospectEmail,
+          email: email,
           referral_code: refCode,
           plan: plan,
         },
@@ -128,6 +137,18 @@ const Unlock = () => {
     } finally {
       setLoadingPlan(null);
     }
+  };
+
+  // After email capture, proceed to checkout with pending plan
+  const handleEmailCaptured = () => {
+    setShowEmailModal(false);
+    if (pendingPlan) {
+      const email = localStorage.getItem("adbroll_prospect_email");
+      if (email) {
+        processCheckout(pendingPlan, email);
+      }
+    }
+    setPendingPlan(null);
   };
 
   const handleLogin = () => {
@@ -528,6 +549,14 @@ const Unlock = () => {
           </Button>
         </div>
       </section>
+
+      {/* Email Capture Modal for plan selection */}
+      <SimpleEmailCaptureModal
+        open={showEmailModal}
+        onOpenChange={setShowEmailModal}
+        feature="plan_selection"
+        onSuccess={handleEmailCaptured}
+      />
     </div>
   );
 };

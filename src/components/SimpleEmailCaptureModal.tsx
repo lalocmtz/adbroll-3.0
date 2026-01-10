@@ -16,12 +16,16 @@ interface SimpleEmailCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   feature?: string;
+  onSuccess?: () => void; // Optional callback when email is captured
+  redirectOnSuccess?: boolean; // Whether to redirect to /unlock#pricing (default: true)
 }
 
 export const SimpleEmailCaptureModal = ({
   open,
   onOpenChange,
   feature,
+  onSuccess,
+  redirectOnSuccess = true,
 }: SimpleEmailCaptureModalProps) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -59,11 +63,18 @@ export const SimpleEmailCaptureModal = ({
       // Save email to localStorage for checkout pre-fill
       localStorage.setItem("adbroll_prospect_email", email.trim().toLowerCase());
 
-      // Close modal and navigate to unlock with pricing anchor
-      onOpenChange(false);
-      navigate("/unlock#pricing");
-      
-      toast.success("¡Listo! Elige tu plan para continuar");
+      // If there's a success callback, call it instead of redirecting
+      if (onSuccess) {
+        onSuccess();
+        return;
+      }
+
+      // Default behavior: close modal and navigate to unlock with pricing anchor
+      if (redirectOnSuccess) {
+        onOpenChange(false);
+        navigate("/unlock#pricing");
+        toast.success("¡Listo! Elige tu plan para continuar");
+      }
     } catch (err) {
       console.error("Error:", err);
       toast.error("Algo salió mal. Intenta de nuevo.");
@@ -74,25 +85,25 @@ export const SimpleEmailCaptureModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden border-0 bg-white">
+      <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-0 bg-background">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="p-8"
+          className="p-6 sm:p-8"
         >
           {/* Logo */}
-          <div className="flex justify-center mb-6">
-            <img src={logoDark} alt="Adbroll" className="h-10" />
+          <div className="flex justify-center mb-5">
+            <img src={logoDark} alt="Adbroll" className="h-8 sm:h-10" />
           </div>
 
           {/* Title */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-foreground mb-2">
-              Estás a punto de desbloquear Adbroll
+          <div className="text-center mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+              Desbloquea Adbroll
             </h2>
-            <p className="text-muted-foreground">
-              Ingresa tu email para continuar
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Ingresa tu email para ver los planes
             </p>
           </div>
 
@@ -122,29 +133,46 @@ export const SimpleEmailCaptureModal = ({
 
             <Button
               type="submit"
-              className="w-full h-12 text-base bg-primary hover:bg-primary-hover"
+              className="w-full h-12 text-base font-semibold"
               disabled={loading || !email.trim()}
             >
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  Continuar
+                  Ver planes y precios
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
             </Button>
           </form>
 
+          {/* Login link */}
+          <div className="text-center mt-5">
+            <button
+              type="button"
+              onClick={() => {
+                onOpenChange(false);
+                navigate("/login");
+              }}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ¿Ya tienes cuenta?{" "}
+              <span className="font-medium text-primary hover:underline">
+                Iniciar sesión
+              </span>
+            </button>
+          </div>
+
           {/* Footer */}
-          <p className="text-center text-xs text-muted-foreground mt-6">
+          <p className="text-center text-xs text-muted-foreground mt-4">
             Al continuar, aceptas nuestros{" "}
             <a href="/terms" className="underline hover:text-foreground">
               términos
             </a>{" "}
             y{" "}
             <a href="/privacy" className="underline hover:text-foreground">
-              política de privacidad
+              privacidad
             </a>
           </p>
         </motion.div>
