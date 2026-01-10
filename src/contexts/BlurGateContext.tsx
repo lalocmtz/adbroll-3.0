@@ -1,6 +1,6 @@
 import { createContext, useContext, ReactNode, useState } from "react";
 import { useBlurGate, BlurGateState } from "@/hooks/useBlurGate";
-import { PaywallModal } from "@/components/PaywallModal";
+import { SimpleEmailCaptureModal } from "@/components/SimpleEmailCaptureModal";
 
 interface BlurGateContextValue extends BlurGateState {
   openPaywall: (feature?: string) => void;
@@ -27,9 +27,12 @@ export const BlurGateProvider = ({ children }: { children: ReactNode }) => {
   return (
     <BlurGateContext.Provider value={{ ...blurState, openPaywall, closePaywall }}>
       {children}
-      <PaywallModal 
+      <SimpleEmailCaptureModal 
         open={paywallOpen} 
-        onClose={closePaywall} 
+        onOpenChange={(open) => {
+          if (!open) closePaywall();
+          else setPaywallOpen(open);
+        }} 
         feature={paywallFeature}
       />
     </BlurGateContext.Provider>
