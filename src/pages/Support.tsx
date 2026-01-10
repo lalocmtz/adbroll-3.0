@@ -141,12 +141,28 @@ const Support = () => {
           <MessageCircle className="h-12 w-12 text-primary mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">{data.contactTitle}</h2>
           <p className="text-muted-foreground mb-6">{data.contactText}</p>
-          <Button asChild size="lg">
-            <a href="mailto:contacto@adbroll.com">
-              <Mail className="h-4 w-4 mr-2" />
-              contacto@adbroll.com
-            </a>
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button asChild size="lg">
+              <a href="mailto:contacto@adbroll.com">
+                <Mail className="h-4 w-4 mr-2" />
+                contacto@adbroll.com
+              </a>
+            </Button>
+            <Button 
+              asChild 
+              size="lg" 
+              className="bg-[#25D366] hover:bg-[#20BD5A] text-white"
+            >
+              <a 
+                href="https://wa.me/522213267653?text=Hola!%20Tengo%20una%20pregunta%20sobre%20Adbroll" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" fill="white" />
+                {language === "es" ? "Escribir por WhatsApp" : "Message on WhatsApp"}
+              </a>
+            </Button>
+          </div>
         </Card>
 
         {/* FAQ Section */}
