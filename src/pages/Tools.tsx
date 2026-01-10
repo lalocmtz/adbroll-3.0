@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useMarket } from "@/contexts/MarketContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,19 +42,22 @@ const isValidTikTokUrl = (url: string): boolean => {
 type ExtractorState = "idle" | "loading" | "success" | "error";
 type ExtractorError = "invalid_url" | "api_error" | "no_transcript" | null;
 
-const formatCurrency = (num: number | null | undefined): string => {
-  if (!num) return '$0';
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(num);
-};
+// formatCurrency will be a function inside the component to access market context
 
 const Tools = () => {
   const { language } = useLanguage();
+  const { market } = useMarket();
   const { toast } = useToast();
+  
+  const formatCurrency = (num: number | null | undefined): string => {
+    if (!num) return '$0';
+    return new Intl.NumberFormat(market === 'mx' ? 'es-MX' : 'en-US', {
+      style: 'currency',
+      currency: market === 'mx' ? 'MXN' : 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
   
   // Script Extractor State
   const [videoUrl, setVideoUrl] = useState("");
@@ -89,12 +93,13 @@ const Tools = () => {
   useEffect(() => {
     fetchPopularProducts();
     fetchFavoriteProducts();
-  }, []);
+  }, [market]);
 
   const fetchPopularProducts = async () => {
     const { data } = await supabase
       .from("products")
       .select("id, producto_nombre, categoria, precio_mxn, commission, imagen_url, gmv_30d_mxn")
+      .eq("market", market)
       .order("gmv_30d_mxn", { ascending: false, nullsFirst: false })
       .limit(8);
     if (data) setPopularProducts(data);
@@ -269,7 +274,7 @@ const Tools = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-hooks", {
-        body: { productDescription: hookProductDesc }
+        body: { productDescription: hookProductDesc, language: market === 'mx' ? 'es' : 'en' }
       });
 
       if (error) throw error;

@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { productDescription } = await req.json();
+    const { productDescription, language = 'es' } = await req.json();
 
     if (!productDescription) {
       return new Response(
@@ -25,20 +25,27 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    console.log('Generating hooks for:', productDescription.substring(0, 100));
+    console.log('Generating hooks for:', productDescription.substring(0, 100), 'language:', language);
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: `Eres un experto en copywriting para TikTok Shop México. Tu trabajo es crear hooks que detengan el scroll y generen ventas.
+    // Dynamic prompts based on language
+    const systemPrompt = language === 'en' 
+      ? `You are an expert TikTok Shop copywriter for the US market. Your job is to create hooks that stop the scroll and drive sales.
+
+Characteristics of a good TikTok Shop hook:
+- Generate IMMEDIATE curiosity
+- Use power words: "secret", "nobody tells you", "mistake", "free", "viral"
+- Appeal to emotions: FOMO, desire to improve, urgency
+- Maximum 15 words per hook
+- Natural American English, not formal
+- Avoid generic clichés
+
+Effective formats:
+- Question that creates intrigue
+- Controversial statement
+- "POV:" or "This is for you if..."
+- Warning or revealed secret
+- Before/after transformation`
+      : `Eres un experto en copywriting para TikTok Shop México. Tu trabajo es crear hooks que detengan el scroll y generen ventas.
 
 Características de un buen hook para TikTok Shop:
 - Genera CURIOSIDAD inmediata
@@ -53,17 +60,33 @@ Formatos que funcionan:
 - Declaración controversial
 - "POV:" o "Esto es para ti si..."
 - Advertencia o secreto revelado
-- Transformación antes/después`
-          },
-          {
-            role: 'user',
-            content: `Genera exactamente 5 hooks diferentes y creativos para este producto/beneficio:
+- Transformación antes/después`;
+
+    const userPrompt = language === 'en'
+      ? `Generate exactly 5 different and creative hooks for this product/benefit:
+
+${productDescription}
+
+Respond ONLY with a JSON array of 5 strings, no explanations. Example:
+["Hook 1 here", "Hook 2 here", "Hook 3 here", "Hook 4 here", "Hook 5 here"]`
+      : `Genera exactamente 5 hooks diferentes y creativos para este producto/beneficio:
 
 ${productDescription}
 
 Responde SOLO con un array JSON de 5 strings, sin explicaciones. Ejemplo:
-["Hook 1 aquí", "Hook 2 aquí", "Hook 3 aquí", "Hook 4 aquí", "Hook 5 aquí"]`
-          }
+["Hook 1 aquí", "Hook 2 aquí", "Hook 3 aquí", "Hook 4 aquí", "Hook 5 aquí"]`;
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
       }),
     });
