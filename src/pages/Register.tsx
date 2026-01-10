@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Gift, Loader2 } from "lucide-react";
+import { Gift, Loader2, X } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
 
 const Register = () => {
@@ -213,7 +213,14 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center landing-light p-4">
-      <Card className="w-full max-w-md card-landing-light">
+      <Card className="w-full max-w-md card-landing-light relative">
+        <button
+          onClick={() => navigate("/app")}
+          className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition-colors z-10"
+          aria-label="Cerrar"
+        >
+          <X className="h-5 w-5 text-muted-foreground" />
+        </button>
         <CardHeader>
           <div className="text-center mb-4">
             <img 
