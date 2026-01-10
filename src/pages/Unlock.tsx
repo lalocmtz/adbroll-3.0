@@ -75,7 +75,7 @@ const Unlock = () => {
   const urlRefCode = searchParams.get("ref");
   const [loadingPlan, setLoadingPlan] = useState<"pro" | "premium" | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [pendingPlan, setPendingPlan] = useState<"pro" | "premium" | null>(null);
+  const [hasProspectEmail, setHasProspectEmail] = useState(false);
 
   // Get refCode from URL or localStorage
   const refCode = urlRefCode || localStorage.getItem("adbroll_ref_code");
@@ -87,9 +87,20 @@ const Unlock = () => {
     }
   }, [urlRefCode]);
 
-  // Auto-scroll to pricing if hash is #pricing
+  // Check if email exists on mount - if not, show modal immediately
   useEffect(() => {
-    if (window.location.hash === "#pricing") {
+    const prospectEmail = localStorage.getItem("adbroll_prospect_email");
+    if (prospectEmail) {
+      setHasProspectEmail(true);
+    } else {
+      // No email - show modal immediately
+      setShowEmailModal(true);
+    }
+  }, []);
+
+  // Auto-scroll to pricing after email is captured
+  useEffect(() => {
+    if (hasProspectEmail && window.location.hash === "#pricing") {
       setTimeout(() => {
         const pricingSection = document.getElementById("pricing");
         if (pricingSection) {
@@ -97,20 +108,17 @@ const Unlock = () => {
         }
       }, 100);
     }
-  }, []);
+  }, [hasProspectEmail]);
 
   const handleSelectPlan = async (plan: "pro" | "premium") => {
-    // Get email from localStorage (saved by SimpleEmailCaptureModal)
     const prospectEmail = localStorage.getItem("adbroll_prospect_email");
     
     if (!prospectEmail) {
-      // If no email saved, show email capture modal
-      setPendingPlan(plan);
       setShowEmailModal(true);
       return;
     }
 
-    // Proceed to checkout
+    // Proceed directly to Stripe checkout
     await processCheckout(plan, prospectEmail);
   };
 
@@ -118,7 +126,6 @@ const Unlock = () => {
     setLoadingPlan(plan);
 
     try {
-      // Create checkout session
       const { data, error } = await supabase.functions.invoke("create-checkout-guest", {
         body: {
           email: email,
@@ -139,16 +146,17 @@ const Unlock = () => {
     }
   };
 
-  // After email capture, proceed to checkout with pending plan
+  // After email capture, just show pricing (no auto-checkout)
   const handleEmailCaptured = () => {
     setShowEmailModal(false);
-    if (pendingPlan) {
-      const email = localStorage.getItem("adbroll_prospect_email");
-      if (email) {
-        processCheckout(pendingPlan, email);
+    setHasProspectEmail(true);
+    // Scroll to pricing section
+    setTimeout(() => {
+      const pricingSection = document.getElementById("pricing");
+      if (pricingSection) {
+        pricingSection.scrollIntoView({ behavior: "smooth" });
       }
-    }
-    setPendingPlan(null);
+    }, 100);
   };
 
   const handleLogin = () => {
@@ -182,127 +190,137 @@ const Unlock = () => {
         </div>
       </header>
 
-      {/* Pricing Section - FIRST (after header) */}
-      <section id="pricing" className="pt-24 md:pt-28 pb-10 md:pb-16 landing-section-alt">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-8"
-          >
-            <Badge className="badge-landing-light mb-3">💸 Elige tu plan</Badge>
-            <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-3">
-              Desbloquea todo Adbroll
-            </h1>
-            <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">
-              Scripts virales para todos. Videos IA para quienes no quieren salir a cámara.
+      {/* Pricing Section - Only visible after email capture */}
+      {hasProspectEmail ? (
+        <section id="pricing" className="pt-24 md:pt-28 pb-10 md:pb-16 landing-section-alt">
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-center mb-8"
+            >
+              <Badge className="badge-landing-light mb-3">💸 Elige tu plan</Badge>
+              <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold mb-3">
+                Desbloquea todo Adbroll
+              </h1>
+              <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">
+                Scripts virales para todos. Videos IA para quienes no quieren salir a cámara.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="max-w-3xl mx-auto grid md:grid-cols-2 gap-4"
+            >
+              {/* Pro Plan */}
+              <Card className="p-5 md:p-6 border-2 border-border bg-white hover:border-primary/50 transition-all hover:shadow-lg">
+                <div className="text-center mb-4">
+                  <Sparkles className="h-7 w-7 mx-auto mb-2 text-foreground" />
+                  <h3 className="text-xl font-bold">Pro</h3>
+                  <p className="text-xs text-muted-foreground">Para creadores que graban</p>
+                </div>
+                <div className="text-center mb-5">
+                  <span className="text-4xl font-bold">$14.99</span>
+                  <span className="text-muted-foreground">/mes</span>
+                  <p className="text-xs text-muted-foreground mt-1">~$300 MXN/mes</p>
+                </div>
+                <ul className="space-y-2.5 mb-5 text-sm">
+                  {[
+                    "Scripts reales extraídos de videos virales",
+                    "Variantes IA ilimitadas",
+                    "Oportunidades de productos",
+                    "Panel de afiliados (30% comisión)",
+                    "Acceso completo al dashboard"
+                  ].map((f, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button 
+                  variant="outline" 
+                  className="w-full h-11" 
+                  onClick={() => handleSelectPlan("pro")}
+                  disabled={loadingPlan !== null}
+                >
+                  {loadingPlan === "pro" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Empezar con Pro"
+                  )}
+                </Button>
+              </Card>
+
+              {/* Premium Plan - HIGHLIGHTED */}
+              <Card className="p-5 md:p-6 border-2 border-primary bg-white relative shadow-xl ring-2 ring-primary/20">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-primary text-white px-3 py-1">
+                    <Star className="h-3 w-3 mr-1 fill-current" />
+                    MÁS POPULAR
+                  </Badge>
+                </div>
+                <div className="text-center mb-4">
+                  <Zap className="h-7 w-7 mx-auto mb-2 text-primary" />
+                  <h3 className="text-xl font-bold">Premium</h3>
+                  <p className="text-xs text-muted-foreground">Sin salir a cámara</p>
+                </div>
+                <div className="text-center mb-5">
+                  <span className="text-4xl font-bold text-primary">$29.99</span>
+                  <span className="text-muted-foreground">/mes</span>
+                  <p className="text-xs text-muted-foreground mt-1">~$600 MXN/mes</p>
+                </div>
+                <ul className="space-y-2.5 mb-5 text-sm">
+                  <li className="flex items-start gap-2 font-medium text-primary">
+                    <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                    <span>Todo lo de Pro incluido</span>
+                  </li>
+                  {[
+                    "5 videos IA/mes con lip-sync",
+                    "Genera videos sin grabarte",
+                    "Compra packs adicionales",
+                    "Prioridad en nuevas funciones"
+                  ].map((f, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button 
+                  className="w-full h-11 bg-primary hover:bg-primary-hover" 
+                  onClick={() => handleSelectPlan("premium")}
+                  disabled={loadingPlan !== null}
+                >
+                  {loadingPlan === "premium" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      Empezar con Premium
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </Card>
+            </motion.div>
+
+            <p className="text-center text-xs text-muted-foreground mt-6">
+              Cancela cuando quieras · Sin compromisos · Pago seguro con Stripe
             </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="max-w-3xl mx-auto grid md:grid-cols-2 gap-4"
-          >
-            {/* Pro Plan */}
-            <Card className="p-5 md:p-6 border-2 border-border bg-white hover:border-primary/50 transition-all hover:shadow-lg">
-              <div className="text-center mb-4">
-                <Sparkles className="h-7 w-7 mx-auto mb-2 text-foreground" />
-                <h3 className="text-xl font-bold">Pro</h3>
-                <p className="text-xs text-muted-foreground">Para creadores que graban</p>
-              </div>
-              <div className="text-center mb-5">
-                <span className="text-4xl font-bold">$14.99</span>
-                <span className="text-muted-foreground">/mes</span>
-                <p className="text-xs text-muted-foreground mt-1">~$300 MXN/mes</p>
-              </div>
-              <ul className="space-y-2.5 mb-5 text-sm">
-                {[
-                  "Scripts reales extraídos de videos virales",
-                  "Variantes IA ilimitadas",
-                  "Oportunidades de productos",
-                  "Panel de afiliados (30% comisión)",
-                  "Acceso completo al dashboard"
-                ].map((f, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button 
-                variant="outline" 
-                className="w-full h-11" 
-                onClick={() => handleSelectPlan("pro")}
-                disabled={loadingPlan !== null}
-              >
-                {loadingPlan === "pro" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Empezar con Pro"
-                )}
-              </Button>
-            </Card>
-
-            {/* Premium Plan - HIGHLIGHTED */}
-            <Card className="p-5 md:p-6 border-2 border-primary bg-white relative shadow-xl ring-2 ring-primary/20">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-white px-3 py-1">
-                  <Star className="h-3 w-3 mr-1 fill-current" />
-                  MÁS POPULAR
-                </Badge>
-              </div>
-              <div className="text-center mb-4">
-                <Zap className="h-7 w-7 mx-auto mb-2 text-primary" />
-                <h3 className="text-xl font-bold">Premium</h3>
-                <p className="text-xs text-muted-foreground">Sin salir a cámara</p>
-              </div>
-              <div className="text-center mb-5">
-                <span className="text-4xl font-bold text-primary">$29.99</span>
-                <span className="text-muted-foreground">/mes</span>
-                <p className="text-xs text-muted-foreground mt-1">~$600 MXN/mes</p>
-              </div>
-              <ul className="space-y-2.5 mb-5 text-sm">
-                <li className="flex items-start gap-2 font-medium text-primary">
-                  <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                  <span>Todo lo de Pro incluido</span>
-                </li>
-                {[
-                  "5 videos IA/mes con lip-sync",
-                  "Genera videos sin grabarte",
-                  "Compra packs adicionales",
-                  "Prioridad en nuevas funciones"
-                ].map((f, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button 
-                className="w-full h-11 bg-primary hover:bg-primary-hover" 
-                onClick={() => handleSelectPlan("premium")}
-                disabled={loadingPlan !== null}
-              >
-                {loadingPlan === "premium" ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    Empezar con Premium
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </Card>
-          </motion.div>
-
-          <p className="text-center text-xs text-muted-foreground mt-6">
-            Cancela cuando quieras · Sin compromisos · Pago seguro con Stripe
-          </p>
-        </div>
-      </section>
+          </div>
+        </section>
+      ) : (
+        // Placeholder while email modal is open - minimal height to keep layout stable
+        <section className="pt-24 md:pt-28 pb-10 md:pb-16 landing-section-alt min-h-[60vh] flex items-center justify-center">
+          <div className="text-center text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-sm">Cargando planes...</p>
+          </div>
+        </section>
+      )}
 
       {/* How it Works */}
       <section id="how-it-works" className="py-10 md:py-24">
@@ -550,12 +568,17 @@ const Unlock = () => {
         </div>
       </section>
 
-      {/* Email Capture Modal for plan selection */}
+      {/* Email Capture Modal - Required before seeing pricing */}
       <SimpleEmailCaptureModal
         open={showEmailModal}
-        onOpenChange={setShowEmailModal}
-        feature="plan_selection"
+        onOpenChange={(open) => {
+          // Don't allow closing if no email captured yet
+          if (!open && !hasProspectEmail) return;
+          setShowEmailModal(open);
+        }}
+        feature="unlock_page"
         onSuccess={handleEmailCaptured}
+        redirectOnSuccess={false}
       />
     </div>
   );

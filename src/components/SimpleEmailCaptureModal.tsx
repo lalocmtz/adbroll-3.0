@@ -63,8 +63,9 @@ export const SimpleEmailCaptureModal = ({
       // Save email to localStorage for checkout pre-fill
       localStorage.setItem("adbroll_prospect_email", email.trim().toLowerCase());
 
-      // If there's a success callback, call it instead of redirecting
+      // If there's a success callback, close modal first then call it
       if (onSuccess) {
+        onOpenChange(false);
         onSuccess();
         return;
       }
