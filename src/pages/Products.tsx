@@ -256,7 +256,7 @@ const Products = () => {
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
           {!isLoggedIn ? (
             <div 
-              className="flex gap-1.5 flex-nowrap"
+              className="flex gap-1.5 flex-wrap"
               onClick={() => {
                 navigate("/unlock");
                 window.scrollTo({ top: 0, behavior: 'smooth' });
