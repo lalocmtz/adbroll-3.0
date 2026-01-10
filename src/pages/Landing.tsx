@@ -395,58 +395,77 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Single Plan Pricing */}
-      <section id="pricing" className="py-20 md:py-32">
+      {/* Two-Column Pricing */}
+      <section id="pricing" className="py-20 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <Badge className="badge-landing-light mb-4">Plan único</Badge>
+            <Badge className="badge-landing-light mb-4">Elige tu plan</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Adbroll Pro — $14.99 USD/mes
+              Pro o Premium — tú decides
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Un solo plan con acceso completo. Si vienes con código de referido, obtienes <span className="text-primary font-semibold">50% OFF</span> tu primer mes.
+              Scripts virales para todos. Videos IA para quienes no quieren salir a cámara.
             </p>
           </div>
 
-          <div className="max-w-lg mx-auto">
-            <Card className="relative p-8 border-2 border-primary shadow-xl shadow-primary/10">
-              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white">
-                <Star className="h-3 w-3 mr-1" />
-                Plan único
-              </Badge>
-
-              <div className="text-center mb-6 pt-4">
-                <div className="inline-flex p-3 rounded-xl mb-4 bg-primary/10 text-primary">
-                  <Sparkles className="h-8 w-8" />
+          <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6">
+            {/* Pro Plan */}
+            <Card className="relative p-6 border-2 border-border bg-white hover:border-primary/50 transition-colors">
+              <div className="text-center mb-6">
+                <div className="inline-flex p-3 rounded-xl mb-4 bg-muted text-foreground">
+                  <Sparkles className="h-6 w-6" />
                 </div>
                 <h3 className="text-2xl font-bold mb-2">Adbroll Pro</h3>
-                <p className="text-muted-foreground text-sm mb-4">Todo lo que necesitas para vender más en TikTok Shop</p>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-5xl font-bold">$14.99</span>
-                  <span className="text-muted-foreground">/mes</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">~$300 MXN/mes</p>
+                <p className="text-sm text-muted-foreground">Para creadores que graban</p>
               </div>
-
+              <div className="text-center mb-6">
+                <span className="text-4xl font-bold">$14.99</span>
+                <span className="text-muted-foreground">/mes</span>
+              </div>
               <ul className="space-y-3 mb-6">
-                {[
-                  "Acceso completo a TikTok Shop México",
-                  "Scripts reales + extractor automático",
-                  "Variantes IA ilimitadas",
-                  "Hooks generados por IA",
-                  "Oportunidades de productos y creadores",
-                  "Favoritos, dashboard completo y analíticas",
-                  "Panel de afiliados (gana 30% recurrente)",
-                ].map((feature, i) => (
+                {["Dashboard con videos virales", "Scripts reales extraídos", "Variantes IA ilimitadas", "Panel de afiliados (30%)"].map((f, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                    <span>{feature}</span>
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span>{f}</span>
                   </li>
                 ))}
               </ul>
+              <Button variant="outline" className="w-full" size="lg" onClick={handleCTA}>
+                Empezar con Pro
+              </Button>
+            </Card>
 
+            {/* Premium Plan */}
+            <Card className="relative p-6 border-2 border-primary bg-white shadow-xl">
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white">
+                <Star className="h-3 w-3 mr-1" />
+                POPULAR
+              </Badge>
+              <div className="text-center mb-6">
+                <div className="inline-flex p-3 rounded-xl mb-4 bg-primary/10 text-primary">
+                  <Zap className="h-6 w-6" />
+                </div>
+                <h3 className="text-2xl font-bold mb-2">Adbroll Premium</h3>
+                <p className="text-sm text-muted-foreground">Sin salir a cámara</p>
+              </div>
+              <div className="text-center mb-6">
+                <span className="text-4xl font-bold text-primary">$29.99</span>
+                <span className="text-muted-foreground">/mes</span>
+              </div>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-center gap-2 text-sm font-medium">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span>Todo lo de Pro incluido</span>
+                </li>
+                {["5 videos IA/mes con lip-sync", "Genera videos sin grabarte", "Compra packs adicionales"].map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
               <Button className="w-full bg-primary hover:bg-primary-hover" size="lg" onClick={handleCTA}>
-                Empieza ahora
+                Empezar con Premium
               </Button>
             </Card>
           </div>

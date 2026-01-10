@@ -333,40 +333,68 @@ const Unlock = () => {
       <section className="py-10 md:py-32 landing-section-alt">
         <div className="container mx-auto px-4">
           <div className="text-center mb-8 md:mb-12">
-            <Badge className="badge-landing-light mb-2 md:mb-4">💸 Precio simple</Badge>
+            <Badge className="badge-landing-light mb-2 md:mb-4">💸 Elige tu plan</Badge>
             <h2 className="text-lg md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4">
-              Un solo plan. Todo incluido.
+              Pro o Premium — tú decides
             </h2>
             <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto">
-              Sin planes confusos. Un solo acceso a todo lo que necesitas para convertir tu contenido en ventas.
+              Scripts virales para todos. Videos IA para quienes no quieren salir a cámara.
             </p>
           </div>
 
-          <div className="max-w-lg mx-auto">
-            <Card className="p-5 md:p-8 border-2 border-primary/20 relative overflow-hidden bg-white shadow-xl">
-              <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 md:px-4 py-1 rounded-bl-lg">
-                POPULAR
+          <div className="max-w-3xl mx-auto grid md:grid-cols-2 gap-4">
+            {/* Pro Plan */}
+            <Card className="p-5 md:p-6 border-2 border-border bg-white hover:border-primary/50 transition-colors">
+              <div className="text-center mb-4">
+                <Sparkles className="h-6 w-6 mx-auto mb-2 text-foreground" />
+                <h3 className="text-xl font-bold">Pro</h3>
+                <p className="text-xs text-muted-foreground">Para creadores que graban</p>
               </div>
-              
-              <div className="text-center mb-4 md:mb-6">
-                <h3 className="text-xl md:text-2xl font-bold mb-2">Adbroll Pro</h3>
-                <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-4xl md:text-5xl font-bold">$14.99</span>
-                  <span className="text-muted-foreground text-sm md:text-base">/mes</span>
-                </div>
-                <p className="text-xs md:text-sm text-muted-foreground mt-1">~$300 MXN/mes</p>
+              <div className="text-center mb-4">
+                <span className="text-3xl font-bold">$14.99</span>
+                <span className="text-muted-foreground">/mes</span>
               </div>
-
-              <ul className="space-y-2 md:space-y-3 mb-6 md:mb-8">
-                {["Acceso a todos los videos y productos", "Análisis de guiones con IA", "Generador de variantes", "Detector de oportunidades", "Herramientas de creador", "Soporte prioritario"].map((feature, i) => <li key={i} className="flex items-center gap-2 md:gap-3 text-sm md:text-base">
-                    <Check className="h-4 w-4 md:h-5 md:w-5 text-green-500 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>)}
+              <ul className="space-y-2 mb-4 text-sm">
+                {["Scripts reales extraídos", "Variantes IA ilimitadas", "Oportunidades de productos", "Panel de afiliados (30%)"].map((f, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span>{f}</span>
+                  </li>
+                ))}
               </ul>
+              <Button variant="outline" className="w-full" onClick={handleUnlock}>
+                Empezar con Pro
+              </Button>
+            </Card>
 
-              <Button size="lg" className="w-full bg-primary hover:bg-primary-hover btn-glow" onClick={handleUnlock}>
-                Desbloquear Adbroll Pro
-                <ArrowRight className="ml-2 h-5 w-5" />
+            {/* Premium Plan */}
+            <Card className="p-5 md:p-6 border-2 border-primary bg-white relative shadow-xl">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <Badge className="bg-primary text-white"><Star className="h-3 w-3 mr-1" />POPULAR</Badge>
+              </div>
+              <div className="text-center mb-4">
+                <Zap className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <h3 className="text-xl font-bold">Premium</h3>
+                <p className="text-xs text-muted-foreground">Sin salir a cámara</p>
+              </div>
+              <div className="text-center mb-4">
+                <span className="text-3xl font-bold text-primary">$29.99</span>
+                <span className="text-muted-foreground">/mes</span>
+              </div>
+              <ul className="space-y-2 mb-4 text-sm">
+                <li className="flex items-center gap-2 font-medium">
+                  <Check className="h-4 w-4 text-green-500" />
+                  <span>Todo lo de Pro</span>
+                </li>
+                {["5 videos IA/mes con lip-sync", "Genera videos sin grabarte", "Compra packs adicionales"].map((f, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button className="w-full" onClick={handleUnlock}>
+                Empezar con Premium
               </Button>
             </Card>
           </div>

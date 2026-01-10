@@ -364,6 +364,48 @@ $$);
 
 ---
 
+## ✅ SISTEMA DE PRECIOS PRO/PREMIUM + CRÉDITOS (Enero 2025)
+
+### Base de Datos
+- [x] **profiles.plan_tier** - Campo para diferenciar 'free' | 'pro' | 'premium'
+- [x] **video_credits actualizado** - credits_monthly, credits_purchased, last_monthly_reset
+- [x] **credit_purchases tabla** - Tracking de compras de packs de créditos
+- [x] **RLS policies** - Políticas para credit_purchases
+
+### Stripe Integration
+- [x] **STRIPE_PRICE_ID_PREMIUM** - $29.99/mes suscripción
+- [x] **STRIPE_PRICE_ID_PACK_3** - $9.99 pack 3 videos
+- [x] **STRIPE_PRICE_ID_PACK_10** - $24.99 pack 10 videos
+
+### Edge Functions
+- [x] **create-checkout** - Acepta plan 'pro' | 'premium'
+- [x] **create-checkout-credits** - Nuevo endpoint para packs de créditos
+- [x] **stripe-webhook** - Asigna plan_tier y créditos según tipo de compra
+
+### Frontend - Pricing
+- [x] **Pricing.tsx** - 2 columnas Pro ($14.99) vs Premium ($29.99)
+- [x] **PaywallModal.tsx** - Muestra ambos planes
+- [x] **CreditPacksModal.tsx** - Modal para comprar packs de créditos
+- [x] **CreditsBadge.tsx** - Badge de créditos en sidebar
+
+### Frontend - Landing Pages
+- [x] **Landing.tsx** - Sección pricing con 2 columnas
+- [x] **Unlock.tsx** - Sección pricing con 2 columnas
+
+### Hooks
+- [x] **useSubscription.tsx** - planTier, isPro, isPremium, canGenerateVideos
+- [x] **useVideoCredits.ts** - monthlyCredits, purchasedCredits, availableCredits
+
+### Pricing Final
+| Plan | Precio | Incluye |
+|------|--------|---------|
+| Pro | $14.99/mes | Scripts, análisis, variantes IA |
+| Premium | $29.99/mes | Todo Pro + 5 videos IA/mes |
+| Pack 3 | $9.99 | 3 créditos de video |
+| Pack 10 | $24.99 | 10 créditos de video |
+
+---
+
 ## 🔄 PENDIENTE
 
 ### Sistema de Pagos para Marcas
