@@ -243,7 +243,7 @@ const Dashboard = () => {
       {/* Filter Pills - Compact horizontal scrollable on mobile */}
       <div className="mb-4 md:mb-6">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
-          {!isLoggedIn ? <div className="flex gap-1.5 opacity-60 cursor-pointer flex-nowrap" onClick={() => {
+          {!isLoggedIn ? <div className="flex gap-1.5 opacity-60 cursor-pointer flex-wrap" onClick={() => {
           navigate("/unlock");
           window.scrollTo({
             top: 0,
