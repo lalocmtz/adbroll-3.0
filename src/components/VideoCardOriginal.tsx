@@ -69,7 +69,9 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   const [showModal, setShowModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { hasPaid, isLoggedIn, openPaywall, shouldBlur, shouldBlurPartial } = useBlurGateContext();
@@ -82,6 +84,30 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   // Free preview videos show all data even for non-paid users
   const showFullData = hasPaid || isFreePreview;
   const needsBlur = !showFullData && (shouldBlur || shouldBlurPartial);
+
+  // Autoplay muted when video enters viewport (works on mobile and desktop)
+  useEffect(() => {
+    if (!video.video_mp4_url || !containerRef.current) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && videoRef.current) {
+          videoRef.current.muted = true;
+          videoRef.current.play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
+        } else if (!entry.isIntersecting && videoRef.current) {
+          videoRef.current.pause();
+          setIsPlaying(false);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    
+    observer.observe(containerRef.current);
+    
+    return () => observer.disconnect();
+  }, [video.video_mp4_url]);
 
   useEffect(() => {
     const checkFavoriteStatus = async () => {
@@ -96,10 +122,11 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
     if (videoRef.current && video.video_mp4_url) {
+      // On hover, try to enable audio
       videoRef.current.muted = false;
       videoRef.current.volume = 0.7;
       videoRef.current.play().catch(() => {
-        // Autoplay with sound blocked, try muted
+        // If audio fails, keep muted and continue
         if (videoRef.current) {
           videoRef.current.muted = true;
           videoRef.current.play().catch(() => {});
@@ -111,8 +138,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
     if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
+      // Keep playing but mute when not hovering
       videoRef.current.muted = true;
     }
   }, []);
@@ -187,7 +213,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
         onMouseLeave={handleMouseLeave}
       >
         {/* Video Container - Optimized for more visibility */}
-        <div className="relative aspect-[4/5] md:aspect-[4/5] bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-3">
+        <div ref={containerRef} className="relative aspect-[4/5] md:aspect-[4/5] bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-3">
           {/* Top Icons Bar */}
           <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-20 flex items-center justify-between pointer-events-none">
             {/* Ranking Badge - smaller on mobile */}
@@ -217,7 +243,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             </div>
           </div>
 
-          {/* Video Player */}
+          {/* Video Player - Autoplay muted on scroll */}
           {video.video_mp4_url ? (
             <>
               <video 
@@ -227,9 +253,11 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
                 muted
                 loop
                 playsInline
+                preload="metadata"
                 poster={video.thumbnail_url || undefined}
               />
-              {!isHovered && (
+              {/* Only show play button if video is NOT playing */}
+              {!isPlaying && !isHovered && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                   <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/95 flex items-center justify-center shadow-lg">
                     <Play className="w-5 h-5 md:w-7 md:h-7 text-[#0F172A] ml-0.5" fill="currentColor" />
