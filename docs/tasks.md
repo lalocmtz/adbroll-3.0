@@ -406,6 +406,35 @@ $$);
 
 ---
 
+## ✅ OPTIMIZACIÓN FLUJO DE CONVERSIÓN (Enero 2025)
+
+### Nuevo Flujo Email-First
+- [x] **SimpleEmailCaptureModal.tsx** - Modal minimalista que solo captura email
+- [x] **BlurGateContext actualizado** - Usa SimpleEmailCaptureModal en lugar de PaywallModal
+- [x] **Unlock.tsx reestructurado** - Precios arriba (#pricing), landing de beneficios abajo
+- [x] **Premium destacado** - Badge "MÁS POPULAR", borde y sombra prominentes
+- [x] **Auto-scroll a #pricing** - Si URL contiene #pricing, hace scroll automático
+- [x] **Email pre-guardado** - Se guarda en localStorage para pre-llenar checkout
+
+### Flujo Completo
+```
+1. Usuario hace clic en contenido bloqueado
+2. Se abre SimpleEmailCaptureModal (solo pide email)
+3. Email se guarda en email_captures + localStorage
+4. Usuario es redirigido a /unlock#pricing
+5. Ve los dos planes (Pro/Premium) prominentemente arriba
+6. Al elegir plan, email se pasa a Stripe checkout
+7. Después de pagar, cuenta se crea automáticamente
+```
+
+### Beneficios
+- Mayor captura de emails como prospectos
+- Usuario ve ambos planes antes de decidir
+- Premium destacado aumenta conversiones
+- Flujo más limpio y menos intimidante
+
+---
+
 ## 🔄 PENDIENTE
 
 ### Sistema de Pagos para Marcas
