@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,6 +22,7 @@ import {
   Lock,
   ExternalLink,
   RefreshCw,
+  Crown,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -44,6 +46,7 @@ const MyGeneratedVideos = () => {
   const [loading, setLoading] = useState(true);
   const { language } = useLanguage();
   const { isLoggedIn, hasPaid } = useBlurGateContext();
+  const { isPremium, canGenerateVideos, planTier } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -184,6 +187,39 @@ const MyGeneratedVideos = () => {
             <Button onClick={() => navigate('/login')}>
               {language === 'es' ? 'Iniciar sesión' : 'Sign in'}
             </Button>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Pro user without Premium - upsell
+  if (isLoggedIn && planTier === 'pro' && !canGenerateVideos) {
+    return (
+      <DashboardLayout>
+        <div className="flex-1 flex items-center justify-center p-8">
+          <Card className="p-8 text-center max-w-md bg-gradient-to-br from-violet-500/5 to-purple-500/10 border-violet-200 dark:border-violet-800">
+            <div className="h-16 w-16 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
+              <Crown className="h-8 w-8 text-violet-600" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">
+              {language === 'es' ? 'Genera videos sin grabar' : 'Generate videos without filming'}
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              {language === 'es' 
+                ? 'Con el plan Premium puedes generar videos UGC con lip-sync automático. 5 videos incluidos cada mes.'
+                : 'With the Premium plan you can generate UGC videos with automatic lip-sync. 5 videos included each month.'}
+            </p>
+            <Button 
+              onClick={() => navigate('/pricing')}
+              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              {language === 'es' ? 'Actualizar a Premium' : 'Upgrade to Premium'}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-3">
+              {language === 'es' ? 'Solo $29.99/mes • 5 videos IA incluidos' : 'Only $29.99/month • 5 AI videos included'}
+            </p>
           </Card>
         </div>
       </DashboardLayout>

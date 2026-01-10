@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { useAccountType } from "@/hooks/useAccountType";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,9 +32,11 @@ import {
   FolderKanban,
   ArrowUpCircle,
   Video,
+  Crown,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import MarketSwitcher from "@/components/MarketSwitcher";
+import { CreditsBadge } from "@/components/CreditsBadge";
 import logoDark from "@/assets/logo-dark.png";
 
 interface DashboardSidebarProps {
@@ -93,6 +96,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   const { language } = useLanguage();
   const { isLoggedIn } = useBlurGateContext();
   const { isBrand } = useAccountType();
+  const { isPremium, planTier } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
   const [userEmail, setUserEmail] = useState<string>("");
@@ -279,6 +283,33 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
           <div className="space-y-0.5">
             {workspaceItems.map(renderNavItem)}
           </div>
+          
+          {/* Credits Badge for Premium users */}
+          {isLoggedIn && isPremium && (
+            <div className="mt-3 px-1">
+              <CreditsBadge className="w-full justify-center" />
+            </div>
+          )}
+          
+          {/* Plan Badge for Pro users - upsell to Premium */}
+          {isLoggedIn && planTier === "pro" && (
+            <div className="mt-3 px-1">
+              <button
+                onClick={() => navigate("/pricing")}
+                className="flex items-center gap-2 w-full px-3 py-2 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-600 dark:text-violet-400 hover:from-violet-500/20 hover:to-purple-500/20 transition-all"
+              >
+                <Crown className="h-4 w-4" />
+                <div className="flex-1 text-left">
+                  <span className="text-xs font-medium">
+                    {language === "es" ? "Genera videos IA" : "Generate AI videos"}
+                  </span>
+                  <p className="text-[10px] opacity-80">
+                    {language === "es" ? "Upgrade a Premium" : "Upgrade to Premium"}
+                  </p>
+                </div>
+              </button>
+            </div>
+          )}
 
           {/* PANEL MARCA Section - Hidden temporarily, code preserved for future use */}
           {/* {isLoggedIn && isBrand && (

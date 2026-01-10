@@ -14,13 +14,13 @@ serve(async (req) => {
   }
 
   try {
-    const { email, referral_code } = await req.json();
+    const { email, referral_code, plan = 'pro' } = await req.json();
 
     if (!email) {
       throw new Error("Email is required");
     }
 
-    console.log(`Creating checkout for guest email: ${email}`);
+    console.log(`Creating checkout for guest email: ${email}, plan: ${plan}`);
 
     // Use service role for database operations
     const supabaseAdmin = createClient(
@@ -51,10 +51,20 @@ serve(async (req) => {
         metadata: {
           source: "guest_checkout",
           referral_code: referral_code || "",
+          plan: plan,
         },
       });
       customerId = customer.id;
       console.log(`Created new Stripe customer: ${customerId}`);
+    }
+
+    // Determine which price ID to use based on plan
+    const priceId = plan === 'premium' 
+      ? Deno.env.get("STRIPE_PRICE_ID_PREMIUM")
+      : Deno.env.get("STRIPE_PRICE_ID_PRO");
+
+    if (!priceId) {
+      throw new Error(`Price ID not configured for plan: ${plan}`);
     }
 
     // Build checkout session params
@@ -64,7 +74,7 @@ serve(async (req) => {
       payment_method_types: ["card"],
       line_items: [
         {
-          price: Deno.env.get("STRIPE_PRICE_ID_PRO"),
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -74,6 +84,7 @@ serve(async (req) => {
         guest_email: email.toLowerCase(),
         referral_code: referral_code || "",
         create_account_on_success: "true",
+        plan: plan,
       },
       customer_update: {
         address: "auto",
@@ -100,7 +111,7 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    console.log(`Guest checkout session created: ${session.id} for email: ${email}`);
+    console.log(`Guest checkout session created: ${session.id} for email: ${email}, plan: ${plan}`);
 
     return new Response(
       JSON.stringify({ url: session.url }),

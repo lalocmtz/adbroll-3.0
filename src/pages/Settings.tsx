@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAccountType } from "@/hooks/useAccountType";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useVideoCredits } from "@/hooks/useVideoCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings as SettingsIcon, User, Globe, LogOut, CreditCard, Loader2, ExternalLink, Calendar, Building2, ArrowRight } from "lucide-react";
+import { Settings as SettingsIcon, User, Globe, LogOut, CreditCard, Loader2, ExternalLink, Calendar, Building2, ArrowRight, Crown, Zap, Video, Sparkles, Coins } from "lucide-react";
+import { CreditPacksModal } from "@/components/CreditPacksModal";
 
 interface SubscriptionData {
   status: string;
@@ -28,6 +31,8 @@ interface SubscriptionData {
 const Settings = () => {
   const { language, setLanguage, currency, setCurrency } = useLanguage();
   const { isBrand, brandProfile, isLoading: accountLoading } = useAccountType();
+  const { planTier, isPro, isPremium, isFounder, isGrantedAccess, loading: subscriptionLoading } = useSubscription();
+  const { availableCredits, monthlyCredits, purchasedCredits } = useVideoCredits();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState("");
@@ -35,6 +40,7 @@ const Settings = () => {
   const [memberSince, setMemberSince] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [creditPacksOpen, setCreditPacksOpen] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -92,6 +98,46 @@ const Settings = () => {
       month: "long",
       day: "numeric",
     });
+  };
+
+  const getPlanBadge = () => {
+    if (isFounder) {
+      return (
+        <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
+          <Crown className="h-3 w-3 mr-1" />
+          Founder
+        </Badge>
+      );
+    }
+    if (isGrantedAccess) {
+      return (
+        <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0">
+          <Sparkles className="h-3 w-3 mr-1" />
+          Creator Program
+        </Badge>
+      );
+    }
+    if (isPremium) {
+      return (
+        <Badge className="bg-gradient-to-r from-violet-600 to-purple-600 text-white border-0">
+          <Video className="h-3 w-3 mr-1" />
+          Premium
+        </Badge>
+      );
+    }
+    if (isPro) {
+      return (
+        <Badge className="bg-primary text-primary-foreground border-0">
+          <Zap className="h-3 w-3 mr-1" />
+          Pro
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="secondary">
+        Free
+      </Badge>
+    );
   };
 
   return (
@@ -214,65 +260,131 @@ const Settings = () => {
         </Card>
 
         {/* Subscription Section */}
-        <Card className={`p-5 ${subscription?.status === "active" ? "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20" : ""}`}>
-          <div className="flex items-center gap-3 mb-4">
-            <CreditCard className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">
-              {language === "es" ? "Suscripción" : "Subscription"}
-            </h2>
+        <Card className={`p-5 ${(isPro || isPremium) ? "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20" : ""}`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <CreditCard className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold">
+                {language === "es" ? "Suscripción" : "Subscription"}
+              </h2>
+            </div>
+            {!subscriptionLoading && getPlanBadge()}
           </div>
           
-          {subscription?.status === "active" ? (
+          {subscriptionLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">{language === "es" ? "Cargando..." : "Loading..."}</span>
+            </div>
+          ) : (isPro || isPremium || isFounder || isGrantedAccess) ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg font-bold">Adbroll Pro</span>
-                    <Badge variant="default">
-                      {language === "es" ? "Activo" : "Active"}
-                    </Badge>
+                    <span className="text-lg font-bold">
+                      Adbroll {isPremium ? 'Premium' : 'Pro'}
+                    </span>
                   </div>
-                  {subscription.renew_at && (
+                  {subscription?.renew_at && (
                     <p className="text-sm text-muted-foreground">
                       {language === "es" ? "Renueva el" : "Renews on"}{" "}
                       {formatDate(subscription.renew_at)}
                     </p>
                   )}
-                </div>
-                <Button 
-                  onClick={handleManageSubscription}
-                  disabled={portalLoading}
-                  className="gap-2"
-                >
-                  {portalLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <ExternalLink className="h-4 w-4" />
-                      {language === "es" ? "Abrir portal de Stripe" : "Open Stripe portal"}
-                    </>
+                  {isGrantedAccess && (
+                    <p className="text-sm text-green-600">
+                      {language === "es" ? "Acceso del programa de creadores" : "Creator program access"}
+                    </p>
                   )}
-                </Button>
+                </div>
+                {subscription && !isFounder && !isGrantedAccess && (
+                  <Button 
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    {portalLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <ExternalLink className="h-4 w-4" />
+                        {language === "es" ? "Gestionar" : "Manage"}
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
+
+              {/* Credits display for Premium users */}
+              {isPremium && (
+                <div className="pt-3 border-t border-border/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Coins className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">
+                        {language === "es" ? "Créditos de video" : "Video credits"}
+                      </span>
+                    </div>
+                    <span className="text-lg font-bold text-primary">{availableCredits}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>• {monthlyCredits} {language === "es" ? "mensuales" : "monthly"}</p>
+                    {purchasedCredits > 0 && (
+                      <p>• {purchasedCredits} {language === "es" ? "comprados" : "purchased"}</p>
+                    )}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3 w-full"
+                    onClick={() => setCreditPacksOpen(true)}
+                  >
+                    <Coins className="h-4 w-4 mr-2" />
+                    {language === "es" ? "Comprar más créditos" : "Buy more credits"}
+                  </Button>
+                </div>
+              )}
+
+              {/* Upgrade CTA for Pro users */}
+              {isPro && !isPremium && (
+                <div className="pt-3 border-t border-border/50">
+                  <button
+                    onClick={() => navigate("/pricing")}
+                    className="flex items-center gap-3 p-3 rounded-xl w-full transition-all duration-200 bg-gradient-to-r from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20"
+                  >
+                    <Video className="h-5 w-5 text-violet-500" />
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-medium text-violet-600 dark:text-violet-400">
+                        {language === "es" ? "Actualizar a Premium" : "Upgrade to Premium"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "es" 
+                          ? "Genera videos IA sin grabar"
+                          : "Generate AI videos without filming"}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-violet-500" />
+                  </button>
+                </div>
+              )}
               
               {/* Subscription Info */}
-              <div className="pt-3 border-t border-border/50 space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  {language === "es" 
-                    ? "• Tu suscripción es mensual y se renueva automáticamente"
-                    : "• Your subscription is monthly and renews automatically"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {language === "es"
-                    ? "• Puedes cancelarla en cualquier momento desde el portal"
-                    : "• You can cancel anytime from the portal"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {language === "es"
-                    ? "• Al cancelar, mantienes acceso hasta el final del período pagado"
-                    : "• When you cancel, you keep access until the end of the paid period"}
-                </p>
-              </div>
+              {!isFounder && !isGrantedAccess && (
+                <div className="pt-3 border-t border-border/50 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {language === "es" 
+                      ? "• Tu suscripción es mensual y se renueva automáticamente"
+                      : "• Your subscription is monthly and renews automatically"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {language === "es"
+                      ? "• Puedes cancelarla en cualquier momento desde el portal"
+                      : "• You can cancel anytime from the portal"}
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-4">
@@ -281,10 +393,8 @@ const Settings = () => {
                   ? "No tienes suscripción activa"
                   : "You don't have an active subscription"}
               </p>
-              <Button asChild>
-                <a href="/pricing">
-                  {language === "es" ? "Ver planes" : "View plans"}
-                </a>
+              <Button onClick={() => navigate("/pricing")}>
+                {language === "es" ? "Ver planes" : "View plans"}
               </Button>
             </div>
           )}
@@ -336,6 +446,9 @@ const Settings = () => {
           {language === "es" ? "Cerrar sesión" : "Sign out"}
         </Button>
       </div>
+
+      {/* Credit Packs Modal */}
+      <CreditPacksModal open={creditPacksOpen} onOpenChange={setCreditPacksOpen} />
     </div>
   );
 };
