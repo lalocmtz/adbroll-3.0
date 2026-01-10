@@ -10,7 +10,6 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { MarketProvider } from "@/contexts/MarketContext";
 import { BlurGateProvider } from "@/contexts/BlurGateContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import WhatsAppBubble from "@/components/WhatsAppBubble";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Unlock from "./pages/Unlock";
@@ -331,9 +330,8 @@ const App = () => {
                     element={<Navigate to="/admin/import" replace />}
                   />
                   
-                  <Route path="*" element={<NotFound />} />
+                <Route path="*" element={<NotFound />} />
                 </Routes>
-                <WhatsAppBubble />
                 </BlurGateProvider>
               </BrowserRouter>
           </MarketProvider>
