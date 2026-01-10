@@ -16,6 +16,8 @@ import {
   Sparkles,
   Gift,
   Star,
+  Video,
+  Zap,
 } from "lucide-react";
 
 interface PricingModalProps {
@@ -29,6 +31,7 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
   const [session, setSession] = useState<any>(null);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralValid, setReferralValid] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -54,42 +57,75 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
     checkReferral();
   }, [open]);
 
-  const features = language === "es" 
+  const proFeatures = language === "es" 
     ? [
-        "Acceso completo a TikTok Shop México",
-        "Scripts reales + extractor automático",
+        "Dashboard de videos virales",
+        "Scripts reales + extractor IA",
         "Variantes IA ilimitadas",
         "Hooks generados por IA",
-        "Panel de afiliados (30% recurrente)",
+        "Panel de afiliados (30%)",
       ]
     : [
-        "Full access to TikTok Shop Mexico",
-        "Real scripts + automatic extractor",
+        "Viral videos dashboard",
+        "Real scripts + AI extractor",
         "Unlimited AI variants",
         "AI-generated hooks",
-        "Affiliate panel (30% recurring)",
+        "Affiliate panel (30%)",
       ];
 
-  const handleSelectPlan = () => {
+  const premiumFeatures = language === "es"
+    ? [
+        "Todo lo de Pro incluido",
+        "5 videos IA con lip-sync/mes",
+        "Genera sin salir a cámara",
+        "Voces ElevenLabs premium",
+        "Soporte prioritario",
+      ]
+    : [
+        "Everything in Pro included",
+        "5 AI videos with lip-sync/month",
+        "Generate without filming",
+        "Premium ElevenLabs voices",
+        "Priority support",
+      ];
+
+  const handleSelectPlan = async (plan: "pro" | "premium") => {
+    setLoadingPlan(plan);
     onOpenChange(false);
     const refParam = referralCode ? `&ref=${referralCode}` : "";
 
     if (session) {
-      navigate(`/checkout?plan=creator${refParam}`);
+      // Logged in user - direct to checkout
+      try {
+        const { data, error } = await supabase.functions.invoke("create-checkout", {
+          body: { plan },
+        });
+        if (error) throw error;
+        if (data?.url) {
+          window.location.href = data.url;
+          return;
+        }
+      } catch (err) {
+        console.error("Checkout error:", err);
+      }
+      navigate(`/pricing`);
     } else {
-      navigate(`/register?redirect=/checkout?plan=creator${refParam}${referralCode ? `&ref=${referralCode}` : ""}`);
+      navigate(`/register?redirect=/checkout?plan=${plan}${refParam}`);
     }
+    setLoadingPlan(null);
   };
 
-  const price = 14.99;
-  const discountedPrice = referralValid ? price * 0.5 : price;
+  const proPrice = 14.99;
+  const premiumPrice = 29.99;
+  const discountedProPrice = referralValid ? proPrice * 0.5 : proPrice;
+  const discountedPremiumPrice = referralValid ? premiumPrice * 0.5 : premiumPrice;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">
-            Adbroll Pro
+            {language === "es" ? "Elige tu plan" : "Choose your plan"}
           </DialogTitle>
         </DialogHeader>
 
@@ -98,74 +134,116 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
             <Gift className="h-4 w-4 text-green-600" />
             <p className="text-green-800 dark:text-green-300 font-medium text-sm">
               {language === "es"
-                ? "¡Descuento aplicado! Tu primer mes cuesta la mitad 🎉"
-                : "Discount applied! Your first month costs half 🎉"}
+                ? "¡Descuento aplicado! 50% off en tu primer mes 🎉"
+                : "Discount applied! 50% off your first month 🎉"}
             </p>
           </div>
         )}
 
-        <Card className="relative p-6 border-2 border-primary">
-          <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 text-xs bg-primary text-primary-foreground">
-            <Star className="h-3 w-3 mr-1" />
-            {language === "es" ? "Plan único" : "Single plan"}
-          </Badge>
-
-          <div className="text-center mb-4 pt-2">
-            <div className="inline-flex p-2 rounded-lg mb-2 bg-primary/10 text-primary">
-              <Sparkles className="h-6 w-6" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-3">
-              {language === "es"
-                ? "Todo lo que necesitas para vender más"
-                : "Everything you need to sell more"}
-            </p>
-
-            <div className="flex items-baseline justify-center gap-1">
-              {referralValid ? (
-                <>
-                  <span className="text-lg text-muted-foreground line-through">
-                    ${price}
-                  </span>
-                  <span className="text-3xl font-bold text-primary">
-                    ${discountedPrice.toFixed(2)}
-                  </span>
-                </>
-              ) : (
-                <span className="text-3xl font-bold">${price}</span>
-              )}
-              <span className="text-muted-foreground text-sm">
-                /{language === "es" ? "mes" : "month"}
-              </span>
-            </div>
-
-            <p className="text-xs text-muted-foreground mt-1">
-              ~$300 MXN/{language === "es" ? "mes" : "month"}
-            </p>
-
-            {referralValid && (
-              <p className="text-xs text-green-600 mt-1 font-medium">
-                🎉 50% off {language === "es" ? "primer mes" : "first month"}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Pro Plan */}
+          <Card className="relative p-5 border-2 border-border hover:border-primary/50 transition-colors">
+            <div className="text-center mb-4">
+              <div className="inline-flex p-2 rounded-lg mb-2 bg-primary/10 text-primary">
+                <Zap className="h-5 w-5" />
+              </div>
+              <h3 className="font-bold text-lg">Pro</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {language === "es" ? "Para creadores que graban" : "For creators who film"}
               </p>
-            )}
-          </div>
 
-          <ul className="space-y-2 mb-4 text-sm">
-            {features.map((feature, index) => (
-              <li key={index} className="flex items-start gap-2">
-                <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                <span className="text-foreground">{feature}</span>
-              </li>
-            ))}
-          </ul>
+              <div className="flex items-baseline justify-center gap-1 mt-3">
+                {referralValid ? (
+                  <>
+                    <span className="text-sm text-muted-foreground line-through">
+                      ${proPrice}
+                    </span>
+                    <span className="text-2xl font-bold text-primary">
+                      ${discountedProPrice.toFixed(2)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-2xl font-bold">${proPrice}</span>
+                )}
+                <span className="text-muted-foreground text-sm">
+                  /{language === "es" ? "mes" : "month"}
+                </span>
+              </div>
+            </div>
 
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={handleSelectPlan}
-          >
-            {language === "es" ? "Empieza ahora" : "Start now"}
-          </Button>
-        </Card>
+            <ul className="space-y-2 mb-4 text-sm">
+              {proFeatures.map((feature, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-foreground">{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => handleSelectPlan("pro")}
+              disabled={loadingPlan !== null}
+            >
+              {loadingPlan === "pro" ? "..." : language === "es" ? "Elegir Pro" : "Choose Pro"}
+            </Button>
+          </Card>
+
+          {/* Premium Plan */}
+          <Card className="relative p-5 border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10">
+            <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 text-xs bg-primary text-primary-foreground">
+              <Star className="h-3 w-3 mr-1" />
+              {language === "es" ? "Popular" : "Popular"}
+            </Badge>
+
+            <div className="text-center mb-4 pt-2">
+              <div className="inline-flex p-2 rounded-lg mb-2 bg-primary text-primary-foreground">
+                <Video className="h-5 w-5" />
+              </div>
+              <h3 className="font-bold text-lg">Premium</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {language === "es" ? "Para creadores que no graban" : "For creators who don't film"}
+              </p>
+
+              <div className="flex items-baseline justify-center gap-1 mt-3">
+                {referralValid ? (
+                  <>
+                    <span className="text-sm text-muted-foreground line-through">
+                      ${premiumPrice}
+                    </span>
+                    <span className="text-2xl font-bold text-primary">
+                      ${discountedPremiumPrice.toFixed(2)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-2xl font-bold">${premiumPrice}</span>
+                )}
+                <span className="text-muted-foreground text-sm">
+                  /{language === "es" ? "mes" : "month"}
+                </span>
+              </div>
+            </div>
+
+            <ul className="space-y-2 mb-4 text-sm">
+              {premiumFeatures.map((feature, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-foreground">{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <Button
+              className="w-full"
+              onClick={() => handleSelectPlan("premium")}
+              disabled={loadingPlan !== null}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              {loadingPlan === "premium" ? "..." : language === "es" ? "Elegir Premium" : "Choose Premium"}
+            </Button>
+          </Card>
+        </div>
       </DialogContent>
     </Dialog>
   );

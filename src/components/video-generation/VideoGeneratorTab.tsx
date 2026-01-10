@@ -36,10 +36,12 @@ import {
 } from "@/components/ui/select";
 import { useVideoCredits } from '@/hooks/useVideoCredits';
 import { useLipsyncGeneration } from '@/hooks/useLipsyncGeneration';
+import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
+import { CreditPacksModal } from '@/components/CreditPacksModal';
 
 interface VideoGeneratorTabProps {
   videoId?: string;
@@ -90,6 +92,8 @@ export const VideoGeneratorTab = ({
   const [generationStep, setGenerationStep] = useState<'idle' | 'audio' | 'image' | 'video'>('idle');
 
   const { availableCredits, loading: creditsLoading, getCreditsForDuration } = useVideoCredits();
+  const { isPremium, canGenerateVideos, planTier } = useSubscription();
+  const [creditPacksOpen, setCreditPacksOpen] = useState(false);
   const { 
     status, 
     generatedVideo, 
@@ -365,7 +369,7 @@ export const VideoGeneratorTab = ({
 
   const { hasPaid, openPaywall } = useBlurGateContext();
 
-  // Locked state for non-paid users
+  // Not logged in - show login CTA
   if (!hasPaid) {
     return (
       <div className="p-6 text-center">
@@ -381,6 +385,53 @@ export const VideoGeneratorTab = ({
           Desbloquear
         </Button>
       </div>
+    );
+  }
+
+  // Pro user - upsell to Premium
+  if (planTier === 'pro' && !canGenerateVideos) {
+    return (
+      <div className="p-6 text-center">
+        <div className="h-14 w-14 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
+          <Video className="h-6 w-6 text-violet-600" />
+        </div>
+        <h3 className="font-semibold text-lg mb-2">Genera Videos sin Grabar</h3>
+        <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+          Con Premium, genera videos UGC con lip-sync automático. 5 videos incluidos al mes.
+        </p>
+        <Button onClick={() => navigate('/pricing')} className="rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700">
+          <Sparkles className="h-4 w-4 mr-2" />
+          Actualizar a Premium
+        </Button>
+        <p className="text-xs text-muted-foreground mt-3">
+          Solo $29.99/mes • Incluye 5 videos IA
+        </p>
+      </div>
+    );
+  }
+
+  // Premium user with no credits - show credit packs
+  if (isPremium && !hasEnoughCredits && !creditsLoading) {
+    return (
+      <>
+        <div className="p-6 text-center">
+          <div className="h-14 w-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+            <Coins className="h-6 w-6 text-amber-600" />
+          </div>
+          <h3 className="font-semibold text-lg mb-2">Sin créditos disponibles</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+            Necesitas {creditsRequired} crédito{creditsRequired > 1 ? 's' : ''} para generar este video.
+          </p>
+          <Button onClick={() => setCreditPacksOpen(true)} className="rounded-xl">
+            <Coins className="h-4 w-4 mr-2" />
+            Comprar créditos
+          </Button>
+          <p className="text-xs text-muted-foreground mt-3">
+            Tus créditos mensuales se renuevan cada mes
+          </p>
+        </div>
+        <CreditPacksModal open={creditPacksOpen} onOpenChange={setCreditPacksOpen} />
+      </>
     );
   }
 

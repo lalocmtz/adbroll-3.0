@@ -15,9 +15,10 @@ interface EmailCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   referralCode?: string | null;
+  plan?: 'pro' | 'premium';
 }
 
-export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialReferralCode }: EmailCaptureModalProps) => {
+export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialReferralCode, plan = 'pro' }: EmailCaptureModalProps) => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -139,7 +140,8 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout-guest", {
         body: { 
           email: email.trim(),
-          referral_code: codeValid ? referralCode.trim().toUpperCase() : null
+          referral_code: codeValid ? referralCode.trim().toUpperCase() : null,
+          plan: plan,
         },
       });
 
@@ -172,8 +174,12 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
     { icon: Zap, text: "Actualizaciones diarias" },
   ];
 
-  const displayPrice = codeValid ? "$7.50" : "$14.99";
-  const originalPrice = codeValid ? "$14.99" : null;
+  const proPrice = 14.99;
+  const premiumPrice = 29.99;
+  const basePrice = plan === 'premium' ? premiumPrice : proPrice;
+  const displayPrice = codeValid ? `$${(basePrice * 0.5).toFixed(2)}` : `$${basePrice.toFixed(2)}`;
+  const originalPrice = codeValid ? `$${basePrice.toFixed(2)}` : null;
+  const planLabel = plan === 'premium' ? 'AdBroll Premium' : 'AdBroll Pro';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -198,7 +204,7 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
                 </div>
               </motion.div>
               <DialogTitle className="text-center text-xl font-bold text-foreground leading-tight">
-                🔓 Desbloquea TODO el poder de AdBroll
+                🔓 Desbloquea {planLabel}
               </DialogTitle>
               <p className="text-center text-sm text-muted-foreground">
                 Únete a +1,000 creadores que ya ganan con TikTok Shop
@@ -326,7 +332,7 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Activar AdBroll Pro
+                Activar {planLabel}
               </>
             )}
           </Button>
