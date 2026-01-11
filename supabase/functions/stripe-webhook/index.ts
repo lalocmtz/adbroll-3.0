@@ -35,61 +35,127 @@ async function sendEmail(to: string, template: string, templateData: Record<stri
 }
 
 serve(async (req) => {
+  console.log("=== Stripe Webhook Request Received ===");
+  console.log("Method:", req.method);
+  console.log("URL:", req.url);
+  
   const signature = req.headers.get("stripe-signature");
+  console.log("Signature present:", !!signature);
+  console.log("Webhook secret configured:", !!Deno.env.get("STRIPE_WEBHOOK_SECRET"));
+  
   if (!signature) {
-    return new Response("No signature", { status: 400 });
+    console.error("No signature header found");
+    return new Response(JSON.stringify({ error: "No signature" }), { 
+      status: 400,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
+  let body: string;
+  try {
+    body = await req.text();
+    console.log("Body length:", body.length);
+  } catch (bodyError) {
+    console.error("Error reading request body:", bodyError);
+    return new Response(JSON.stringify({ error: "Failed to read body" }), { 
+      status: 400,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 
   try {
-    const body = await req.text();
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "";
     
+    if (!webhookSecret) {
+      console.error("STRIPE_WEBHOOK_SECRET is not configured");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), { 
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+    
+    console.log("Attempting to verify webhook signature...");
     const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    console.log(`Webhook received: ${event.type}`);
+    console.log(`✓ Webhook verified: ${event.type}`);
+    console.log("Event ID:", event.id);
 
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutComplete(session);
-        break;
+    try {
+      switch (event.type) {
+        case "checkout.session.completed": {
+          console.log("Processing checkout.session.completed...");
+          const session = event.data.object as Stripe.Checkout.Session;
+          await handleCheckoutComplete(session);
+          console.log("✓ checkout.session.completed processed");
+          break;
+        }
+        case "invoice.paid": {
+          console.log("Processing invoice.paid...");
+          const invoice = event.data.object as Stripe.Invoice;
+          await handleInvoicePaid(invoice);
+          console.log("✓ invoice.paid processed");
+          break;
+        }
+        case "invoice.payment_failed": {
+          console.log("Processing invoice.payment_failed...");
+          const invoice = event.data.object as Stripe.Invoice;
+          await handlePaymentFailed(invoice);
+          console.log("✓ invoice.payment_failed processed");
+          break;
+        }
+        case "customer.subscription.deleted": {
+          console.log("Processing customer.subscription.deleted...");
+          const subscription = event.data.object as Stripe.Subscription;
+          await handleSubscriptionDeleted(subscription);
+          console.log("✓ customer.subscription.deleted processed");
+          break;
+        }
+        case "customer.subscription.updated": {
+          console.log("Processing customer.subscription.updated...");
+          const subscription = event.data.object as Stripe.Subscription;
+          await handleSubscriptionUpdated(subscription);
+          console.log("✓ customer.subscription.updated processed");
+          break;
+        }
+        case "account.updated": {
+          console.log("Processing account.updated...");
+          const account = event.data.object as Stripe.Account;
+          await handleAccountUpdated(account);
+          console.log("✓ account.updated processed");
+          break;
+        }
+        default:
+          console.log(`Unhandled event type: ${event.type}`);
       }
-      case "invoice.paid": {
-        const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaid(invoice);
-        break;
-      }
-      case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice;
-        await handlePaymentFailed(invoice);
-        break;
-      }
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionDeleted(subscription);
-        break;
-      }
-      case "customer.subscription.updated": {
-        const subscription = event.data.object as Stripe.Subscription;
-        await handleSubscriptionUpdated(subscription);
-        break;
-      }
-      case "account.updated": {
-        const account = event.data.object as Stripe.Account;
-        await handleAccountUpdated(account);
-        break;
-      }
+    } catch (handlerError) {
+      console.error("=== Handler Error ===");
+      console.error("Event type:", event.type);
+      console.error("Error:", handlerError);
+      console.error("Error message:", handlerError instanceof Error ? handlerError.message : "Unknown");
+      console.error("Error stack:", handlerError instanceof Error ? handlerError.stack : "No stack");
+      throw handlerError;
     }
 
+    console.log("=== Webhook processed successfully ===");
     return new Response(JSON.stringify({ received: true }), {
       headers: { "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Webhook error:", error);
+    const errorStack = error instanceof Error ? error.stack : "No stack trace";
+    
+    console.error("=== Webhook Error ===");
+    console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error);
+    console.error("Error message:", errorMessage);
+    console.error("Error stack:", errorStack);
+    console.error("Signature length:", signature?.length);
+    
     return new Response(
       JSON.stringify({ error: errorMessage }),
-      { status: 400 }
+      { 
+        status: 400,
+        headers: { "Content-Type": "application/json" }
+      }
     );
   }
 });
