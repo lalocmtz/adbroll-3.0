@@ -9,18 +9,12 @@ interface MarketSwitcherProps {
 
 export const MarketSwitcher = ({ variant = "tabs", className }: MarketSwitcherProps) => {
   const { market, setMarket } = useMarket();
-  const { setLanguage, setCurrency } = useLanguage();
+  const { syncWithMarket } = useLanguage();
 
   const handleMarketChange = (newMarket: Market) => {
     setMarket(newMarket);
-    // Auto-set language and currency based on market
-    if (newMarket === "mx") {
-      setLanguage("es");
-      setCurrency("MXN");
-    } else {
-      setLanguage("en");
-      setCurrency("USD");
-    }
+    // Auto-sync language and currency based on market
+    syncWithMarket(newMarket);
   };
 
   if (variant === "compact") {
