@@ -364,6 +364,24 @@ $$);
 
 ---
 
+## ✅ GEO-DETECCIÓN AUTOMÁTICA POR IP (Enero 2025)
+
+### Auto-configuración por Ubicación
+- [x] **geoDetection.ts** - Utilidad para detectar país por IP (ipapi.co)
+- [x] **MarketContext actualizado** - Geo-detección automática en primera visita
+- [x] **LanguageContext actualizado** - Sincronización automática con market detectado
+- [x] **MarketSwitcher actualizado** - Usa syncWithMarket para cambios manuales
+- [x] **Fallback por idioma** - Si geo falla, usa navigator.language
+- [x] **Cache en localStorage** - Solo detecta una vez, respeta preferencia manual
+
+### Flujo
+1. Usuario entra al sitio por primera vez
+2. Sistema detecta país por IP (México → mx, USA → us)
+3. Automáticamente: mercado, idioma y moneda se configuran
+4. Si usuario cambia manualmente, se respeta su preferencia
+
+---
+
 ## ✅ SISTEMA DE PRECIOS PRO/PREMIUM + CRÉDITOS (Enero 2025)
 
 ### Base de Datos

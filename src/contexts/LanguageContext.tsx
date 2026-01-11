@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { useMarket } from "@/contexts/MarketContext";
 
 type Language = "es" | "en";
 type Currency = "MXN" | "USD";
@@ -10,6 +11,7 @@ interface LanguageContextType {
   setCurrency: (curr: Currency) => void;
   t: (key: string) => string;
   formatMoney: (amount: number | null | undefined) => string;
+  syncWithMarket: (market: "mx" | "us") => void;
 }
 
 // Exchange rate MXN to USD (configurable)
@@ -17,6 +19,7 @@ const MXN_TO_USD_RATE = 0.058;
 
 const LANGUAGE_STORAGE_KEY = "adbroll_language";
 const CURRENCY_STORAGE_KEY = "adbroll_currency";
+const LANG_SYNCED_KEY = "adbroll_lang_synced";
 
 const translations = {
   es: {
@@ -298,6 +301,8 @@ const translations = {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
+  const { market, geoDetected } = useMarket();
+  
   const [language, setLanguageState] = useState<Language>(() => {
     // Check localStorage first
     const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -322,6 +327,28 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     return browserLang.startsWith("es") ? "MXN" : "USD";
   });
 
+  // Sync language/currency with market when geo-detected
+  useEffect(() => {
+    const alreadySynced = localStorage.getItem(LANG_SYNCED_KEY);
+    
+    // Only auto-sync on first geo-detection
+    if (geoDetected && !alreadySynced) {
+      if (market === "mx") {
+        setLanguageState("es");
+        setCurrencyState("MXN");
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, "es");
+        localStorage.setItem(CURRENCY_STORAGE_KEY, "MXN");
+      } else if (market === "us") {
+        setLanguageState("en");
+        setCurrencyState("USD");
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, "en");
+        localStorage.setItem(CURRENCY_STORAGE_KEY, "USD");
+      }
+      localStorage.setItem(LANG_SYNCED_KEY, "true");
+      console.log(`🌐 Language synced with market: ${market === "mx" ? "es/MXN" : "en/USD"}`);
+    }
+  }, [market, geoDetected]);
+
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
@@ -331,6 +358,17 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     setCurrencyState(curr);
     localStorage.setItem(CURRENCY_STORAGE_KEY, curr);
   };
+
+  // Manual sync function for MarketSwitcher
+  const syncWithMarket = useCallback((newMarket: "mx" | "us") => {
+    if (newMarket === "mx") {
+      setLanguage("es");
+      setCurrency("MXN");
+    } else {
+      setLanguage("en");
+      setCurrency("USD");
+    }
+  }, []);
 
   const t = (key: string): string => {
     return translations[language][key as keyof typeof translations.es] || key;
@@ -364,7 +402,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, currency, setCurrency, t, formatMoney }}>
+    <LanguageContext.Provider value={{ language, setLanguage, currency, setCurrency, t, formatMoney, syncWithMarket }}>
       {children}
     </LanguageContext.Provider>
   );
