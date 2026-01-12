@@ -10,6 +10,7 @@ import { useBlurGate } from "@/hooks/useBlurGate";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackInitiateCheckout } from "@/lib/analytics";
 
 interface PaywallModalProps {
   open: boolean;
@@ -38,6 +39,11 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const handleSelectPlan = async (plan: "pro" | "premium") => {
+    // Track InitiateCheckout event for Meta Pixel
+    const value = plan === "premium" ? 29.99 : 14.99;
+    const planName = plan === "premium" ? "Adbroll Premium" : "Adbroll Pro";
+    trackInitiateCheckout(value, "USD", planName);
+    
     if (!isLoggedIn) {
       navigate(`/register?plan=${plan}`);
       onClose();

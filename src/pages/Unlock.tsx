@@ -14,6 +14,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SimpleEmailCaptureModal } from "@/components/SimpleEmailCaptureModal";
+import { trackInitiateCheckout } from "@/lib/analytics";
 
 const testimonials = [{
   text: "Adbroll me hizo pasar de adivinar qué productos grabar a saber exactamente qué vende. Ahora mis videos generan ventas todos los días.",
@@ -124,6 +125,11 @@ const Unlock = () => {
 
   const processCheckout = async (plan: "pro" | "premium", email: string) => {
     setLoadingPlan(plan);
+    
+    // Track InitiateCheckout event for Meta Pixel
+    const value = plan === "premium" ? 29.99 : 14.99;
+    const planName = plan === "premium" ? "Adbroll Premium" : "Adbroll Pro";
+    trackInitiateCheckout(value, "USD", planName);
 
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout-guest", {

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
+import { trackLead } from "@/lib/analytics";
 import logoDark from "@/assets/logo-dark.png";
 
 const emailSchema = z.string().email("Ingresa un email válido");
@@ -62,6 +63,9 @@ export const SimpleEmailCaptureModal = ({
 
       // Save email to localStorage for checkout pre-fill
       localStorage.setItem("adbroll_prospect_email", email.trim().toLowerCase());
+      
+      // Track Lead event for Meta Pixel
+      trackLead(feature ? `blur_gate_${feature}` : "blur_gate", email.trim().toLowerCase());
 
       // If there's a success callback, close modal first then call it
       if (onSuccess) {

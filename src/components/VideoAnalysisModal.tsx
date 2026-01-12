@@ -8,6 +8,7 @@ import { Copy, X, Check, FileText, BarChart3, Wand2, Loader2, AlertCircle, Refre
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useNavigate } from "react-router-dom";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
+import { trackViewContent, trackScriptAnalysis } from "@/lib/analytics";
 
 interface VideoAnalysisModalProps {
   isOpen: boolean;
@@ -74,6 +75,10 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
     if (isOpen && !hasStartedProcess.current) {
       hasStartedProcess.current = true;
       
+      // Track ViewContent event for Meta Pixel
+      trackViewContent("video_analysis", video.id);
+      trackScriptAnalysis(video.id);
+      
       // Load TikTok embed
       const script = document.createElement('script');
       script.src = 'https://www.tiktok.com/embed.js';
@@ -83,7 +88,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
       // Start automatic transcription
       transcribeVideo();
     }
-  }, [isOpen]);
+  }, [isOpen, video.id]);
 
   const saveScriptToFavorites = async (content: string, variantType: string) => {
     try {

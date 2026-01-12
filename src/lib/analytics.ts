@@ -1,5 +1,5 @@
 // Analytics utility for Facebook Pixel and Google Analytics
-// With server-side Meta Conversions API support
+// With server-side Meta Conversions API support and event deduplication
 
 declare global {
   interface Window {
@@ -9,9 +9,15 @@ declare global {
   }
 }
 
+// Generate unique event ID for deduplication between browser and server
+export const generateEventId = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
 // Server-side Meta Conversions API
 interface ConversionEvent {
   event_name: string;
+  event_id?: string; // For deduplication
   event_time?: number;
   event_source_url?: string;
   user_data?: {
@@ -125,10 +131,11 @@ const trackInternalPageView = async (pageName: string) => {
 };
 
 // Facebook Pixel Events (browser-side)
-export const trackFBEvent = (eventName: string, params?: Record<string, any>) => {
+export const trackFBEvent = (eventName: string, params?: Record<string, any>, eventId?: string) => {
   if (typeof window !== "undefined" && window.fbq) {
-    window.fbq("track", eventName, params);
-    console.log(`[FB Pixel] ${eventName}`, params);
+    const eventParams = eventId ? { ...params, eventID: eventId } : params;
+    window.fbq("track", eventName, eventParams);
+    console.log(`[FB Pixel] ${eventName}`, eventParams);
   }
 };
 
@@ -149,15 +156,18 @@ export const trackGAEvent = (eventName: string, params?: Record<string, any>) =>
 
 // Combined tracking functions for common events (browser + server + internal)
 export const trackPageView = (pageName: string) => {
-  trackFBEvent("PageView");
+  const eventId = generateEventId();
+  
+  trackFBEvent("PageView", { content_name: pageName }, eventId);
   trackGAEvent("page_view", { page_title: pageName });
   
   // Internal tracking for admin dashboard
   trackInternalPageView(pageName);
   
-  // Server-side Meta
+  // Server-side Meta with same event_id for deduplication
   sendServerEvent([{
     event_name: "PageView",
+    event_id: eventId,
     custom_data: {
       content_name: pageName,
     },
@@ -165,21 +175,24 @@ export const trackPageView = (pageName: string) => {
 };
 
 export const trackViewContent = (contentName: string, contentId?: string, value?: number) => {
+  const eventId = generateEventId();
+  
   trackFBEvent("ViewContent", {
     content_name: contentName,
     content_ids: contentId ? [contentId] : undefined,
     value: value,
     currency: "USD",
-  });
+  }, eventId);
   trackGAEvent("view_item", {
     item_name: contentName,
     item_id: contentId,
     value: value,
   });
   
-  // Server-side
+  // Server-side with deduplication
   sendServerEvent([{
     event_name: "ViewContent",
+    event_id: eventId,
     custom_data: {
       content_name: contentName,
       content_ids: contentId ? [contentId] : undefined,
@@ -189,59 +202,88 @@ export const trackViewContent = (contentName: string, contentId?: string, value?
   }]);
 };
 
-export const trackInitiateCheckout = (value: number, currency: string = "USD") => {
+export const trackInitiateCheckout = (value: number, currency: string = "USD", planName?: string) => {
+  const eventId = generateEventId();
+  
   trackFBEvent("InitiateCheckout", {
     value: value,
     currency: currency,
-  });
+    content_name: planName,
+  }, eventId);
   trackGAEvent("begin_checkout", {
     value: value,
     currency: currency,
+    item_name: planName,
   });
   
-  // Server-side
+  // Store checkout info for Purchase tracking
+  if (typeof window !== "undefined") {
+    localStorage.setItem("adbroll_checkout_value", value.toString());
+    localStorage.setItem("adbroll_checkout_plan", planName || "");
+    localStorage.setItem("adbroll_checkout_event_id", eventId);
+  }
+  
+  // Server-side with deduplication
   sendServerEvent([{
     event_name: "InitiateCheckout",
+    event_id: eventId,
     custom_data: {
       value: value,
       currency: currency,
+      content_name: planName,
     },
   }]);
 };
 
-export const trackPurchase = (value: number, currency: string = "USD", transactionId?: string, email?: string) => {
+export const trackPurchase = (value: number, currency: string = "USD", transactionId?: string, email?: string, planName?: string) => {
+  const eventId = generateEventId();
+  
   trackFBEvent("Purchase", {
     value: value,
     currency: currency,
-  });
+    content_name: planName,
+  }, eventId);
   trackGAEvent("purchase", {
     transaction_id: transactionId,
     value: value,
     currency: currency,
+    item_name: planName,
   });
   
-  // Server-side (with optional email for better matching)
+  // Server-side with deduplication (with optional email for better matching)
   sendServerEvent([{
     event_name: "Purchase",
+    event_id: eventId,
     user_data: email ? { email } : undefined,
     custom_data: {
       value: value,
       currency: currency,
+      content_name: planName,
     },
   }]);
+  
+  // Clear checkout data
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("adbroll_checkout_value");
+    localStorage.removeItem("adbroll_checkout_plan");
+    localStorage.removeItem("adbroll_checkout_event_id");
+  }
 };
 
 export const trackLead = (source: string, email?: string) => {
+  const eventId = generateEventId();
+  
   trackFBEvent("Lead", {
     content_name: source,
-  });
+  }, eventId);
   trackGAEvent("generate_lead", {
     source: source,
   });
   
-  // Server-side
+  // Server-side with deduplication
   sendServerEvent([{
     event_name: "Lead",
+    event_id: eventId,
     user_data: email ? { email } : undefined,
     custom_data: {
       content_name: source,
@@ -250,16 +292,19 @@ export const trackLead = (source: string, email?: string) => {
 };
 
 export const trackSignUp = (method: string = "email", email?: string) => {
+  const eventId = generateEventId();
+  
   trackFBEvent("CompleteRegistration", {
     content_name: method,
-  });
+  }, eventId);
   trackGAEvent("sign_up", {
     method: method,
   });
   
-  // Server-side
+  // Server-side with deduplication
   sendServerEvent([{
     event_name: "CompleteRegistration",
+    event_id: eventId,
     user_data: email ? { email } : undefined,
     custom_data: {
       content_name: method,
@@ -335,20 +380,24 @@ export const trackCampaignApply = (campaignId: string, proposedPrice: number) =>
 
 // Subscribe event
 export const trackSubscribe = (planName: string, value: number, currency: string = "USD", email?: string) => {
+  const eventId = generateEventId();
+  
   trackFBEvent("Subscribe", {
     value: value,
     currency: currency,
     predicted_ltv: value * 12,
-  });
+    content_name: planName,
+  }, eventId);
   trackGAEvent("subscribe", {
     plan: planName,
     value: value,
     currency: currency,
   });
   
-  // Server-side
+  // Server-side with deduplication
   sendServerEvent([{
     event_name: "Subscribe",
+    event_id: eventId,
     user_data: email ? { email } : undefined,
     custom_data: {
       content_name: planName,

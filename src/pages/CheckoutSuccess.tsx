@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { trackPurchase } from "@/lib/analytics";
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -41,8 +42,23 @@ const CheckoutSuccess = () => {
   const sessionId = searchParams.get("session_id");
 
   useEffect(() => {
+    // Track Purchase event if session_id exists (successful checkout)
+    if (sessionId) {
+      const checkoutValue = localStorage.getItem("adbroll_checkout_value");
+      const checkoutPlan = localStorage.getItem("adbroll_checkout_plan");
+      const checkoutEmail = localStorage.getItem("adbroll_checkout_email") || localStorage.getItem("adbroll_prospect_email");
+      
+      if (checkoutValue) {
+        const value = parseFloat(checkoutValue);
+        trackPurchase(value, "USD", sessionId, checkoutEmail || undefined, checkoutPlan || undefined);
+      } else {
+        // Default to pro price if no stored value
+        trackPurchase(14.99, "USD", sessionId, checkoutEmail || undefined, checkoutPlan || "Adbroll Pro");
+      }
+    }
+    
     checkAuthStatus();
-  }, []);
+  }, [sessionId]);
 
   const checkAuthStatus = async () => {
     // Check if user is already logged in

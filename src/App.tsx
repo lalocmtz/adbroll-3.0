@@ -3,12 +3,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { MarketProvider } from "@/contexts/MarketContext";
 import { BlurGateProvider } from "@/contexts/BlurGateContext";
+import { trackPageView } from "@/lib/analytics";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -47,6 +48,18 @@ import Redeem from "./pages/Redeem";
 import MyGeneratedVideos from "./pages/MyGeneratedVideos";
 
 const queryClient = new QueryClient();
+
+// Page tracking component that uses useLocation inside BrowserRouter
+const PageTracker = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
+  
+  return null;
+};
+
 
 // APP-FIRST: All app routes are viewable, but gated by blur/paywall
 const AppRoute = ({ 
@@ -114,6 +127,7 @@ const App = () => {
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <PageTracker />
                 <BlurGateProvider>
                 <Routes>
                   {/* APP-FIRST: Redirect home to app */}
