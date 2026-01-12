@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Gift, Loader2, X } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
+import { trackSignUp } from "@/lib/analytics";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -159,6 +160,9 @@ const Register = () => {
       } catch (emailError) {
         console.error("Error sending welcome email:", emailError);
       }
+
+      // Track CompleteRegistration event for Meta Pixel
+      trackSignUp("email", result.data.email);
 
       toast({
         title: "¡Cuenta creada!",
