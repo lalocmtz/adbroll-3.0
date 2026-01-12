@@ -469,10 +469,13 @@ $$);
 - [ ] Proceso de verificación manual (badge verified)
 - [ ] Requisitos para verificación
 
-### Analytics Dashboard (Admin)
-- [ ] Integración con PostHog o Mixpanel para sesiones
-- [ ] Heatmaps y grabaciones de sesión
-- [ ] Dashboard interno con métricas clave
+### Analytics Dashboard (Admin) - ✅ COMPLETADO Enero 2025
+- [x] **FinancialDashboard.tsx** - MRR, desglose suscripciones Pro/Premium, gráfica 30 días
+- [x] **TrafficAnalytics.tsx** - Visitantes únicos, page views, páginas top, gráfica diaria
+- [x] **CreditAnalytics.tsx** - Créditos vendidos, usados, disponibles, desglose por pack
+- [x] **ConversionFunnel.tsx mejorado** - Porcentajes de caída, métricas clave, insights actionables
+- [x] **AnalyticsDashboard.tsx simplificado** - Removidos brandsCount y leads pendientes, MRR real
+- [x] **Admin.tsx actualizado** - Layout reorganizado con secciones financieras, tráfico, créditos
 
 ---
 

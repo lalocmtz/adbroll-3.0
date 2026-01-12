@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, CreditCard, Mail, TrendingUp, UserCheck, XCircle, Clock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Users, CreditCard, Mail, TrendingUp, XCircle, Calendar } from "lucide-react";
 
 interface AnalyticsData {
   totalUsers: number;
   activeSubscriptions: number;
   canceledSubscriptions: number;
   emailsCaptured: number;
-  emailsConverted: number;
+  emailsNotConverted: number;
   conversionRate: number;
   recentSignups: number;
-  brandsCount: number;
+  mrr: number;
 }
 
 export const AnalyticsDashboard = () => {
@@ -20,10 +20,10 @@ export const AnalyticsDashboard = () => {
     activeSubscriptions: 0,
     canceledSubscriptions: 0,
     emailsCaptured: 0,
-    emailsConverted: 0,
+    emailsNotConverted: 0,
     conversionRate: 0,
     recentSignups: 0,
-    brandsCount: 0,
+    mrr: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -33,11 +33,10 @@ export const AnalyticsDashboard = () => {
 
   const loadAnalytics = async () => {
     try {
-      const [usersRes, subsRes, emailsRes, brandsRes] = await Promise.all([
+      const [usersRes, subsRes, emailsRes] = await Promise.all([
         supabase.from("profiles").select("id, created_at"),
-        supabase.from("subscriptions").select("id, status, created_at"),
+        supabase.from("subscriptions").select("id, status, price_usd, created_at"),
         supabase.from("email_captures").select("id, converted_at, created_at"),
-        supabase.from("brand_profiles").select("id", { count: "exact", head: true }),
       ]);
 
       const users = usersRes.data || [];
@@ -50,12 +49,16 @@ export const AnalyticsDashboard = () => {
       const recentSignups = users.filter(u => new Date(u.created_at) > weekAgo).length;
 
       // Subscription counts
-      const activeSubscriptions = subs.filter(s => s.status === "active").length;
+      const activeSubs = subs.filter(s => s.status === "active");
+      const activeSubscriptions = activeSubs.length;
       const canceledSubscriptions = subs.filter(s => s.status === "canceled").length;
+      
+      // Calculate MRR
+      const mrr = activeSubs.reduce((sum, s) => sum + (s.price_usd || 14.99), 0);
 
       // Email metrics
       const emailsCaptured = emails.length;
-      const emailsConverted = emails.filter(e => e.converted_at).length;
+      const emailsNotConverted = emails.filter(e => !e.converted_at).length;
       const conversionRate = users.length > 0 
         ? Math.round((activeSubscriptions / users.length) * 100) 
         : 0;
@@ -65,10 +68,10 @@ export const AnalyticsDashboard = () => {
         activeSubscriptions,
         canceledSubscriptions,
         emailsCaptured,
-        emailsConverted,
+        emailsNotConverted,
         conversionRate,
         recentSignups,
-        brandsCount: brandsRes.count || 0,
+        mrr,
       });
     } catch (error) {
       console.error("Error loading analytics:", error);
@@ -114,7 +117,7 @@ export const AnalyticsDashboard = () => {
               <div>
                 <p className="text-xs text-muted-foreground">💰 Suscrip. Activas</p>
                 <p className="text-2xl font-bold text-green-600">{data.activeSubscriptions}</p>
-                <p className="text-xs text-green-600">${(data.activeSubscriptions * 14.99).toFixed(2)} MRR</p>
+                <p className="text-xs text-green-600">${data.mrr.toFixed(2)} MRR</p>
               </div>
               <CreditCard className="h-6 w-6 text-green-500" />
             </div>
@@ -125,9 +128,9 @@ export const AnalyticsDashboard = () => {
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">📧 Emails Capturados</p>
+                <p className="text-xs text-muted-foreground">📧 Emails</p>
                 <p className="text-2xl font-bold text-orange-600">{data.emailsCaptured}</p>
-                <p className="text-xs text-orange-600">{data.emailsConverted} convertidos</p>
+                <p className="text-xs text-orange-600">{data.emailsNotConverted} sin convertir</p>
               </div>
               <Mail className="h-6 w-6 text-orange-500" />
             </div>
@@ -149,13 +152,13 @@ export const AnalyticsDashboard = () => {
       </div>
 
       {/* Secondary Metrics */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <Card>
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-3">
               <XCircle className="h-5 w-5 text-red-500" />
               <div>
-                <p className="text-xs text-muted-foreground">Canceladas</p>
+                <p className="text-xs text-muted-foreground">Suscripciones canceladas</p>
                 <p className="text-lg font-semibold">{data.canceledSubscriptions}</p>
               </div>
             </div>
@@ -165,22 +168,10 @@ export const AnalyticsDashboard = () => {
         <Card>
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-3">
-              <UserCheck className="h-5 w-5 text-indigo-500" />
+              <Calendar className="h-5 w-5 text-amber-500" />
               <div>
-                <p className="text-xs text-muted-foreground">Marcas</p>
-                <p className="text-lg font-semibold">{data.brandsCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-amber-500" />
-              <div>
-                <p className="text-xs text-muted-foreground">Leads pendientes</p>
-                <p className="text-lg font-semibold">{data.emailsCaptured - data.emailsConverted}</p>
+                <p className="text-xs text-muted-foreground">Registros última semana</p>
+                <p className="text-lg font-semibold">{data.recentSignups}</p>
               </div>
             </div>
           </CardContent>
