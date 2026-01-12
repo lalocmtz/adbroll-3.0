@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAccountType } from "@/hooks/useAccountType";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useVideoCredits } from "@/hooks/useVideoCredits";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings as SettingsIcon, User, Globe, LogOut, CreditCard, Loader2, ExternalLink, Calendar, Building2, ArrowRight, Crown, Zap, Video, Sparkles, Coins } from "lucide-react";
+import { Settings as SettingsIcon, User, Globe, LogOut, CreditCard, Loader2, ExternalLink, Calendar, Crown, Zap, Video, Sparkles, Coins, Check } from "lucide-react";
 import { CreditPacksModal } from "@/components/CreditPacksModal";
 
 interface SubscriptionData {
@@ -30,7 +29,6 @@ interface SubscriptionData {
 
 const Settings = () => {
   const { language, setLanguage, currency, setCurrency } = useLanguage();
-  const { isBrand, brandProfile, isLoading: accountLoading } = useAccountType();
   const { planTier, isPro, isPremium, isFounder, isGrantedAccess, loading: subscriptionLoading } = useSubscription();
   const { availableCredits, monthlyCredits, purchasedCredits } = useVideoCredits();
   const { toast } = useToast();
@@ -41,6 +39,7 @@ const Settings = () => {
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [creditPacksOpen, setCreditPacksOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -88,6 +87,28 @@ const Settings = () => {
       });
     } finally {
       setPortalLoading(false);
+    }
+  };
+
+  const handleSelectPlan = async (plan: "pro" | "premium") => {
+    setCheckoutLoading(plan);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { plan }
+      });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast({
+        title: "Error",
+        description: language === "es" 
+          ? "No se pudo iniciar el checkout" 
+          : "Could not start checkout",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckoutLoading(null);
     }
   };
 
@@ -186,79 +207,6 @@ const Settings = () => {
           </div>
         </Card>
 
-        {/* Account Type Section */}
-        <Card className="p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <Building2 className="h-5 w-5 text-muted-foreground" />
-            <h2 className="font-semibold">
-              {language === "es" ? "Tipo de Cuenta" : "Account Type"}
-            </h2>
-          </div>
-          
-          {accountLoading ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">{language === "es" ? "Cargando..." : "Loading..."}</span>
-            </div>
-          ) : isBrand ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-violet-500/10 text-violet-600 border-violet-500/20">
-                    {language === "es" ? "Marca" : "Brand"}
-                  </Badge>
-                  {brandProfile?.verified && (
-                    <Badge variant="outline" className="text-green-600 border-green-500/30">
-                      {language === "es" ? "Verificada" : "Verified"}
-                    </Badge>
-                  )}
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => navigate("/brand/dashboard")}
-                  className="gap-2"
-                >
-                  {language === "es" ? "Panel de marca" : "Brand panel"}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
-              {brandProfile && (
-                <p className="text-sm text-muted-foreground">
-                  {brandProfile.company_name}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Badge variant="secondary">
-                  {language === "es" ? "Creador" : "Creator"}
-                </Badge>
-              </div>
-              <div className="pt-2 border-t border-border/50">
-                <button
-                  onClick={() => navigate("/brand/register")}
-                  className="flex items-center gap-3 p-3 rounded-xl w-full transition-all duration-200 bg-gradient-to-r from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20"
-                >
-                  <Building2 className="h-5 w-5 text-violet-500" />
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-medium text-violet-600 dark:text-violet-400">
-                      {language === "es" ? "¿Eres una marca?" : "Are you a brand?"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {language === "es" 
-                        ? "Registra tu empresa y lanza campañas"
-                        : "Register your company and launch campaigns"}
-                    </p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-violet-500" />
-                </button>
-              </div>
-            </div>
-          )}
-        </Card>
-
         {/* Subscription Section */}
         <Card className={`p-5 ${(isPro || isPremium) ? "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20" : ""}`}>
           <div className="flex items-center justify-between mb-4">
@@ -349,7 +297,16 @@ const Settings = () => {
 
               {/* Upgrade CTA for Pro users */}
               {isPro && !isPremium && (
-                <div className="pt-3 border-t border-border/50">
+                <div className="pt-3 border-t border-border/50 space-y-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => setCreditPacksOpen(true)}
+                  >
+                    <Coins className="h-4 w-4 mr-2" />
+                    {language === "es" ? "Comprar créditos de video" : "Buy video credits"}
+                  </Button>
                   <button
                     onClick={() => navigate("/pricing")}
                     className="flex items-center gap-3 p-3 rounded-xl w-full transition-all duration-200 bg-gradient-to-r from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20"
@@ -361,11 +318,10 @@ const Settings = () => {
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {language === "es" 
-                          ? "Genera videos IA sin grabar"
-                          : "Generate AI videos without filming"}
+                          ? "Incluye 5 créditos mensuales"
+                          : "Includes 5 monthly credits"}
                       </p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-violet-500" />
                   </button>
                 </div>
               )}
@@ -387,14 +343,91 @@ const Settings = () => {
               )}
             </div>
           ) : (
-            <div className="text-center py-4">
-              <p className="text-muted-foreground mb-4">
-                {language === "es" 
-                  ? "No tienes suscripción activa"
-                  : "You don't have an active subscription"}
-              </p>
-              <Button onClick={() => navigate("/pricing")}>
-                {language === "es" ? "Ver planes" : "View plans"}
+            <div className="space-y-4">
+              {/* No subscription - Show both plans */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Plan Pro */}
+                <div className="p-4 rounded-xl border-2 border-border hover:border-primary/50 transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    <span className="font-semibold">Pro</span>
+                  </div>
+                  <p className="text-2xl font-bold mb-1">$25<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+                  <ul className="text-xs text-muted-foreground space-y-1.5 mb-4">
+                    <li className="flex items-center gap-1.5">
+                      <Check className="h-3 w-3 text-primary" />
+                      {language === "es" ? "Acceso completo a videos" : "Full video access"}
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <Check className="h-3 w-3 text-primary" />
+                      {language === "es" ? "Scripts IA ilimitados" : "Unlimited AI scripts"}
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <Check className="h-3 w-3 text-primary" />
+                      {language === "es" ? "Análisis de productos" : "Product analytics"}
+                    </li>
+                  </ul>
+                  <Button 
+                    onClick={() => handleSelectPlan("pro")} 
+                    className="w-full" 
+                    size="sm"
+                    disabled={checkoutLoading !== null}
+                  >
+                    {checkoutLoading === "pro" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      language === "es" ? "Suscribir" : "Subscribe"
+                    )}
+                  </Button>
+                </div>
+
+                {/* Plan Premium */}
+                <div className="p-4 rounded-xl border-2 border-violet-500/50 bg-violet-500/5 relative">
+                  <Badge className="absolute -top-2 right-3 bg-violet-500 text-white text-xs">
+                    Popular
+                  </Badge>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Video className="h-4 w-4 text-violet-500" />
+                    <span className="font-semibold">Premium</span>
+                  </div>
+                  <p className="text-2xl font-bold mb-1">$50<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+                  <ul className="text-xs text-muted-foreground space-y-1.5 mb-4">
+                    <li className="flex items-center gap-1.5">
+                      <Check className="h-3 w-3 text-violet-500" />
+                      {language === "es" ? "Todo de Pro" : "Everything in Pro"}
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <Check className="h-3 w-3 text-violet-500" />
+                      {language === "es" ? "5 videos IA/mes" : "5 AI videos/month"}
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <Check className="h-3 w-3 text-violet-500" />
+                      {language === "es" ? "Generador de avatares" : "Avatar generator"}
+                    </li>
+                  </ul>
+                  <Button 
+                    onClick={() => handleSelectPlan("premium")} 
+                    className="w-full bg-violet-600 hover:bg-violet-700" 
+                    size="sm"
+                    disabled={checkoutLoading !== null}
+                  >
+                    {checkoutLoading === "premium" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      language === "es" ? "Suscribir" : "Subscribe"
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Buy credits button */}
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => setCreditPacksOpen(true)}
+              >
+                <Coins className="h-4 w-4 mr-2" />
+                {language === "es" ? "Comprar créditos de video" : "Buy video credits"}
               </Button>
             </div>
           )}
