@@ -17,6 +17,9 @@ import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { ConversionFunnel } from "@/components/admin/ConversionFunnel";
 import { EmailLeadsList } from "@/components/admin/EmailLeadsList";
 import { ApiUsageMonitor } from "@/components/admin/ApiUsageMonitor";
+import { FinancialDashboard } from "@/components/admin/FinancialDashboard";
+import { TrafficAnalytics } from "@/components/admin/TrafficAnalytics";
+import { CreditAnalytics } from "@/components/admin/CreditAnalytics";
 import CreatorProgramManager from "@/components/admin/CreatorProgramManager";
 
 type Market = "mx" | "us";
@@ -524,13 +527,25 @@ const Admin = () => {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
+            {/* Quick Overview */}
             <AnalyticsDashboard />
             
+            {/* Financial Dashboard */}
+            <FinancialDashboard />
+            
+            {/* Funnel + Traffic Side by Side */}
             <div className="grid md:grid-cols-2 gap-6">
               <ConversionFunnel />
+              <TrafficAnalytics />
+            </div>
+            
+            {/* Credits + Leads Side by Side */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <CreditAnalytics />
               <EmailLeadsList />
             </div>
             
+            {/* API Usage Monitor */}
             <ApiUsageMonitor />
           </TabsContent>
 

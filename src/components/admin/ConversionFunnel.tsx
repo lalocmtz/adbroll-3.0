@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowDown, Eye, UserPlus, Mail, CreditCard, CheckCircle } from "lucide-react";
+import { ArrowDown, Eye, UserPlus, Mail, CreditCard, CheckCircle, TrendingDown } from "lucide-react";
 
 interface FunnelStep {
   label: string;
   count: number;
   icon: React.ReactNode;
   percentage?: number;
+  dropOff?: number;
   color: string;
 }
 
@@ -21,7 +22,6 @@ export const ConversionFunnel = () => {
 
   const loadFunnelData = async () => {
     try {
-      // Get date 30 days ago for visitor tracking
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -40,14 +40,19 @@ export const ConversionFunnel = () => {
       const pageViews = pageViewsRes.data || [];
 
       const emailsCaptured = emails.length;
-      const emailsConverted = emails.filter(e => e.converted_at).length;
+      const emailsNotConverted = emails.filter(e => !e.converted_at).length;
       const activeSubs = subs.filter(s => s.status === "active").length;
 
       // Count unique visitors by session_id
       const uniqueSessions = new Set(pageViews.map(v => v.session_id).filter(Boolean));
       const uniqueVisitors = uniqueSessions.size;
 
-      // Use real data if we have page views, otherwise show 0
+      // Calculate drop-off percentages
+      const calcDropOff = (current: number, previous: number) => {
+        if (previous === 0) return 0;
+        return Math.round(((previous - current) / previous) * 100);
+      };
+
       const displayVisitors = uniqueVisitors > 0 ? uniqueVisitors : 0;
 
       const funnelSteps: FunnelStep[] = [
@@ -62,6 +67,7 @@ export const ConversionFunnel = () => {
           count: totalUsers,
           icon: <UserPlus className="h-5 w-5" />,
           percentage: displayVisitors > 0 ? Math.round((totalUsers / displayVisitors) * 100) : undefined,
+          dropOff: calcDropOff(totalUsers, displayVisitors),
           color: "bg-blue-50 text-blue-600 border-blue-200",
         },
         {
@@ -69,6 +75,7 @@ export const ConversionFunnel = () => {
           count: emailsCaptured,
           icon: <Mail className="h-5 w-5" />,
           percentage: totalUsers > 0 ? Math.round((emailsCaptured / totalUsers) * 100) : 0,
+          dropOff: calcDropOff(emailsCaptured, totalUsers),
           color: "bg-orange-50 text-orange-600 border-orange-200",
         },
         {
@@ -76,6 +83,7 @@ export const ConversionFunnel = () => {
           count: emailsCaptured,
           icon: <CreditCard className="h-5 w-5" />,
           percentage: 100,
+          dropOff: 0,
           color: "bg-purple-50 text-purple-600 border-purple-200",
         },
         {
@@ -83,6 +91,7 @@ export const ConversionFunnel = () => {
           count: activeSubs,
           icon: <CheckCircle className="h-5 w-5" />,
           percentage: emailsCaptured > 0 ? Math.round((activeSubs / emailsCaptured) * 100) : 0,
+          dropOff: calcDropOff(activeSubs, emailsCaptured),
           color: "bg-green-50 text-green-600 border-green-200",
         },
       ];
@@ -108,11 +117,17 @@ export const ConversionFunnel = () => {
     );
   }
 
+  // Calculate key insights
+  const visitorToSignup = steps[0].count > 0 ? Math.round((steps[1].count / steps[0].count) * 100) : 0;
+  const signupToEmail = steps[1].count > 0 ? Math.round((steps[2].count / steps[1].count) * 100) : 0;
+  const emailToPaid = steps[2].count > 0 ? Math.round((steps[4].count / steps[2].count) * 100) : 0;
+  const overallConversion = steps[0].count > 0 ? Math.round((steps[4].count / steps[0].count) * 100) : 0;
+
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          📊 Embudo de Conversión
+          🔄 Embudo de Conversión
         </CardTitle>
         {steps[0].count === 0 && (
           <p className="text-xs text-muted-foreground">
@@ -121,7 +136,7 @@ export const ConversionFunnel = () => {
         )}
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {steps.map((step, index) => (
             <div key={step.label}>
               <div
@@ -136,37 +151,74 @@ export const ConversionFunnel = () => {
                   {step.icon}
                   <span className="text-sm font-medium">{step.label}</span>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex items-center gap-2">
                   <span className="text-lg font-bold">{step.count}</span>
                   {step.percentage !== undefined && (
-                    <span className="text-xs ml-1 opacity-70">({step.percentage}%)</span>
+                    <span className="text-xs opacity-70">({step.percentage}%)</span>
                   )}
                 </div>
               </div>
               {index < steps.length - 1 && (
-                <div className="flex justify-center py-1">
-                  <ArrowDown className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center justify-center py-0.5 gap-1">
+                  <ArrowDown className="h-3 w-3 text-muted-foreground" />
+                  {step.dropOff !== undefined && step.dropOff > 0 && (
+                    <span className="text-[10px] text-red-500 flex items-center gap-0.5">
+                      <TrendingDown className="h-2.5 w-2.5" />
+                      -{step.dropOff}%
+                    </span>
+                  )}
                 </div>
               )}
             </div>
           ))}
         </div>
 
-        {/* Insights */}
-        <div className="mt-4 p-3 bg-muted/50 rounded-lg text-sm">
-          <p className="font-medium mb-1">📈 Insights:</p>
-          <ul className="text-xs text-muted-foreground space-y-1">
+        {/* Key Metrics Summary */}
+        <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+          <div className="p-2 bg-blue-50 rounded border border-blue-100">
+            <p className="text-muted-foreground">Visitante → Registro</p>
+            <p className="font-bold text-blue-600">{visitorToSignup}%</p>
+          </div>
+          <div className="p-2 bg-orange-50 rounded border border-orange-100">
+            <p className="text-muted-foreground">Registro → Email</p>
+            <p className="font-bold text-orange-600">{signupToEmail}%</p>
+          </div>
+          <div className="p-2 bg-green-50 rounded border border-green-100">
+            <p className="text-muted-foreground">Email → Pago</p>
+            <p className="font-bold text-green-600">{emailToPaid}%</p>
+          </div>
+          <div className="p-2 bg-purple-50 rounded border border-purple-100">
+            <p className="text-muted-foreground">Conversión total</p>
+            <p className="font-bold text-purple-600">{overallConversion}%</p>
+          </div>
+        </div>
+
+        {/* Actionable Insights */}
+        <div className="mt-3 p-3 bg-muted/50 rounded-lg text-xs">
+          <p className="font-medium mb-1">💡 Insights:</p>
+          <ul className="text-muted-foreground space-y-1">
             {steps[4].count === 0 && steps[2].count > 0 && (
-              <li>• Tienes {steps[2].count} emails sin convertir - envía seguimiento</li>
+              <li className="text-amber-600">
+                • {steps[2].count} emails sin convertir - considera enviar seguimiento
+              </li>
             )}
-            {steps[1].count > 0 && steps[4].percentage !== undefined && steps[4].percentage < 20 && (
-              <li>• Conversión a pago baja ({steps[4].percentage}%) - revisar pricing/copy</li>
+            {emailToPaid > 0 && emailToPaid < 20 && (
+              <li className="text-amber-600">
+                • Conversión a pago baja ({emailToPaid}%) - revisa pricing/copy
+              </li>
             )}
-            {steps[1].count === 0 && (
-              <li>• Sin registros todavía - activa campañas de adquisición</li>
+            {visitorToSignup > 0 && visitorToSignup < 5 && (
+              <li className="text-amber-600">
+                • Pocos visitantes se registran ({visitorToSignup}%) - optimiza landing
+              </li>
             )}
-            {steps[0].count > 0 && steps[1].count > 0 && (
-              <li>• Tasa de registro: {Math.round((steps[1].count / steps[0].count) * 100)}% de visitantes</li>
+            {steps[4].count > 0 && (
+              <li className="text-green-600">
+                • Tienes {steps[4].count} suscriptores activos 🎉
+              </li>
+            )}
+            {steps[0].count === 0 && (
+              <li>• Activa tracking de visitantes para ver métricas completas</li>
             )}
           </ul>
         </div>
