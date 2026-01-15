@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause, BarChart3, Upload } from "lucide-react";
+import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause, BarChart3, Upload, Megaphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
@@ -21,6 +21,7 @@ import { FinancialDashboard } from "@/components/admin/FinancialDashboard";
 import { TrafficAnalytics } from "@/components/admin/TrafficAnalytics";
 import { CreditAnalytics } from "@/components/admin/CreditAnalytics";
 import CreatorProgramManager from "@/components/admin/CreatorProgramManager";
+import CampaignManager from "@/components/admin/CampaignManager";
 
 type Market = "mx" | "us";
 
@@ -510,14 +511,18 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
+            <TabsTrigger value="campaigns" className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4" />
+              Campañas
+            </TabsTrigger>
             <TabsTrigger value="creators" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
-              Programa Creadores
+              Creadores
             </TabsTrigger>
             <TabsTrigger value="import" className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
@@ -547,6 +552,11 @@ const Admin = () => {
             
             {/* API Usage Monitor */}
             <ApiUsageMonitor />
+          </TabsContent>
+
+          {/* Campaigns Tab */}
+          <TabsContent value="campaigns">
+            <CampaignManager />
           </TabsContent>
 
           {/* Creator Program Tab */}

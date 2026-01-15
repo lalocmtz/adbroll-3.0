@@ -248,6 +248,54 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_applications: {
+        Row: {
+          admin_notes: string | null
+          campaign_id: string
+          created_at: string | null
+          creator_directory_id: string
+          id: string
+          note: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          campaign_id: string
+          created_at?: string | null
+          creator_directory_id: string
+          id?: string
+          note?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          campaign_id?: string
+          created_at?: string | null
+          creator_directory_id?: string
+          id?: string
+          note?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_applications_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_applications_creator_directory_id_fkey"
+            columns: ["creator_directory_id"]
+            isOneToOne: false
+            referencedRelation: "creator_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_submissions: {
         Row: {
           approved_at: string | null
@@ -1795,6 +1843,7 @@ export type Database = {
       generate_affiliate_code: { Args: never; Returns: string }
       generate_grant_code: { Args: never; Returns: string }
       generate_ref_code: { Args: never; Returns: string }
+      get_creator_directory_id: { Args: { _email: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1803,6 +1852,7 @@ export type Database = {
         Returns: boolean
       }
       is_brand: { Args: { _user_id: string }; Returns: boolean }
+      is_creator_in_directory: { Args: { _email: string }; Returns: boolean }
     }
     Enums: {
       app_role: "user" | "founder" | "brand"
