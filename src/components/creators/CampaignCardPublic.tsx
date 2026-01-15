@@ -35,8 +35,8 @@ const CampaignCardPublic = ({
     engagement: language === "es" ? "Engagement" : "Engagement",
   };
 
-  const brandName = campaign.brand_profiles?.company_name || "Marca";
-  const brandLogo = campaign.brand_profiles?.logo_url;
+  const brandName = (campaign as any).brand_name || campaign.brand_profiles?.company_name || "Marca";
+  const brandLogo = (campaign as any).brand_logo_url || campaign.brand_profiles?.logo_url;
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-all duration-300 group">

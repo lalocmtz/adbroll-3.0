@@ -433,7 +433,9 @@ export type Database = {
       campaigns: {
         Row: {
           approved_count: number | null
-          brand_id: string
+          brand_id: string | null
+          brand_logo_url: string | null
+          brand_name: string | null
           brief: string
           created_at: string | null
           ends_at: string | null
@@ -458,7 +460,9 @@ export type Database = {
         }
         Insert: {
           approved_count?: number | null
-          brand_id: string
+          brand_id?: string | null
+          brand_logo_url?: string | null
+          brand_name?: string | null
           brief: string
           created_at?: string | null
           ends_at?: string | null
@@ -483,7 +487,9 @@ export type Database = {
         }
         Update: {
           approved_count?: number | null
-          brand_id?: string
+          brand_id?: string | null
+          brand_logo_url?: string | null
+          brand_name?: string | null
           brief?: string
           created_at?: string | null
           ends_at?: string | null

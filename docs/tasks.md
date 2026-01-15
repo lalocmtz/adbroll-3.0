@@ -491,6 +491,16 @@ $$);
 - [x] **Sidebar actualizado** - Icono Sparkles, label "Talento"
 - [x] **CTA actualizado** - "Círculo Interno" apunta a `/talento?tab=aplicar`
 
+### Talento 100% Público (Enero 2025)
+- [x] **Campañas públicas** - Cualquier visitante puede ver campañas activas sin login
+- [x] **brand_name como texto** - Campo texto libre para nombre de marca (sin requerir brand_profiles)
+- [x] **brand_logo_url opcional** - URL de logo de marca en campaigns
+- [x] **brand_id opcional** - Ya no es requerido en campaigns
+- [x] **ApplyToCampaignModal mejorado** - Formulario completo para visitantes (nombre, email, TikTok, WhatsApp, nicho, tipo contenido)
+- [x] **Auto-registro de creador** - Al aplicar, visitante se registra automáticamente en creator_directory
+- [x] **RLS actualizado** - Inserciones públicas en campaign_applications
+- [x] **CampaignManager.tsx** - Input de texto para marca en lugar de Select
+
 ---
 
 **Última actualización:** Enero 2025
