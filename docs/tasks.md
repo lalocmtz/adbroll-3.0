@@ -479,4 +479,18 @@ $$);
 
 ---
 
+## ✅ TALENTO - REESTRUCTURACIÓN (Enero 2025)
+
+### Cambios Implementados
+- [x] **Renombrado** - "Contrata Creadores" → "Talento" en toda la app
+- [x] **Nueva ruta** - `/contrata-creadores` → `/talento` con redirect
+- [x] **3 pestañas** - Campañas, Creadores, Soy Creador
+- [x] **CampaignsTab.tsx** - Placeholder elegante "Próximamente: Campañas"
+- [x] **Filtros modernos** - Pills horizontales en lugar de dropdowns
+- [x] **Sin filtro país** - Removido del directorio de creadores
+- [x] **Sidebar actualizado** - Icono Sparkles, label "Talento"
+- [x] **CTA actualizado** - "Círculo Interno" apunta a `/talento?tab=aplicar`
+
+---
+
 **Última actualización:** Enero 2025

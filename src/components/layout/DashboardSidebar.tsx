@@ -68,7 +68,7 @@ const exploreItems: NavItem[] = [
   { to: "/app", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle, lockedForVisitor: false },
   { to: "/products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: false },
   { to: "/ranking-creadores", labelEs: "Ranking Creadores", labelEn: "Creator Rankings", icon: TrendingUp, lockedForVisitor: false },
-  { to: "/contrata-creadores", labelEs: "Contrata Creadores", labelEn: "Hire Creators", icon: UserPlus, lockedForVisitor: false },
+  { to: "/talento", labelEs: "Talento", labelEn: "Talent", icon: Sparkles, lockedForVisitor: false },
   { to: "/opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
 ];
 
@@ -290,11 +290,11 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
           {/* Círculo Interno CTA */}
           <div className="mt-3 px-0">
             <NavLink
-              to="/contrata-creadores?tab=aplicar"
+              to="/talento?tab=aplicar"
               onClick={handleNavClick}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm w-full transition-all duration-200 bg-gradient-to-r from-primary/10 to-pink-500/10 text-primary hover:from-primary/20 hover:to-pink-500/20"
             >
-              <Sparkles className="h-4 w-4" />
+              <Crown className="h-4 w-4" />
               <div className="flex flex-col text-left">
                 <span className="font-medium">{language === "es" ? "Círculo Interno" : "Inner Circle"}</span>
                 <span className="text-[10px] font-normal opacity-80">

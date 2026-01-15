@@ -3,10 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Users, Filter } from "lucide-react";
+import { Search, Users, X } from "lucide-react";
+import { FilterPills } from "@/components/FilterPills";
 import CreatorCard from "./CreatorCard";
 
 interface DirectoryCreator {
@@ -24,26 +23,6 @@ interface DirectoryCreator {
   created_at: string;
 }
 
-const NICHES = [
-  { value: "belleza", labelEs: "Belleza", labelEn: "Beauty" },
-  { value: "fitness", labelEs: "Fitness", labelEn: "Fitness" },
-  { value: "moda", labelEs: "Moda", labelEn: "Fashion" },
-  { value: "tecnologia", labelEs: "Tecnología", labelEn: "Technology" },
-  { value: "hogar", labelEs: "Hogar", labelEn: "Home" },
-  { value: "otros", labelEs: "Otros", labelEn: "Others" },
-];
-
-const CONTENT_TYPES = [
-  { value: "ugc", labelEs: "UGC", labelEn: "UGC" },
-  { value: "review", labelEs: "Review", labelEn: "Review" },
-  { value: "live", labelEs: "Live", labelEn: "Live" },
-];
-
-const COUNTRIES = [
-  { value: "mx", labelEs: "México", labelEn: "Mexico" },
-  { value: "us", labelEs: "Estados Unidos", labelEn: "United States" },
-];
-
 const CreatorDirectory = () => {
   const { language } = useLanguage();
   const { toast } = useToast();
@@ -51,8 +30,25 @@ const CreatorDirectory = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterNiche, setFilterNiche] = useState<string>("all");
-  const [filterCountry, setFilterCountry] = useState<string>("all");
   const [filterContentType, setFilterContentType] = useState<string>("all");
+
+  // Filter options for pills
+  const NICHE_OPTIONS = [
+    { value: "all", label: language === "es" ? "Todos" : "All" },
+    { value: "belleza", label: language === "es" ? "Belleza" : "Beauty" },
+    { value: "fitness", label: "Fitness" },
+    { value: "moda", label: language === "es" ? "Moda" : "Fashion" },
+    { value: "tecnologia", label: "Tech" },
+    { value: "hogar", label: language === "es" ? "Hogar" : "Home" },
+    { value: "otros", label: language === "es" ? "Otros" : "Others" },
+  ];
+
+  const CONTENT_OPTIONS = [
+    { value: "all", label: language === "es" ? "Todos" : "All" },
+    { value: "ugc", label: "UGC" },
+    { value: "review", label: "Review" },
+    { value: "live", label: "Live" },
+  ];
 
   useEffect(() => {
     fetchCreators();
@@ -82,39 +78,30 @@ const CreatorDirectory = () => {
 
   // Filter creators based on search and filters
   const filteredCreators = creators.filter((creator) => {
-    // Search filter
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch =
       searchQuery === "" ||
       creator.full_name.toLowerCase().includes(searchLower) ||
       creator.tiktok_username.toLowerCase().includes(searchLower);
 
-    // Niche filter
     const matchesNiche =
       filterNiche === "all" || creator.niche.includes(filterNiche);
 
-    // Country filter
-    const matchesCountry =
-      filterCountry === "all" || creator.country === filterCountry;
-
-    // Content type filter
     const matchesContentType =
       filterContentType === "all" || creator.content_type.includes(filterContentType);
 
-    return matchesSearch && matchesNiche && matchesCountry && matchesContentType;
+    return matchesSearch && matchesNiche && matchesContentType;
   });
 
   const clearFilters = () => {
     setSearchQuery("");
     setFilterNiche("all");
-    setFilterCountry("all");
     setFilterContentType("all");
   };
 
   const hasActiveFilters =
     searchQuery !== "" ||
     filterNiche !== "all" ||
-    filterCountry !== "all" ||
     filterContentType !== "all";
 
   if (loading) {
@@ -142,63 +129,44 @@ const CreatorDirectory = () => {
           />
         </div>
 
-        {/* Filter Dropdowns */}
-        <div className="flex flex-wrap gap-3">
-          <Select value={filterNiche} onValueChange={setFilterNiche}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder={language === "es" ? "Nicho" : "Niche"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{language === "es" ? "Todos los nichos" : "All niches"}</SelectItem>
-              {NICHES.map((niche) => (
-                <SelectItem key={niche.value} value={niche.value}>
-                  {language === "es" ? niche.labelEs : niche.labelEn}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={filterCountry} onValueChange={setFilterCountry}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder={language === "es" ? "País" : "Country"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{language === "es" ? "Todos los países" : "All countries"}</SelectItem>
-              {COUNTRIES.map((country) => (
-                <SelectItem key={country.value} value={country.value}>
-                  {language === "es" ? country.labelEs : country.labelEn}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={filterContentType} onValueChange={setFilterContentType}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder={language === "es" ? "Tipo de contenido" : "Content type"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{language === "es" ? "Todos los tipos" : "All types"}</SelectItem>
-              {CONTENT_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {language === "es" ? type.labelEs : type.labelEn}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
-              {language === "es" ? "Limpiar filtros" : "Clear filters"}
-            </Button>
-          )}
+        {/* Niche Pills */}
+        <div>
+          <p className="text-xs text-muted-foreground mb-2">
+            {language === "es" ? "Nicho" : "Niche"}
+          </p>
+          <FilterPills
+            options={NICHE_OPTIONS}
+            value={filterNiche}
+            onChange={setFilterNiche}
+          />
         </div>
 
-        {/* Results count */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Users className="h-4 w-4" />
-          <span>
-            {filteredCreators.length} {language === "es" ? "creadores encontrados" : "creators found"}
-          </span>
+        {/* Content Type Pills */}
+        <div>
+          <p className="text-xs text-muted-foreground mb-2">
+            {language === "es" ? "Tipo de contenido" : "Content type"}
+          </p>
+          <FilterPills
+            options={CONTENT_OPTIONS}
+            value={filterContentType}
+            onChange={setFilterContentType}
+          />
+        </div>
+
+        {/* Results count and clear */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Users className="h-4 w-4" />
+            <span>
+              {filteredCreators.length} {language === "es" ? "creadores encontrados" : "creators found"}
+            </span>
+          </div>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground h-8">
+              <X className="h-3 w-3 mr-1" />
+              {language === "es" ? "Limpiar" : "Clear"}
+            </Button>
+          )}
         </div>
       </div>
 

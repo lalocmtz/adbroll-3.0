@@ -9,7 +9,7 @@ const DashboardNav = () => {
     { to: "/app", label: t("videos"), icon: Video },
     { to: "/products", label: t("products"), icon: Package },
     { to: "/ranking-creadores", label: language === "es" ? "Ranking Creadores" : "Creator Rankings", icon: TrendingUp },
-    { to: "/contrata-creadores", label: language === "es" ? "Contrata Creadores" : "Hire Creators", icon: UserPlus },
+    { to: "/talento", label: language === "es" ? "Talento" : "Talent", icon: UserPlus },
     { to: "/favorites", label: t("favorites"), icon: Heart },
   ];
 
