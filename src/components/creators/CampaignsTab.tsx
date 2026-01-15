@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Megaphone, Sparkles, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import CampaignCardPublic from "./CampaignCardPublic";
 import ApplyToCampaignModal from "./ApplyToCampaignModal";
 import { useCampaignApplications } from "@/hooks/useCampaignApplications";
@@ -11,17 +9,17 @@ import type { Campaign } from "@/hooks/useCampaigns";
 
 const CampaignsTab = () => {
   const { language } = useLanguage();
-  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [appliedCampaign, setAppliedCampaign] = useState<Campaign | null>(null);
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
   const {
     userCreatorId,
     hasApplied,
     applyToCampaign,
     appliedCampaignIds,
+    refetchUserApplications,
   } = useCampaignApplications();
 
   useEffect(() => {
@@ -54,17 +52,22 @@ const CampaignsTab = () => {
   };
 
   const handleApply = async (campaign: Campaign) => {
-    if (!userCreatorId) {
-      // Redirect to register as creator
-      navigate("/talento?tab=aplicar");
-      return;
+    setSelectedCampaign(campaign);
+    
+    // If user is already a registered creator, apply directly
+    if (userCreatorId) {
+      const success = await applyToCampaign(campaign.id);
+      if (success) {
+        setShowApplyModal(true);
+      }
+    } else {
+      // Show form modal for new visitors
+      setShowApplyModal(true);
     }
+  };
 
-    const success = await applyToCampaign(campaign.id);
-    if (success) {
-      setAppliedCampaign(campaign);
-      setShowSuccessModal(true);
-    }
+  const handleApplicationSuccess = () => {
+    refetchUserApplications();
   };
 
   // Filter out campaigns user has already applied to
@@ -92,12 +95,12 @@ const CampaignsTab = () => {
           </h3>
           <p className="text-muted-foreground text-sm mb-6">
             {language === "es" 
-              ? "Aquí aparecerán las campañas disponibles de marcas aliadas con adbroll. Los creadores verificados podrán aplicar directamente."
-              : "Available campaigns from adbroll partner brands will appear here. Verified creators will be able to apply directly."}
+              ? "Aquí aparecerán las campañas disponibles de marcas aliadas con adbroll. Los creadores podrán aplicar directamente."
+              : "Available campaigns from adbroll partner brands will appear here. Creators will be able to apply directly."}
           </p>
           <div className="flex items-center justify-center gap-2 text-xs text-primary">
             <Sparkles className="h-4 w-4" />
-            <span>{language === "es" ? "Exclusivo para creadores verificados" : "Exclusive for verified creators"}</span>
+            <span>{language === "es" ? "Abierto para todos los creadores" : "Open for all creators"}</span>
           </div>
         </div>
       </div>
@@ -118,12 +121,6 @@ const CampaignsTab = () => {
               : `${availableCampaigns.length} active campaigns`}
           </p>
         </div>
-        {!userCreatorId && (
-          <Button variant="outline" onClick={() => navigate("/talento?tab=aplicar")}>
-            <Sparkles className="h-4 w-4 mr-2" />
-            {language === "es" ? "Regístrate como creador" : "Register as creator"}
-          </Button>
-        )}
       </div>
 
       {/* Already Applied Section */}
@@ -154,20 +151,23 @@ const CampaignsTab = () => {
               key={campaign.id}
               campaign={campaign}
               hasApplied={hasApplied(campaign.id)}
-              isCreator={!!userCreatorId}
+              isCreator={true} // Always allow applying (form will collect data)
               onApply={() => handleApply(campaign)}
             />
           ))}
         </div>
       )}
 
-      {/* Success Modal */}
-      {appliedCampaign && (
+      {/* Apply Modal */}
+      {selectedCampaign && (
         <ApplyToCampaignModal
-          open={showSuccessModal}
-          onOpenChange={setShowSuccessModal}
-          campaignTitle={appliedCampaign.title}
-          brandName={appliedCampaign.brand_profiles?.company_name || "Marca"}
+          open={showApplyModal}
+          onOpenChange={setShowApplyModal}
+          campaignTitle={selectedCampaign.title}
+          brandName={(selectedCampaign as any).brand_name || selectedCampaign.brand_profiles?.company_name || "Marca"}
+          campaignId={selectedCampaign.id}
+          isLoggedInCreator={!!userCreatorId}
+          onSuccess={handleApplicationSuccess}
         />
       )}
     </div>

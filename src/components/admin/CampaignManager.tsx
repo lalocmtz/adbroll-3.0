@@ -66,7 +66,8 @@ const CampaignManager = () => {
 
   // Form state
   const [form, setForm] = useState({
-    brand_id: "",
+    brand_name: "",
+    brand_logo_url: "",
     title: "",
     product_name: "",
     product_url: "",
@@ -154,14 +155,16 @@ const CampaignManager = () => {
   };
 
   const createCampaign = async () => {
-    if (!form.brand_id || !form.title || !form.product_name || !form.brief) {
+    if (!form.brand_name || !form.title || !form.product_name || !form.brief) {
       toast.error("Completa los campos requeridos");
       return;
     }
 
     try {
       const { error } = await supabase.from("campaigns").insert({
-        brand_id: form.brand_id,
+        brand_name: form.brand_name,
+        brand_logo_url: form.brand_logo_url || null,
+        brand_id: null,
         title: form.title,
         product_name: form.product_name,
         product_url: form.product_url || null,
@@ -246,7 +249,8 @@ const CampaignManager = () => {
 
   const resetForm = () => {
     setForm({
-      brand_id: "",
+      brand_name: "",
+      brand_logo_url: "",
       title: "",
       product_name: "",
       product_url: "",
@@ -328,19 +332,21 @@ const CampaignManager = () => {
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <Label>Marca *</Label>
-                  <Select value={form.brand_id} onValueChange={(v) => setForm({ ...form, brand_id: v })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona marca" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brands.map((b) => (
-                        <SelectItem key={b.id} value={b.id}>
-                          {b.company_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Nombre de la Marca *</Label>
+                  <Input
+                    value={form.brand_name}
+                    onChange={(e) => setForm({ ...form, brand_name: e.target.value })}
+                    placeholder="Ej: Skinglow, Feelink"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <Label>Logo de la Marca (URL)</Label>
+                  <Input
+                    value={form.brand_logo_url}
+                    onChange={(e) => setForm({ ...form, brand_logo_url: e.target.value })}
+                    placeholder="https://..."
+                  />
                 </div>
 
                 <div className="col-span-2">
@@ -519,7 +525,7 @@ const CampaignManager = () => {
                         {getStatusBadge(campaign.status)}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {campaign.brand_profiles?.company_name} · {campaign.product_name}
+                        {(campaign as any).brand_name || campaign.brand_profiles?.company_name || "Sin marca"} · {campaign.product_name}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         ${campaign.min_payment_mxn} - ${campaign.max_payment_mxn} MXN
