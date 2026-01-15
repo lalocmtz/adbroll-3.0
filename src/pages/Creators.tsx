@@ -240,7 +240,7 @@ const Creators = () => {
       <div className="mb-3 md:mb-4 py-1 md:py-0">
         <div className="md:hidden">
           <h1 className="text-base font-bold text-foreground leading-tight">
-            ⭐ Creadores que más venden HOY
+            📊 {language === "es" ? "Ranking de Creadores" : "Creator Rankings"}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             {todayFormatted} · TikTok Shop {marketLabel}
@@ -250,10 +250,12 @@ const Creators = () => {
         {/* Desktop minimal header */}
         <div className="hidden md:block">
           <h1 className="text-lg font-bold text-foreground leading-tight">
-            ⭐ Creadores que más venden HOY, {todayFormatted}
+            📊 {language === "es" ? "Ranking de Creadores" : "Creator Rankings"} · {todayFormatted}
           </h1>
           <p className="text-xs text-muted-foreground">
-            TikTok Shop {marketLabel} · Descubre quiénes están dominando
+            {language === "es" 
+              ? `TikTok Shop ${marketLabel} · Descubre qué creadores están vendiendo más HOY`
+              : `TikTok Shop ${marketLabel} · Discover which creators are selling the most TODAY`}
           </p>
         </div>
       </div>

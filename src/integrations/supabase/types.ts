@@ -468,6 +468,63 @@ export type Database = {
           },
         ]
       }
+      creator_directory: {
+        Row: {
+          avatar_url: string | null
+          content_type: string[]
+          country: string
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          niche: string[]
+          status: string
+          terms_accepted: boolean
+          terms_accepted_at: string | null
+          tiktok_url: string | null
+          tiktok_username: string
+          updated_at: string | null
+          verified: boolean | null
+          whatsapp: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          content_type?: string[]
+          country?: string
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          niche?: string[]
+          status?: string
+          terms_accepted?: boolean
+          terms_accepted_at?: string | null
+          tiktok_url?: string | null
+          tiktok_username: string
+          updated_at?: string | null
+          verified?: boolean | null
+          whatsapp: string
+        }
+        Update: {
+          avatar_url?: string | null
+          content_type?: string[]
+          country?: string
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          niche?: string[]
+          status?: string
+          terms_accepted?: boolean
+          terms_accepted_at?: string | null
+          tiktok_url?: string | null
+          tiktok_username?: string
+          updated_at?: string | null
+          verified?: boolean | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       creator_program_applications: {
         Row: {
           approved_at: string | null

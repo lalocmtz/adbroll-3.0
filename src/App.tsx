@@ -17,6 +17,7 @@ import Unlock from "./pages/Unlock";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Creators from "./pages/Creators";
+import HireCreators from "./pages/HireCreators";
 import Favorites from "./pages/Favorites";
 import Library from "./pages/Library";
 import Tools from "./pages/Tools";
@@ -170,10 +171,19 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/creadores"
+                    path="/ranking-creadores"
                     element={
                       <AppRoute session={session}>
                         <Creators />
+                      </AppRoute>
+                    }
+                  />
+                  <Route path="/creadores" element={<Navigate to="/ranking-creadores" replace />} />
+                  <Route
+                    path="/contrata-creadores"
+                    element={
+                      <AppRoute session={session}>
+                        <HireCreators />
                       </AppRoute>
                     }
                   />
