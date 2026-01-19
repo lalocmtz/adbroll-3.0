@@ -168,31 +168,15 @@ serve(async (req) => {
 
     console.log(`Productos procesados: ${processedProducts.length}`);
 
-    // Sort by revenue_30d descending
-    const sortedProducts = processedProducts.sort((a, b) => {
-      const aValue = a.revenue_30d || a.sales_30d || 0;
-      const bValue = b.revenue_30d || b.sales_30d || 0;
-      return bValue - aValue;
-    });
-
-    // SMART UPSERT: Check existing products by name AND market
-    let insertedCount = 0;
-    let updatedCount = 0;
-
-    for (let idx = 0; idx < sortedProducts.length; idx++) {
-      const p = sortedProducts[idx];
-      const rank = idx + 1;
-
-      // Check if product exists by name AND market
-      const { data: existing } = await supabaseServiceClient
-        .from("products")
-        .select("id")
-        .eq("producto_nombre", p.name)
-        .eq("market", market)
-        .maybeSingle();
-
-      const productData = {
-        rank,
+    // Sort by revenue_30d descending and assign rank
+    const sortedProducts = processedProducts
+      .sort((a, b) => {
+        const aValue = a.revenue_30d || a.sales_30d || 0;
+        const bValue = b.revenue_30d || b.sales_30d || 0;
+        return bValue - aValue;
+      })
+      .map((p, idx) => ({
+        rank: idx + 1,
         producto_nombre: p.name,
         imagen_url: p.image_url,
         producto_url: p.product_url,
@@ -209,51 +193,26 @@ serve(async (req) => {
         rating: p.rating,
         market,
         updated_at: new Date().toISOString(),
-      };
+      }));
 
-      if (existing) {
-        // UPDATE existing product - only update metrics and rank
-        const { error: updateError } = await supabaseServiceClient
-          .from("products")
-          .update({
-            rank: productData.rank,
-            imagen_url: productData.imagen_url,
-            precio_mxn: productData.precio_mxn,
-            price: productData.price,
-            commission: productData.commission,
-            commission_amount: productData.commission_amount,
-            revenue_30d: productData.revenue_30d,
-            total_ingresos_mxn: productData.total_ingresos_mxn,
-            sales_7d: productData.sales_7d,
-            total_ventas: productData.total_ventas,
-            creators_count: productData.creators_count,
-            rating: productData.rating,
-            updated_at: productData.updated_at,
-          })
-          .eq("id", existing.id);
+    console.log(`Batch upserting ${sortedProducts.length} products...`);
 
-        if (!updateError) {
-          updatedCount++;
-          console.log(`Updated product: ${p.name}`);
-        } else {
-          console.error(`Error updating product ${p.name}:`, updateError);
-        }
-      } else {
-        // INSERT new product with market
-        const { error: insertError } = await supabaseServiceClient
-          .from("products")
-          .insert(productData);
+    // BATCH UPSERT - single operation instead of N queries
+    const { data: upsertResult, error: upsertError } = await supabaseServiceClient
+      .from("products")
+      .upsert(sortedProducts, {
+        onConflict: "producto_nombre,market",
+        ignoreDuplicates: false,
+      })
+      .select("id");
 
-        if (!insertError) {
-          insertedCount++;
-          console.log(`Inserted product: ${p.name} (market: ${market})`);
-        } else {
-          console.error(`Error inserting product ${p.name}:`, insertError);
-        }
-      }
+    if (upsertError) {
+      console.error("Batch upsert error:", upsertError);
+      throw new Error(`Error en upsert batch: ${upsertError.message}`);
     }
 
-    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated (market: ${market})`);
+    const totalUpserted = upsertResult?.length || sortedProducts.length;
+    console.log(`BATCH UPSERT completed: ${totalUpserted} products processed (market: ${market})`);
 
     // Trigger auto-matching after products import
     console.log('Triggering auto-match videos to products...');
@@ -271,12 +230,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        inserted: insertedCount,
-        updated: updatedCount,
-        processed: sortedProducts.length,
+        processed: totalUpserted,
         total: rows.length,
         market,
-        message: `Importación inteligente (${market.toUpperCase()}): ${insertedCount} nuevos, ${updatedCount} actualizados de ${rows.length} filas.`,
+        message: `Importación batch (${market.toUpperCase()}): ${totalUpserted} productos procesados de ${rows.length} filas.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
