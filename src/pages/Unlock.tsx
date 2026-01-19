@@ -583,9 +583,9 @@ const Unlock = () => {
       {/* Email Capture Modal */}
       <SimpleEmailCaptureModal
         open={showEmailModal}
-        onClose={() => setShowEmailModal(false)}
-        onCaptured={handleEmailCaptured}
-        redirectTo="unlock"
+        onOpenChange={setShowEmailModal}
+        onSuccess={handleEmailCaptured}
+        redirectOnSuccess={false}
       />
     </div>
   );
