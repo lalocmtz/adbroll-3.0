@@ -283,13 +283,8 @@ serve(async (req) => {
       return bestMatch;
     };
 
-    // Process videos with smart upsert
-    const newlyInsertedVideos: { id: string; video_url: string }[] = [];
-    let updatedCount = 0;
-    let insertedCount = 0;
-
-    for (let idx = 0; idx < sortedRows.length; idx++) {
-      const row = sortedRows[idx];
+    // Build video data array for batch operations
+    const videosToProcess = sortedRows.map((row, idx) => {
       const videoUrl = row["Enlace de TikTok"];
       const videoTitle = row["Descripción del vídeo"]?.toLowerCase() || "";
       const creatorHandle = row["Usuario del creador"] || null;
@@ -308,14 +303,8 @@ serve(async (req) => {
         });
       }
 
-      // Check if video exists by video_url
-      const { data: existing } = await supabaseServiceClient
-        .from("videos")
-        .select("id, video_mp4_url")
-        .eq("video_url", videoUrl)
-        .maybeSingle();
-
-      const videoMetrics = {
+      return {
+        video_url: videoUrl,
         rank,
         title: row["Descripción del vídeo"],
         creator_name: row["Usuario del creador"],
@@ -331,54 +320,93 @@ serve(async (req) => {
         views: row["Visualizaciones"],
         roas: row["ROAS - Retorno de la inversión publicitaria"],
         country: market,
+        processing_status: 'pending',
+        imported_at: new Date().toISOString(),
       };
+    }).filter(v => v.video_url);
 
+    // Deduplicate by video_url (keep first occurrence = highest revenue)
+    const seenUrls = new Set<string>();
+    const uniqueVideos = videosToProcess.filter(v => {
+      if (seenUrls.has(v.video_url)) return false;
+      seenUrls.add(v.video_url);
+      return true;
+    });
+
+    console.log(`Unique videos to process: ${uniqueVideos.length}`);
+
+    // Get existing videos to identify which need MP4 downloads
+    const { data: existingVideos } = await supabaseServiceClient
+      .from("videos")
+      .select("id, video_url, video_mp4_url")
+      .in("video_url", uniqueVideos.map(v => v.video_url));
+
+    const existingMap = new Map((existingVideos || []).map(v => [v.video_url, v]));
+
+    // Separate into inserts and updates
+    const videosToInsert: any[] = [];
+    const videosToUpdate: any[] = [];
+    const newlyInsertedVideos: { id: string; video_url: string }[] = [];
+
+    for (const video of uniqueVideos) {
+      const existing = existingMap.get(video.video_url);
       if (existing) {
-        // UPDATE existing video - only update metrics, DO NOT re-download MP4
-        const { error: updateError } = await supabaseServiceClient
-          .from("videos")
-          .update({
-            ...videoMetrics,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existing.id);
-
-        if (!updateError) {
-          updatedCount++;
-          console.log(`Updated video: ${videoUrl.substring(0, 50)}...`);
-          
-          // If video doesn't have MP4 yet, queue for download
-          if (!existing.video_mp4_url) {
-            newlyInsertedVideos.push({ id: existing.id, video_url: videoUrl });
-          }
-        } else {
-          console.error(`Error updating video:`, updateError);
+        // Update - remove processing_status and imported_at, keep existing values
+        const { processing_status, imported_at, ...updateData } = video;
+        videosToUpdate.push({ id: existing.id, ...updateData });
+        
+        // Queue for download if no MP4 yet
+        if (!existing.video_mp4_url) {
+          newlyInsertedVideos.push({ id: existing.id, video_url: video.video_url });
         }
       } else {
-        // INSERT new video
-        const { data: inserted, error: insertError } = await supabaseServiceClient
-          .from("videos")
-          .insert({
-            video_url: videoUrl,
-            ...videoMetrics,
-            processing_status: 'pending',
-            category: null,
-            imported_at: new Date().toISOString(),
-          })
-          .select("id")
-          .single();
+        videosToInsert.push(video);
+      }
+    }
 
-        if (!insertError && inserted) {
-          insertedCount++;
-          newlyInsertedVideos.push({ id: inserted.id, video_url: videoUrl });
-          console.log(`Inserted video: ${videoUrl.substring(0, 50)}...`);
-        } else {
-          console.error(`Error inserting video:`, insertError);
+    console.log(`To insert: ${videosToInsert.length}, To update: ${videosToUpdate.length}`);
+
+    // Batch INSERT new videos
+    let insertedCount = 0;
+    if (videosToInsert.length > 0) {
+      const { data: inserted, error: insertError } = await supabaseServiceClient
+        .from("videos")
+        .insert(videosToInsert)
+        .select("id, video_url");
+
+      if (insertError) {
+        console.error("Batch insert error:", insertError);
+      } else {
+        insertedCount = inserted?.length || 0;
+        console.log(`Batch inserted ${insertedCount} videos`);
+        
+        // Add all newly inserted to download queue
+        for (const v of (inserted || [])) {
+          newlyInsertedVideos.push({ id: v.id, video_url: v.video_url });
         }
       }
     }
 
-    console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated`);
+    // Batch UPDATE existing videos (in chunks to avoid limits)
+    let updatedCount = 0;
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < videosToUpdate.length; i += CHUNK_SIZE) {
+      const chunk = videosToUpdate.slice(i, i + CHUNK_SIZE);
+      
+      for (const video of chunk) {
+        const { id, ...updateData } = video;
+        const { error: updateError } = await supabaseServiceClient
+          .from("videos")
+          .update(updateData)
+          .eq("id", id);
+        
+        if (!updateError) {
+          updatedCount++;
+        }
+      }
+    }
+
+    console.log(`Updated ${updatedCount} videos`);
     console.log(`${newlyInsertedVideos.length} videos queued for MP4 download`);
 
     // Start background downloads if we have RapidAPI key
