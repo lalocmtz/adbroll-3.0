@@ -3,7 +3,6 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { useAccountType } from "@/hooks/useAccountType";
-import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,23 +21,13 @@ import {
   Wrench,
   LogIn,
   Lock,
-  Unlock,
   LogOut,
   FolderOpen,
-  Megaphone,
-  Send,
-  Building2,
-  LayoutDashboard,
-  FolderKanban,
-  ArrowUpCircle,
-  Video,
   Crown,
-  UserPlus,
   Sparkles,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import MarketSwitcher from "@/components/MarketSwitcher";
-import { CreditsBadge } from "@/components/CreditsBadge";
 import logoDark from "@/assets/logo-dark.png";
 
 interface DashboardSidebarProps {
@@ -72,34 +61,18 @@ const exploreItems: NavItem[] = [
   { to: "/opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
 ];
 
-// GANA DINERO - Monetization
-const earnItems: NavItem[] = [
-  { to: "/campaigns", labelEs: "Campañas", labelEn: "Campaigns", icon: Megaphone, lockedForVisitor: false },
-  { to: "/my-submissions", labelEs: "Colaboraciones", labelEn: "Collaborations", icon: Send, lockedForVisitor: true },
-  { to: "/affiliates", labelEs: "Afiliados", labelEn: "Affiliates", icon: Coins, lockedForVisitor: true },
-];
-
-// TU CENTRO - Work tools
+// TU CENTRO - Work tools (removed Mis Videos IA)
 const workspaceItems: NavItem[] = [
   { to: "/tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true },
-  { to: "/my-generated-videos", labelEs: "Mis Videos IA", labelEn: "My AI Videos", icon: Video, lockedForVisitor: true },
   { to: "/library", labelEs: "Mi Biblioteca", labelEn: "My Library", icon: FolderOpen, lockedForVisitor: true },
   { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
   { to: "/affiliates", labelEs: "Afiliados", labelEn: "Affiliates", icon: Coins, lockedForVisitor: true },
-];
-
-// PANEL MARCA - Brand specific
-const brandItems: NavItem[] = [
-  { to: "/brand/dashboard", labelEs: "Dashboard", labelEn: "Dashboard", icon: LayoutDashboard, lockedForVisitor: true },
-  { to: "/brand/campaigns", labelEs: "Mis Campañas", labelEn: "My Campaigns", icon: FolderKanban, lockedForVisitor: true },
-  { to: "/brand/upgrade", labelEs: "Mejorar Plan", labelEn: "Upgrade Plan", icon: ArrowUpCircle, lockedForVisitor: true },
 ];
 
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   const { language } = useLanguage();
   const { isLoggedIn } = useBlurGateContext();
   const { isBrand } = useAccountType();
-  const { isPremium, planTier } = useSubscription();
   const navigate = useNavigate();
   const location = useLocation();
   const [userEmail, setUserEmail] = useState<string>("");
@@ -195,33 +168,6 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
     );
   };
 
-  const renderAffiliateItem = () => {
-    if (!isLoggedIn) return null;
-    
-    const item = earnItems.find(i => i.to === "/affiliates")!;
-    
-    return (
-      <NavLink
-        to={item.to}
-        onClick={handleNavClick}
-        className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-all duration-200",
-          isActive(item.to)
-            ? "text-primary bg-primary/10"
-            : "bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-600 dark:text-amber-400 hover:from-amber-500/20 hover:to-orange-500/20"
-        )}
-      >
-        <Coins className="h-4 w-4" />
-        <div className="flex flex-col">
-          <span>{language === "es" ? item.labelEs : item.labelEn}</span>
-          <span className="text-[10px] font-normal opacity-80">
-            {language === "es" ? "💰 gana dinero hoy" : "💰 earn money today"}
-          </span>
-        </div>
-      </NavLink>
-    );
-  };
-
   return (
     <>
       {/* Overlay for mobile */}
@@ -274,13 +220,6 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             {exploreItems.map(renderNavItem)}
           </div>
 
-          {/* GANA DINERO Section - Hidden temporarily, code preserved for future use */}
-          {/* {renderSectionLabel("earn")}
-          <div className="space-y-0.5">
-            {earnItems.filter(i => i.to !== "/affiliates").map(renderNavItem)}
-            {renderAffiliateItem()}
-          </div> */}
-
           {/* TU CENTRO Section */}
           {renderSectionLabel("workspace")}
           <div className="space-y-0.5">
@@ -303,67 +242,6 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
               </div>
             </NavLink>
           </div>
-          
-          {/* Credits Badge for Premium users */}
-          {isLoggedIn && isPremium && (
-            <div className="mt-3 px-1">
-              <CreditsBadge className="w-full justify-center" />
-            </div>
-          )}
-          
-          {/* Plan Badge for Pro users - upsell to Premium */}
-          {isLoggedIn && planTier === "pro" && (
-            <div className="mt-3 px-1">
-              <button
-                onClick={() => navigate("/pricing")}
-                className="flex items-center gap-2 w-full px-3 py-2 rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-600 dark:text-violet-400 hover:from-violet-500/20 hover:to-purple-500/20 transition-all"
-              >
-                <Crown className="h-4 w-4" />
-                <div className="flex-1 text-left">
-                  <span className="text-xs font-medium">
-                    {language === "es" ? "Genera videos IA" : "Generate AI videos"}
-                  </span>
-                  <p className="text-[10px] opacity-80">
-                    {language === "es" ? "Upgrade a Premium" : "Upgrade to Premium"}
-                  </p>
-                </div>
-              </button>
-            </div>
-          )}
-
-          {/* PANEL MARCA Section - Hidden temporarily, code preserved for future use */}
-          {/* {isLoggedIn && isBrand && (
-            <>
-              <div className="py-3 px-3">
-                <Separator className="bg-border" />
-              </div>
-              {renderSectionLabel("brand")}
-              <div className="space-y-0.5">
-                {brandItems.map(renderNavItem)}
-              </div>
-            </>
-          )} */}
-
-          {/* Become a Brand CTA - Hidden temporarily, code preserved for future use */}
-          {/* {isLoggedIn && !isBrand && (
-            <div className="mt-4 mx-0">
-              <button
-                onClick={() => {
-                  navigate("/brand/register");
-                  handleNavClick();
-                }}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm w-full transition-all duration-200 bg-gradient-to-r from-violet-500/10 to-purple-500/10 text-violet-600 dark:text-violet-400 hover:from-violet-500/20 hover:to-purple-500/20"
-              >
-                <Building2 className="h-4 w-4" />
-                <div className="flex flex-col text-left">
-                  <span className="font-medium">{language === "es" ? "¿Eres una marca?" : "Are you a brand?"}</span>
-                  <span className="text-[10px] font-normal opacity-80">
-                    {language === "es" ? "Lanza campañas aquí" : "Launch campaigns here"}
-                  </span>
-                </div>
-              </button>
-            </div>
-          )} */}
         </nav>
 
         {/* Bottom section */}

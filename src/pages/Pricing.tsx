@@ -16,11 +16,7 @@ import {
   Sparkles,
   Gift,
   ChevronLeft,
-  Star,
   Loader2,
-  Video,
-  Wand2,
-  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -71,74 +67,64 @@ const Pricing = () => {
     checkReferral();
   }, [searchParams]);
 
-  const proFeatures = language === "es" 
+  const features = language === "es" 
     ? [
-        "Dashboard con videos virales",
+        "Dashboard con videos virales de TikTok Shop",
         "Scripts reales extraídos automáticamente",
-        "Variantes IA ilimitadas",
+        "Variantes IA ilimitadas para tus guiones",
         "Hooks generados por IA",
-        "Oportunidades de productos",
-        "Panel de afiliados (30% comisión)",
+        "Oportunidades de productos con alto potencial",
+        "Panel de afiliados (30% comisión recurrente)",
+        "Acceso a campañas de marcas",
+        "Ranking de creadores top",
+        "Biblioteca personal de assets",
+        "Soporte prioritario",
       ]
     : [
-        "Dashboard with viral videos",
+        "Dashboard with viral TikTok Shop videos",
         "Real scripts auto-extracted",
-        "Unlimited AI variants",
+        "Unlimited AI script variants",
         "AI-generated hooks",
-        "Product opportunities",
-        "Affiliate panel (30% commission)",
-      ];
-
-  const premiumFeatures = language === "es"
-    ? [
-        "Todo lo de Pro incluido",
-        "5 videos IA/mes con lip-sync",
-        "Genera videos sin grabarte",
-        "Voz en español incluida",
-        "Descarga directa para TikTok",
-        "Compra packs adicionales",
-      ]
-    : [
-        "Everything in Pro included",
-        "5 AI videos/month with lip-sync",
-        "Generate videos without recording",
-        "Spanish voice included",
-        "Direct download for TikTok",
-        "Buy additional packs",
+        "High-potential product opportunities",
+        "Affiliate panel (30% recurring commission)",
+        "Access to brand campaigns",
+        "Top creator rankings",
+        "Personal asset library",
+        "Priority support",
       ];
 
   const faqItems = [
     {
-      question: language === "es" ? "¿Cuál es la diferencia entre Pro y Premium?" : "What's the difference between Pro and Premium?",
+      question: language === "es" ? "¿Qué incluye la suscripción?" : "What's included in the subscription?",
       answer: language === "es"
-        ? "Pro te da acceso a todos los scripts, análisis y variantes IA. Premium incluye todo eso MÁS la capacidad de generar videos con lip-sync usando IA — perfecto si no quieres salir a cámara."
-        : "Pro gives you access to all scripts, analysis and AI variants. Premium includes all that PLUS the ability to generate lip-sync videos using AI — perfect if you don't want to be on camera.",
+        ? "Acceso completo a todas las herramientas: videos virales, extracción de scripts, variantes IA, oportunidades de productos, campañas de marcas, y el panel de afiliados para ganar comisiones."
+        : "Full access to all tools: viral videos, script extraction, AI variants, product opportunities, brand campaigns, and the affiliate panel to earn commissions.",
     },
     {
       question: language === "es" ? "¿Puedo cancelar en cualquier momento?" : "Can I cancel anytime?",
       answer: language === "es"
-        ? "Sí, puedes cancelar tu suscripción en cualquier momento desde tu panel de configuración."
-        : "Yes, you can cancel your subscription at any time from your settings panel.",
+        ? "Sí, puedes cancelar tu suscripción en cualquier momento desde tu panel de configuración. No hay contratos ni compromisos."
+        : "Yes, you can cancel your subscription at any time from your settings panel. No contracts or commitments.",
     },
     {
-      question: language === "es" ? "¿Qué pasa si se acaban mis créditos de video?" : "What happens if I run out of video credits?",
+      question: language === "es" ? "¿Cómo funciona el programa de afiliados?" : "How does the affiliate program work?",
       answer: language === "es"
-        ? "Puedes comprar packs adicionales de videos: 3 videos por $9.99 o 10 videos por $24.99. Los créditos comprados no expiran."
-        : "You can buy additional video packs: 3 videos for $9.99 or 10 videos for $24.99. Purchased credits never expire.",
+        ? "Ganas 30% de comisión recurrente por cada usuario que refieras mientras mantenga su suscripción activa. Es dinero pasivo real."
+        : "You earn 30% recurring commission for every user you refer as long as they maintain their active subscription. It's real passive income.",
     },
   ];
 
-  const handleSelectPlan = async (plan: "pro" | "premium") => {
+  const handleSelectPlan = async () => {
     if (!session) {
       const refParam = referralCode ? `&ref=${referralCode}` : "";
-      navigate(`/register?redirect=/pricing${refParam}&plan=${plan}`);
+      navigate(`/register?redirect=/pricing${refParam}&plan=pro`);
       return;
     }
 
-    setLoadingPlan(plan);
+    setLoadingPlan("pro");
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { referral_code: referralCode, plan },
+        body: { referral_code: referralCode, plan: "pro" },
       });
 
       if (error) throw error;
@@ -162,10 +148,8 @@ const Pricing = () => {
     }
   };
 
-  const proPrice = 14.99;
-  const premiumPrice = 29.99;
-  const discountedProPrice = referralValid ? proPrice * 0.5 : proPrice;
-  const discountedPremiumPrice = referralValid ? premiumPrice * 0.5 : premiumPrice;
+  const price = 14.99;
+  const discountedPrice = referralValid ? price * 0.5 : price;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
@@ -214,166 +198,85 @@ const Pricing = () => {
 
         {/* Hero */}
         <div className="text-center mb-12">
+          <Badge className="mb-4 bg-primary/10 text-primary border-0">
+            {language === "es" ? "Plan único" : "Single plan"}
+          </Badge>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            {language === "es" ? "Elige tu plan" : "Choose your plan"}
+            {language === "es" ? "Todo incluido por un precio simple" : "Everything included for one simple price"}
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             {language === "es"
-              ? "Desde scripts virales hasta videos generados con IA — elige lo que necesitas"
-              : "From viral scripts to AI-generated videos — choose what you need"}
+              ? "Scripts virales, oportunidades de productos, herramientas IA y más"
+              : "Viral scripts, product opportunities, AI tools and more"}
           </p>
         </div>
 
-        {/* Two Column Pricing */}
-        <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-6 mb-16">
-          {/* Pro Plan */}
-          <Card className="relative p-6 border-2 border-border hover:border-primary/50 transition-colors">
-            <div className="text-center mb-6">
-              <div className="inline-flex p-3 rounded-xl mb-4 bg-muted text-foreground">
-                <Sparkles className="h-6 w-6" />
+        {/* Single Pricing Card */}
+        <div className="max-w-lg mx-auto mb-16">
+          <Card className="relative p-8 border-2 border-primary shadow-xl shadow-primary/10">
+            <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
+              <Sparkles className="h-3 w-3 mr-1" />
+              {language === "es" ? "ACCESO COMPLETO" : "FULL ACCESS"}
+            </Badge>
+
+            <div className="text-center mb-8">
+              <div className="inline-flex p-4 rounded-2xl mb-4 bg-primary/10 text-primary">
+                <Sparkles className="h-8 w-8" />
               </div>
               <h3 className="text-2xl font-bold mb-2">Adbroll Pro</h3>
-              <p className="text-sm text-muted-foreground">
-                {language === "es" ? "Para creadores que graban su contenido" : "For creators who record their content"}
+              <p className="text-muted-foreground">
+                {language === "es" ? "Todas las herramientas para creadores de TikTok Shop" : "All tools for TikTok Shop creators"}
               </p>
             </div>
 
-            <div className="text-center mb-6">
+            <div className="text-center mb-8">
               <div className="flex items-baseline justify-center gap-2">
                 {referralValid ? (
                   <>
-                    <span className="text-xl text-muted-foreground line-through">${proPrice}</span>
-                    <span className="text-4xl font-bold text-primary">${discountedProPrice.toFixed(2)}</span>
+                    <span className="text-2xl text-muted-foreground line-through">${price}</span>
+                    <span className="text-5xl font-bold text-primary">${discountedPrice.toFixed(2)}</span>
                   </>
                 ) : (
-                  <span className="text-4xl font-bold">${proPrice}</span>
+                  <span className="text-5xl font-bold">${price}</span>
                 )}
-                <span className="text-muted-foreground">/{language === "es" ? "mes" : "month"}</span>
+                <span className="text-muted-foreground text-lg">/{language === "es" ? "mes" : "month"}</span>
               </div>
+              <p className="text-sm text-muted-foreground mt-2">~$300 MXN/{language === "es" ? "mes" : "month"}</p>
               {referralValid && (
-                <p className="text-xs text-green-600 mt-1">50% off {language === "es" ? "primer mes" : "first month"}</p>
+                <p className="text-sm text-green-600 mt-2 font-medium">
+                  🎉 50% off {language === "es" ? "primer mes" : "first month"}
+                </p>
               )}
             </div>
 
-            <ul className="space-y-3 mb-6">
-              {proFeatures.map((feature, index) => (
+            <ul className="space-y-3 mb-8">
+              {features.map((feature, index) => (
                 <li key={index} className="flex items-start gap-3 text-sm">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
                   <span>{feature}</span>
                 </li>
               ))}
             </ul>
 
-            <div className="pt-4 border-t border-border mb-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <X className="h-4 w-4 text-muted-foreground/50" />
-                <span>{language === "es" ? "Videos IA no incluidos" : "AI videos not included"}</span>
-              </div>
-            </div>
-
             <Button
-              variant="outline"
               className="w-full"
               size="lg"
-              onClick={() => handleSelectPlan("pro")}
+              onClick={handleSelectPlan}
               disabled={loadingPlan === "pro"}
             >
               {loadingPlan === "pro" ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{language === "es" ? "Procesando..." : "Processing..."}</>
               ) : (
-                language === "es" ? "Empezar con Pro" : "Start with Pro"
+                language === "es" ? "Empezar ahora" : "Start now"
               )}
             </Button>
-          </Card>
 
-          {/* Premium Plan */}
-          <Card className="relative p-6 border-2 border-primary shadow-xl shadow-primary/10">
-            <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
-              <Star className="h-3 w-3 mr-1" />
-              {language === "es" ? "POPULAR" : "POPULAR"}
-            </Badge>
-
-            <div className="text-center mb-6">
-              <div className="inline-flex p-3 rounded-xl mb-4 bg-primary/10 text-primary">
-                <Video className="h-6 w-6" />
-              </div>
-              <h3 className="text-2xl font-bold mb-2">Adbroll Premium</h3>
-              <p className="text-sm text-muted-foreground">
-                {language === "es" ? "Para creadores que NO quieren salir a cámara" : "For creators who DON'T want to be on camera"}
-              </p>
-            </div>
-
-            <div className="text-center mb-6">
-              <div className="flex items-baseline justify-center gap-2">
-                {referralValid ? (
-                  <>
-                    <span className="text-xl text-muted-foreground line-through">${premiumPrice}</span>
-                    <span className="text-4xl font-bold text-primary">${discountedPremiumPrice.toFixed(2)}</span>
-                  </>
-                ) : (
-                  <span className="text-4xl font-bold">${premiumPrice}</span>
-                )}
-                <span className="text-muted-foreground">/{language === "es" ? "mes" : "month"}</span>
-              </div>
-              {referralValid && (
-                <p className="text-xs text-green-600 mt-1">50% off {language === "es" ? "primer mes" : "first month"}</p>
-              )}
-            </div>
-
-            <ul className="space-y-3 mb-6">
-              {premiumFeatures.map((feature, index) => (
-                <li key={index} className="flex items-start gap-3 text-sm">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className={index === 0 ? "font-medium" : ""}>{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="pt-4 border-t border-primary/20 mb-4">
-              <div className="flex items-center gap-2 text-sm text-primary font-medium">
-                <Wand2 className="h-4 w-4" />
-                <span>{language === "es" ? "Genera videos sin grabarte" : "Generate videos without recording"}</span>
-              </div>
-            </div>
-
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={() => handleSelectPlan("premium")}
-              disabled={loadingPlan === "premium"}
-            >
-              {loadingPlan === "premium" ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{language === "es" ? "Procesando..." : "Processing..."}</>
-              ) : (
-                language === "es" ? "Empezar con Premium" : "Start with Premium"
-              )}
-            </Button>
-          </Card>
-        </div>
-
-        {/* Credit Packs Info */}
-        <div className="max-w-2xl mx-auto mb-16 text-center">
-          <div className="bg-muted/50 rounded-xl p-6 border border-border">
-            <h3 className="font-semibold mb-2">
-              {language === "es" ? "¿Necesitas más videos?" : "Need more videos?"}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-center text-xs text-muted-foreground mt-4">
               {language === "es" 
-                ? "Los usuarios Premium pueden comprar packs adicionales de créditos"
-                : "Premium users can purchase additional credit packs"}
+                ? "Cancela cuando quieras · Sin compromisos · Pago seguro con Stripe"
+                : "Cancel anytime · No commitments · Secure payment with Stripe"}
             </p>
-            <div className="flex justify-center gap-4 text-sm">
-              <div className="bg-background rounded-lg px-4 py-2">
-                <span className="font-semibold">3 videos</span>
-                <span className="text-muted-foreground ml-2">$9.99</span>
-              </div>
-              <div className="bg-background rounded-lg px-4 py-2 border-2 border-primary">
-                <span className="font-semibold">10 videos</span>
-                <span className="text-muted-foreground ml-2">$24.99</span>
-                <Badge className="ml-2 text-[10px]">MEJOR DEAL</Badge>
-              </div>
-            </div>
-          </div>
+          </Card>
         </div>
 
         {/* FAQ Section */}
