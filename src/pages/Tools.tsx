@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { Card } from "@/components/ui/card";
@@ -9,11 +9,15 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   FileText, Copy, Loader2, Zap, PenTool, Check, AlertCircle, 
-  Link2, RotateCcw, Play, Heart, Download, Sparkles, ChevronRight
+  Link2, RotateCcw, Play, Heart, Download, Sparkles, ChevronRight,
+  Video, Upload, Image, Volume2, User
 } from "lucide-react";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useUGCGeneration } from "@/hooks/useUGCGeneration";
 
 interface Product {
   id: string;
@@ -89,6 +93,35 @@ const Tools = () => {
   const [productTab, setProductTab] = useState<"popular" | "favorites">("popular");
   
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  // UGC Generator State
+  const ugc = useUGCGeneration();
+  const [ugcProductImage, setUgcProductImage] = useState<File | null>(null);
+  const [ugcProductDescription, setUgcProductDescription] = useState("");
+  const [ugcAvatarType, setUgcAvatarType] = useState("latina_joven");
+  const [ugcImagePreview, setUgcImagePreview] = useState<string | null>(null);
+
+  const handleUgcImageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUgcProductImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setUgcImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  const handleGenerateUGC = async () => {
+    if (!ugcProductImage || !ugcProductDescription.trim()) {
+      toast({
+        title: "Error",
+        description: language === "es" ? "Sube una imagen y describe tu producto" : "Upload an image and describe your product",
+        variant: "destructive"
+      });
+      return;
+    }
+    await ugc.generate(ugcProductImage, ugcProductDescription, ugcAvatarType);
+  };
 
   useEffect(() => {
     fetchPopularProducts();
@@ -912,6 +945,195 @@ const Tools = () => {
             )}
           </div>
         )}
+      </Card>
+
+      {/* 4. UGC Video Generator */}
+      <Card className="overflow-hidden border-border/50 shadow-sm">
+        <div className="p-5 md:p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-pink-500/20 to-purple-500/20">
+              <Video className="h-5 w-5 text-pink-600" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">
+                {language === "es" ? "Generador de Videos UGC" : "UGC Video Generator"}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {language === "es" ? "Crea videos de venta con IA a partir de una foto de producto" : "Create AI sales videos from a product photo"}
+              </p>
+            </div>
+          </div>
+
+          {/* Idle/Input State */}
+          {ugc.step === 'idle' && !ugc.assets && (
+            <div className="space-y-4">
+              {/* Image Upload */}
+              <div className="flex gap-4">
+                <label className="relative flex-shrink-0 w-24 h-24 rounded-xl border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors overflow-hidden bg-muted/20">
+                  <input type="file" accept="image/*" onChange={handleUgcImageChange} className="hidden" />
+                  {ugcImagePreview ? (
+                    <img src={ugcImagePreview} alt="Product" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
+                      <Upload className="h-6 w-6 mb-1" />
+                      <span className="text-[10px]">{language === "es" ? "Subir foto" : "Upload"}</span>
+                    </div>
+                  )}
+                </label>
+                <div className="flex-1 space-y-2">
+                  <Textarea
+                    placeholder={language === "es" ? "Describe tu producto (ej: Pantalones de lino beige, cómodos para oficina y playa)" : "Describe your product..."}
+                    value={ugcProductDescription}
+                    onChange={(e) => setUgcProductDescription(e.target.value)}
+                    className="h-24 resize-none rounded-xl text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Avatar Selection */}
+              <div className="flex items-center gap-3">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <Select value={ugcAvatarType} onValueChange={setUgcAvatarType}>
+                  <SelectTrigger className="flex-1 h-10 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="latina_joven">👩🏽 Mujer Latina Joven</SelectItem>
+                    <SelectItem value="profesional">👩🏻‍💼 Mujer Profesional</SelectItem>
+                    <SelectItem value="hombre_casual">👨🏻 Hombre Casual</SelectItem>
+                    <SelectItem value="influencer">✨ Influencer Trendy</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={handleGenerateUGC}
+                  disabled={!ugcProductImage || !ugcProductDescription.trim()}
+                  className="h-10 px-5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
+                >
+                  <Video className="h-4 w-4 mr-2" />
+                  {language === "es" ? "Generar Video" : "Generate Video"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {ugc.isGenerating && (
+            <div className="py-8 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-pink-500/10 to-purple-500/10 mb-4">
+                <Loader2 className="h-8 w-8 text-pink-600 animate-spin" />
+              </div>
+              <p className="text-sm font-medium text-foreground mb-2">
+                {ugc.getStepLabel(ugc.step, language === "es" ? "es" : "en")}
+              </p>
+              <Progress value={ugc.getProgressPercent(ugc.step)} className="h-2 max-w-xs mx-auto" />
+              <p className="text-xs text-muted-foreground mt-3">
+                {language === "es" ? "Esto puede tomar 2-3 minutos" : "This may take 2-3 minutes"}
+              </p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {ugc.step === 'error' && (
+            <div className="py-8 text-center">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10 mb-4">
+                <AlertCircle className="h-7 w-7 text-destructive" />
+              </div>
+              <p className="text-sm font-medium text-destructive mb-1">Error</p>
+              <p className="text-xs text-muted-foreground mb-4">{ugc.error}</p>
+              <Button onClick={ugc.reset} variant="outline" size="sm" className="rounded-xl">
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                {language === "es" ? "Intentar de nuevo" : "Try again"}
+              </Button>
+            </div>
+          )}
+
+          {/* Results State */}
+          {ugc.assets && ugc.step === 'completed' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl">
+                <Check className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  {language === "es" ? "¡Tu video está listo para ensamblar!" : "Your video is ready to assemble!"}
+                </span>
+              </div>
+
+              {/* Script */}
+              <div className="p-3 rounded-xl bg-purple-50/50 border border-purple-200/50">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-semibold text-purple-700">📝 Guión</span>
+                  <Button variant="ghost" size="sm" onClick={() => handleCopy(ugc.assets?.script || '')} className="h-6 w-6 p-0">
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <p className="text-sm text-foreground">{ugc.assets.script}</p>
+              </div>
+
+              {/* Assets Preview */}
+              <div className="grid grid-cols-3 gap-3">
+                {ugc.assets.video_1_url ? (
+                  <a href={ugc.assets.video_1_url} download className="block">
+                    <div className="aspect-[9/16] rounded-xl bg-muted overflow-hidden relative group">
+                      <video src={ugc.assets.video_1_url} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Download className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                    <p className="text-xs text-center mt-1.5 text-muted-foreground">Escena 1</p>
+                  </a>
+                ) : ugc.assets.image_1_url && (
+                  <div className="aspect-[9/16] rounded-xl bg-muted overflow-hidden">
+                    <img src={ugc.assets.image_1_url} alt="Scene 1" className="w-full h-full object-cover opacity-50" />
+                    <p className="text-xs text-center mt-1.5 text-muted-foreground">Procesando...</p>
+                  </div>
+                )}
+
+                {ugc.assets.video_2_url ? (
+                  <a href={ugc.assets.video_2_url} download className="block">
+                    <div className="aspect-[9/16] rounded-xl bg-muted overflow-hidden relative group">
+                      <video src={ugc.assets.video_2_url} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Download className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                    <p className="text-xs text-center mt-1.5 text-muted-foreground">Escena 2</p>
+                  </a>
+                ) : ugc.assets.image_2_url && (
+                  <div className="aspect-[9/16] rounded-xl bg-muted overflow-hidden">
+                    <img src={ugc.assets.image_2_url} alt="Scene 2" className="w-full h-full object-cover opacity-50" />
+                    <p className="text-xs text-center mt-1.5 text-muted-foreground">Procesando...</p>
+                  </div>
+                )}
+
+                {ugc.assets.audio_url && (
+                  <a href={ugc.assets.audio_url} download className="block">
+                    <div className="aspect-[9/16] rounded-xl bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center relative group">
+                      <Volume2 className="h-8 w-8 text-purple-600" />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+                        <Download className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                    <p className="text-xs text-center mt-1.5 text-muted-foreground">Audio</p>
+                  </a>
+                )}
+              </div>
+
+              {/* Instructions */}
+              <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                <p className="text-xs text-muted-foreground">
+                  📱 <strong>{language === "es" ? "Instrucciones:" : "Instructions:"}</strong>{" "}
+                  {language === "es" 
+                    ? "Abre CapCut, importa los 3 archivos, pon el audio debajo y los dos videos uno tras otro. ¡Listo para TikTok!"
+                    : "Open CapCut, import the 3 files, put the audio below and the two videos one after another. Ready for TikTok!"}
+                </p>
+              </div>
+
+              <Button onClick={ugc.reset} variant="outline" className="w-full rounded-xl">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                {language === "es" ? "Generar otro video" : "Generate another video"}
+              </Button>
+            </div>
+          )}
+        </div>
       </Card>
     </div>
   );

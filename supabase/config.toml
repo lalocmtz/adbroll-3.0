@@ -122,3 +122,18 @@ verify_jwt = true
 
 [functions.lipsync-callback]
 verify_jwt = false
+
+[functions.generate-ugc-assets]
+verify_jwt = true
+
+[functions.generate-ugc-images]
+verify_jwt = true
+
+[functions.generate-ugc-videos]
+verify_jwt = true
+
+[functions.generate-ugc-audio]
+verify_jwt = true
+
+[functions.kie-ugc-callback]
+verify_jwt = false
