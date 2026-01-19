@@ -1573,6 +1573,78 @@ export type Database = {
         }
         Relationships: []
       }
+      ugc_generations: {
+        Row: {
+          audio_url: string | null
+          avatar_type: string
+          completed_at: string | null
+          cost_usd: number | null
+          created_at: string
+          current_step: number | null
+          error_message: string | null
+          id: string
+          image_1_url: string | null
+          image_2_url: string | null
+          product_description: string
+          product_image_url: string
+          prompt_scene_1: string | null
+          prompt_scene_2: string | null
+          script: string | null
+          status: string
+          user_id: string
+          video_1_task_id: string | null
+          video_1_url: string | null
+          video_2_task_id: string | null
+          video_2_url: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          avatar_type?: string
+          completed_at?: string | null
+          cost_usd?: number | null
+          created_at?: string
+          current_step?: number | null
+          error_message?: string | null
+          id?: string
+          image_1_url?: string | null
+          image_2_url?: string | null
+          product_description: string
+          product_image_url: string
+          prompt_scene_1?: string | null
+          prompt_scene_2?: string | null
+          script?: string | null
+          status?: string
+          user_id: string
+          video_1_task_id?: string | null
+          video_1_url?: string | null
+          video_2_task_id?: string | null
+          video_2_url?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          avatar_type?: string
+          completed_at?: string | null
+          cost_usd?: number | null
+          created_at?: string
+          current_step?: number | null
+          error_message?: string | null
+          id?: string
+          image_1_url?: string | null
+          image_2_url?: string | null
+          product_description?: string
+          product_image_url?: string
+          prompt_scene_1?: string | null
+          prompt_scene_2?: string | null
+          script?: string | null
+          status?: string
+          user_id?: string
+          video_1_task_id?: string | null
+          video_1_url?: string | null
+          video_2_task_id?: string | null
+          video_2_url?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
