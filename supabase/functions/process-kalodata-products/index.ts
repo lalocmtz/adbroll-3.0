@@ -168,32 +168,44 @@ serve(async (req) => {
 
     console.log(`Productos procesados: ${processedProducts.length}`);
 
-    // Sort by revenue_30d descending and assign rank
-    const sortedProducts = processedProducts
-      .sort((a, b) => {
-        const aValue = a.revenue_30d || a.sales_30d || 0;
-        const bValue = b.revenue_30d || b.sales_30d || 0;
-        return bValue - aValue;
-      })
-      .map((p, idx) => ({
-        rank: idx + 1,
-        producto_nombre: p.name,
-        imagen_url: p.image_url,
-        producto_url: p.product_url,
-        categoria: p.category,
-        precio_mxn: p.price,
-        price: p.price,
-        commission: p.commission_rate,
-        commission_amount: p.commission_amount,
-        revenue_30d: p.revenue_30d,
-        total_ingresos_mxn: p.revenue_30d,
-        sales_7d: p.sales_30d,
-        total_ventas: p.sales_30d,
-        creators_count: p.creators_count,
-        rating: p.rating,
-        market,
-        updated_at: new Date().toISOString(),
-      }));
+    // Sort by revenue_30d descending
+    const sortedByRevenue = processedProducts.sort((a, b) => {
+      const aValue = a.revenue_30d || a.sales_30d || 0;
+      const bValue = b.revenue_30d || b.sales_30d || 0;
+      return bValue - aValue;
+    });
+
+    // DEDUPLICATE: Keep only first occurrence (highest revenue) per product name
+    const seenNames = new Set<string>();
+    const uniqueProducts = sortedByRevenue.filter(p => {
+      const key = p.name?.toLowerCase().trim();
+      if (!key || seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
+
+    console.log(`Productos únicos después de deduplicar: ${uniqueProducts.length}`);
+
+    // Assign ranks and format for upsert
+    const sortedProducts = uniqueProducts.map((p, idx) => ({
+      rank: idx + 1,
+      producto_nombre: p.name,
+      imagen_url: p.image_url,
+      producto_url: p.product_url,
+      categoria: p.category,
+      precio_mxn: p.price,
+      price: p.price,
+      commission: p.commission_rate,
+      commission_amount: p.commission_amount,
+      revenue_30d: p.revenue_30d,
+      total_ingresos_mxn: p.revenue_30d,
+      sales_7d: p.sales_30d,
+      total_ventas: p.sales_30d,
+      creators_count: p.creators_count,
+      rating: p.rating,
+      market,
+      updated_at: new Date().toISOString(),
+    }));
 
     console.log(`Batch upserting ${sortedProducts.length} products...`);
 
