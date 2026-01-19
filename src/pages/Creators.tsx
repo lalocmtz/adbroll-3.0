@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -24,6 +23,12 @@ import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
+interface CreatorVideo {
+  id: string;
+  thumbnail_url: string | null;
+  video_mp4_url: string | null;
+}
+
 interface Creator {
   id: string;
   usuario_creador: string;
@@ -44,6 +49,7 @@ interface Creator {
   views_30d: number | null;
   sales_30d: number | null;
   likes_30d: number | null;
+  videos?: CreatorVideo[];
 }
 
 type SortOption = "revenue" | "followers" | "views" | "lives" | "gmv_live" | "gmv_videos";
@@ -94,7 +100,45 @@ const Creators = () => {
         .limit(100);
 
       if (error) throw error;
-      setCreators(data || []);
+      
+      const rawCreators = data || [];
+      
+      // Fetch videos for each creator (max 3 per creator)
+      const videosByCreator: Record<string, CreatorVideo[]> = {};
+      
+      if (rawCreators.length > 0) {
+        const creatorIds = rawCreators.map(c => c.id);
+        const { data: videosData } = await supabase
+          .from("videos")
+          .select("id, creator_id, thumbnail_url, video_mp4_url")
+          .in("creator_id", creatorIds)
+          .not("video_mp4_url", "is", null)
+          .order("revenue_mxn", { ascending: false });
+
+        // Group videos by creator (max 3 each)
+        videosData?.forEach(video => {
+          if (video.creator_id) {
+            if (!videosByCreator[video.creator_id]) {
+              videosByCreator[video.creator_id] = [];
+            }
+            if (videosByCreator[video.creator_id].length < 3) {
+              videosByCreator[video.creator_id].push({
+                id: video.id,
+                thumbnail_url: video.thumbnail_url,
+                video_mp4_url: video.video_mp4_url
+              });
+            }
+          }
+        });
+      }
+      
+      // Map to Creator type with videos attached
+      const creatorsWithVideos: Creator[] = rawCreators.map(creator => ({
+        ...creator,
+        videos: videosByCreator[creator.id] || []
+      }));
+      
+      setCreators(creatorsWithVideos);
     } catch (error: any) {
       toast({
         title: "Error al cargar creadores",
@@ -225,14 +269,6 @@ const Creators = () => {
     return Math.round((liveRevenue / total) * 100);
   };
 
-  // Determine creator type based on GMV distribution
-  const getCreatorType = (creator: Creator): 'video' | 'live' | 'hybrid' => {
-    const videoPercent = getVideoPercentage(creator);
-    if (videoPercent >= 70) return 'video';
-    if (videoPercent <= 30) return 'live';
-    return 'hybrid';
-  };
-
   // Get GMV per live
   const getGmvPerLive = (creator: Creator): string => {
     const lives = creator.total_live_count || 0;
@@ -282,32 +318,33 @@ const Creators = () => {
     navigate(`/videos/creator/${creator.id}`);
   };
 
-  // Creator type badge component
-  const CreatorTypeBadge = ({ creator }: { creator: Creator }) => {
-    const type = getCreatorType(creator);
-    const videoPercent = getVideoPercentage(creator);
-    const livePercent = getLivePercentage(creator);
-    
-    if (type === 'video') {
-      return (
-        <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-          <Video className="h-2.5 w-2.5 mr-0.5" />
-          {videoPercent}% videos
-        </Badge>
-      );
-    }
-    if (type === 'live') {
-      return (
-        <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200 dark:border-rose-800">
-          <Radio className="h-2.5 w-2.5 mr-0.5" />
-          {livePercent}% lives
-        </Badge>
-      );
-    }
+  // Video preview thumbnails component
+  const VideoPreviewThumbnails = ({ videos, isLocked }: { videos?: CreatorVideo[], isLocked: boolean }) => {
+    if (isLocked) return <span className="text-xs text-muted-foreground">•••</span>;
+    if (!videos || videos.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
+
     return (
-      <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800">
-        ⚖️ Híbrido
-      </Badge>
+      <div className="flex -space-x-2">
+        {videos.slice(0, 3).map((video, i) => (
+          <div 
+            key={video.id}
+            className="w-8 h-10 rounded border-2 border-background overflow-hidden bg-muted shrink-0"
+            style={{ zIndex: 3 - i }}
+          >
+            {video.thumbnail_url ? (
+              <img 
+                src={video.thumbnail_url} 
+                alt="" 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/40">
+                <Play className="h-3 w-3 text-white" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     );
   };
 
@@ -395,12 +432,12 @@ const Creators = () => {
           {/* Desktop Table - Enhanced with horizontal scroll */}
           <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
             <div className="overflow-x-auto">
-              <Table className="min-w-[1200px]">
+              <Table className="min-w-[1100px]">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
                     <TableHead className="w-12 text-center sticky left-0 bg-muted/30">#</TableHead>
                     <TableHead className="w-10"></TableHead>
-                    <TableHead className="min-w-[180px]">Creador</TableHead>
+                    <TableHead className="min-w-[260px]">Creador</TableHead>
                     <TableHead className="text-right">Seguidores</TableHead>
                     <TableHead className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -427,15 +464,18 @@ const Creators = () => {
                       </div>
                     </TableHead>
                     <TableHead className="text-right">Lives</TableHead>
-                    <TableHead className="text-right">Videos</TableHead>
                     <TableHead className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Eye className="h-3 w-3" />
                         Vistas
                       </div>
                     </TableHead>
-                    <TableHead className="w-10"></TableHead>
-                    <TableHead className="text-right w-[100px]">Acción</TableHead>
+                    <TableHead className="min-w-[180px]">
+                      <div className="flex items-center gap-1">
+                        <Play className="h-3 w-3 text-primary" />
+                        Videos
+                      </div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -487,7 +527,7 @@ const Creators = () => {
                           </button>
                         </TableCell>
 
-                        {/* Creator Info */}
+                        {/* Creator Info + Ver cuenta button */}
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="relative">
@@ -498,17 +538,29 @@ const Creators = () => {
                                 </AvatarFallback>
                               </Avatar>
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="font-semibold text-sm truncate text-foreground">
                                 @{creator.creator_handle || creator.usuario_creador}
                               </p>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <p className="text-xs text-muted-foreground truncate max-w-[100px]">
-                                  {creator.nombre_completo || "—"}
-                                </p>
-                                {!isLocked && <CreatorTypeBadge creator={creator} />}
-                              </div>
+                              <p className="text-xs text-muted-foreground truncate max-w-[100px]">
+                                {creator.nombre_completo || "—"}
+                              </p>
                             </div>
+                            {/* Ver cuenta button */}
+                            {tiktokUrl && !isLocked && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-7 text-xs shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openTikTokLink(tiktokUrl);
+                                }}
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Ver cuenta
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
 
@@ -571,55 +623,35 @@ const Creators = () => {
                           </div>
                         </TableCell>
 
-                        {/* Videos Count */}
-                        <TableCell className="text-right font-medium">
-                          {isLocked ? "•••" : (creator.total_videos ? formatNumber(creator.total_videos) : "—")}
-                        </TableCell>
-
                         {/* Views */}
                         <TableCell className="text-right font-medium">
                           {isLocked ? "•••" : formatNumber(creator.promedio_visualizaciones)}
                         </TableCell>
 
-                        {/* TikTok Link */}
+                        {/* Videos Preview + Ver videos button */}
                         <TableCell className="p-2">
-                          {tiktokUrl && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (isLocked || !isLoggedIn) {
-                                  navigate("/unlock");
-                                  return;
-                                }
-                                openTikTokLink(tiktokUrl);
-                              }}
-                              className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors"
-                            >
-                              <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                            </button>
-                          )}
-                        </TableCell>
-
-                        {/* Action */}
-                        <TableCell className="text-right">
-                          {isLocked ? (
-                            <Button size="sm" variant="outline" className="h-8 text-xs">
-                              <Lock className="h-3 w-3 mr-1" />
-                              Unlock
-                            </Button>
-                          ) : (
-                            <Button 
-                              size="sm" 
-                              className="h-8 text-xs"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/videos/creator/${creator.id}`);
-                              }}
-                            >
-                              <Play className="h-3 w-3 mr-1" />
-                              Videos
-                            </Button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            <VideoPreviewThumbnails videos={creator.videos} isLocked={isLocked} />
+                            {!isLocked && (
+                              <Button 
+                                size="sm"
+                                className="h-7 text-xs shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/videos/creator/${creator.id}`);
+                                }}
+                              >
+                                <Play className="h-3 w-3 mr-1" />
+                                Ver videos
+                              </Button>
+                            )}
+                            {isLocked && (
+                              <Button size="sm" variant="outline" className="h-7 text-xs shrink-0">
+                                <Lock className="h-3 w-3 mr-1" />
+                                Unlock
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -637,8 +669,7 @@ const Creators = () => {
                   <TableHead className="w-8 text-center p-2">#</TableHead>
                   <TableHead className="p-2">Creador</TableHead>
                   <TableHead className="text-right p-2">GMV</TableHead>
-                  <TableHead className="text-right p-2 w-16">Ganancias</TableHead>
-                  <TableHead className="w-8 p-2"></TableHead>
+                  <TableHead className="text-right p-2 w-20">Ganancias</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -647,8 +678,6 @@ const Creators = () => {
                   const globalIndex = startIndex + pageIndex;
                   const ranking = globalIndex + 1;
                   const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
-                  const videoPercent = getVideoPercentage(creator);
-                  const livePercent = getLivePercentage(creator);
 
                   return (
                     <TableRow 
@@ -688,11 +717,16 @@ const Creators = () => {
                             <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                               <Users className="h-2.5 w-2.5" />
                               {isLocked ? "•••" : formatNumber(creator.seguidores)}
-                              {!isLocked && (videoPercent > 0 || livePercent > 0) && (
-                                <span className="ml-1 flex items-center gap-0.5">
-                                  {videoPercent > 0 && <span className="text-blue-500">📹{videoPercent}%</span>}
-                                  {livePercent > 0 && <span className="text-rose-500">🔴{livePercent}%</span>}
-                                </span>
+                              {!isLocked && tiktokUrl && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openTikTokLink(tiktokUrl);
+                                  }}
+                                  className="ml-1 text-primary hover:underline"
+                                >
+                                  Ver cuenta ↗
+                                </button>
                               )}
                             </div>
                           </div>
@@ -711,15 +745,6 @@ const Creators = () => {
                         <span className="text-amber-600 dark:text-amber-400 font-semibold text-[11px]">
                           {isLocked ? "•••" : calculateEstimatedEarnings(creator.total_ingresos_mxn)}
                         </span>
-                      </TableCell>
-
-                      {/* Action Icon */}
-                      <TableCell className="p-2">
-                        {isLocked ? (
-                          <Lock className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Play className="h-4 w-4 text-primary" />
-                        )}
                       </TableCell>
                     </TableRow>
                   );
