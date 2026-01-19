@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useVideoCredits } from "@/hooks/useVideoCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings as SettingsIcon, User, Globe, LogOut, CreditCard, Loader2, ExternalLink, Calendar, Crown, Zap, Video, Sparkles, Coins, Check } from "lucide-react";
-import { CreditPacksModal } from "@/components/CreditPacksModal";
+import { Settings as SettingsIcon, User, Globe, LogOut, CreditCard, Loader2, ExternalLink, Calendar, Crown, Zap, Sparkles } from "lucide-react";
 
 interface SubscriptionData {
   status: string;
@@ -29,8 +27,7 @@ interface SubscriptionData {
 
 const Settings = () => {
   const { language, setLanguage, currency, setCurrency } = useLanguage();
-  const { planTier, isPro, isPremium, isFounder, isGrantedAccess, loading: subscriptionLoading } = useSubscription();
-  const { availableCredits, monthlyCredits, purchasedCredits } = useVideoCredits();
+  const { planTier, isPro, isFounder, isGrantedAccess, loading: subscriptionLoading } = useSubscription();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState("");
@@ -38,8 +35,7 @@ const Settings = () => {
   const [memberSince, setMemberSince] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
-  const [creditPacksOpen, setCreditPacksOpen] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -90,11 +86,11 @@ const Settings = () => {
     }
   };
 
-  const handleSelectPlan = async (plan: "pro" | "premium") => {
-    setCheckoutLoading(plan);
+  const handleSubscribe = async () => {
+    setCheckoutLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan }
+        body: { plan: "pro" }
       });
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
@@ -108,7 +104,7 @@ const Settings = () => {
         variant: "destructive",
       });
     } finally {
-      setCheckoutLoading(null);
+      setCheckoutLoading(false);
     }
   };
 
@@ -135,14 +131,6 @@ const Settings = () => {
         <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0">
           <Sparkles className="h-3 w-3 mr-1" />
           Creator Program
-        </Badge>
-      );
-    }
-    if (isPremium) {
-      return (
-        <Badge className="bg-gradient-to-r from-violet-600 to-purple-600 text-white border-0">
-          <Video className="h-3 w-3 mr-1" />
-          Premium
         </Badge>
       );
     }
@@ -208,7 +196,7 @@ const Settings = () => {
         </Card>
 
         {/* Subscription Section */}
-        <Card className={`p-5 ${(isPro || isPremium) ? "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20" : ""}`}>
+        <Card className={`p-5 ${isPro ? "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20" : ""}`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <CreditCard className="h-5 w-5 text-primary" />
@@ -224,14 +212,12 @@ const Settings = () => {
               <Loader2 className="h-4 w-4 animate-spin" />
               <span className="text-sm">{language === "es" ? "Cargando..." : "Loading..."}</span>
             </div>
-          ) : (isPro || isPremium || isFounder || isGrantedAccess) ? (
+          ) : (isPro || isFounder || isGrantedAccess) ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg font-bold">
-                      Adbroll {isPremium ? 'Premium' : 'Pro'}
-                    </span>
+                    <span className="text-lg font-bold">Adbroll Pro</span>
                   </div>
                   {subscription?.renew_at && (
                     <p className="text-sm text-muted-foreground">
@@ -264,67 +250,6 @@ const Settings = () => {
                   </Button>
                 )}
               </div>
-
-              {/* Credits display for Premium users */}
-              {isPremium && (
-                <div className="pt-3 border-t border-border/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Coins className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">
-                        {language === "es" ? "Créditos de video" : "Video credits"}
-                      </span>
-                    </div>
-                    <span className="text-lg font-bold text-primary">{availableCredits}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <p>• {monthlyCredits} {language === "es" ? "mensuales" : "monthly"}</p>
-                    {purchasedCredits > 0 && (
-                      <p>• {purchasedCredits} {language === "es" ? "comprados" : "purchased"}</p>
-                    )}
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-3 w-full"
-                    onClick={() => setCreditPacksOpen(true)}
-                  >
-                    <Coins className="h-4 w-4 mr-2" />
-                    {language === "es" ? "Comprar más créditos" : "Buy more credits"}
-                  </Button>
-                </div>
-              )}
-
-              {/* Upgrade CTA for Pro users */}
-              {isPro && !isPremium && (
-                <div className="pt-3 border-t border-border/50 space-y-3">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full"
-                    onClick={() => setCreditPacksOpen(true)}
-                  >
-                    <Coins className="h-4 w-4 mr-2" />
-                    {language === "es" ? "Comprar créditos de video" : "Buy video credits"}
-                  </Button>
-                  <button
-                    onClick={() => navigate("/pricing")}
-                    className="flex items-center gap-3 p-3 rounded-xl w-full transition-all duration-200 bg-gradient-to-r from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20"
-                  >
-                    <Video className="h-5 w-5 text-violet-500" />
-                    <div className="flex-1 text-left">
-                      <p className="text-sm font-medium text-violet-600 dark:text-violet-400">
-                        {language === "es" ? "Actualizar a Premium" : "Upgrade to Premium"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {language === "es" 
-                          ? "Incluye 5 créditos mensuales"
-                          : "Includes 5 monthly credits"}
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              )}
               
               {/* Subscription Info */}
               {!isFounder && !isGrantedAccess && (
@@ -344,91 +269,30 @@ const Settings = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* No subscription - Show both plans */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Plan Pro */}
-                <div className="p-4 rounded-xl border-2 border-border hover:border-primary/50 transition-all">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">Pro</span>
-                  </div>
-                  <p className="text-2xl font-bold mb-1">$25<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
-                  <ul className="text-xs text-muted-foreground space-y-1.5 mb-4">
-                    <li className="flex items-center gap-1.5">
-                      <Check className="h-3 w-3 text-primary" />
-                      {language === "es" ? "Acceso completo a videos" : "Full video access"}
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <Check className="h-3 w-3 text-primary" />
-                      {language === "es" ? "Scripts IA ilimitados" : "Unlimited AI scripts"}
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <Check className="h-3 w-3 text-primary" />
-                      {language === "es" ? "Análisis de productos" : "Product analytics"}
-                    </li>
-                  </ul>
-                  <Button 
-                    onClick={() => handleSelectPlan("pro")} 
-                    className="w-full" 
-                    size="sm"
-                    disabled={checkoutLoading !== null}
-                  >
-                    {checkoutLoading === "pro" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      language === "es" ? "Suscribir" : "Subscribe"
-                    )}
-                  </Button>
+              {/* No subscription - Show subscribe CTA */}
+              <div className="p-4 rounded-xl border-2 border-primary/50 bg-primary/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">Adbroll Pro</span>
                 </div>
-
-                {/* Plan Premium */}
-                <div className="p-4 rounded-xl border-2 border-violet-500/50 bg-violet-500/5 relative">
-                  <Badge className="absolute -top-2 right-3 bg-violet-500 text-white text-xs">
-                    Popular
-                  </Badge>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Video className="h-4 w-4 text-violet-500" />
-                    <span className="font-semibold">Premium</span>
-                  </div>
-                  <p className="text-2xl font-bold mb-1">$50<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
-                  <ul className="text-xs text-muted-foreground space-y-1.5 mb-4">
-                    <li className="flex items-center gap-1.5">
-                      <Check className="h-3 w-3 text-violet-500" />
-                      {language === "es" ? "Todo de Pro" : "Everything in Pro"}
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <Check className="h-3 w-3 text-violet-500" />
-                      {language === "es" ? "5 videos IA/mes" : "5 AI videos/month"}
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <Check className="h-3 w-3 text-violet-500" />
-                      {language === "es" ? "Generador de avatares" : "Avatar generator"}
-                    </li>
-                  </ul>
-                  <Button 
-                    onClick={() => handleSelectPlan("premium")} 
-                    className="w-full bg-violet-600 hover:bg-violet-700" 
-                    size="sm"
-                    disabled={checkoutLoading !== null}
-                  >
-                    {checkoutLoading === "premium" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      language === "es" ? "Suscribir" : "Subscribe"
-                    )}
-                  </Button>
-                </div>
+                <p className="text-2xl font-bold mb-2">$14.99<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {language === "es" 
+                    ? "Acceso completo a todas las herramientas" 
+                    : "Full access to all tools"}
+                </p>
+                <Button 
+                  onClick={handleSubscribe} 
+                  className="w-full" 
+                  disabled={checkoutLoading}
+                >
+                  {checkoutLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    language === "es" ? "Suscribirse" : "Subscribe"
+                  )}
+                </Button>
               </div>
-
-              {/* Buy credits button */}
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => setCreditPacksOpen(true)}
-              >
-                <Coins className="h-4 w-4 mr-2" />
-                {language === "es" ? "Comprar créditos de video" : "Buy video credits"}
-              </Button>
             </div>
           )}
         </Card>
@@ -436,52 +300,51 @@ const Settings = () => {
         {/* Preferences Section */}
         <Card className="p-5">
           <div className="flex items-center gap-3 mb-4">
-            <Globe className="h-5 w-5 text-muted-foreground" />
+            <Globe className="h-5 w-5 text-primary" />
             <h2 className="font-semibold">
               {language === "es" ? "Preferencias" : "Preferences"}
             </h2>
           </div>
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-xs">{language === "es" ? "Idioma" : "Language"}</Label>
-              <Select value={language} onValueChange={(v: "es" | "en") => setLanguage(v)}>
+              <Select value={language} onValueChange={(v) => setLanguage(v as "es" | "en")}>
                 <SelectTrigger className="mt-1 h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="es">🇲🇽 Español</SelectItem>
-                  <SelectItem value="en">🇺🇸 English</SelectItem>
+                  <SelectItem value="es">Español</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label className="text-xs">{language === "es" ? "Moneda" : "Currency"}</Label>
-              <Select value={currency} onValueChange={(v: "MXN" | "USD") => setCurrency(v)}>
+              <Select value={currency} onValueChange={(v) => setCurrency(v as "MXN" | "USD")}>
                 <SelectTrigger className="mt-1 h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="MXN">$ MXN (Peso mexicano)</SelectItem>
-                  <SelectItem value="USD">$ USD (US Dollar)</SelectItem>
+                  <SelectItem value="MXN">MXN</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
         </Card>
 
-        {/* Sign Out */}
-        <Button 
-          variant="outline" 
-          className="w-full" 
-          onClick={handleLogout}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          {language === "es" ? "Cerrar sesión" : "Sign out"}
-        </Button>
+        {/* Logout */}
+        <Card className="p-5">
+          <Button
+            variant="destructive"
+            className="w-full"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            {language === "es" ? "Cerrar sesión" : "Sign out"}
+          </Button>
+        </Card>
       </div>
-
-      {/* Credit Packs Modal */}
-      <CreditPacksModal open={creditPacksOpen} onOpenChange={setCreditPacksOpen} />
     </div>
   );
 };

@@ -40,10 +40,7 @@ serve(async (req) => {
     }
 
     const user = userData.user;
-    const { referral_code, plan } = await req.json();
-
-    // Validate plan type - defaults to 'pro' if not specified
-    const planType = plan === 'premium' ? 'premium' : 'pro';
+    const { referral_code } = await req.json();
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
@@ -82,17 +79,12 @@ serve(async (req) => {
       }
     }
 
-    // Get the correct price ID based on plan
-    const priceId = planType === 'premium' 
-      ? Deno.env.get("STRIPE_PRICE_ID_PREMIUM")
-      : Deno.env.get("STRIPE_PRICE_ID_PRO");
+    // Single plan: Pro at $14.99
+    const priceId = Deno.env.get("STRIPE_PRICE_ID_PRO");
 
     if (!priceId) {
-      throw new Error(`Price ID not configured for plan: ${planType}`);
+      throw new Error("STRIPE_PRICE_ID_PRO not configured");
     }
-
-    // Get price amount for display
-    const priceAmount = planType === 'premium' ? 29.99 : 14.99;
 
     // Build checkout session params
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
@@ -109,8 +101,8 @@ serve(async (req) => {
       cancel_url: `${req.headers.get("origin")}/checkout/cancel`,
       metadata: {
         supabase_user_id: user.id,
-        plan_type: planType,
-        price_usd: priceAmount.toString(),
+        plan_type: "pro",
+        price_usd: "14.99",
       },
     };
 
@@ -134,7 +126,7 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    console.log(`Checkout session created: ${session.id} for user: ${user.id}, plan: ${planType}`);
+    console.log(`Checkout session created: ${session.id} for user: ${user.id}`);
 
     return new Response(
       JSON.stringify({ url: session.url }),

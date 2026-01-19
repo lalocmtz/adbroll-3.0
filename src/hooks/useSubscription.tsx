@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 
 export type Subscription = Tables<"subscriptions">;
-export type PlanTier = "free" | "pro" | "premium";
+export type PlanTier = "free" | "pro";
 
 export const useSubscription = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -49,7 +49,7 @@ export const useSubscription = () => {
       if (roleData) {
         setIsFounder(true);
         setHasActiveSubscription(true);
-        setPlanTier("premium"); // Founders get premium access
+        setPlanTier("pro");
         setLoading(false);
         return;
       }
@@ -67,7 +67,7 @@ export const useSubscription = () => {
         setIsGrantedAccess(true);
         setGrantExpiresAt(grantData.subscription_ends_at);
         setHasActiveSubscription(true);
-        setPlanTier("premium"); // Granted access gets premium
+        setPlanTier("pro");
         setLoading(false);
         return;
       }
@@ -94,10 +94,8 @@ export const useSubscription = () => {
     }
   };
 
-  // Derived states
-  const isPro = planTier === "pro" || planTier === "premium";
-  const isPremium = planTier === "premium";
-  const canGenerateVideos = isPremium || isFounder || isGrantedAccess;
+  // Derived states - simplified (no more premium tier)
+  const isPro = planTier === "pro" || hasActiveSubscription || isFounder || isGrantedAccess;
 
   return {
     subscription,
@@ -108,8 +106,7 @@ export const useSubscription = () => {
     grantExpiresAt,
     planTier,
     isPro,
-    isPremium,
-    canGenerateVideos,
+    isPremium: isPro, // Alias for backwards compatibility
     refetch: checkSubscription,
   };
 };
