@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause, BarChart3, Upload, Megaphone } from "lucide-react";
+import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause, BarChart3, Upload, Megaphone, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
@@ -52,6 +52,7 @@ const Admin = () => {
     pendingDownload: 0,
     pendingTranscription: 0,
     pendingMatch: 0,
+    pendingAvatars: 0,
   });
 
   useEffect(() => {
@@ -78,12 +79,12 @@ const Admin = () => {
       const [videosRes, productsRes, creatorsRes] = await Promise.all([
         supabase.from("videos").select("id, product_id, video_mp4_url, transcript, processing_status, download_attempts"),
         supabase.from("products").select("id", { count: "exact", head: true }),
-        supabase.from("creators").select("id", { count: "exact", head: true }),
+        supabase.from("creators").select("id, avatar_url, avatar_storage_url"),
       ]);
 
       const videos = videosRes.data || [];
+      const creators = creatorsRes.data || [];
       const withProduct = videos.filter(v => v.product_id).length;
-      const downloaded = videos.filter(v => v.video_mp4_url).length;
       const readyToShow = videos.filter(v => v.video_mp4_url && v.product_id).length;
       const pendingTranscription = videos.filter(v => v.video_mp4_url && !v.transcript).length;
       
@@ -94,14 +95,20 @@ const Admin = () => {
         (v.download_attempts || 0) < 5
       ).length;
       
+      // Count creators with avatar_url but no avatar_storage_url
+      const pendingAvatars = creators.filter(c => 
+        c.avatar_url && !c.avatar_storage_url
+      ).length;
+      
       setStats({
         videos: videos.length,
         products: productsRes.count || 0,
-        creators: creatorsRes.count || 0,
+        creators: creators.length,
         readyToShow,
         pendingDownload,
         pendingTranscription,
         pendingMatch: videos.length - withProduct,
+        pendingAvatars,
       });
     } finally {
       setIsRefreshing(false);
@@ -168,11 +175,12 @@ const Admin = () => {
     let downloadStats = { successful: 0, failed: 0, skipped: false };
     let transcriptionStats = { successful: 0, failed: 0, skipped: false };
     let matchStats = { successful: 0, failed: 0, skipped: false };
+    let avatarStats = { successful: 0, failed: 0, skipped: false };
 
     try {
       // Phase 1: Download all pending videos
       if (stats.pendingDownload > 0 && !shouldStopRef.current) {
-        setProcessPhase(`1/3 Descargando ${stats.pendingDownload} videos...`);
+        setProcessPhase(`1/4 Descargando ${stats.pendingDownload} videos...`);
         setProcessProgress(5);
 
         // NO automatic reset of download_failed - let attempt counter handle retries
@@ -231,7 +239,7 @@ const Admin = () => {
           downloadStats.successful += data.successful || 0;
           downloadStats.failed += data.permanentlyFailed || 0;
           
-          setProcessPhase(`1/3 Descargando... (${downloadStats.successful} OK, ${data.remaining} pendientes)`);
+          setProcessPhase(`1/4 Descargando... (${downloadStats.successful} OK, ${data.remaining} pendientes)`);
           setProcessProgress(5 + Math.min(25, (downloadStats.successful / Math.max(stats.pendingDownload, 1)) * 25));
           await new Promise(r => setTimeout(r, 500));
         }
@@ -241,7 +249,7 @@ const Admin = () => {
       await loadStats();
       
       if ((stats.pendingTranscription > 0 || downloadStats.successful > 0) && !shouldStopRef.current) {
-        setProcessPhase("2/3 Transcribiendo scripts...");
+        setProcessPhase("2/4 Transcribiendo scripts...");
         setProcessProgress(35);
 
         let consecutiveErrors = 0;
@@ -275,7 +283,7 @@ const Admin = () => {
           }
           
           transcriptionStats.successful += data.successful || 0;
-          setProcessPhase(`2/3 Transcribiendo... (${transcriptionStats.successful} completados, ${data.remaining} pendientes)`);
+          setProcessPhase(`2/4 Transcribiendo... (${transcriptionStats.successful} completados, ${data.remaining} pendientes)`);
           setProcessProgress(35 + Math.min(30, (transcriptionStats.successful / Math.max(stats.pendingTranscription, 1)) * 30));
           await new Promise(r => setTimeout(r, 1000));
         }
@@ -285,7 +293,7 @@ const Admin = () => {
       await loadStats();
       
       if (stats.pendingMatch > 0 && !shouldStopRef.current) {
-        setProcessPhase(`3/3 Vinculando productos${useAI ? " (con IA)" : ""}...`);
+        setProcessPhase(`3/4 Vinculando productos${useAI ? " (con IA)" : ""}...`);
         setProcessProgress(70);
 
         let consecutiveErrors = 0;
@@ -340,12 +348,35 @@ const Admin = () => {
 
           if (data.complete) break;
 
-          setProcessPhase(`3/3 Vinculando... (${matchStats.successful} vinculados${aiTotal > 0 ? `, ${aiTotal} IA` : ""})`);
+          setProcessPhase(`3/4 Vinculando... (${matchStats.successful} vinculados${aiTotal > 0 ? `, ${aiTotal} IA` : ""})`);
           setProcessProgress(70 + Math.min(25, (matchStats.successful / Math.max(stats.pendingMatch, 1)) * 25));
           
           if (data.timedOut) {
             await new Promise(r => setTimeout(r, 300));
           }
+        }
+      }
+
+      // Phase 4: Download pending avatars
+      await loadStats();
+      
+      if (stats.pendingAvatars > 0 && !shouldStopRef.current) {
+        setProcessPhase(`4/4 Descargando ${stats.pendingAvatars} fotos de creadores...`);
+        setProcessProgress(95);
+
+        try {
+          const { data, error } = await supabase.functions.invoke("download-creator-avatars");
+          
+          if (error) {
+            console.warn("Avatar download error:", error.message);
+            avatarStats.skipped = true;
+          } else if (data) {
+            avatarStats.successful = data.successCount || 0;
+            avatarStats.failed = data.errorCount || 0;
+          }
+        } catch (err) {
+          console.warn("Avatar download failed:", err);
+          avatarStats.skipped = true;
         }
       }
 
@@ -357,6 +388,8 @@ const Admin = () => {
       if (transcriptionStats.skipped) summary.push("⚠️ scripts saltados");
       if (matchStats.successful > 0) summary.push(`${matchStats.successful} vinculados`);
       if (matchStats.skipped) summary.push("⚠️ vinculación saltada");
+      if (avatarStats.successful > 0) summary.push(`${avatarStats.successful} fotos`);
+      if (avatarStats.skipped) summary.push("⚠️ fotos saltadas");
 
       setProcessProgress(100);
       setProcessPhase(shouldStopRef.current ? "⏸️ Pausado" : "¡Completado!");
@@ -495,7 +528,7 @@ const Admin = () => {
 
   if (!isFounder) return null;
 
-  const totalPending = stats.pendingDownload + stats.pendingTranscription + stats.pendingMatch;
+  const totalPending = stats.pendingDownload + stats.pendingTranscription + stats.pendingMatch + stats.pendingAvatars;
 
   return (
     <div className="min-h-screen bg-background">
@@ -562,58 +595,6 @@ const Admin = () => {
 
           {/* Creator Program Tab */}
           <TabsContent value="creators" className="space-y-6">
-            {/* Avatar Download Button */}
-            <Card className="border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-cyan-50">
-              <CardContent className="pt-6 pb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold flex items-center gap-2">
-                      📸 Descargar Avatares de Creadores
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Descarga y almacena permanentemente las fotos de perfil de TikTok
-                    </p>
-                  </div>
-                  <Button
-                    onClick={async () => {
-                      setIsDownloadingAvatars(true);
-                      try {
-                        const { data, error } = await supabase.functions.invoke("download-creator-avatars");
-                        if (error) throw error;
-                        toast({
-                          title: "Avatares procesados",
-                          description: `${data.successCount || 0} descargados, ${data.errorCount || 0} errores`,
-                        });
-                      } catch (err: unknown) {
-                        const errorMessage = err instanceof Error ? err.message : String(err);
-                        toast({
-                          title: "Error",
-                          description: errorMessage,
-                          variant: "destructive",
-                        });
-                      } finally {
-                        setIsDownloadingAvatars(false);
-                      }
-                    }}
-                    disabled={isDownloadingAvatars}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    {isDownloadingAvatars ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Procesando...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Descargar Avatares
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            
             <CreatorDirectoryManager />
           </TabsContent>
 
@@ -636,8 +617,8 @@ const Admin = () => {
           </Button>
         </div>
 
-        {/* Simplified Stats: 4 Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {/* Simplified Stats: 5 Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <Card className="border-green-200 bg-green-50/50">
             <CardContent className="pt-4 pb-4">
               <div className="flex items-center justify-between">
@@ -686,6 +667,19 @@ const Admin = () => {
                   <p className="text-xs text-purple-600">Pendientes vincular</p>
                 </div>
                 <Link2 className="h-6 w-6 text-purple-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-pink-200 bg-pink-50/50">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">📷 Sin foto</p>
+                  <p className="text-2xl font-bold text-pink-600">{stats.pendingAvatars}</p>
+                  <p className="text-xs text-pink-600">Pendientes descargar</p>
+                </div>
+                <Camera className="h-6 w-6 text-pink-500" />
               </div>
             </CardContent>
           </Card>
@@ -754,7 +748,7 @@ const Admin = () => {
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
-              Ejecuta automáticamente: Descargas → Transcripciones → Vinculación{useAI ? " (con IA)" : ""}
+              Ejecuta automáticamente: Descargas → Transcripciones → Vinculación → Fotos{useAI ? " (con IA)" : ""}
             </p>
           </CardContent>
         </Card>

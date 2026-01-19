@@ -90,13 +90,13 @@ function buildTikTokUrl(username: string, existingUrl: string | null): string | 
   return null;
 }
 
-// Background task to fetch and update avatars
-async function fetchAvatarsInBackground(
+// Background task to fetch avatar URLs from TikTok pages
+async function fetchAvatarUrlsFromTikTok(
   creators: Array<{ id: string; tiktok_url: string | null; avatar_url: string | null }>,
   supabaseUrl: string,
   supabaseServiceKey: string
 ) {
-  console.log(`Starting background avatar fetch for ${creators.length} creators...`);
+  console.log(`Starting background avatar URL fetch for ${creators.length} creators...`);
   
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   let successCount = 0;
@@ -155,7 +155,96 @@ async function fetchAvatarsInBackground(
     }
   }
   
-  console.log(`Background avatar fetch complete: ${successCount} success, ${failCount} failed`);
+  console.log(`Background avatar URL fetch complete: ${successCount} success, ${failCount} failed`);
+}
+
+// Background task to download avatars and store them permanently in Supabase Storage
+async function downloadAndStoreAvatars(
+  creators: Array<{ id: string; avatar_url: string | null; avatar_storage_url: string | null }>,
+  supabaseUrl: string,
+  supabaseServiceKey: string
+) {
+  console.log(`Starting background avatar download for ${creators.length} creators...`);
+  
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const creator of creators) {
+    // Skip if already has storage URL or no avatar URL
+    if (creator.avatar_storage_url) {
+      continue;
+    }
+    
+    if (!creator.avatar_url || !creator.avatar_url.startsWith("http")) {
+      continue;
+    }
+    
+    try {
+      // Rate limit
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Download the image
+      const imageResponse = await fetch(creator.avatar_url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+      });
+
+      if (!imageResponse.ok) {
+        console.error(`Failed to download avatar for ${creator.id}: ${imageResponse.status}`);
+        failCount++;
+        continue;
+      }
+
+      const imageBlob = await imageResponse.blob();
+      
+      // Determine file extension from content type
+      const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
+      const extension = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+      const fileName = `creator-avatars/${creator.id}.${extension}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("assets")
+        .upload(fileName, imageBlob, { 
+          upsert: true,
+          contentType: contentType,
+        });
+
+      if (uploadError) {
+        console.error(`Upload error for ${creator.id}:`, uploadError);
+        failCount++;
+        continue;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("assets")
+        .getPublicUrl(fileName);
+
+      // Update creator record with permanent storage URL
+      const { error: updateError } = await supabase
+        .from("creators")
+        .update({ avatar_storage_url: urlData.publicUrl })
+        .eq("id", creator.id);
+
+      if (updateError) {
+        console.error(`Update error for ${creator.id}:`, updateError);
+        failCount++;
+        continue;
+      }
+
+      successCount++;
+      console.log(`✅ Avatar stored for creator ${creator.id}`);
+      
+    } catch (error) {
+      console.error(`Error downloading avatar for creator ${creator.id}:`, error);
+      failCount++;
+    }
+  }
+  
+  console.log(`Background avatar download complete: ${successCount} stored, ${failCount} failed`);
 }
 
 serve(async (req) => {
@@ -269,12 +358,13 @@ serve(async (req) => {
     let insertedCount = 0;
     let updatedCount = 0;
     const creatorsForAvatarFetch: Array<{ id: string; tiktok_url: string | null; avatar_url: string | null }> = [];
+    const creatorsForAvatarDownload: Array<{ id: string; avatar_url: string | null; avatar_storage_url: string | null }> = [];
 
     for (const c of top50Creators) {
       // Check if creator exists by handle AND market
       const { data: existing } = await supabaseServiceClient
         .from("creators")
-        .select("id, avatar_url")
+        .select("id, avatar_url, avatar_storage_url")
         .eq("creator_handle", c.handle)
         .eq("country", market)
         .maybeSingle();
@@ -294,7 +384,7 @@ serve(async (req) => {
           last_import: new Date().toISOString(),
         };
 
-        // Only update avatar if we have a new one and existing doesn't have one
+        // Only update avatar_url if we have a new one and existing doesn't have one
         if (c.avatar_url && (!existing.avatar_url || !existing.avatar_url.startsWith("http"))) {
           updateData.avatar_url = c.avatar_url;
         }
@@ -308,9 +398,19 @@ serve(async (req) => {
           updatedCount++;
           console.log(`Updated creator: ${c.handle}`);
           
-          // Queue for avatar fetch if still missing
+          // Queue for avatar URL fetch if still missing
           if (!existing.avatar_url && !c.avatar_url) {
             creatorsForAvatarFetch.push({ id: existing.id, tiktok_url: c.tiktok_url, avatar_url: null });
+          }
+          
+          // Queue for avatar DOWNLOAD if has avatar_url but no storage_url
+          const avatarUrl = c.avatar_url || existing.avatar_url;
+          if (avatarUrl && !existing.avatar_storage_url) {
+            creatorsForAvatarDownload.push({ 
+              id: existing.id, 
+              avatar_url: avatarUrl, 
+              avatar_storage_url: null 
+            });
           }
         } else {
           console.error(`Error updating creator ${c.handle}:`, updateError);
@@ -325,16 +425,25 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
             last_import: new Date().toISOString(),
           })
-          .select("id, tiktok_url, avatar_url")
+          .select("id, tiktok_url, avatar_url, avatar_storage_url")
           .single();
 
         if (!insertError && inserted) {
           insertedCount++;
           console.log(`Inserted creator: ${c.handle} (market: ${market})`);
           
-          // Queue for avatar fetch if missing
+          // Queue for avatar URL fetch if missing
           if (!inserted.avatar_url) {
             creatorsForAvatarFetch.push({ id: inserted.id, tiktok_url: inserted.tiktok_url, avatar_url: null });
+          }
+          
+          // Queue for avatar DOWNLOAD if has URL but no storage
+          if (inserted.avatar_url && !inserted.avatar_storage_url) {
+            creatorsForAvatarDownload.push({ 
+              id: inserted.id, 
+              avatar_url: inserted.avatar_url, 
+              avatar_storage_url: null 
+            });
           }
         } else {
           console.error(`Error inserting creator ${c.handle}:`, insertError);
@@ -344,17 +453,30 @@ serve(async (req) => {
 
     console.log(`UPSERT completed: ${insertedCount} inserted, ${updatedCount} updated (market: ${market})`);
 
-    // Start background task to fetch avatars
+    // Start background tasks for avatars
+    // Task 1: Fetch avatar URLs from TikTok for those missing avatar_url
     if (creatorsForAvatarFetch.length > 0) {
-      console.log(`Starting background avatar fetch for ${creatorsForAvatarFetch.length} creators`);
+      console.log(`Starting background avatar URL fetch for ${creatorsForAvatarFetch.length} creators`);
       
       if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
         EdgeRuntime.waitUntil(
-          fetchAvatarsInBackground(creatorsForAvatarFetch, supabaseUrl, supabaseServiceKey)
+          fetchAvatarUrlsFromTikTok(creatorsForAvatarFetch, supabaseUrl, supabaseServiceKey)
         );
       } else {
-        // Fallback: fetch first 5 synchronously
-        await fetchAvatarsInBackground(creatorsForAvatarFetch.slice(0, 5), supabaseUrl, supabaseServiceKey);
+        await fetchAvatarUrlsFromTikTok(creatorsForAvatarFetch.slice(0, 5), supabaseUrl, supabaseServiceKey);
+      }
+    }
+
+    // Task 2: Download and store avatars permanently for those with avatar_url but no storage_url
+    if (creatorsForAvatarDownload.length > 0) {
+      console.log(`Starting background avatar download for ${creatorsForAvatarDownload.length} creators`);
+      
+      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
+        EdgeRuntime.waitUntil(
+          downloadAndStoreAvatars(creatorsForAvatarDownload, supabaseUrl, supabaseServiceKey)
+        );
+      } else {
+        await downloadAndStoreAvatars(creatorsForAvatarDownload.slice(0, 5), supabaseUrl, supabaseServiceKey);
       }
     }
 
@@ -366,7 +488,9 @@ serve(async (req) => {
         processed: top50Creators.length,
         total: rows.length,
         market,
-        message: `Importación inteligente (${market.toUpperCase()}): ${insertedCount} nuevos, ${updatedCount} actualizados. Avatares descargándose en segundo plano.`,
+        avatarsFetching: creatorsForAvatarFetch.length,
+        avatarsDownloading: creatorsForAvatarDownload.length,
+        message: `Importación inteligente (${market.toUpperCase()}): ${insertedCount} nuevos, ${updatedCount} actualizados. ${creatorsForAvatarDownload.length} fotos descargándose.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
