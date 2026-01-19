@@ -501,4 +501,25 @@ El sistema de generación de videos IA fue removido para simplificar la platafor
 
 ---
 
+## ✅ PIPELINE AUTOMÁTICO DE IMPORTACIÓN (Enero 2025)
+
+### Flujo Unificado de 8 Fases
+- [x] **handleProcessAll refactorizado** - Un solo clic ejecuta todo el pipeline
+- [x] **Fase 1/8** - Importar Creadores (process-kalodata-creators)
+- [x] **Fase 2/8** - Importar Productos (process-kalodata-products)
+- [x] **Fase 3/8** - Importar Videos (process-kalodata)
+- [x] **Fase 4/8** - Descargar MP4s (download-videos-batch loop)
+- [x] **Fase 5/8** - Transcribir Scripts (transcribe-videos-batch loop)
+- [x] **Fase 6/8** - Vincular Productos (auto-match-videos-products loop)
+- [x] **Fase 7/8** - Descargar Fotos Creadores (download-creator-avatars)
+- [x] **Fase 8/8** - Actualizar Rankings (refresh stats)
+- [x] **Botón Pausar** - Disponible durante todo el proceso
+- [x] **Resumen final** - Toast con conteo de éxitos y advertencias
+- [x] **Tolerancia a fallos** - Cada fase salta automáticamente después de 3 errores consecutivos
+
+### Resultado
+Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Oportunidades) se actualizan automáticamente sin necesidad de intervención manual adicional.
+
+---
+
 **Última actualización:** Enero 2025
