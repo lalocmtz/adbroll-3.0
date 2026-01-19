@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Users, X } from "lucide-react";
+import { Search, Users, X, Lock, Crown } from "lucide-react";
 import { FilterPills } from "@/components/FilterPills";
 import CreatorCard from "./CreatorCard";
 
@@ -26,6 +27,7 @@ interface DirectoryCreator {
 const CreatorDirectory = () => {
   const { language } = useLanguage();
   const { toast } = useToast();
+  const { hasPaid, isLoggedIn, openPaywall } = useBlurGateContext();
   const [creators, setCreators] = useState<DirectoryCreator[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,6 +112,55 @@ const CreatorDirectory = () => {
         <p className="text-muted-foreground">
           {language === "es" ? "Cargando creadores..." : "Loading creators..."}
         </p>
+      </div>
+    );
+  }
+
+  // Show paywall if user doesn't have active subscription
+  if (!hasPaid) {
+    return (
+      <div className="space-y-6">
+        {/* Teaser: show blurred preview */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/80 to-background z-10 pointer-events-none" />
+          <div className="blur-sm opacity-60 pointer-events-none">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="bg-card rounded-xl border border-border p-4 h-48" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Paywall Card */}
+        <div className="bg-gradient-to-br from-primary/5 to-pink-500/5 rounded-xl border border-primary/20 p-8 text-center -mt-24 relative z-20">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <Lock className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold mb-2">
+            {language === "es" ? "Acceso al Directorio de Creadores" : "Access Creator Directory"}
+          </h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            {language === "es"
+              ? "Suscríbete para ver perfiles completos de creadores verificados, contactarlos directamente y colaborar en campañas."
+              : "Subscribe to see full profiles of verified creators, contact them directly, and collaborate on campaigns."}
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button 
+              size="lg" 
+              className="gap-2"
+              onClick={() => openPaywall("creator_directory")}
+            >
+              <Crown className="h-4 w-4" />
+              {language === "es" ? "Desbloquear por $14.99/mes" : "Unlock for $14.99/mo"}
+            </Button>
+            {!isLoggedIn && (
+              <Button variant="outline" size="lg" onClick={() => window.location.href = "/login"}>
+                {language === "es" ? "Ya tengo cuenta" : "I have an account"}
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }

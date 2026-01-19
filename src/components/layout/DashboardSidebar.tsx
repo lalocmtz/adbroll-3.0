@@ -41,6 +41,7 @@ interface NavItem {
   labelEn: string;
   icon: any;
   lockedForVisitor: boolean;
+  founderOnly?: boolean;
 }
 
 // Section labels
@@ -61,9 +62,9 @@ const exploreItems: NavItem[] = [
   { to: "/opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
 ];
 
-// TU CENTRO - Work tools (removed Mis Videos IA)
+// TU CENTRO - Work tools (Tools hidden for non-founders)
 const workspaceItems: NavItem[] = [
-  { to: "/tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true },
+  { to: "/tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true, founderOnly: true },
   { to: "/library", labelEs: "Mi Biblioteca", labelEn: "My Library", icon: FolderOpen, lockedForVisitor: true },
   { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
   { to: "/affiliates", labelEs: "Afiliados", labelEn: "Affiliates", icon: Coins, lockedForVisitor: true },
@@ -71,7 +72,7 @@ const workspaceItems: NavItem[] = [
 
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   const { language } = useLanguage();
-  const { isLoggedIn } = useBlurGateContext();
+  const { isLoggedIn, isFounder } = useBlurGateContext();
   const { isBrand } = useAccountType();
   const navigate = useNavigate();
   const location = useLocation();
@@ -120,6 +121,11 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   );
 
   const renderNavItem = (item: NavItem) => {
+    // Hide founder-only items for non-founders
+    if (item.founderOnly && !isFounder) {
+      return null;
+    }
+    
     const isLocked = !isLoggedIn && item.lockedForVisitor;
 
     if (isLocked) {
