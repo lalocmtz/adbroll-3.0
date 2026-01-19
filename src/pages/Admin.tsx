@@ -20,7 +20,7 @@ import { ApiUsageMonitor } from "@/components/admin/ApiUsageMonitor";
 import { FinancialDashboard } from "@/components/admin/FinancialDashboard";
 import { TrafficAnalytics } from "@/components/admin/TrafficAnalytics";
 import { CreditAnalytics } from "@/components/admin/CreditAnalytics";
-import CreatorProgramManager from "@/components/admin/CreatorProgramManager";
+import CreatorDirectoryManager from "@/components/admin/CreatorDirectoryManager";
 import CampaignManager from "@/components/admin/CampaignManager";
 
 type Market = "mx" | "us";
@@ -561,7 +561,7 @@ const Admin = () => {
 
           {/* Creator Program Tab */}
           <TabsContent value="creators">
-            <CreatorProgramManager />
+            <CreatorDirectoryManager />
           </TabsContent>
 
           {/* Import Tab */}

@@ -107,11 +107,19 @@ const CreatorApplicationForm = () => {
         throw error;
       }
 
-      // Try to fetch avatar (non-blocking)
+      // Try to fetch avatar and update the record
       try {
-        await supabase.functions.invoke("fetch-creator-avatar", {
+        const { data: avatarData } = await supabase.functions.invoke("fetch-creator-avatar", {
           body: { tiktok_url: tiktokUrl },
         });
+        
+        // If avatar was found, update the creator_directory record
+        if (avatarData?.avatar_url) {
+          await supabase
+            .from("creator_directory")
+            .update({ avatar_url: avatarData.avatar_url })
+            .eq("email", data.email);
+        }
       } catch (avatarError) {
         console.log("Could not fetch avatar, using fallback");
       }

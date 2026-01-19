@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { RefreshCw, CheckCircle2, XCircle, Clock, Eye, EyeOff, Users, UserCheck, UserX, Shield } from "lucide-react";
+import { RefreshCw, CheckCircle2, XCircle, Clock, Eye, EyeOff, Users, UserCheck, UserX, Shield, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 
 interface DirectoryCreator {
@@ -261,6 +261,7 @@ const CreatorDirectoryManager = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Creador</TableHead>
+                  <TableHead>TikTok</TableHead>
                   <TableHead>Nicho</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Verificado</TableHead>
@@ -279,9 +280,20 @@ const CreatorDirectoryManager = () => {
                         </Avatar>
                         <div>
                           <p className="font-medium">{creator.full_name}</p>
-                          <p className="text-xs text-muted-foreground">@{creator.tiktok_username}</p>
+                          <p className="text-xs text-muted-foreground">{creator.email}</p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <a
+                        href={creator.tiktok_url || `https://www.tiktok.com/@${creator.tiktok_username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline text-sm flex items-center gap-1"
+                      >
+                        @{creator.tiktok_username}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
