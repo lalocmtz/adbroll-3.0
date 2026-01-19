@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Megaphone, Sparkles, Loader2 } from "lucide-react";
+import { Megaphone, Sparkles, Loader2, Lock, Crown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import CampaignCardPublic from "./CampaignCardPublic";
 import ApplyToCampaignModal from "./ApplyToCampaignModal";
 import { useCampaignApplications } from "@/hooks/useCampaignApplications";
@@ -9,6 +11,7 @@ import type { Campaign } from "@/hooks/useCampaigns";
 
 const CampaignsTab = () => {
   const { language } = useLanguage();
+  const { hasPaid, isLoggedIn, openPaywall } = useBlurGateContext();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -52,6 +55,12 @@ const CampaignsTab = () => {
   };
 
   const handleApply = async (campaign: Campaign) => {
+    // Check if user has paid subscription
+    if (!hasPaid) {
+      openPaywall("campaign_apply");
+      return;
+    }
+
     setSelectedCampaign(campaign);
     
     // If user is already a registered creator, apply directly
@@ -123,6 +132,30 @@ const CampaignsTab = () => {
         </div>
       </div>
 
+      {/* Subscription notice for non-subscribers */}
+      {!hasPaid && (
+        <div className="bg-gradient-to-r from-primary/10 to-pink-500/10 border border-primary/20 rounded-lg p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium">
+                {language === "es"
+                  ? "Suscríbete para aplicar a campañas"
+                  : "Subscribe to apply to campaigns"}
+              </p>
+            </div>
+            <Button 
+              size="sm" 
+              className="gap-2 shrink-0"
+              onClick={() => openPaywall("campaign_apply")}
+            >
+              <Crown className="h-3 w-3" />
+              {language === "es" ? "Desbloquear $14.99/mes" : "Unlock $14.99/mo"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Already Applied Section */}
       {appliedCampaignIds.length > 0 && (
         <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-4">
@@ -151,8 +184,9 @@ const CampaignsTab = () => {
               key={campaign.id}
               campaign={campaign}
               hasApplied={hasApplied(campaign.id)}
-              isCreator={true} // Always allow applying (form will collect data)
+              isCreator={true}
               onApply={() => handleApply(campaign)}
+              showPaywallHint={!hasPaid}
             />
           ))}
         </div>

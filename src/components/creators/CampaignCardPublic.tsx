@@ -9,7 +9,8 @@ import {
   Sparkles,
   ExternalLink,
   CheckCircle,
-  Zap
+  Zap,
+  Lock
 } from "lucide-react";
 import type { Campaign } from "@/hooks/useCampaigns";
 
@@ -18,6 +19,7 @@ interface CampaignCardPublicProps {
   hasApplied: boolean;
   isCreator: boolean;
   onApply: () => void;
+  showPaywallHint?: boolean;
 }
 
 const CampaignCardPublic = ({
@@ -25,6 +27,7 @@ const CampaignCardPublic = ({
   hasApplied,
   isCreator,
   onApply,
+  showPaywallHint = false,
 }: CampaignCardPublicProps) => {
   const { language } = useLanguage();
   const [expanded, setExpanded] = useState(false);
@@ -162,10 +165,19 @@ const CampaignCardPublic = ({
             className="w-full bg-gradient-to-r from-primary to-pink-500 hover:from-primary/90 hover:to-pink-500/90"
             disabled={!isCreator}
           >
-            <Sparkles className="h-4 w-4 mr-2" />
-            {isCreator
-              ? (language === "es" ? "Aplicar a esta campaña" : "Apply to this campaign")
-              : (language === "es" ? "Regístrate como creador primero" : "Register as creator first")}
+            {showPaywallHint ? (
+              <>
+                <Lock className="h-4 w-4 mr-2" />
+                {language === "es" ? "Suscríbete para aplicar" : "Subscribe to apply"}
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                {isCreator
+                  ? (language === "es" ? "Aplicar a esta campaña" : "Apply to this campaign")
+                  : (language === "es" ? "Regístrate como creador primero" : "Register as creator first")}
+              </>
+            )}
           </Button>
         )}
       </div>

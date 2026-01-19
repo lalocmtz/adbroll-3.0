@@ -544,4 +544,30 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ PRE-LANZAMIENTO FACEBOOK ADS (Enero 2025)
+
+### Flujo de Registro de Creadores
+- [x] **CreatorApplicationForm.tsx** - Badge "GRATIS" en formulario
+- [x] **CreatorApplicationForm.tsx** - Post-registro CTAs a /app y /opportunities
+- [x] **Registro gratuito público** - Cualquier persona puede registrarse como creador
+
+### Paywall en Secciones Premium
+- [x] **CreatorDirectory.tsx** - Requiere suscripción $14.99 para ver creadores
+- [x] **CampaignsTab.tsx** - Requiere suscripción para aplicar a campañas
+- [x] **CampaignCardPublic.tsx** - Hint visual "Suscríbete para aplicar"
+
+### Sidebar Limpio
+- [x] **DashboardSidebar.tsx** - /tools oculto para no-founders (founderOnly flag)
+- [x] **renderNavItem** - Verifica `isFounder` antes de mostrar items founderOnly
+
+### Flujo Completo Facebook Ads
+1. Usuario llega vía anuncio → `/talento?tab=aplicar`
+2. Se registra como creador GRATIS
+3. Crea cuenta automáticamente (QuickSignupModal)
+4. Ve mensaje de éxito + CTAs para explorar videos
+5. Va a `/app` → ve videos → paywall → paga $14.99
+6. Funnel: Ad → Registro → Explorar → Suscribir
+
+---
+
 **Última actualización:** Enero 2025

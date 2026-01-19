@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +20,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, Loader2, Sparkles, PlayCircle, TrendingUp, ArrowRight } from "lucide-react";
 import QuickSignupModal from "./QuickSignupModal";
 
 const NICHES = [
@@ -58,6 +60,7 @@ type FormData = z.infer<typeof formSchema>;
 const CreatorApplicationForm = () => {
   const { language } = useLanguage();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
@@ -204,11 +207,44 @@ const CreatorApplicationForm = () => {
           <h2 className="text-xl font-bold mb-2">
             {language === "es" ? "¡Gracias por postularte!" : "Thank you for applying!"}
           </h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <p className="text-muted-foreground max-w-md mx-auto mb-8">
             {language === "es"
               ? "El equipo de adbroll revisará tu perfil. Te notificaremos cuando tu perfil sea publicado en el directorio."
               : "The adbroll team will review your profile. We'll notify you when your profile is published in the directory."}
           </p>
+          
+          {/* CTAs to explore platform */}
+          <div className="bg-muted/30 rounded-xl p-6 max-w-md mx-auto">
+            <p className="text-sm font-medium mb-4">
+              {language === "es" 
+                ? "Mientras esperas, explora la plataforma:" 
+                : "While you wait, explore the platform:"}
+            </p>
+            <div className="space-y-3">
+              <Button
+                variant="default"
+                className="w-full justify-between"
+                onClick={() => navigate("/app")}
+              >
+                <span className="flex items-center gap-2">
+                  <PlayCircle className="h-4 w-4" />
+                  {language === "es" ? "Ver videos más vendedores" : "See top-selling videos"}
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => navigate("/opportunities")}
+              >
+                <span className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  {language === "es" ? "Productos con alta comisión" : "High-commission products"}
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -222,11 +258,14 @@ const CreatorApplicationForm = () => {
           <CardTitle>
             {language === "es" ? "Postúlate como Creador" : "Apply as a Creator"}
           </CardTitle>
+          <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
+            {language === "es" ? "GRATIS" : "FREE"}
+          </Badge>
         </div>
         <CardDescription>
           {language === "es"
-            ? "Completa el formulario para aparecer en el directorio de creadores de adbroll"
-            : "Complete the form to appear in the adbroll creator directory"}
+            ? "Tu registro es gratuito. Completa el formulario para aparecer en el directorio de creadores de adbroll."
+            : "Registration is free. Complete the form to appear in the adbroll creator directory."}
         </CardDescription>
       </CardHeader>
       <CardContent>
