@@ -32,6 +32,7 @@ interface Creator {
   total_ingresos_mxn: number | null;
   promedio_visualizaciones: number | null;
   avatar_url: string | null;
+  avatar_storage_url: string | null;
   total_live_count: number | null;
   gmv_live_mxn: number | null;
   revenue_live: number | null;
@@ -239,12 +240,19 @@ const Creators = () => {
   };
 
   const getReliableAvatarUrl = (creator: Creator): string => {
-    // If TikTok image failed to load OR no avatar_url, use UI Avatars
-    if (imageErrors.has(creator.id) || !creator.avatar_url || creator.avatar_url.length === 0) {
-      const name = encodeURIComponent(creator.nombre_completo || creator.usuario_creador);
-      return `https://ui-avatars.com/api/?name=${name}&background=F31260&color=fff&bold=true&size=128&format=svg`;
+    // 1. Priority: Use permanently stored avatar from our storage
+    if (creator.avatar_storage_url && creator.avatar_storage_url.length > 0) {
+      return creator.avatar_storage_url;
     }
-    return creator.avatar_url;
+    
+    // 2. Fallback to TikTok CDN (may fail due to CORS/expired tokens)
+    if (creator.avatar_url && creator.avatar_url.length > 0 && !imageErrors.has(creator.id)) {
+      return creator.avatar_url;
+    }
+    
+    // 3. Last resort: UI Avatars with initials
+    const name = encodeURIComponent(creator.nombre_completo || creator.usuario_creador);
+    return `https://ui-avatars.com/api/?name=${name}&background=F31260&color=fff&bold=true&size=128&format=svg`;
   };
 
   const getTikTokUrl = (creator: Creator): string | null => {
