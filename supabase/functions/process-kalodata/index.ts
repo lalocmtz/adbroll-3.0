@@ -2,11 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
-// Declare EdgeRuntime for background tasks
-declare const EdgeRuntime: {
-  waitUntil: (promise: Promise<any>) => void;
-} | undefined;
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -29,128 +24,27 @@ interface ExcelRow {
   "Enlace de TikTok": string;
 }
 
-// Function to download a single video
-async function downloadSingleVideo(
-  videoId: string,
-  tiktokUrl: string,
-  rapidApiKey: string,
-  supabaseUrl: string,
-  supabaseServiceKey: string
-): Promise<boolean> {
+// Normalize URL for deduplication
+function normalizeVideoUrl(url: string): string {
+  if (!url) return "";
   try {
-    console.log(`[download] Starting download for video ${videoId}`);
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Call TikTok Video Downloader API (elisbushaj2)
-    const rapidApiResponse = await fetch(
-      `https://tiktok-video-downloader-api.p.rapidapi.com/media?videoUrl=${encodeURIComponent(tiktokUrl)}`,
-      {
-        method: 'GET',
-        headers: {
-          'x-rapidapi-key': rapidApiKey,
-          'x-rapidapi-host': 'tiktok-video-downloader-api.p.rapidapi.com'
-        }
-      }
-    );
-
-    if (!rapidApiResponse.ok) {
-      console.error(`[download] RapidAPI error for ${videoId}`);
-      await supabase.from('videos').update({ processing_status: 'download_failed' }).eq('id', videoId);
-      return false;
-    }
-
-    const rapidApiData = await rapidApiResponse.json();
-    console.log(`[download] API response for ${videoId}:`, JSON.stringify(rapidApiData).substring(0, 300));
-    
-    // Extract MP4 URL from elisbushaj2 API response
-    const mp4Url = rapidApiData.downloadUrl || rapidApiData.video?.downloadUrl || rapidApiData.url;
-
-    if (!mp4Url) {
-      console.error(`[download] No MP4 URL for ${videoId}`);
-      await supabase.from('videos').update({ processing_status: 'no_mp4_url' }).eq('id', videoId);
-      return false;
-    }
-
-    const videoResponse = await fetch(mp4Url);
-    if (!videoResponse.ok) {
-      await supabase.from('videos').update({ processing_status: 'download_failed' }).eq('id', videoId);
-      return false;
-    }
-
-    const videoBuffer = await videoResponse.arrayBuffer();
-    console.log(`[download] Video ${videoId} downloaded, size: ${videoBuffer.byteLength} bytes`);
-
-    const fileName = `${videoId}.mp4`;
-    const { error: uploadError } = await supabase.storage
-      .from('videos')
-      .upload(fileName, videoBuffer, {
-        contentType: 'video/mp4',
-        upsert: true
-      });
-
-    if (uploadError) {
-      console.error(`[download] Upload error for ${videoId}:`, uploadError);
-      await supabase.from('videos').update({ processing_status: 'upload_failed' }).eq('id', videoId);
-      return false;
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from('videos')
-      .getPublicUrl(fileName);
-
-    await supabase
-      .from('videos')
-      .update({ 
-        video_mp4_url: publicUrlData.publicUrl,
-        processing_status: 'downloaded'
-      })
-      .eq('id', videoId);
-
-    console.log(`[download] ✓ Video ${videoId} completed`);
-    return true;
-
-  } catch (error) {
-    console.error(`[download] Error for ${videoId}:`, error);
-    return false;
+    // Trim whitespace
+    let normalized = url.trim();
+    // Remove common tracking params
+    const urlObj = new URL(normalized);
+    urlObj.searchParams.delete('is_from_webapp');
+    urlObj.searchParams.delete('sender_device');
+    urlObj.searchParams.delete('sender_web_id');
+    urlObj.searchParams.delete('_r');
+    return urlObj.toString();
+  } catch {
+    return url.trim();
   }
-}
-
-// Background task to download all videos
-async function downloadVideosInBackground(
-  videoIds: { id: string; video_url: string }[],
-  rapidApiKey: string,
-  supabaseUrl: string,
-  supabaseServiceKey: string
-) {
-  console.log(`[background] Starting download of ${videoIds.length} videos`);
-  
-  let successCount = 0;
-  let failCount = 0;
-
-  for (const video of videoIds) {
-    const success = await downloadSingleVideo(
-      video.id,
-      video.video_url,
-      rapidApiKey,
-      supabaseUrl,
-      supabaseServiceKey
-    );
-
-    if (success) {
-      successCount++;
-    } else {
-      failCount++;
-    }
-
-    // Wait 2 seconds between downloads to avoid rate limits
-    await new Promise(resolve => setTimeout(resolve, 2000));
-  }
-
-  console.log(`[background] Download complete: ${successCount} success, ${failCount} failed`);
 }
 
 serve(async (req) => {
+  const startTime = Date.now();
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -186,8 +80,6 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const rapidApiKey = Deno.env.get("RAPIDAPI_KEY") ?? "";
-
     const supabaseServiceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const formData = await req.formData();
@@ -198,254 +90,112 @@ serve(async (req) => {
 
     console.log("Archivo recibido:", file.name, "Tamaño:", file.size, "Market:", market);
 
+    // ========== PHASE 1: Parse Excel (fast) ==========
+    const parseStart = Date.now();
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: "array" });
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows: ExcelRow[] = XLSX.utils.sheet_to_json(worksheet);
+    console.log(`[TIMING] Parse Excel: ${Date.now() - parseStart}ms, ${rows.length} rows`);
 
-    console.log(`Procesando ${rows.length} filas del Excel para mercado ${market}`);
-
-    // Sort by revenue
-    const sortedRows = rows.sort((a, b) => b["Ingresos (M$)"] - a["Ingresos (M$)"]);
-
-    // Load all products for matching (filtered by market)
-    const { data: products } = await supabaseServiceClient
-      .from("products")
-      .select("id, producto_nombre, producto_url, price, total_ventas, total_ingresos_mxn")
-      .eq("market", market);
-
-    console.log(`Loaded ${products?.length || 0} products for matching (market: ${market})`);
-
-    // Load all creators for matching (filtered by market)
-    const { data: creators } = await supabaseServiceClient
-      .from("creators")
-      .select("id, creator_handle")
-      .eq("country", market);
-
-    console.log(`Loaded ${creators?.length || 0} creators for matching (market: ${market})`);
-
-    // Advanced product matching function
-    const calculateMatchScore = (videoText: string, productName: string): number => {
-      if (!videoText || !productName) return 0;
-      
-      const v = videoText.toLowerCase().trim();
-      const p = productName.toLowerCase().trim();
-      
-      if (v === p) return 1.0;
-      
-      // Remove emojis and special chars
-      const clean = (s: string) => s
-        .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-        .replace(/[^\w\sáéíóúñü]/gi, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      const vClean = clean(v);
-      const pClean = clean(p);
-      
-      // Direct containment
-      if (vClean.includes(pClean) || pClean.includes(vClean)) return 0.9;
-      
-      // Extract keywords
-      const stopWords = ['de', 'el', 'la', 'los', 'las', 'un', 'una', 'para', 'con', 'y', 'en', 'a', 'del', 'al', 'por'];
-      const extractWords = (s: string) => s.split(' ').filter(w => w.length > 2 && !stopWords.includes(w));
-      
-      const pWords = extractWords(pClean);
-      const vWords = extractWords(vClean);
-      
-      if (pWords.length === 0) return 0;
-      
-      let matched = 0;
-      for (const pw of pWords) {
-        for (const vw of vWords) {
-          if (pw === vw || (pw.length >= 4 && vw.length >= 4 && (pw.includes(vw) || vw.includes(pw)))) {
-            matched++;
-            break;
-          }
-        }
-      }
-      
-      return matched / pWords.length;
-    };
-
-    const findBestProductMatch = (videoTitle: string, products: any[]): any | null => {
-      let bestMatch = null;
-      let bestScore = 0;
-      
-      for (const p of products) {
-        const score = calculateMatchScore(videoTitle, p.producto_nombre);
-        if (score > bestScore && score >= 0.5) {
-          bestScore = score;
-          bestMatch = p;
-        }
-      }
-      
-      return bestMatch;
-    };
-
-    // Build video data array for batch operations
-    const videosToProcess = sortedRows.map((row, idx) => {
+    // ========== PHASE 2: Build video data (no matching - fast) ==========
+    const buildStart = Date.now();
+    
+    // Build video data WITHOUT matching (leave product_id null for auto-match later)
+    const videosRaw = rows.map((row, idx) => {
       const videoUrl = row["Enlace de TikTok"];
-      const videoTitle = row["Descripción del vídeo"]?.toLowerCase() || "";
+      if (!videoUrl) return null;
+      
+      const normalizedUrl = normalizeVideoUrl(videoUrl);
       const creatorHandle = row["Usuario del creador"] || null;
-      const rank = idx + 1;
-
-      // Match product using advanced scoring
-      const matchedProduct = findBestProductMatch(videoTitle, products || []);
-
-      // Match creator by handle
-      let matchedCreator = null;
-      if (creators && creators.length > 0 && creatorHandle) {
-        const normalizedHandle = creatorHandle.replace("@", "").toLowerCase().trim();
-        matchedCreator = creators.find((c) => {
-          const cHandle = (c.creator_handle || "").toLowerCase().trim();
-          return cHandle === normalizedHandle;
-        });
-      }
+      const revenueMxn = row["Ingresos (M$)"] || 0;
 
       return {
-        video_url: videoUrl,
-        rank,
-        title: row["Descripción del vídeo"],
-        creator_name: row["Usuario del creador"],
-        creator_handle: row["Usuario del creador"],
-        creator_id: matchedCreator?.id || null,
-        product_name: matchedProduct?.producto_nombre || null,
-        product_id: matchedProduct?.id || null,
-        product_price: matchedProduct?.price || null,
-        product_sales: matchedProduct?.total_ventas || null,
-        product_revenue: matchedProduct?.total_ingresos_mxn || null,
-        sales: row["Ventas"],
-        revenue_mxn: row["Ingresos (M$)"],
-        views: row["Visualizaciones"],
-        roas: row["ROAS - Retorno de la inversión publicitaria"],
+        video_url: normalizedUrl,
+        original_url: videoUrl,
+        rank: idx + 1,
+        title: row["Descripción del vídeo"] || null,
+        creator_name: creatorHandle,
+        creator_handle: creatorHandle,
+        sales: row["Ventas"] || 0,
+        revenue_mxn: revenueMxn,
+        views: row["Visualizaciones"] || 0,
+        roas: row["ROAS - Retorno de la inversión publicitaria"] || null,
         country: market,
         processing_status: 'pending',
         imported_at: new Date().toISOString(),
+        snapshot_date_range: row["Rango de fechas"] || null,
       };
-    }).filter(v => v.video_url);
+    }).filter(Boolean) as any[];
 
-    // Deduplicate by video_url (keep first occurrence = highest revenue)
-    const seenUrls = new Set<string>();
-    const uniqueVideos = videosToProcess.filter(v => {
-      if (seenUrls.has(v.video_url)) return false;
-      seenUrls.add(v.video_url);
-      return true;
-    });
+    console.log(`[TIMING] Build data: ${Date.now() - buildStart}ms`);
 
-    console.log(`Unique videos to process: ${uniqueVideos.length}`);
-
-    // Get existing videos to identify which need MP4 downloads
-    const { data: existingVideos } = await supabaseServiceClient
-      .from("videos")
-      .select("id, video_url, video_mp4_url")
-      .in("video_url", uniqueVideos.map(v => v.video_url));
-
-    const existingMap = new Map((existingVideos || []).map(v => [v.video_url, v]));
-
-    // Separate into inserts and updates
-    const videosToInsert: any[] = [];
-    const videosToUpdate: any[] = [];
-    const newlyInsertedVideos: { id: string; video_url: string }[] = [];
-
-    for (const video of uniqueVideos) {
-      const existing = existingMap.get(video.video_url);
-      if (existing) {
-        // Update - remove processing_status and imported_at, keep existing values
-        const { processing_status, imported_at, ...updateData } = video;
-        videosToUpdate.push({ id: existing.id, ...updateData });
-        
-        // Queue for download if no MP4 yet
-        if (!existing.video_mp4_url) {
-          newlyInsertedVideos.push({ id: existing.id, video_url: video.video_url });
-        }
-      } else {
-        videosToInsert.push(video);
+    // ========== PHASE 3: Deduplicate (keep highest revenue per URL) ==========
+    const dedupeStart = Date.now();
+    
+    // Group by normalized URL
+    const urlMap = new Map<string, any>();
+    for (const video of videosRaw) {
+      const existing = urlMap.get(video.video_url);
+      if (!existing || video.revenue_mxn > existing.revenue_mxn) {
+        urlMap.set(video.video_url, video);
       }
     }
+    
+    // Convert back to array and re-rank by revenue
+    const uniqueVideos = Array.from(urlMap.values())
+      .sort((a, b) => b.revenue_mxn - a.revenue_mxn)
+      .map((v, idx) => ({ ...v, rank: idx + 1 }));
 
-    console.log(`To insert: ${videosToInsert.length}, To update: ${videosToUpdate.length}`);
+    console.log(`[TIMING] Dedupe: ${Date.now() - dedupeStart}ms, ${uniqueVideos.length} unique videos`);
 
-    // Batch INSERT new videos
-    let insertedCount = 0;
-    if (videosToInsert.length > 0) {
-      const { data: inserted, error: insertError } = await supabaseServiceClient
-        .from("videos")
-        .insert(videosToInsert)
-        .select("id, video_url");
+    // ========== PHASE 4: Batch UPSERT (chunked for reliability) ==========
+    const upsertStart = Date.now();
+    const CHUNK_SIZE = 200;
+    let totalInserted = 0;
+    let totalUpdated = 0;
 
-      if (insertError) {
-        console.error("Batch insert error:", insertError);
-      } else {
-        insertedCount = inserted?.length || 0;
-        console.log(`Batch inserted ${insertedCount} videos`);
-        
-        // Add all newly inserted to download queue
-        for (const v of (inserted || [])) {
-          newlyInsertedVideos.push({ id: v.id, video_url: v.video_url });
-        }
-      }
-    }
-
-    // Batch UPDATE existing videos (in chunks to avoid limits)
-    let updatedCount = 0;
-    const CHUNK_SIZE = 50;
-    for (let i = 0; i < videosToUpdate.length; i += CHUNK_SIZE) {
-      const chunk = videosToUpdate.slice(i, i + CHUNK_SIZE);
+    for (let i = 0; i < uniqueVideos.length; i += CHUNK_SIZE) {
+      const chunk = uniqueVideos.slice(i, i + CHUNK_SIZE);
       
-      for (const video of chunk) {
-        const { id, ...updateData } = video;
-        const { error: updateError } = await supabaseServiceClient
-          .from("videos")
-          .update(updateData)
-          .eq("id", id);
-        
-        if (!updateError) {
-          updatedCount++;
-        }
-      }
-    }
+      // Remove original_url (not a real column), prepare upsert payload
+      const upsertPayload = chunk.map(v => {
+        const { original_url, ...rest } = v;
+        return rest;
+      });
 
-    console.log(`Updated ${updatedCount} videos`);
-    console.log(`${newlyInsertedVideos.length} videos queued for MP4 download`);
+      const { data, error } = await supabaseServiceClient
+        .from("videos")
+        .upsert(upsertPayload, { 
+          onConflict: 'video_url',
+          ignoreDuplicates: false
+        })
+        .select("id");
 
-    // Start background downloads if we have RapidAPI key
-    if (rapidApiKey && newlyInsertedVideos.length > 0) {
-      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
-        EdgeRuntime.waitUntil(
-          downloadVideosInBackground(
-            newlyInsertedVideos,
-            rapidApiKey,
-            supabaseUrl,
-            supabaseServiceKey
-          )
-        );
-        console.log("Background download task started");
+      if (error) {
+        console.error(`Chunk ${i / CHUNK_SIZE + 1} upsert error:`, error.message);
+        // Continue with next chunk instead of failing completely
       } else {
-        console.log("EdgeRuntime not available, downloading first 5 videos synchronously");
-        for (let i = 0; i < Math.min(5, newlyInsertedVideos.length); i++) {
-          await downloadSingleVideo(
-            newlyInsertedVideos[i].id,
-            newlyInsertedVideos[i].video_url,
-            rapidApiKey,
-            supabaseUrl,
-            supabaseServiceKey
-          );
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        const count = data?.length || 0;
+        totalInserted += count;
+        console.log(`Chunk ${i / CHUNK_SIZE + 1}: upserted ${count} videos`);
       }
     }
+
+    console.log(`[TIMING] Upsert: ${Date.now() - upsertStart}ms, total: ${totalInserted}`);
+
+    const totalTime = Date.now() - startTime;
+    console.log(`[TIMING] Total process time: ${totalTime}ms`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        inserted: insertedCount,
-        updated: updatedCount,
-        processed: sortedRows.length,
-        total: sortedRows.length,
-        downloads_queued: newlyInsertedVideos.length,
+        processed: rows.length,
+        unique: uniqueVideos.length,
+        upserted: totalInserted,
         market,
-        message: `Importación inteligente (${market.toUpperCase()}): ${insertedCount} nuevos, ${updatedCount} actualizados. ${newlyInsertedVideos.length} videos en cola para descarga.`,
+        timing_ms: totalTime,
+        message: `Importación rápida (${market.toUpperCase()}): ${uniqueVideos.length} videos procesados en ${(totalTime / 1000).toFixed(1)}s. Usa "Procesar Pendientes" para descargar MP4s y hacer matching.`,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
