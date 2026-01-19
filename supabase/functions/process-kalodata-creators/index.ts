@@ -322,7 +322,6 @@ serve(async (req) => {
       const cleanUsername = String(finalUsername).replace("@", "").trim();
 
       return {
-        handle: cleanUsername,
         usuario_creador: cleanUsername,
         nombre_completo: creatorName ? String(creatorName).trim() : cleanUsername,
         creator_handle: cleanUsername,
@@ -342,7 +341,7 @@ serve(async (req) => {
         tiktok_url: buildTikTokUrl(cleanUsername, tiktokUrl ? String(tiktokUrl).trim() : null),
         country: market, // Always use market from request body
       };
-    }).filter(c => c.handle && c.handle !== "creator_0");
+    }).filter(c => c.usuario_creador && c.usuario_creador !== "creator_0");
 
     console.log(`Creadores procesados: ${processedCreators.length}`);
 
@@ -365,7 +364,7 @@ serve(async (req) => {
       const { data: existing } = await supabaseServiceClient
         .from("creators")
         .select("id, avatar_url, avatar_storage_url")
-        .eq("creator_handle", c.handle)
+        .eq("creator_handle", c.creator_handle)
         .eq("country", market)
         .maybeSingle();
 
@@ -396,7 +395,7 @@ serve(async (req) => {
 
         if (!updateError) {
           updatedCount++;
-          console.log(`Updated creator: ${c.handle}`);
+          console.log(`Updated creator: ${c.creator_handle}`);
           
           // Queue for avatar URL fetch if still missing
           if (!existing.avatar_url && !c.avatar_url) {
@@ -413,7 +412,7 @@ serve(async (req) => {
             });
           }
         } else {
-          console.error(`Error updating creator ${c.handle}:`, updateError);
+          console.error(`Error updating creator ${c.creator_handle}:`, updateError);
         }
       } else {
         // INSERT new creator with market
@@ -430,7 +429,7 @@ serve(async (req) => {
 
         if (!insertError && inserted) {
           insertedCount++;
-          console.log(`Inserted creator: ${c.handle} (market: ${market})`);
+          console.log(`Inserted creator: ${c.creator_handle} (market: ${market})`);
           
           // Queue for avatar URL fetch if missing
           if (!inserted.avatar_url) {
@@ -446,7 +445,7 @@ serve(async (req) => {
             });
           }
         } else {
-          console.error(`Error inserting creator ${c.handle}:`, insertError);
+          console.error(`Error inserting creator ${c.creator_handle}:`, insertError);
         }
       }
     }
