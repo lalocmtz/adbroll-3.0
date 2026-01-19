@@ -980,13 +980,20 @@ const Tools = () => {
                     </div>
                   )}
                 </label>
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 space-y-1.5">
                   <Textarea
-                    placeholder={language === "es" ? "Describe tu producto (ej: Pantalones de lino beige, cómodos para oficina y playa)" : "Describe your product..."}
+                    placeholder={language === "es" 
+                      ? "Escribe libremente: guión, contexto del producto, instrucciones para el video... La IA interpretará todo automáticamente."
+                      : "Write freely: script, product context, video instructions... AI will interpret everything automatically."}
                     value={ugcProductDescription}
                     onChange={(e) => setUgcProductDescription(e.target.value)}
-                    className="h-24 resize-none rounded-xl text-sm"
+                    className="min-h-[80px] resize-y rounded-xl text-sm"
                   />
+                  <p className="text-[10px] text-muted-foreground">
+                    {language === "es" 
+                      ? "Puedes incluir: nombre del producto, beneficios, guión ya escrito, o instrucciones especiales."
+                      : "You can include: product name, benefits, pre-written script, or special instructions."}
+                  </p>
                 </div>
               </div>
 

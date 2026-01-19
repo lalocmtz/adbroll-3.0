@@ -60,32 +60,41 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `Eres un experto en crear guiones y prompts para videos UGC (User Generated Content) de TikTok Shop que venden productos de manera efectiva.
+            content: `Eres un experto en crear guiones UGC para TikTok Shop.
 
-Tu trabajo es:
-1. Crear un guión de venta corto (2 frases, ~12 segundos al leerlo)
-2. Crear 2 prompts de imagen detallados para generar imágenes consistentes de la misma persona
+El usuario te dará una entrada libre que puede contener:
+- Un guión ya escrito (úsalo y mejóralo ligeramente)
+- Contexto/descripción del producto (genera un guión basado en esto)
+- Instrucciones de tono o estilo (aplícalas al resultado)
+- Una mezcla de todo lo anterior
 
-El guión debe ser:
+TU TRABAJO:
+1. Analiza la entrada del usuario
+2. Si ya tiene un guión → refinalo ligeramente manteniendo su esencia
+3. Si solo tiene contexto → crea un guión de venta de 2 frases (~12 segundos al leerlo)
+4. Aplica cualquier instrucción de tono que detectes (ej: "hazlo sonar como consejo de amiga")
+
+El resultado del guión debe ser:
+- Frase 1: Gancho que capture atención
+- Frase 2: Beneficio principal + call to action
+- Máximo 12-15 segundos al leerlo
 - En español mexicano casual
-- Frase 1: Un gancho que capture atención
-- Frase 2: El beneficio principal del producto + call to action
 
-Los prompts de imagen deben:
-- Usar el mismo personaje descrito
+También genera 2 prompts de imagen para Nano Banana:
 - Escena 1: Plano medio (de cintura para arriba), mirando a cámara
 - Escena 2: Plano de cuerpo entero, mostrando el producto en movimiento
 
-IMPORTANTE: Los prompts deben ser en inglés para mejor generación de imagen.`
+IMPORTANTE: Los prompts de imagen deben ser en inglés para mejor generación.`
           },
           {
             role: 'user',
-            content: `Crea contenido UGC para este producto:
+            content: `Crea contenido UGC basado en esta entrada del usuario:
 
-PRODUCTO: ${productDescription}
-MODELO/AVATAR: ${avatar.appearance}
+ENTRADA DEL USUARIO: ${productDescription}
 
-Responde en JSON exactamente así:
+MODELO/AVATAR A USAR: ${avatar.appearance}
+
+Responde SOLO en JSON exactamente así:
 {
   "script": "Las 2 frases del guión aquí, separadas por un punto",
   "prompt_scene_1": "Detailed image prompt for medium shot of the model talking to camera, wearing/using the product, UGC style, shot on iPhone, natural lighting, home background",
