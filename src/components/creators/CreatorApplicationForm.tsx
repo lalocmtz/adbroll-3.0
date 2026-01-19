@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Loader2, Sparkles, PlayCircle, TrendingUp, ArrowRight } from "lucide-react";
+import { CheckCircle2, Loader2, Sparkles, PlayCircle, TrendingUp, ArrowRight, UserCheck, Clock, Edit } from "lucide-react";
 import QuickSignupModal from "./QuickSignupModal";
 
 const NICHES = [
@@ -57,6 +58,20 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+interface ExistingCreator {
+  id: string;
+  full_name: string;
+  tiktok_username: string;
+  email: string;
+  whatsapp: string;
+  country: string;
+  niche: string[];
+  content_type: string[];
+  status: string;
+  created_at: string;
+  avatar_url: string | null;
+}
+
 const CreatorApplicationForm = () => {
   const { language } = useLanguage();
   const { toast } = useToast();
@@ -65,6 +80,9 @@ const CreatorApplicationForm = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [pendingApplication, setPendingApplication] = useState<FormData | null>(null);
+  const [existingCreator, setExistingCreator] = useState<ExistingCreator | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -79,6 +97,48 @@ const CreatorApplicationForm = () => {
       terms_accepted: false,
     },
   });
+
+  // Check if user already has a creator profile
+  useEffect(() => {
+    const checkExistingCreator = async () => {
+      setIsLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.email) {
+          setIsLoading(false);
+          return;
+        }
+
+        const { data: creatorData } = await supabase
+          .from("creator_directory")
+          .select("*")
+          .eq("email", user.email)
+          .maybeSingle();
+
+        if (creatorData) {
+          setExistingCreator(creatorData as ExistingCreator);
+          setIsEditMode(true);
+          // Pre-populate form with existing data
+          form.reset({
+            full_name: creatorData.full_name,
+            tiktok_username: creatorData.tiktok_username,
+            email: creatorData.email,
+            whatsapp: creatorData.whatsapp,
+            country: creatorData.country,
+            niche: creatorData.niche || [],
+            content_type: creatorData.content_type || [],
+            terms_accepted: true,
+          });
+        }
+      } catch (error) {
+        console.error("Error checking existing creator:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkExistingCreator();
+  }, [form]);
 
   // Check if returning from OAuth with pending application
   useEffect(() => {
@@ -173,7 +233,61 @@ const CreatorApplicationForm = () => {
     }
   };
 
+  const updateCreatorProfile = async (data: FormData) => {
+    if (!existingCreator) return;
+    
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from("creator_directory")
+        .update({
+          full_name: data.full_name,
+          whatsapp: data.whatsapp,
+          country: data.country,
+          niche: data.niche,
+          content_type: data.content_type,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingCreator.id);
+
+      if (error) throw error;
+
+      toast({
+        title: language === "es" ? "¡Datos actualizados!" : "Profile updated!",
+        description:
+          language === "es"
+            ? "Tu información de creador ha sido actualizada."
+            : "Your creator information has been updated.",
+      });
+
+      // Update local state
+      setExistingCreator({
+        ...existingCreator,
+        full_name: data.full_name,
+        whatsapp: data.whatsapp,
+        country: data.country,
+        niche: data.niche,
+        content_type: data.content_type,
+      });
+    } catch (error: any) {
+      toast({
+        title: language === "es" ? "Error al actualizar" : "Error updating",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
+    // If in edit mode, update instead of insert
+    if (isEditMode && existingCreator) {
+      await updateCreatorProfile(data);
+      return;
+    }
+
     // Check if user is authenticated
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -196,6 +310,34 @@ const CreatorApplicationForm = () => {
       setPendingApplication(null);
     }
   };
+
+  const getStatusBadge = (status: string) => {
+    if (status === "publico") {
+      return (
+        <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          {language === "es" ? "Publicado" : "Published"}
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+        <Clock className="h-3 w-3 mr-1" />
+        {language === "es" ? "Pendiente" : "Pending"}
+      </Badge>
+    );
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <CardContent className="pt-12 pb-12 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (isSubmitted) {
     return (
@@ -253,22 +395,60 @@ const CreatorApplicationForm = () => {
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <CardTitle>
-            {language === "es" ? "Postúlate como Creador" : "Apply as a Creator"}
-          </CardTitle>
-          <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
-            {language === "es" ? "GRATIS" : "FREE"}
-          </Badge>
+        <div className="flex items-center gap-2 flex-wrap">
+          {isEditMode ? (
+            <>
+              <UserCheck className="h-5 w-5 text-primary" />
+              <CardTitle>
+                {language === "es" ? "Tu Perfil de Creador" : "Your Creator Profile"}
+              </CardTitle>
+              {existingCreator && getStatusBadge(existingCreator.status)}
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-5 w-5 text-primary" />
+              <CardTitle>
+                {language === "es" ? "Postúlate como Creador" : "Apply as a Creator"}
+              </CardTitle>
+              <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
+                {language === "es" ? "GRATIS" : "FREE"}
+              </Badge>
+            </>
+          )}
         </div>
         <CardDescription>
-          {language === "es"
-            ? "Tu registro es gratuito. Completa el formulario para aparecer en el directorio de creadores de adbroll."
-            : "Registration is free. Complete the form to appear in the adbroll creator directory."}
+          {isEditMode
+            ? language === "es"
+              ? "Actualiza tu información de creador. Email y usuario de TikTok no pueden cambiarse."
+              : "Update your creator information. Email and TikTok username cannot be changed."
+            : language === "es"
+              ? "Tu registro es gratuito. Completa el formulario para aparecer en el directorio de creadores de adbroll."
+              : "Registration is free. Complete the form to appear in the adbroll creator directory."}
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Edit Mode Banner */}
+        {isEditMode && existingCreator && (
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Edit className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <span className="font-medium text-blue-900 dark:text-blue-100">
+                {language === "es" ? "Ya estás registrado como creador" : "You're already registered as a creator"}
+              </span>
+            </div>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              {language === "es" 
+                ? `Estado: ${existingCreator.status === 'publico' ? 'Publicado en el directorio' : 'Pendiente de aprobación'}`
+                : `Status: ${existingCreator.status === 'publico' ? 'Published in directory' : 'Pending approval'}`}
+            </p>
+            <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
+              {language === "es" 
+                ? `Registrado el ${format(new Date(existingCreator.created_at), 'dd/MM/yyyy')}`
+                : `Registered on ${format(new Date(existingCreator.created_at), 'MM/dd/yyyy')}`}
+            </p>
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Name */}
@@ -294,12 +474,21 @@ const CreatorApplicationForm = () => {
                 <FormItem>
                   <FormLabel>{language === "es" ? "Usuario de TikTok" : "TikTok username"}</FormLabel>
                   <FormControl>
-                    <Input placeholder="@tucuenta" {...field} />
+                    <Input 
+                      placeholder="@tucuenta" 
+                      {...field} 
+                      disabled={isEditMode}
+                      className={isEditMode ? "bg-muted cursor-not-allowed" : ""}
+                    />
                   </FormControl>
                   <FormDescription>
-                    {language === "es"
-                      ? "Sin el @, solo tu nombre de usuario"
-                      : "Without the @, just your username"}
+                    {isEditMode
+                      ? language === "es"
+                        ? "No puedes cambiar tu usuario de TikTok"
+                        : "You cannot change your TikTok username"
+                      : language === "es"
+                        ? "Sin el @, solo tu nombre de usuario"
+                        : "Without the @, just your username"}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -315,8 +504,19 @@ const CreatorApplicationForm = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="tu@email.com" {...field} />
+                      <Input 
+                        type="email" 
+                        placeholder="tu@email.com" 
+                        {...field} 
+                        disabled={isEditMode}
+                        className={isEditMode ? "bg-muted cursor-not-allowed" : ""}
+                      />
                     </FormControl>
+                    {isEditMode && (
+                      <FormDescription>
+                        {language === "es" ? "No puedes cambiar tu email" : "You cannot change your email"}
+                      </FormDescription>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -344,7 +544,7 @@ const CreatorApplicationForm = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{language === "es" ? "País" : "Country"}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue
@@ -457,32 +657,41 @@ const CreatorApplicationForm = () => {
               )}
             />
 
-            {/* Terms Acceptance */}
-            <FormField
-              control={form.control}
-              name="terms_accepted"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border p-4 bg-muted/30">
-                  <FormControl>
-                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel className="text-sm font-normal">
-                      {language === "es"
-                        ? "Acepto que mi perfil sea visible para marcas en adbroll y acepto los términos del servicio"
-                        : "I agree to have my profile visible to brands on adbroll and accept the terms of service"}
-                    </FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
+            {/* Terms Acceptance - only show for new applications */}
+            {!isEditMode && (
+              <FormField
+                control={form.control}
+                name="terms_accepted"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border p-4 bg-muted/30">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-normal">
+                        {language === "es"
+                          ? "Acepto que mi perfil sea visible para marcas en adbroll y acepto los términos del servicio"
+                          : "I agree to have my profile visible to brands on adbroll and accept the terms of service"}
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Submit Button */}
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {language === "es" ? "Enviando..." : "Submitting..."}
+                  {isEditMode
+                    ? language === "es" ? "Actualizando..." : "Updating..."
+                    : language === "es" ? "Enviando..." : "Submitting..."}
+                </>
+              ) : isEditMode ? (
+                <>
+                  <Edit className="h-4 w-4 mr-2" />
+                  {language === "es" ? "Actualizar datos" : "Update profile"}
                 </>
               ) : (
                 <>{language === "es" ? "Enviar postulación" : "Submit application"}</>
