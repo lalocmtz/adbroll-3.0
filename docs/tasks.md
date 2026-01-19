@@ -522,4 +522,26 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ PIPELINE PARALELO DE PROCESAMIENTO (Enero 2025)
+
+### Procesamiento Concurrente
+- [x] **useParallelPipeline.ts** - Hook para manejo de workers concurrentes
+- [x] **ParallelProgressPanel.tsx** - UI con 4 barras de progreso independientes
+- [x] **Workers simultáneos** - Downloads (5), Transcriptions (3), Matching (1 batch), Avatars (1)
+- [x] **Promise.all** - Todas las fases corren en paralelo en cada ciclo
+- [x] **Re-activación inteligente** - Transcripciones se activan cuando hay nuevos MP4s
+
+### Beneficios
+- Tiempo de procesamiento reducido ~60-70%
+- Feedback visual granular por tipo de tarea
+- Mejor aprovechamiento del tiempo de espera de AssemblyAI
+- Avatares se descargan mientras otras cosas procesan
+
+### Nuevo UI
+- Botón "⚡ Procesar Paralelo" reemplaza el secuencial
+- 4 barras de progreso: Descargas, Transcripciones, Vinculaciones, Fotos
+- Indicador de ciclo actual y fases activas
+
+---
+
 **Última actualización:** Enero 2025
