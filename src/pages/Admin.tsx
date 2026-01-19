@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause, BarChart3, Upload, Megaphone, Camera } from "lucide-react";
+import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause, BarChart3, Upload, Megaphone, Camera, Rocket } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
@@ -22,6 +22,8 @@ import { TrafficAnalytics } from "@/components/admin/TrafficAnalytics";
 import { CreditAnalytics } from "@/components/admin/CreditAnalytics";
 import CreatorDirectoryManager from "@/components/admin/CreatorDirectoryManager";
 import CampaignManager from "@/components/admin/CampaignManager";
+import { ParallelProgressPanel } from "@/components/admin/ParallelProgressPanel";
+import { useParallelPipeline } from "@/hooks/useParallelPipeline";
 
 type Market = "mx" | "us";
 
@@ -32,7 +34,6 @@ const Admin = () => {
   const [creatorFile, setCreatorFile] = useState<File | null>(null);
   const [selectedMarket, setSelectedMarket] = useState<Market>("mx");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isProcessingPending, setIsProcessingPending] = useState(false);
   const [processPhase, setProcessPhase] = useState("");
   const [processProgress, setProcessProgress] = useState(0);
   const [isFounder, setIsFounder] = useState(false);
@@ -40,9 +41,12 @@ const Admin = () => {
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [useAI, setUseAI] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isDownloadingAvatars, setIsDownloadingAvatars] = useState(false);
+  const [useParallelMode, setUseParallelMode] = useState(true);
   const { toast } = useToast();
   const shouldStopRef = useRef(false);
+  
+  // Parallel pipeline hook
+  const { state: pipelineState, startParallelPipeline, stopPipeline, loadCurrentStats } = useParallelPipeline();
 
   const [stats, setStats] = useState({
     videos: 0,
@@ -160,264 +164,41 @@ const Admin = () => {
 
   const MAX_CONSECUTIVE_ERRORS = 3;
 
-  // MASTER BUTTON: Process all pending (downloads, transcriptions, matching)
+  // MASTER BUTTON: Process all pending using parallel pipeline
   const handleProcessPending = async () => {
-    const totalPending = stats.pendingDownload + stats.pendingTranscription + stats.pendingMatch;
+    const totalPending = stats.pendingDownload + stats.pendingTranscription + stats.pendingMatch + stats.pendingAvatars;
     if (totalPending === 0) {
       toast({ title: "Todo listo", description: "No hay pendientes por procesar." });
       return;
     }
 
-    shouldStopRef.current = false;
-    setIsProcessingPending(true);
-    setProcessProgress(0);
-
-    let downloadStats = { successful: 0, failed: 0, skipped: false };
-    let transcriptionStats = { successful: 0, failed: 0, skipped: false };
-    let matchStats = { successful: 0, failed: 0, skipped: false };
-    let avatarStats = { successful: 0, failed: 0, skipped: false };
-
     try {
-      // Phase 1: Download all pending videos
-      if (stats.pendingDownload > 0 && !shouldStopRef.current) {
-        setProcessPhase(`1/4 Descargando ${stats.pendingDownload} videos...`);
-        setProcessProgress(5);
-
-        // NO automatic reset of download_failed - let attempt counter handle retries
-
-        let consecutiveErrors = 0;
-        let noProgressCount = 0; // Track batches with 0 successful downloads
-        
-        while (!shouldStopRef.current) {
-          const { data, error } = await supabase.functions.invoke("download-videos-batch", {
-            body: { batchSize: 5 },
-          });
-
-          if (error) {
-            consecutiveErrors++;
-            console.warn(`Download error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error.message);
-            
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-              downloadStats.skipped = true;
-              toast({
-                title: "⚠️ Descargas saltadas",
-                description: `${MAX_CONSECUTIVE_ERRORS} errores consecutivos. Continuando con transcripciones...`,
-                variant: "destructive",
-              });
-              break;
-            }
-            await new Promise(r => setTimeout(r, 2000));
-            continue;
-          }
-
-          consecutiveErrors = 0; // Reset on success
-          
-          // Check if no videos remain to process
-          if (!data || data.processed === 0 || data.remaining === 0) {
-            break;
-          }
-          
-          // Detect "no progress" - all videos in batch failed
-          if (data.successful === 0 && data.failed > 0) {
-            noProgressCount++;
-            console.warn(`No download progress (${noProgressCount}/3): ${data.failed} failed, ${data.permanentlyFailed || 0} permanently failed`);
-            
-            if (noProgressCount >= 3) {
-              // 3 consecutive batches with no success - skip phase
-              downloadStats.skipped = true;
-              toast({
-                title: "⚠️ Descargas saltadas",
-                description: `Videos restantes no se pueden descargar (${data.remaining} con errores). Continuando...`,
-              });
-              break;
-            }
-            await new Promise(r => setTimeout(r, 1000));
-            continue;
-          }
-          
-          noProgressCount = 0; // Reset on any success
-          downloadStats.successful += data.successful || 0;
-          downloadStats.failed += data.permanentlyFailed || 0;
-          
-          setProcessPhase(`1/4 Descargando... (${downloadStats.successful} OK, ${data.remaining} pendientes)`);
-          setProcessProgress(5 + Math.min(25, (downloadStats.successful / Math.max(stats.pendingDownload, 1)) * 25));
-          await new Promise(r => setTimeout(r, 500));
-        }
-      }
-
-      // Phase 2: Transcribe all videos with MP4 but no transcript
-      await loadStats();
+      const result = await startParallelPipeline(useAI);
       
-      if ((stats.pendingTranscription > 0 || downloadStats.successful > 0) && !shouldStopRef.current) {
-        setProcessPhase("2/4 Transcribiendo scripts...");
-        setProcessProgress(35);
-
-        let consecutiveErrors = 0;
-        
-        while (!shouldStopRef.current) {
-          const { data, error } = await supabase.functions.invoke("transcribe-videos-batch", {
-            body: { batchSize: 3 },
-          });
-
-          if (error) {
-            consecutiveErrors++;
-            console.warn(`Transcription error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error.message);
-            
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-              transcriptionStats.skipped = true;
-              toast({
-                title: "⚠️ Transcripciones saltadas",
-                description: `${MAX_CONSECUTIVE_ERRORS} errores consecutivos. Continuando con vinculación...`,
-                variant: "destructive",
-              });
-              break;
-            }
-            await new Promise(r => setTimeout(r, 2000));
-            continue;
-          }
-
-          consecutiveErrors = 0;
-
-          if (!data || data.processed === 0 || data.remaining === 0 || data.complete) {
-            break;
-          }
-          
-          transcriptionStats.successful += data.successful || 0;
-          setProcessPhase(`2/4 Transcribiendo... (${transcriptionStats.successful} completados, ${data.remaining} pendientes)`);
-          setProcessProgress(35 + Math.min(30, (transcriptionStats.successful / Math.max(stats.pendingTranscription, 1)) * 30));
-          await new Promise(r => setTimeout(r, 1000));
-        }
-      }
-
-      // Phase 3: Match all videos without product
-      await loadStats();
-      
-      if (stats.pendingMatch > 0 && !shouldStopRef.current) {
-        setProcessPhase(`3/4 Vinculando productos${useAI ? " (con IA)" : ""}...`);
-        setProcessProgress(70);
-
-        let consecutiveErrors = 0;
-        let fuzzyTotal = 0;
-        let aiTotal = 0;
-        let noProgressCount = 0;
-
-        while (!shouldStopRef.current) {
-          const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-            body: { batchSize: useAI ? 10 : 50, threshold: 0.5, useAI },
-          });
-
-          if (error) {
-            consecutiveErrors++;
-            console.warn(`Match error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error.message);
-            
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-              matchStats.skipped = true;
-              toast({
-                title: "⚠️ Vinculación saltada",
-                description: `${MAX_CONSECUTIVE_ERRORS} errores consecutivos.`,
-                variant: "destructive",
-              });
-              break;
-            }
-            await new Promise(r => setTimeout(r, 2000));
-            continue;
-          }
-
-          consecutiveErrors = 0;
-          matchStats.successful += data.matchedInBatch || 0;
-          fuzzyTotal += data.fuzzyMatches || 0;
-          aiTotal += data.aiMatches || 0;
-
-          // Detect no progress - all videos processed but none matched
-          if (data.matchedInBatch === 0 && data.batchProcessed > 0) {
-            noProgressCount++;
-            console.warn(`No match progress (${noProgressCount}/3) - ${data.remainingUnmatched} sin vincular`);
-            
-            if (noProgressCount >= 3) {
-              toast({
-                title: "⚠️ Vinculación completada",
-                description: `${data.remainingUnmatched || 0} videos sin producto correspondiente (requieren vinculación manual).`,
-              });
-              break;
-            }
-            await new Promise(r => setTimeout(r, 500));
-            continue;
-          }
-          
-          noProgressCount = 0; // Reset on progress
-
-          if (data.complete) break;
-
-          setProcessPhase(`3/4 Vinculando... (${matchStats.successful} vinculados${aiTotal > 0 ? `, ${aiTotal} IA` : ""})`);
-          setProcessProgress(70 + Math.min(25, (matchStats.successful / Math.max(stats.pendingMatch, 1)) * 25));
-          
-          if (data.timedOut) {
-            await new Promise(r => setTimeout(r, 300));
-          }
-        }
-      }
-
-      // Phase 4: Download pending avatars
-      await loadStats();
-      
-      if (stats.pendingAvatars > 0 && !shouldStopRef.current) {
-        setProcessPhase(`4/4 Descargando ${stats.pendingAvatars} fotos de creadores...`);
-        setProcessProgress(95);
-
-        try {
-          const { data, error } = await supabase.functions.invoke("download-creator-avatars");
-          
-          if (error) {
-            console.warn("Avatar download error:", error.message);
-            avatarStats.skipped = true;
-          } else if (data) {
-            avatarStats.successful = data.successCount || 0;
-            avatarStats.failed = data.errorCount || 0;
-          }
-        } catch (err) {
-          console.warn("Avatar download failed:", err);
-          avatarStats.skipped = true;
-        }
-      }
-
-      // Build summary
-      const summary = [];
-      if (downloadStats.successful > 0) summary.push(`${downloadStats.successful} descargados`);
-      if (downloadStats.skipped) summary.push("⚠️ descargas saltadas");
-      if (transcriptionStats.successful > 0) summary.push(`${transcriptionStats.successful} transcritos`);
-      if (transcriptionStats.skipped) summary.push("⚠️ scripts saltados");
-      if (matchStats.successful > 0) summary.push(`${matchStats.successful} vinculados`);
-      if (matchStats.skipped) summary.push("⚠️ vinculación saltada");
-      if (avatarStats.successful > 0) summary.push(`${avatarStats.successful} fotos`);
-      if (avatarStats.skipped) summary.push("⚠️ fotos saltadas");
-
-      setProcessProgress(100);
-      setProcessPhase(shouldStopRef.current ? "⏸️ Pausado" : "¡Completado!");
       saveLastSync();
+      await loadStats();
+
+      const summary = [];
+      if (result.downloads.processed > 0) summary.push(`${result.downloads.processed} descargados`);
+      if (result.transcriptions.processed > 0) summary.push(`${result.transcriptions.processed} transcritos`);
+      if (result.matching.processed > 0) summary.push(`${result.matching.processed} vinculados`);
+      if (result.avatars.processed > 0) summary.push(`${result.avatars.processed} fotos`);
 
       toast({
-        title: shouldStopRef.current ? "⏸️ Proceso pausado" : "✅ Proceso completado",
+        title: pipelineState.isPaused ? "⏸️ Proceso pausado" : "✅ Proceso completado",
         description: summary.join(", ") || "Sin cambios",
       });
-
-      await loadStats();
-
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setIsProcessingPending(false);
-      setProcessPhase("");
-      setProcessProgress(0);
     }
   };
 
   const handlePauseProcess = () => {
-    shouldStopRef.current = true;
-    setProcessPhase("⏸️ Pausando... (terminando batch actual)");
+    stopPipeline();
     toast({
       title: "Pausando proceso",
       description: "Esperando a que termine el batch actual...",
@@ -866,13 +647,13 @@ const Admin = () => {
           </Card>
         </div>
 
-        {/* MASTER BUTTON: Procesar Pendientes */}
-        <Card className="mb-6 border-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50">
+        {/* MASTER BUTTON: Procesar Pendientes (Parallel) */}
+        <Card className="mb-6 border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5">
           <CardContent className="pt-6 pb-6 space-y-4">
             {/* AI Toggle - Inline */}
             <div className="flex items-center justify-between p-3 rounded-lg bg-background/80 border">
               <div className="flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-purple-500" />
+                <Sparkles className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm font-medium">Usar IA en vinculación</p>
                   <p className="text-xs text-muted-foreground">GPT-4 como fallback si fuzzy falla</p>
@@ -881,29 +662,29 @@ const Admin = () => {
               <Switch
                 checked={useAI}
                 onCheckedChange={setUseAI}
-                disabled={isProcessing || isProcessingPending}
+                disabled={isProcessing || pipelineState.isRunning}
               />
             </div>
 
-            {/* Progress */}
-            {isProcessingPending && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">{processPhase}</span>
-                  <span className="text-muted-foreground">{processProgress}%</span>
-                </div>
-                <Progress value={processProgress} className="h-2" />
+            {/* Parallel Progress Panel */}
+            {pipelineState.isRunning && (
+              <div className="space-y-3">
+                <ParallelProgressPanel 
+                  stats={pipelineState.stats} 
+                  isRunning={pipelineState.isRunning}
+                  phase={pipelineState.phase}
+                />
                 
                 {/* Pause Button */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handlePauseProcess}
-                  disabled={shouldStopRef.current}
-                  className="w-full border-orange-300 text-orange-600 hover:bg-orange-50"
+                  disabled={pipelineState.isPaused}
+                  className="w-full border-destructive/30 text-destructive hover:bg-destructive/10"
                 >
                   <Pause className="h-4 w-4 mr-2" />
-                  {shouldStopRef.current ? "Pausando..." : "Pausar proceso"}
+                  {pipelineState.isPaused ? "Pausando..." : "Pausar proceso"}
                 </Button>
               </div>
             )}
@@ -911,25 +692,25 @@ const Admin = () => {
             {/* Main Button */}
             <Button
               onClick={handleProcessPending}
-              disabled={isProcessingPending || isProcessing || totalPending === 0}
+              disabled={pipelineState.isRunning || isProcessing || totalPending === 0}
               size="lg"
-              className="w-full h-14 text-lg font-semibold bg-green-600 hover:bg-green-700"
+              className="w-full h-14 text-lg font-semibold"
             >
-              {isProcessingPending ? (
+              {pipelineState.isRunning ? (
                 <>
                   <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                  {processPhase || "Procesando..."}
+                  {pipelineState.phase || "Procesando en paralelo..."}
                 </>
               ) : (
                 <>
-                  <PlayCircle className="h-5 w-5 mr-2" />
-                  🔄 Procesar Pendientes ({totalPending})
+                  <Rocket className="h-5 w-5 mr-2" />
+                  ⚡ Procesar Paralelo ({totalPending})
                 </>
               )}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
-              Ejecuta automáticamente: Descargas → Transcripciones → Vinculación → Fotos{useAI ? " (con IA)" : ""}
+              Ejecuta en paralelo: Descargas + Transcripciones + Vinculación + Fotos{useAI ? " (con IA)" : ""}
             </p>
           </CardContent>
         </Card>
@@ -1039,7 +820,7 @@ const Admin = () => {
                 <div className="flex gap-2">
                   <Button 
                     onClick={handleProcessAll}
-                    disabled={isProcessing || isProcessingPending}
+                    disabled={isProcessing || pipelineState.isRunning}
                     className="flex-1"
                   >
                     {isProcessing ? (
