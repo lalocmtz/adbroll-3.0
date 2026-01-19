@@ -424,7 +424,7 @@ const Admin = () => {
     });
   };
 
-  // Process all from file upload
+  // Process all from file upload - AUTOMATIC FULL PIPELINE
   const handleProcessAll = async () => {
     if (!videoFile && !productFile && !creatorFile) {
       toast({
@@ -435,13 +435,19 @@ const Admin = () => {
       return;
     }
 
+    shouldStopRef.current = false;
     setIsProcessing(true);
     setProcessProgress(0);
 
+    let downloadStats = { successful: 0, failed: 0, skipped: false };
+    let transcriptionStats = { successful: 0, failed: 0, skipped: false };
+    let matchStats = { successful: 0, failed: 0, skipped: false };
+    let avatarStats = { successful: 0, failed: 0, skipped: false };
+
     try {
-      // Step 1: Import Creators FIRST
+      // ========== PHASE 1: Import Creators ==========
       if (creatorFile) {
-        setProcessPhase("1/4 Importando creadores...");
+        setProcessPhase("1/8 Importando creadores...");
         setProcessProgress(5);
         
         const formData = new FormData();
@@ -455,10 +461,12 @@ const Admin = () => {
         setCreatorFile(null);
       }
 
-      // Step 2: Import Products SECOND
+      if (shouldStopRef.current) throw new Error("Proceso pausado por el usuario");
+
+      // ========== PHASE 2: Import Products ==========
       if (productFile) {
-        setProcessPhase("2/4 Importando productos...");
-        setProcessProgress(15);
+        setProcessPhase("2/8 Importando productos...");
+        setProcessProgress(10);
         
         const formData = new FormData();
         formData.append("file", productFile);
@@ -471,10 +479,12 @@ const Admin = () => {
         setProductFile(null);
       }
 
-      // Step 3: Import Videos THIRD
+      if (shouldStopRef.current) throw new Error("Proceso pausado por el usuario");
+
+      // ========== PHASE 3: Import Videos ==========
       if (videoFile) {
-        setProcessPhase("3/4 Importando videos...");
-        setProcessProgress(25);
+        setProcessPhase("3/8 Importando videos...");
+        setProcessProgress(15);
         
         const formData = new FormData();
         formData.append("file", videoFile);
@@ -491,30 +501,201 @@ const Admin = () => {
       const inputs = document.querySelectorAll('input[type="file"]') as NodeListOf<HTMLInputElement>;
       inputs.forEach(input => input.value = '');
 
-      setProcessPhase("4/4 Archivos importados. Ejecutando proceso...");
-      setProcessProgress(30);
-
-      // Now run the pending processor
+      // Reload stats after import
       await loadStats();
+
+      if (shouldStopRef.current) throw new Error("Proceso pausado por el usuario");
+
+      // ========== PHASE 4: Download Videos ==========
+      if (stats.pendingDownload > 0 && !shouldStopRef.current) {
+        setProcessPhase(`4/8 Descargando ${stats.pendingDownload} videos...`);
+        setProcessProgress(20);
+
+        let consecutiveErrors = 0;
+        let noProgressCount = 0;
+        
+        while (!shouldStopRef.current) {
+          const { data, error } = await supabase.functions.invoke("download-videos-batch", {
+            body: { batchSize: 5 },
+          });
+
+          if (error) {
+            consecutiveErrors++;
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+              downloadStats.skipped = true;
+              break;
+            }
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
+          }
+
+          consecutiveErrors = 0;
+          
+          if (!data || data.processed === 0 || data.remaining === 0) break;
+          
+          if (data.successful === 0 && data.failed > 0) {
+            noProgressCount++;
+            if (noProgressCount >= 3) {
+              downloadStats.skipped = true;
+              break;
+            }
+            await new Promise(r => setTimeout(r, 1000));
+            continue;
+          }
+          
+          noProgressCount = 0;
+          downloadStats.successful += data.successful || 0;
+          downloadStats.failed += data.permanentlyFailed || 0;
+          
+          setProcessPhase(`4/8 Descargando... (${downloadStats.successful} OK, ${data.remaining} pendientes)`);
+          setProcessProgress(20 + Math.min(15, (downloadStats.successful / Math.max(stats.pendingDownload, 1)) * 15));
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+
+      await loadStats();
+
+      // ========== PHASE 5: Transcribe Videos ==========
+      if ((stats.pendingTranscription > 0 || downloadStats.successful > 0) && !shouldStopRef.current) {
+        setProcessPhase("5/8 Transcribiendo scripts...");
+        setProcessProgress(40);
+
+        let consecutiveErrors = 0;
+        
+        while (!shouldStopRef.current) {
+          const { data, error } = await supabase.functions.invoke("transcribe-videos-batch", {
+            body: { batchSize: 3 },
+          });
+
+          if (error) {
+            consecutiveErrors++;
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+              transcriptionStats.skipped = true;
+              break;
+            }
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
+          }
+
+          consecutiveErrors = 0;
+
+          if (!data || data.processed === 0 || data.remaining === 0 || data.complete) break;
+          
+          transcriptionStats.successful += data.successful || 0;
+          setProcessPhase(`5/8 Transcribiendo... (${transcriptionStats.successful} completados, ${data.remaining} pendientes)`);
+          setProcessProgress(40 + Math.min(20, (transcriptionStats.successful / Math.max(stats.pendingTranscription, 1)) * 20));
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+
+      await loadStats();
+
+      // ========== PHASE 6: Match Products ==========
+      if (stats.pendingMatch > 0 && !shouldStopRef.current) {
+        setProcessPhase(`6/8 Vinculando productos${useAI ? " (con IA)" : ""}...`);
+        setProcessProgress(65);
+
+        let consecutiveErrors = 0;
+        let noProgressCount = 0;
+
+        while (!shouldStopRef.current) {
+          const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
+            body: { batchSize: useAI ? 10 : 50, threshold: 0.5, useAI },
+          });
+
+          if (error) {
+            consecutiveErrors++;
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+              matchStats.skipped = true;
+              break;
+            }
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
+          }
+
+          consecutiveErrors = 0;
+          matchStats.successful += data.matchedInBatch || 0;
+
+          if (data.matchedInBatch === 0 && data.batchProcessed > 0) {
+            noProgressCount++;
+            if (noProgressCount >= 3) break;
+            await new Promise(r => setTimeout(r, 500));
+            continue;
+          }
+          
+          noProgressCount = 0;
+          if (data.complete) break;
+
+          setProcessPhase(`6/8 Vinculando... (${matchStats.successful} vinculados)`);
+          setProcessProgress(65 + Math.min(15, (matchStats.successful / Math.max(stats.pendingMatch, 1)) * 15));
+          
+          if (data.timedOut) await new Promise(r => setTimeout(r, 300));
+        }
+      }
+
+      await loadStats();
+
+      // ========== PHASE 7: Download Avatars ==========
+      if (stats.pendingAvatars > 0 && !shouldStopRef.current) {
+        setProcessPhase(`7/8 Descargando ${stats.pendingAvatars} fotos de creadores...`);
+        setProcessProgress(85);
+
+        try {
+          const { data, error } = await supabase.functions.invoke("download-creator-avatars");
+          
+          if (error) {
+            avatarStats.skipped = true;
+          } else if (data) {
+            avatarStats.successful = data.successCount || 0;
+            avatarStats.failed = data.errorCount || 0;
+          }
+        } catch (err) {
+          avatarStats.skipped = true;
+        }
+      }
+
+      // ========== PHASE 8: Finalize ==========
+      setProcessPhase("8/8 Actualizando rankings...");
+      setProcessProgress(95);
       
-      toast({
-        title: "Archivos importados",
-        description: "Ahora haz clic en 'Procesar Pendientes' para descargar y transcribir.",
-      });
+      await loadStats();
+
+      // Build summary
+      const summary = [];
+      if (downloadStats.successful > 0) summary.push(`${downloadStats.successful} videos descargados`);
+      if (transcriptionStats.successful > 0) summary.push(`${transcriptionStats.successful} scripts`);
+      if (matchStats.successful > 0) summary.push(`${matchStats.successful} vinculados`);
+      if (avatarStats.successful > 0) summary.push(`${avatarStats.successful} fotos`);
+      
+      const warnings = [];
+      if (downloadStats.skipped) warnings.push("descargas");
+      if (transcriptionStats.skipped) warnings.push("scripts");
+      if (matchStats.skipped) warnings.push("vinculación");
+      if (avatarStats.skipped) warnings.push("fotos");
 
       setProcessProgress(100);
+      setProcessPhase("✅ Pipeline completado");
       saveLastSync();
 
-    } catch (error: any) {
       toast({
-        title: "Error en el proceso",
-        description: error.message,
-        variant: "destructive",
+        title: "✅ Importación y procesamiento completados",
+        description: summary.length > 0 
+          ? summary.join(", ") + (warnings.length > 0 ? ` (⚠️ saltados: ${warnings.join(", ")})` : "")
+          : "Datos importados correctamente. Rankings actualizados.",
+      });
+
+    } catch (error: any) {
+      const isPaused = error.message?.includes("pausado");
+      toast({
+        title: isPaused ? "⏸️ Proceso pausado" : "Error en el proceso",
+        description: isPaused ? "Puedes continuar con 'Procesar Pendientes'" : error.message,
+        variant: isPaused ? "default" : "destructive",
       });
     } finally {
       setIsProcessing(false);
       setProcessPhase("");
       setProcessProgress(0);
+      await loadStats();
     }
   };
 
@@ -855,28 +1036,40 @@ const Admin = () => {
                   </div>
                 )}
                 
-                <Button 
-                  onClick={handleProcessAll}
-                  disabled={isProcessing || isProcessingPending}
-                  className="w-full"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Zap className="h-4 w-4 mr-2 animate-pulse" />
-                      {processPhase || "Importando..."}
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="h-4 w-4 mr-2" />
-                      Importar Archivos
-                    </>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleProcessAll}
+                    disabled={isProcessing || isProcessingPending}
+                    className="flex-1"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Zap className="h-4 w-4 mr-2 animate-pulse" />
+                        {processPhase || "Procesando..."}
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="h-4 w-4 mr-2" />
+                        🚀 Importar y Procesar Todo
+                      </>
+                    )}
+                  </Button>
+                  
+                  {isProcessing && (
+                    <Button
+                      variant="outline"
+                      onClick={handlePauseProcess}
+                    >
+                      <Pause className="h-4 w-4" />
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
             )}
 
-            <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded">
-              <p className="font-medium">💡 Los datos existentes se actualizan, los nuevos se crean.</p>
+            <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded space-y-1">
+              <p className="font-medium">🚀 Pipeline automático: Importar → Descargar MP4 → Transcribir → Vincular → Fotos</p>
+              <p>💡 Los datos existentes se actualizan, los nuevos se crean. Rankings se recalculan.</p>
             </div>
           </CardContent>
         </Card>
