@@ -82,20 +82,42 @@ serve(async (req) => {
 
     const avatarUrl = await fetchTikTokAvatar(normalizedUrl);
 
-    // If creator_id is provided, update the database
-    if (creator_id && avatarUrl) {
-      const supabaseServiceClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-      );
+    const supabaseServiceClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
 
+    // If creator_id is provided, update that specific creator
+    if (creator_id && avatarUrl) {
       const { error: updateError } = await supabaseServiceClient
-        .from("creators")
+        .from("creator_directory")
         .update({ avatar_url: avatarUrl })
         .eq("id", creator_id);
 
       if (updateError) {
         console.error("Error updating creator avatar:", updateError);
+      }
+    } 
+    // Otherwise, try to find creator by tiktok_url in creator_directory
+    else if (avatarUrl && normalizedUrl) {
+      // Try to find and update by tiktok_url
+      const { data: existingCreator, error: findError } = await supabaseServiceClient
+        .from("creator_directory")
+        .select("id")
+        .eq("tiktok_url", normalizedUrl)
+        .maybeSingle();
+
+      if (existingCreator && !findError) {
+        const { error: updateError } = await supabaseServiceClient
+          .from("creator_directory")
+          .update({ avatar_url: avatarUrl })
+          .eq("id", existingCreator.id);
+
+        if (updateError) {
+          console.error("Error updating creator_directory avatar:", updateError);
+        } else {
+          console.log(`Updated avatar for creator_directory ID: ${existingCreator.id}`);
+        }
       }
     }
 
