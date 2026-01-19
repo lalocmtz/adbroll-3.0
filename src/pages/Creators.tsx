@@ -23,12 +23,6 @@ import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-interface CreatorVideo {
-  id: string;
-  thumbnail_url: string | null;
-  video_mp4_url: string | null;
-}
-
 interface Creator {
   id: string;
   usuario_creador: string;
@@ -49,7 +43,6 @@ interface Creator {
   views_30d: number | null;
   sales_30d: number | null;
   likes_30d: number | null;
-  videos?: CreatorVideo[];
 }
 
 type SortOption = "revenue" | "followers" | "views" | "lives" | "gmv_live" | "gmv_videos";
@@ -101,44 +94,7 @@ const Creators = () => {
 
       if (error) throw error;
       
-      const rawCreators = data || [];
-      
-      // Fetch videos for each creator (max 3 per creator)
-      const videosByCreator: Record<string, CreatorVideo[]> = {};
-      
-      if (rawCreators.length > 0) {
-        const creatorIds = rawCreators.map(c => c.id);
-        const { data: videosData } = await supabase
-          .from("videos")
-          .select("id, creator_id, thumbnail_url, video_mp4_url")
-          .in("creator_id", creatorIds)
-          .not("video_mp4_url", "is", null)
-          .order("revenue_mxn", { ascending: false });
-
-        // Group videos by creator (max 3 each)
-        videosData?.forEach(video => {
-          if (video.creator_id) {
-            if (!videosByCreator[video.creator_id]) {
-              videosByCreator[video.creator_id] = [];
-            }
-            if (videosByCreator[video.creator_id].length < 3) {
-              videosByCreator[video.creator_id].push({
-                id: video.id,
-                thumbnail_url: video.thumbnail_url,
-                video_mp4_url: video.video_mp4_url
-              });
-            }
-          }
-        });
-      }
-      
-      // Map to Creator type with videos attached
-      const creatorsWithVideos: Creator[] = rawCreators.map(creator => ({
-        ...creator,
-        videos: videosByCreator[creator.id] || []
-      }));
-      
-      setCreators(creatorsWithVideos);
+      setCreators(data || []);
     } catch (error: any) {
       toast({
         title: "Error al cargar creadores",
@@ -278,6 +234,11 @@ const Creators = () => {
   };
 
   const getAvatarUrl = (creator: Creator): string => {
+    // Always return a valid avatar URL - prioritize creator's avatar_url if available
+    if (creator.avatar_url && creator.avatar_url.length > 0) {
+      return creator.avatar_url;
+    }
+    // Fallback: generate avatar with initials using UI Avatars
     const name = encodeURIComponent(creator.nombre_completo || creator.usuario_creador);
     return `https://ui-avatars.com/api/?name=${name}&background=F31260&color=fff&bold=true&size=128&format=svg`;
   };
@@ -316,36 +277,6 @@ const Creators = () => {
       return;
     }
     navigate(`/videos/creator/${creator.id}`);
-  };
-
-  // Video preview thumbnails component
-  const VideoPreviewThumbnails = ({ videos, isLocked }: { videos?: CreatorVideo[], isLocked: boolean }) => {
-    if (isLocked) return <span className="text-xs text-muted-foreground">•••</span>;
-    if (!videos || videos.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
-
-    return (
-      <div className="flex -space-x-2">
-        {videos.slice(0, 3).map((video, i) => (
-          <div 
-            key={video.id}
-            className="w-8 h-10 rounded border-2 border-background overflow-hidden bg-muted shrink-0"
-            style={{ zIndex: 3 - i }}
-          >
-            {video.thumbnail_url ? (
-              <img 
-                src={video.thumbnail_url} 
-                alt="" 
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/40">
-                <Play className="h-3 w-3 text-white" />
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
   };
 
   if (loading) {
@@ -470,7 +401,7 @@ const Creators = () => {
                         Vistas
                       </div>
                     </TableHead>
-                    <TableHead className="min-w-[180px]">
+                    <TableHead className="w-[160px]">
                       <div className="flex items-center gap-1">
                         <Play className="h-3 w-3 text-primary" />
                         Videos
@@ -628,30 +559,26 @@ const Creators = () => {
                           {isLocked ? "•••" : formatNumber(creator.promedio_visualizaciones)}
                         </TableCell>
 
-                        {/* Videos Preview + Ver videos button */}
+                        {/* Videos button */}
                         <TableCell className="p-2">
-                          <div className="flex items-center gap-2">
-                            <VideoPreviewThumbnails videos={creator.videos} isLocked={isLocked} />
-                            {!isLocked && (
-                              <Button 
-                                size="sm"
-                                className="h-7 text-xs shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/videos/creator/${creator.id}`);
-                                }}
-                              >
-                                <Play className="h-3 w-3 mr-1" />
-                                Ver videos
-                              </Button>
-                            )}
-                            {isLocked && (
-                              <Button size="sm" variant="outline" className="h-7 text-xs shrink-0">
-                                <Lock className="h-3 w-3 mr-1" />
-                                Unlock
-                              </Button>
-                            )}
-                          </div>
+                          {!isLocked ? (
+                            <Button 
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/videos/creator/${creator.id}`);
+                              }}
+                            >
+                              <Play className="h-3 w-3 mr-1" />
+                              Ver mejores videos
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" className="h-7 text-xs">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Unlock
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
