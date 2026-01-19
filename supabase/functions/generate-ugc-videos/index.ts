@@ -35,8 +35,10 @@ serve(async (req) => {
 
     // Callback URL for KIE to notify when videos are ready
     const callbackUrl = `${SUPABASE_URL}/functions/v1/kie-ugc-callback`;
+    console.log('Callback URL:', callbackUrl);
 
     // Generate Video 1 - Talking to camera (subtle movement)
+    console.log('Creating video 1 task with image:', image_1_url);
     const video1Response = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
       method: 'POST',
       headers: {
@@ -62,15 +64,27 @@ serve(async (req) => {
     if (!video1Response.ok) {
       const errorText = await video1Response.text();
       console.error('KIE API error for video 1:', errorText);
-      throw new Error(`KIE API error for video 1: ${video1Response.status}`);
+      throw new Error(`KIE API error for video 1: ${video1Response.status} - ${errorText}`);
     }
 
     const video1Data = await video1Response.json();
-    const video1TaskId = video1Data.taskId || video1Data.task_id;
+    console.log('KIE Video 1 full response:', JSON.stringify(video1Data));
+    
+    // KIE returns taskId in different locations depending on the response
+    const video1TaskId = video1Data.data?.taskId || 
+                         video1Data.taskId || 
+                         video1Data.task_id ||
+                         video1Data.data?.task_id ||
+                         video1Data.id;
 
-    console.log('Video 1 task created:', video1TaskId);
+    if (!video1TaskId) {
+      console.error('Could not extract task ID from video 1 response:', video1Data);
+    } else {
+      console.log('Video 1 task created:', video1TaskId);
+    }
 
     // Generate Video 2 - Walking/showing product
+    console.log('Creating video 2 task with image:', image_2_url);
     const video2Response = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
       method: 'POST',
       headers: {
@@ -96,27 +110,39 @@ serve(async (req) => {
     if (!video2Response.ok) {
       const errorText = await video2Response.text();
       console.error('KIE API error for video 2:', errorText);
-      throw new Error(`KIE API error for video 2: ${video2Response.status}`);
+      throw new Error(`KIE API error for video 2: ${video2Response.status} - ${errorText}`);
     }
 
     const video2Data = await video2Response.json();
-    const video2TaskId = video2Data.taskId || video2Data.task_id;
+    console.log('KIE Video 2 full response:', JSON.stringify(video2Data));
+    
+    const video2TaskId = video2Data.data?.taskId || 
+                         video2Data.taskId || 
+                         video2Data.task_id ||
+                         video2Data.data?.task_id ||
+                         video2Data.id;
 
-    console.log('Video 2 task created:', video2TaskId);
+    if (!video2TaskId) {
+      console.error('Could not extract task ID from video 2 response:', video2Data);
+    } else {
+      console.log('Video 2 task created:', video2TaskId);
+    }
 
     // Update the generation record with task IDs
     const { error: updateError } = await supabase
       .from('ugc_generations')
       .update({
-        video_1_task_id: video1TaskId,
-        video_2_task_id: video2TaskId,
+        video_1_task_id: video1TaskId || null,
+        video_2_task_id: video2TaskId || null,
         current_step: 4,
         status: 'processing_videos'
       })
       .eq('id', generationId);
 
     if (updateError) {
-      console.error('Error updating generation:', updateError);
+      console.error('Error updating generation with task IDs:', updateError);
+    } else {
+      console.log('Generation updated with task IDs:', { video1TaskId, video2TaskId });
     }
 
     return new Response(
