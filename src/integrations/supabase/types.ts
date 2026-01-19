@@ -641,6 +641,7 @@ export type Database = {
       }
       creators: {
         Row: {
+          avatar_storage_url: string | null
           avatar_url: string | null
           country: string | null
           created_at: string | null
@@ -668,6 +669,7 @@ export type Database = {
           views_30d: number | null
         }
         Insert: {
+          avatar_storage_url?: string | null
           avatar_url?: string | null
           country?: string | null
           created_at?: string | null
@@ -695,6 +697,7 @@ export type Database = {
           views_30d?: number | null
         }
         Update: {
+          avatar_storage_url?: string | null
           avatar_url?: string | null
           country?: string | null
           created_at?: string | null

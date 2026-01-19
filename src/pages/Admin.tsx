@@ -40,6 +40,7 @@ const Admin = () => {
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [useAI, setUseAI] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDownloadingAvatars, setIsDownloadingAvatars] = useState(false);
   const { toast } = useToast();
   const shouldStopRef = useRef(false);
 
@@ -560,7 +561,59 @@ const Admin = () => {
           </TabsContent>
 
           {/* Creator Program Tab */}
-          <TabsContent value="creators">
+          <TabsContent value="creators" className="space-y-6">
+            {/* Avatar Download Button */}
+            <Card className="border-2 border-blue-300 bg-gradient-to-r from-blue-50 to-cyan-50">
+              <CardContent className="pt-6 pb-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold flex items-center gap-2">
+                      📸 Descargar Avatares de Creadores
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Descarga y almacena permanentemente las fotos de perfil de TikTok
+                    </p>
+                  </div>
+                  <Button
+                    onClick={async () => {
+                      setIsDownloadingAvatars(true);
+                      try {
+                        const { data, error } = await supabase.functions.invoke("download-creator-avatars");
+                        if (error) throw error;
+                        toast({
+                          title: "Avatares procesados",
+                          description: `${data.successCount || 0} descargados, ${data.errorCount || 0} errores`,
+                        });
+                      } catch (err: unknown) {
+                        const errorMessage = err instanceof Error ? err.message : String(err);
+                        toast({
+                          title: "Error",
+                          description: errorMessage,
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsDownloadingAvatars(false);
+                      }
+                    }}
+                    disabled={isDownloadingAvatars}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {isDownloadingAvatars ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Descargar Avatares
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
             <CreatorDirectoryManager />
           </TabsContent>
 
