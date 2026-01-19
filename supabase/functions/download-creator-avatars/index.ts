@@ -61,9 +61,47 @@ serve(async (req) => {
         });
 
         if (!imageResponse.ok) {
-          console.error(`Failed to download avatar for ${creator.usuario_creador}: ${imageResponse.status}`);
-          errors.push(`${creator.usuario_creador}: HTTP ${imageResponse.status}`);
-          errorCount++;
+          console.log(`TikTok avatar blocked for ${creator.usuario_creador}, using fallback...`);
+          
+          // Use UI Avatars as fallback
+          const displayName = creator.nombre_completo || creator.usuario_creador || "User";
+          const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=F31260&color=fff&size=256&bold=true`;
+          
+          const fallbackResponse = await fetch(fallbackUrl);
+          if (!fallbackResponse.ok) {
+            console.error(`Fallback also failed for ${creator.usuario_creador}`);
+            errors.push(`${creator.usuario_creador}: Fallback failed`);
+            errorCount++;
+            continue;
+          }
+          
+          const fallbackBlob = await fallbackResponse.blob();
+          const fallbackFileName = `creator-avatars/${creator.id}.png`;
+          
+          const { error: fallbackUploadError } = await supabase.storage
+            .from("assets")
+            .upload(fallbackFileName, fallbackBlob, {
+              contentType: "image/png",
+              upsert: true,
+            });
+          
+          if (fallbackUploadError) {
+            errors.push(`${creator.usuario_creador}: Upload failed`);
+            errorCount++;
+            continue;
+          }
+          
+          const { data: fallbackUrlData } = supabase.storage
+            .from("assets")
+            .getPublicUrl(fallbackFileName);
+          
+          await supabase
+            .from("creators")
+            .update({ avatar_storage_url: fallbackUrlData.publicUrl })
+            .eq("id", creator.id);
+          
+          console.log(`✅ Fallback avatar saved for ${creator.usuario_creador}`);
+          successCount++;
           continue;
         }
 
