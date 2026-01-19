@@ -104,7 +104,7 @@ const VideoAnalysisModalOriginal = ({
 
   // Handle locked tabs for visitors
   const handleTabChange = (value: string) => {
-    if (!hasPaid && (value === 'analysis' || value === 'variants' || value === 'generate')) {
+    if (!hasPaid && (value === 'analysis' || value === 'variants')) {
       navigate('/unlock');
       return;
     }
@@ -544,7 +544,7 @@ const VideoAnalysisModalOriginal = ({
             {/* Tabs - Now inside unified scroll */}
             <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col">
               <div className="sticky top-0 z-20 bg-background px-3 pt-2 pb-1 border-b border-border">
-                <TabsList className="grid grid-cols-4 w-full h-10 p-1 bg-muted/50 rounded-xl">
+                <TabsList className="grid grid-cols-3 w-full h-10 p-1 bg-muted/50 rounded-xl">
                   <TabsTrigger value="script" className="gap-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-[10px] px-1">
                     <FileText className="h-3.5 w-3.5" />
                     Script
@@ -558,11 +558,6 @@ const VideoAnalysisModalOriginal = ({
                     {!hasPaid && <Lock className="h-2.5 w-2.5" />}
                     <Wand2 className="h-3.5 w-3.5" />
                     Variantes
-                  </TabsTrigger>
-                  <TabsTrigger value="generate" className="gap-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-[10px] px-1">
-                    {!hasPaid && <Lock className="h-2.5 w-2.5" />}
-                    <Video className="h-3.5 w-3.5" />
-                    Generar
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -827,24 +822,6 @@ const VideoAnalysisModalOriginal = ({
                       )}
                     </TabsContent>
 
-                    {/* Generate Video Tab - Mobile */}
-                    <TabsContent value="generate" className="mt-0 animate-fade-in">
-                      {!hasPaid ? (
-                        <div className="card-premium p-6 text-center">
-                          <Lock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                          <p className="text-sm text-muted-foreground mb-4">Desbloquea la generación IA</p>
-                          <Button onClick={() => navigate('/unlock')} className="rounded-xl" size="sm">
-                            Desbloquear
-                          </Button>
-                        </div>
-                      ) : (
-                        <VideoGeneratorTab 
-                          videoId={video.id} 
-                          transcript={transcript} 
-                          productName={video.product?.producto_nombre || video.product_name || undefined}
-                        />
-                      )}
-                    </TabsContent>
                   </>
                 )}
               </div>
@@ -987,7 +964,7 @@ const VideoAnalysisModalOriginal = ({
               <div className="flex-1 overflow-hidden">
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="h-full flex flex-col">
                   <div className="px-3 md:px-5 pt-3 md:pt-4">
-                    <TabsList className="grid grid-cols-4 w-full h-10 md:h-11 p-1 bg-muted/50 rounded-xl">
+                    <TabsList className="grid grid-cols-3 w-full h-10 md:h-11 p-1 bg-muted/50 rounded-xl">
                       <TabsTrigger value="script" className="gap-1.5 md:gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs md:text-sm">
                         <FileText className="h-3.5 w-3.5 md:h-4 md:w-4" />
                         Script
@@ -1001,11 +978,6 @@ const VideoAnalysisModalOriginal = ({
                         {!hasPaid && <Lock className="h-3 w-3" />}
                         <Wand2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
                         Variantes
-                      </TabsTrigger>
-                      <TabsTrigger value="generate" className="gap-1.5 md:gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs md:text-sm">
-                        {!hasPaid && <Lock className="h-3 w-3" />}
-                        <Video className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                        Generar
                       </TabsTrigger>
                     </TabsList>
                   </div>
@@ -1227,14 +1199,6 @@ const VideoAnalysisModalOriginal = ({
                         </div>
                       </TabsContent>
 
-                      {/* Generate Video Tab */}
-                      <TabsContent value="generate" className="mt-0 h-full animate-fade-in">
-                        <VideoGeneratorTab 
-                          videoId={video.id} 
-                          transcript={transcript} 
-                          productName={video.product?.producto_nombre || video.product_name || undefined}
-                        />
-                      </TabsContent>
                     </>}
                   </div>
                 </Tabs>
