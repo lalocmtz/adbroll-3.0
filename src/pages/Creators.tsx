@@ -71,6 +71,11 @@ const Creators = () => {
   const [sortBy, setSortBy] = useState<SortOption>("revenue");
   const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+
+  const handleImageError = (creatorId: string) => {
+    setImageErrors(prev => new Set(prev).add(creatorId));
+  };
 
   useEffect(() => {
     fetchCreators();
@@ -233,14 +238,13 @@ const Creators = () => {
     return formatCurrency(gmv / lives);
   };
 
-  const getAvatarUrl = (creator: Creator): string => {
-    // Always return a valid avatar URL - prioritize creator's avatar_url if available
-    if (creator.avatar_url && creator.avatar_url.length > 0) {
-      return creator.avatar_url;
+  const getReliableAvatarUrl = (creator: Creator): string => {
+    // If TikTok image failed to load OR no avatar_url, use UI Avatars
+    if (imageErrors.has(creator.id) || !creator.avatar_url || creator.avatar_url.length === 0) {
+      const name = encodeURIComponent(creator.nombre_completo || creator.usuario_creador);
+      return `https://ui-avatars.com/api/?name=${name}&background=F31260&color=fff&bold=true&size=128&format=svg`;
     }
-    // Fallback: generate avatar with initials using UI Avatars
-    const name = encodeURIComponent(creator.nombre_completo || creator.usuario_creador);
-    return `https://ui-avatars.com/api/?name=${name}&background=F31260&color=fff&bold=true&size=128&format=svg`;
+    return creator.avatar_url;
   };
 
   const getTikTokUrl = (creator: Creator): string | null => {
@@ -462,8 +466,12 @@ const Creators = () => {
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="relative">
-                              <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm">
-                                <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
+                            <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm">
+                                <AvatarImage 
+                                  src={getReliableAvatarUrl(creator)} 
+                                  alt={creator.nombre_completo || creator.usuario_creador}
+                                  onError={() => handleImageError(creator.id)}
+                                />
                                 <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-xs">
                                   {getInitials(creator.nombre_completo, creator.usuario_creador)}
                                 </AvatarFallback>
@@ -632,7 +640,11 @@ const Creators = () => {
                       <TableCell className="p-2">
                         <div className="flex items-center gap-2">
                           <Avatar className="h-8 w-8 border border-primary/20 shrink-0">
-                            <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
+                            <AvatarImage 
+                              src={getReliableAvatarUrl(creator)} 
+                              alt={creator.nombre_completo || creator.usuario_creador}
+                              onError={() => handleImageError(creator.id)}
+                            />
                             <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-[10px]">
                               {getInitials(creator.nombre_completo, creator.usuario_creador)}
                             </AvatarFallback>
