@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import QuickSignupModal from "./QuickSignupModal";
 
 const NICHES = [
   { value: "belleza", labelEs: "Belleza", labelEn: "Beauty" },
@@ -59,6 +60,8 @@ const CreatorApplicationForm = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [pendingApplication, setPendingApplication] = useState<FormData | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -74,7 +77,31 @@ const CreatorApplicationForm = () => {
     },
   });
 
-  const onSubmit = async (data: FormData) => {
+  // Check if returning from OAuth with pending application
+  useEffect(() => {
+    const checkPendingApplication = async () => {
+      const hasPending = localStorage.getItem("pendingCreatorApplication");
+      if (hasPending) {
+        localStorage.removeItem("pendingCreatorApplication");
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // User just signed up/logged in via OAuth, show success
+          setIsSubmitted(true);
+          toast({
+            title: language === "es" ? "¡Bienvenido!" : "Welcome!",
+            description: language === "es"
+              ? "Tu cuenta ha sido creada. Completa el formulario para postularte."
+              : "Your account has been created. Complete the form to apply.",
+          });
+        }
+      }
+    };
+    
+    checkPendingApplication();
+  }, [language, toast]);
+
+  const submitApplication = async (data: FormData, userId?: string) => {
     setIsSubmitting(true);
 
     try {
@@ -140,6 +167,30 @@ const CreatorApplicationForm = () => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const onSubmit = async (data: FormData) => {
+    // Check if user is authenticated
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      // Save form data and show signup modal
+      setPendingApplication(data);
+      setShowSignupModal(true);
+      return;
+    }
+
+    // User is authenticated, submit directly
+    await submitApplication(data, session.user.id);
+  };
+
+  const handleSignupSuccess = async (userId: string) => {
+    setShowSignupModal(false);
+    
+    if (pendingApplication) {
+      await submitApplication(pendingApplication, userId);
+      setPendingApplication(null);
     }
   };
 
@@ -401,6 +452,15 @@ const CreatorApplicationForm = () => {
           </form>
         </Form>
       </CardContent>
+
+      {/* Quick Signup Modal */}
+      <QuickSignupModal
+        open={showSignupModal}
+        onOpenChange={setShowSignupModal}
+        email={pendingApplication?.email || ""}
+        fullName={pendingApplication?.full_name || ""}
+        onSuccess={handleSignupSuccess}
+      />
     </Card>
   );
 };
