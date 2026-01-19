@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -10,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Users, ExternalLink, Flame, Heart, Play, Lock, Sparkles, Video, Eye } from "lucide-react";
+import { Users, ExternalLink, Flame, Heart, Play, Lock, Sparkles, Video, Radio, ShoppingBag, Eye, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FilterPills } from "@/components/FilterPills";
@@ -38,16 +39,22 @@ interface Creator {
   revenue_videos: number | null;
   tiktok_url: string | null;
   country: string | null;
+  total_videos: number | null;
+  total_ventas: number | null;
+  views_30d: number | null;
+  sales_30d: number | null;
+  likes_30d: number | null;
 }
 
-type SortOption = "revenue" | "followers" | "views" | "lives" | "gmv_live";
+type SortOption = "revenue" | "followers" | "views" | "lives" | "gmv_live" | "gmv_videos";
 
 const SORT_OPTIONS = [
-  { value: "revenue", label: "Más ingresos" },
+  { value: "revenue", label: "Más GMV" },
   { value: "followers", label: "Más seguidores" },
-  { value: "views", label: "Más vistas" },
+  { value: "gmv_videos", label: "Más GMV videos" },
+  { value: "gmv_live", label: "Más GMV lives" },
   { value: "lives", label: "Más lives" },
-  { value: "gmv_live", label: "Más ventas por live" },
+  { value: "views", label: "Más vistas" },
 ];
 
 const ITEMS_PER_PAGE = 20;
@@ -173,6 +180,8 @@ const Creators = () => {
           return (b.total_live_count || 0) - (a.total_live_count || 0);
         case "gmv_live":
           return (b.gmv_live_mxn || 0) - (a.gmv_live_mxn || 0);
+        case "gmv_videos":
+          return (b.revenue_videos || 0) - (a.revenue_videos || 0);
         default:
           return 0;
       }
@@ -194,10 +203,42 @@ const Creators = () => {
     return `$${new Intl.NumberFormat("es-MX").format(Math.round(amount))}`;
   };
 
-  const calculateCommission = (revenue: number | null): string => {
+  const calculateEstimatedEarnings = (revenue: number | null): string => {
     if (!revenue || revenue === 0) return "—";
     const commission = revenue * 0.08;
     return formatCurrency(commission);
+  };
+
+  // Calculate video percentage of total GMV
+  const getVideoPercentage = (creator: Creator): number => {
+    const total = creator.total_ingresos_mxn || 0;
+    if (total === 0) return 0;
+    const videoRevenue = creator.revenue_videos || 0;
+    return Math.round((videoRevenue / total) * 100);
+  };
+
+  // Calculate live percentage of total GMV
+  const getLivePercentage = (creator: Creator): number => {
+    const total = creator.total_ingresos_mxn || 0;
+    if (total === 0) return 0;
+    const liveRevenue = creator.gmv_live_mxn || 0;
+    return Math.round((liveRevenue / total) * 100);
+  };
+
+  // Determine creator type based on GMV distribution
+  const getCreatorType = (creator: Creator): 'video' | 'live' | 'hybrid' => {
+    const videoPercent = getVideoPercentage(creator);
+    if (videoPercent >= 70) return 'video';
+    if (videoPercent <= 30) return 'live';
+    return 'hybrid';
+  };
+
+  // Get GMV per live
+  const getGmvPerLive = (creator: Creator): string => {
+    const lives = creator.total_live_count || 0;
+    const gmv = creator.gmv_live_mxn || 0;
+    if (lives === 0 || gmv === 0) return "—";
+    return formatCurrency(gmv / lives);
   };
 
   const getAvatarUrl = (creator: Creator): string => {
@@ -239,6 +280,35 @@ const Creators = () => {
       return;
     }
     navigate(`/videos/creator/${creator.id}`);
+  };
+
+  // Creator type badge component
+  const CreatorTypeBadge = ({ creator }: { creator: Creator }) => {
+    const type = getCreatorType(creator);
+    const videoPercent = getVideoPercentage(creator);
+    const livePercent = getLivePercentage(creator);
+    
+    if (type === 'video') {
+      return (
+        <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+          <Video className="h-2.5 w-2.5 mr-0.5" />
+          {videoPercent}% videos
+        </Badge>
+      );
+    }
+    if (type === 'live') {
+      return (
+        <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border-rose-200 dark:border-rose-800">
+          <Radio className="h-2.5 w-2.5 mr-0.5" />
+          {livePercent}% lives
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+        ⚖️ Híbrido
+      </Badge>
+    );
   };
 
   if (loading) {
@@ -322,124 +392,86 @@ const Creators = () => {
         </div>
       ) : (
         <>
-          {/* Desktop Table */}
+          {/* Desktop Table - Enhanced with horizontal scroll */}
           <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent border-b border-border">
-                  <TableHead className="w-10 text-center">#</TableHead>
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead className="min-w-[200px]">Creador</TableHead>
-                  <TableHead className="text-right">Seguidores</TableHead>
-                  <TableHead className="text-right">Ingresos</TableHead>
-                  <TableHead className="text-right">Comisión 8%</TableHead>
-                  <TableHead className="text-right">Lives</TableHead>
-                  <TableHead className="text-right">Vistas</TableHead>
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead className="text-right w-[120px]">Acción</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedCreators.map((creator, pageIndex) => {
-                  const tiktokUrl = getTikTokUrl(creator);
-                  const globalIndex = startIndex + pageIndex;
-                  const ranking = globalIndex + 1;
-                  const isFav = favorites.has(creator.id);
-                  const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+            <div className="overflow-x-auto">
+              <Table className="min-w-[1200px]">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
+                    <TableHead className="w-12 text-center sticky left-0 bg-muted/30">#</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead className="min-w-[180px]">Creador</TableHead>
+                    <TableHead className="text-right">Seguidores</TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <TrendingUp className="h-3 w-3 text-emerald-500" />
+                        GMV Total
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <ShoppingBag className="h-3 w-3 text-amber-500" />
+                        Ganancias Est.
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Video className="h-3 w-3 text-blue-500" />
+                        GMV Videos
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Radio className="h-3 w-3 text-rose-500" />
+                        GMV Lives
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">Lives</TableHead>
+                    <TableHead className="text-right">Videos</TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Eye className="h-3 w-3" />
+                        Vistas
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead className="text-right w-[100px]">Acción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedCreators.map((creator, pageIndex) => {
+                    const tiktokUrl = getTikTokUrl(creator);
+                    const globalIndex = startIndex + pageIndex;
+                    const ranking = globalIndex + 1;
+                    const isFav = favorites.has(creator.id);
+                    const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+                    const videoPercent = getVideoPercentage(creator);
+                    const livePercent = getLivePercentage(creator);
 
-                  return (
-                    <TableRow 
-                      key={creator.id}
-                      className={cn(
-                        "cursor-pointer transition-colors",
-                        isTop5(globalIndex) && "bg-gradient-to-r from-amber-50/50 to-transparent dark:from-amber-950/20",
-                        isLocked && "opacity-50"
-                      )}
-                      onClick={() => handleRowClick(creator, isLocked)}
-                    >
-                      {/* Ranking */}
-                      <TableCell className="font-bold text-center">
-                        <span className={cn(
-                          "inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-full text-xs font-bold",
-                          isTop5(globalIndex)
-                            ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
-                            : "bg-muted text-foreground"
-                        )}>
-                          {ranking}{isTop5(globalIndex) && <Flame className="h-3 w-3 ml-0.5" />}
-                        </span>
-                      </TableCell>
+                    return (
+                      <TableRow 
+                        key={creator.id}
+                        className={cn(
+                          "cursor-pointer transition-colors",
+                          isTop5(globalIndex) && "bg-gradient-to-r from-amber-50/50 to-transparent dark:from-amber-950/20",
+                          isLocked && "opacity-50"
+                        )}
+                        onClick={() => handleRowClick(creator, isLocked)}
+                      >
+                        {/* Ranking */}
+                        <TableCell className="font-bold text-center sticky left-0 bg-card">
+                          <span className={cn(
+                            "inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-full text-xs font-bold",
+                            isTop5(globalIndex)
+                              ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+                              : "bg-muted text-foreground"
+                          )}>
+                            {ranking}{isTop5(globalIndex) && <Flame className="h-3 w-3 ml-0.5" />}
+                          </span>
+                        </TableCell>
 
-                      {/* Favorite */}
-                      <TableCell className="p-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isLocked || !isLoggedIn) {
-                              navigate("/unlock");
-                              return;
-                            }
-                            toggleFavorite(creator.id, e);
-                          }}
-                          className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors"
-                        >
-                          <Heart className={cn("h-4 w-4 transition-colors", isFav ? "text-primary fill-primary" : "text-muted-foreground hover:text-foreground")} />
-                        </button>
-                      </TableCell>
-
-                      {/* Creator Info */}
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm">
-                              <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
-                              <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-xs">
-                                {getInitials(creator.nombre_completo, creator.usuario_creador)}
-                              </AvatarFallback>
-                            </Avatar>
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-sm truncate text-foreground">
-                              @{creator.creator_handle || creator.usuario_creador}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {creator.nombre_completo || creator.usuario_creador}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* Followers */}
-                      <TableCell className="text-right font-medium">
-                        {isLocked ? "•••" : formatNumber(creator.seguidores)}
-                      </TableCell>
-
-                      {/* Revenue */}
-                      <TableCell className="text-right">
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                          {isLocked ? "•••" : formatCurrency(creator.total_ingresos_mxn)}
-                        </span>
-                      </TableCell>
-
-                      {/* Commission */}
-                      <TableCell className="text-right">
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">
-                          {isLocked ? "•••" : calculateCommission(creator.total_ingresos_mxn)}
-                        </span>
-                      </TableCell>
-
-                      {/* Lives */}
-                      <TableCell className="text-right font-medium">
-                        {isLocked ? "•••" : (creator.total_live_count ? formatNumber(creator.total_live_count) : "—")}
-                      </TableCell>
-
-                      {/* Views */}
-                      <TableCell className="text-right font-medium">
-                        {isLocked ? "•••" : formatNumber(creator.promedio_visualizaciones)}
-                      </TableCell>
-
-                      {/* TikTok Link */}
-                      <TableCell className="p-2">
-                        {tiktokUrl && (
+                        {/* Favorite */}
+                        <TableCell className="p-2">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -447,51 +479,165 @@ const Creators = () => {
                                 navigate("/unlock");
                                 return;
                               }
-                              openTikTokLink(tiktokUrl);
+                              toggleFavorite(creator.id, e);
                             }}
                             className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors"
                           >
-                            <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                            <Heart className={cn("h-4 w-4 transition-colors", isFav ? "text-primary fill-primary" : "text-muted-foreground hover:text-foreground")} />
                           </button>
-                        )}
-                      </TableCell>
+                        </TableCell>
 
-                      {/* Action */}
-                      <TableCell className="text-right">
-                        {isLocked ? (
-                          <Button size="sm" variant="outline" className="h-8 text-xs">
-                            <Lock className="h-3 w-3 mr-1" />
-                            Desbloquear
-                          </Button>
-                        ) : (
-                          <Button 
-                            size="sm" 
-                            className="h-8 text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/videos/creator/${creator.id}`);
-                            }}
-                          >
-                            <Play className="h-3 w-3 mr-1" />
-                            Ver videos
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        {/* Creator Info */}
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm">
+                                <AvatarImage src={getAvatarUrl(creator)} alt={creator.nombre_completo || creator.usuario_creador} />
+                                <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-xs">
+                                  {getInitials(creator.nombre_completo, creator.usuario_creador)}
+                                </AvatarFallback>
+                              </Avatar>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm truncate text-foreground">
+                                @{creator.creator_handle || creator.usuario_creador}
+                              </p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <p className="text-xs text-muted-foreground truncate max-w-[100px]">
+                                  {creator.nombre_completo || "—"}
+                                </p>
+                                {!isLocked && <CreatorTypeBadge creator={creator} />}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+
+                        {/* Followers */}
+                        <TableCell className="text-right font-medium">
+                          {isLocked ? "•••" : formatNumber(creator.seguidores)}
+                        </TableCell>
+
+                        {/* GMV Total */}
+                        <TableCell className="text-right">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            {isLocked ? "•••" : formatCurrency(creator.total_ingresos_mxn)}
+                          </span>
+                        </TableCell>
+
+                        {/* Estimated Earnings */}
+                        <TableCell className="text-right">
+                          <span className="text-amber-600 dark:text-amber-400 font-medium">
+                            {isLocked ? "•••" : calculateEstimatedEarnings(creator.total_ingresos_mxn)}
+                          </span>
+                        </TableCell>
+
+                        {/* GMV Videos */}
+                        <TableCell className="text-right">
+                          <div>
+                            <span className="text-blue-600 dark:text-blue-400 font-medium">
+                              {isLocked ? "•••" : formatCurrency(creator.revenue_videos)}
+                            </span>
+                            {!isLocked && creator.revenue_videos && creator.revenue_videos > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {videoPercent}%
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* GMV Lives */}
+                        <TableCell className="text-right">
+                          <div>
+                            <span className="text-rose-600 dark:text-rose-400 font-medium">
+                              {isLocked ? "•••" : formatCurrency(creator.gmv_live_mxn)}
+                            </span>
+                            {!isLocked && creator.gmv_live_mxn && creator.gmv_live_mxn > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {livePercent}%
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Lives Count */}
+                        <TableCell className="text-right font-medium">
+                          <div>
+                            {isLocked ? "•••" : (creator.total_live_count ? formatNumber(creator.total_live_count) : "—")}
+                            {!isLocked && creator.total_live_count && creator.total_live_count > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {getGmvPerLive(creator)}/live
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Videos Count */}
+                        <TableCell className="text-right font-medium">
+                          {isLocked ? "•••" : (creator.total_videos ? formatNumber(creator.total_videos) : "—")}
+                        </TableCell>
+
+                        {/* Views */}
+                        <TableCell className="text-right font-medium">
+                          {isLocked ? "•••" : formatNumber(creator.promedio_visualizaciones)}
+                        </TableCell>
+
+                        {/* TikTok Link */}
+                        <TableCell className="p-2">
+                          {tiktokUrl && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isLocked || !isLoggedIn) {
+                                  navigate("/unlock");
+                                  return;
+                                }
+                                openTikTokLink(tiktokUrl);
+                              }}
+                              className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors"
+                            >
+                              <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                            </button>
+                          )}
+                        </TableCell>
+
+                        {/* Action */}
+                        <TableCell className="text-right">
+                          {isLocked ? (
+                            <Button size="sm" variant="outline" className="h-8 text-xs">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Unlock
+                            </Button>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              className="h-8 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/videos/creator/${creator.id}`);
+                              }}
+                            >
+                              <Play className="h-3 w-3 mr-1" />
+                              Videos
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
-          {/* Mobile Table - Compact */}
+          {/* Mobile Table - Enhanced Compact View */}
           <div className="md:hidden bg-card rounded-xl border border-border overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent border-b border-border">
+                <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
                   <TableHead className="w-8 text-center p-2">#</TableHead>
                   <TableHead className="p-2">Creador</TableHead>
-                  <TableHead className="text-right p-2">Ingresos</TableHead>
+                  <TableHead className="text-right p-2">GMV</TableHead>
+                  <TableHead className="text-right p-2 w-16">Ganancias</TableHead>
                   <TableHead className="w-8 p-2"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -501,6 +647,8 @@ const Creators = () => {
                   const globalIndex = startIndex + pageIndex;
                   const ranking = globalIndex + 1;
                   const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+                  const videoPercent = getVideoPercentage(creator);
+                  const livePercent = getLivePercentage(creator);
 
                   return (
                     <TableRow 
@@ -537,22 +685,32 @@ const Creators = () => {
                             <p className="font-semibold text-xs truncate text-foreground">
                               @{creator.creator_handle || creator.usuario_creador}
                             </p>
-                            <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                               <Users className="h-2.5 w-2.5" />
                               {isLocked ? "•••" : formatNumber(creator.seguidores)}
-                            </p>
+                              {!isLocked && (videoPercent > 0 || livePercent > 0) && (
+                                <span className="ml-1 flex items-center gap-0.5">
+                                  {videoPercent > 0 && <span className="text-blue-500">📹{videoPercent}%</span>}
+                                  {livePercent > 0 && <span className="text-rose-500">🔴{livePercent}%</span>}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
 
-                      {/* Revenue */}
+                      {/* GMV */}
                       <TableCell className="p-2 text-right">
                         <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">
                           {isLocked ? "•••" : formatCurrency(creator.total_ingresos_mxn)}
                         </span>
-                        <p className="text-[10px] text-amber-600 dark:text-amber-400">
-                          {isLocked ? "•••" : calculateCommission(creator.total_ingresos_mxn)}
-                        </p>
+                      </TableCell>
+
+                      {/* Estimated Earnings */}
+                      <TableCell className="p-2 text-right">
+                        <span className="text-amber-600 dark:text-amber-400 font-semibold text-[11px]">
+                          {isLocked ? "•••" : calculateEstimatedEarnings(creator.total_ingresos_mxn)}
+                        </span>
                       </TableCell>
 
                       {/* Action Icon */}
