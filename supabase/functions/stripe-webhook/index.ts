@@ -162,18 +162,8 @@ serve(async (req) => {
 
 async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const customerId = session.customer as string;
-  const purchaseType = session.metadata?.purchase_type;
-  
-  // Handle credit pack purchases (one-time payments)
-  if (purchaseType === "credits") {
-    await handleCreditPurchase(session);
-    return;
-  }
-
-  // Handle subscription purchases
   const subscriptionId = session.subscription as string;
-  const planType = session.metadata?.plan_type || "pro";
-  const priceUsd = parseFloat(session.metadata?.price_usd || "14.99");
+  const priceUsd = 14.99; // Single price
   
   const guestEmail = session.metadata?.guest_email;
   const createAccountOnSuccess = session.metadata?.create_account_on_success === "true";
@@ -213,7 +203,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
         email: guestEmail,
         stripe_customer_id: customerId,
         referral_code_used: referralCode || null,
-        plan_tier: planType,
+        plan_tier: "pro",
       }, { onConflict: "id" });
 
       // Send account setup email
@@ -229,12 +219,12 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     return;
   }
 
-  // Update profile with stripe customer ID and plan tier
+  // Update profile with stripe customer ID
   await supabaseAdmin
     .from("profiles")
     .update({ 
       stripe_customer_id: customerId,
-      plan_tier: planType,
+      plan_tier: "pro",
     })
     .eq("id", userId);
 
@@ -253,12 +243,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   if (error) {
     console.error("Error creating subscription:", error);
   } else {
-    console.log(`Subscription created for user: ${userId}, plan: ${planType}`);
-
-    // If Premium plan, initialize video credits (5 monthly credits)
-    if (planType === "premium") {
-      await initializePremiumCredits(userId);
-    }
+    console.log(`Subscription created for user: ${userId}`);
 
     // Mark email as converted in email_captures
     await supabaseAdmin
@@ -275,111 +260,11 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     
     if (profile?.email && !isNewAccount) {
       await sendEmail(profile.email, "subscription_confirmed", { 
-        price: priceUsd.toFixed(2),
-        plan: planType === "premium" ? "Adbroll Premium" : "Adbroll Pro",
+        price: "14.99",
+        plan: "Adbroll Pro",
       });
     }
   }
-}
-
-async function handleCreditPurchase(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.supabase_user_id;
-  const packType = session.metadata?.pack_type;
-  const creditsPurchased = parseInt(session.metadata?.credits_purchased || "0");
-  const amountUsd = parseFloat(session.metadata?.amount_usd || "0");
-
-  if (!userId || !packType || creditsPurchased === 0) {
-    console.error("Missing credit purchase metadata");
-    return;
-  }
-
-  console.log(`Processing credit purchase: ${creditsPurchased} credits for user ${userId}`);
-
-  // Record the purchase
-  await supabaseAdmin.from("credit_purchases").insert({
-    user_id: userId,
-    stripe_session_id: session.id,
-    pack_type: packType,
-    credits_purchased: creditsPurchased,
-    amount_usd: amountUsd,
-  });
-
-  // Update video_credits table - add to purchased credits
-  const { data: existingCredits } = await supabaseAdmin
-    .from("video_credits")
-    .select("*")
-    .eq("user_id", userId)
-    .single();
-
-  if (existingCredits) {
-    await supabaseAdmin
-      .from("video_credits")
-      .update({
-        credits_purchased: (existingCredits.credits_purchased || 0) + creditsPurchased,
-        credits_total: (existingCredits.credits_total || 0) + creditsPurchased,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-  } else {
-    await supabaseAdmin.from("video_credits").insert({
-      user_id: userId,
-      credits_total: creditsPurchased,
-      credits_purchased: creditsPurchased,
-      credits_monthly: 0,
-      credits_used: 0,
-    });
-  }
-
-  console.log(`Added ${creditsPurchased} credits to user ${userId}`);
-
-  // Send confirmation email
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("email")
-    .eq("id", userId)
-    .single();
-
-  if (profile?.email) {
-    await sendEmail(profile.email, "credits_purchased", {
-      credits: creditsPurchased.toString(),
-      amount: amountUsd.toFixed(2),
-    });
-  }
-}
-
-async function initializePremiumCredits(userId: string) {
-  const PREMIUM_MONTHLY_CREDITS = 5;
-
-  const { data: existingCredits } = await supabaseAdmin
-    .from("video_credits")
-    .select("*")
-    .eq("user_id", userId)
-    .single();
-
-  if (existingCredits) {
-    // Update existing record
-    await supabaseAdmin
-      .from("video_credits")
-      .update({
-        credits_monthly: PREMIUM_MONTHLY_CREDITS,
-        credits_total: PREMIUM_MONTHLY_CREDITS + (existingCredits.credits_purchased || 0),
-        last_monthly_reset: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-  } else {
-    // Create new record
-    await supabaseAdmin.from("video_credits").insert({
-      user_id: userId,
-      credits_total: PREMIUM_MONTHLY_CREDITS,
-      credits_monthly: PREMIUM_MONTHLY_CREDITS,
-      credits_purchased: 0,
-      credits_used: 0,
-      last_monthly_reset: new Date().toISOString(),
-    });
-  }
-
-  console.log(`Initialized ${PREMIUM_MONTHLY_CREDITS} monthly credits for Premium user: ${userId}`);
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
@@ -388,7 +273,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("id, email, referral_code_used, plan_tier")
+    .select("id, email, referral_code_used")
     .eq("stripe_customer_id", customerId)
     .single();
 
@@ -397,7 +282,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     return;
   }
 
-  const priceAmount = profile.plan_tier === "premium" ? 29.99 : 14.99;
+  const priceAmount = 14.99;
 
   await supabaseAdmin
     .from("subscriptions")
@@ -409,53 +294,18 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
 
   console.log(`Subscription activated for user: ${profile.id}`);
 
-  // For renewal payments, reset monthly credits for Premium users
+  // For renewal payments, send confirmation email
   const isRenewal = invoice.billing_reason === "subscription_cycle";
-  if (isRenewal) {
-    if (profile.plan_tier === "premium") {
-      await resetMonthlyCredits(profile.id);
-    }
-    
-    if (profile.email) {
-      await sendEmail(profile.email, "subscription_confirmed", { 
-        price: priceAmount.toFixed(2),
-        plan: profile.plan_tier === "premium" ? "Adbroll Premium" : "Adbroll Pro",
-      });
-    }
+  if (isRenewal && profile.email) {
+    await sendEmail(profile.email, "subscription_confirmed", { 
+      price: "14.99",
+      plan: "Adbroll Pro",
+    });
   }
 
   // Calculate affiliate commission
   if (profile.referral_code_used) {
     await calculateAffiliateCommission(profile.id, profile.referral_code_used, priceAmount, profile.email);
-  }
-}
-
-async function resetMonthlyCredits(userId: string) {
-  const PREMIUM_MONTHLY_CREDITS = 5;
-
-  const { data: existingCredits } = await supabaseAdmin
-    .from("video_credits")
-    .select("*")
-    .eq("user_id", userId)
-    .single();
-
-  if (existingCredits) {
-    // Reset monthly credits but keep purchased credits
-    // credits_used only decreases the monthly portion first
-    const purchasedCredits = existingCredits.credits_purchased || 0;
-    
-    await supabaseAdmin
-      .from("video_credits")
-      .update({
-        credits_monthly: PREMIUM_MONTHLY_CREDITS,
-        credits_total: PREMIUM_MONTHLY_CREDITS + purchasedCredits,
-        credits_used: 0, // Reset usage counter
-        last_monthly_reset: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
-
-    console.log(`Reset monthly credits for user: ${userId}`);
   }
 }
 
@@ -502,13 +352,10 @@ async function calculateAffiliateCommission(
       .update({
         usd_earned: (affiliate.usd_earned || 0) + commissionAmount,
         usd_available: (affiliate.usd_available || 0) + commissionAmount,
-        active_referrals_count: (affiliate.active_referrals_count || 0) + 1,
       })
       .eq("id", affiliate.id);
 
-    console.log(`Commission $${commissionAmount} added to affiliate: ${affiliateCode.user_id}`);
-
-    // Send commission notification email
+    // Send commission email to affiliate
     const { data: affiliateProfile } = await supabaseAdmin
       .from("profiles")
       .select("email")
@@ -518,128 +365,130 @@ async function calculateAffiliateCommission(
     if (affiliateProfile?.email) {
       await sendEmail(affiliateProfile.email, "affiliate_commission", {
         amount: commissionAmount.toFixed(2),
-        referredEmail: referredEmail || "usuario",
+        referredEmail: referredEmail || "un usuario",
       });
     }
+
+    console.log(`Affiliate commission: $${commissionAmount.toFixed(2)} for code ${referralCode}`);
   }
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const subscriptionId = invoice.subscription as string;
   const customerId = invoice.customer as string;
 
-  await supabaseAdmin
-    .from("subscriptions")
-    .update({ status: "past_due" })
-    .eq("stripe_subscription_id", subscriptionId);
-
-  console.log(`Payment failed for subscription: ${subscriptionId}`);
-
-  // Send payment failed email
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("email")
+    .select("id, email")
     .eq("stripe_customer_id", customerId)
     .single();
 
-  if (profile?.email) {
-    await sendEmail(profile.email, "payment_failed", {});
+  if (!profile) {
+    console.error("No profile found for customer:", customerId);
+    return;
   }
+
+  // Update subscription status
+  await supabaseAdmin
+    .from("subscriptions")
+    .update({ status: "past_due" })
+    .eq("user_id", profile.id);
+
+  // Send payment failed email
+  if (profile.email) {
+    await sendEmail(profile.email, "payment_failed", {
+      retryLink: "https://adbroll.com/settings",
+    });
+  }
+
+  console.log(`Payment failed for user: ${profile.id}`);
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
 
-  await supabaseAdmin
-    .from("subscriptions")
-    .update({ status: "cancelled" })
-    .eq("stripe_subscription_id", subscription.id);
-
-  // Reset plan tier to free
-  await supabaseAdmin
-    .from("profiles")
-    .update({ plan_tier: "free" })
-    .eq("stripe_customer_id", customerId);
-
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("email, referral_code_used")
+    .select("id, email")
     .eq("stripe_customer_id", customerId)
     .single();
 
+  if (!profile) {
+    console.error("No profile found for customer:", customerId);
+    return;
+  }
+
+  // Update subscription status
+  await supabaseAdmin
+    .from("subscriptions")
+    .update({ status: "cancelled" })
+    .eq("user_id", profile.id);
+
+  // Update profile plan
+  await supabaseAdmin
+    .from("profiles")
+    .update({ plan_tier: null })
+    .eq("id", profile.id);
+
   // Send cancellation email
-  if (profile?.email) {
+  if (profile.email) {
     await sendEmail(profile.email, "subscription_cancelled", {});
   }
 
-  // Decrement active referrals count for the affiliate
-  if (profile?.referral_code_used) {
-    const { data: affiliateCode } = await supabaseAdmin
-      .from("affiliate_codes")
-      .select("user_id")
-      .eq("code", profile.referral_code_used.toUpperCase())
-      .single();
-
-    if (affiliateCode) {
-      const { data: affiliate } = await supabaseAdmin
-        .from("affiliates")
-        .select("id, active_referrals_count")
-        .eq("user_id", affiliateCode.user_id)
-        .single();
-
-      if (affiliate && affiliate.active_referrals_count > 0) {
-        await supabaseAdmin
-          .from("affiliates")
-          .update({ active_referrals_count: affiliate.active_referrals_count - 1 })
-          .eq("id", affiliate.id);
-
-        console.log(`Decremented active referrals for affiliate: ${affiliateCode.user_id}`);
-      }
-    }
-  }
-
-  console.log(`Subscription cancelled: ${subscription.id}`);
+  console.log(`Subscription cancelled for user: ${profile.id}`);
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  const status = subscription.status === "active" ? "active" : 
-                 subscription.status === "past_due" ? "past_due" : 
-                 subscription.status === "canceled" ? "cancelled" : subscription.status;
+  const customerId = subscription.customer as string;
+  const status = subscription.status;
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("stripe_customer_id", customerId)
+    .single();
+
+  if (!profile) {
+    console.error("No profile found for customer:", customerId);
+    return;
+  }
+
+  // Map Stripe status to our status
+  let ourStatus = "active";
+  if (status === "canceled" || status === "unpaid") {
+    ourStatus = "cancelled";
+  } else if (status === "past_due") {
+    ourStatus = "past_due";
+  } else if (status === "trialing") {
+    ourStatus = "trialing";
+  }
 
   await supabaseAdmin
     .from("subscriptions")
     .update({ 
-      status,
-      renew_at: new Date(subscription.current_period_end * 1000).toISOString(),
+      status: ourStatus,
+      renew_at: subscription.current_period_end 
+        ? new Date(subscription.current_period_end * 1000).toISOString() 
+        : null,
     })
-    .eq("stripe_subscription_id", subscription.id);
+    .eq("user_id", profile.id);
 
-  console.log(`Subscription updated: ${subscription.id} -> ${status}`);
+  console.log(`Subscription updated for user: ${profile.id}, status: ${ourStatus}`);
 }
 
 async function handleAccountUpdated(account: Stripe.Account) {
+  // Handle Stripe Connect account updates (for affiliates)
   const connectAccountId = account.id;
-  
-  if (account.type !== "express") {
-    return;
-  }
+  const payoutsEnabled = account.payouts_enabled;
+  const detailsSubmitted = account.details_submitted;
 
-  const isOnboardingComplete = 
-    account.details_submitted === true &&
-    account.payouts_enabled === true;
+  console.log(`Connect account updated: ${connectAccountId}`);
+  console.log(`Payouts enabled: ${payoutsEnabled}, Details submitted: ${detailsSubmitted}`);
 
-  console.log(`Connect account ${connectAccountId} updated - onboarding complete: ${isOnboardingComplete}`);
-
-  if (isOnboardingComplete) {
-    const { error } = await supabaseAdmin
-      .from("affiliates")
-      .update({ stripe_onboarding_complete: true })
-      .eq("stripe_connect_id", connectAccountId);
-
-    if (error) {
-      console.error("Error updating affiliate onboarding status:", error);
-    } else {
-      console.log(`Affiliate onboarding complete for Connect account: ${connectAccountId}`);
-    }
-  }
+  // Update affiliate record if exists
+  await supabaseAdmin
+    .from("affiliates")
+    .update({
+      stripe_onboarding_complete: detailsSubmitted && payoutsEnabled,
+    })
+    .eq("stripe_connect_id", connectAccountId);
 }
