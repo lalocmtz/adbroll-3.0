@@ -57,7 +57,7 @@ const exploreItems: NavItem[] = [
   { to: "/app", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle, lockedForVisitor: false },
   { to: "/products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: false },
   { to: "/ranking-creadores", labelEs: "Ranking Creadores", labelEn: "Creator Rankings", icon: TrendingUp, lockedForVisitor: false },
-  { to: "/talento", labelEs: "Talento", labelEn: "Talent", icon: Sparkles, lockedForVisitor: false },
+  { to: "/talento", labelEs: "Campañas y Creadores", labelEn: "Campaigns & Creators", icon: Users, lockedForVisitor: false },
   { to: "/opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
 ];
 
@@ -229,7 +229,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
           {/* Círculo Interno CTA */}
           <div className="mt-3 px-0">
             <NavLink
-              to="/talento?tab=aplicar"
+              to="/talento"
               onClick={handleNavClick}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm w-full transition-all duration-200 bg-gradient-to-r from-primary/10 to-pink-500/10 text-primary hover:from-primary/20 hover:to-pink-500/20"
             >

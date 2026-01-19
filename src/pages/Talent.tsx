@@ -10,7 +10,7 @@ import CampaignsTab from "@/components/creators/CampaignsTab";
 const Talent = () => {
   const { language } = useLanguage();
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState("campanas");
+  const [activeTab, setActiveTab] = useState("aplicar");
 
   // Check if tab parameter is set in URL
   useEffect(() => {
@@ -27,12 +27,12 @@ const Talent = () => {
       {/* Header */}
       <div className="mb-4 md:mb-6">
         <h1 className="text-lg md:text-xl font-bold text-foreground">
-          {language === "es" ? "Talento" : "Talent"}
+          {language === "es" ? "Campañas y Creadores" : "Campaigns & Creators"}
         </h1>
         <p className="text-xs md:text-sm text-muted-foreground mt-1">
           {language === "es" 
-            ? "Campañas activas, directorio de creadores y postulaciones"
-            : "Active campaigns, creator directory and applications"}
+            ? "Regístrate como creador y accede a campañas exclusivas"
+            : "Register as a creator and access exclusive campaigns"}
         </p>
       </div>
 
