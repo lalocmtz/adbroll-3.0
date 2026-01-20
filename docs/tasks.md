@@ -590,4 +590,29 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ RANKING Y VINCULACIÓN MEJORADA (Enero 2025)
+
+### Ranking por Kalodata Actual
+- [x] **Dashboard ordena por rank ASC** - Default "Ranking actual" muestra orden de Kalodata
+- [x] **Reset de rank antes de import** - Todos los videos del mercado se resetean a NULL antes de UPSERT
+- [x] **snapshot_at tracking** - Timestamp de última importación para cada video
+- [x] **Filtro rank IS NOT NULL** - Solo muestra videos con ranking activo de Kalodata
+
+### Extracción de Nombres de Productos
+- [x] **extractProductNameFromDescription()** - Extrae nombre de producto de hashtags/descripción
+- [x] **Filtrado de hashtags genéricos** - Ignora #fyp, #viral, #tiktokshop, etc.
+- [x] **Fallback a texto antes de hashtag** - Si no hay hashtags útiles, usa descripción textual
+- [x] **videos.product_name poblado** - Ahora tiene datos útiles para matching
+
+### Auto-Matching Mejorado
+- [x] **Fallback title → product_name** - Si product_name está vacío, usa title
+- [x] **Matching por transcript** - Busca nombres de productos en transcripción
+- [x] **AI batch aumentado a 25** - Más videos por llamada = menos llamadas
+- [x] **Prompt mejorado con transcript** - IA recibe fragmento de script para mejor contexto
+
+### Limpieza de Datos
+- [x] **Ghost products eliminados** - Productos con nombres numéricos y sin datos reales
+
+---
+
 **Última actualización:** Enero 2025
