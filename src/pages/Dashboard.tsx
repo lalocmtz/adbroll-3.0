@@ -53,6 +53,9 @@ interface Video {
   } | null;
 }
 const SORT_OPTIONS = [{
+  value: "rank",
+  label: "Ranking actual"
+}, {
   value: "revenue",
   label: "Más ingresos"
 }, {
@@ -70,7 +73,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortOrder, setSortOrder] = useState<string>("revenue");
+  const [sortOrder, setSortOrder] = useState<string>("rank");
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const navigate = useNavigate();
@@ -141,7 +144,12 @@ const Dashboard = () => {
       .eq("country", market); // Filter by market (lowercase 'mx' or 'us')
 
       // Apply sorting first (before category filter which happens client-side)
-      if (sortOrder === "revenue") {
+      if (sortOrder === "rank") {
+        // Only show videos with current rank (from latest Kalodata import)
+        query = query.not("rank", "is", null).order("rank", {
+          ascending: true
+        });
+      } else if (sortOrder === "revenue") {
         query = query.order("revenue_mxn", {
           ascending: false
         });
