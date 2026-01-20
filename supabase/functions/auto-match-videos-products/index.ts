@@ -79,7 +79,7 @@ function buildProductIndex(products: Product[]): {
   return { byExactName, byFirstWord };
 }
 
-// Fast matching with indexed lookups
+// Fast matching with indexed lookups - PRIORITIZES TRANSCRIPT
 function findBestMatch(
   video: Video,
   products: Product[],
@@ -94,11 +94,41 @@ function findBestMatch(
   // FALLBACK: Use title as product_name if product_name is empty
   const effectiveProductName = videoProductName || videoTitle;
   
+  // NEW: Extract all searchable text - prioritize transcript
+  const allSearchableText = [videoTranscript, videoTitle, videoProductName].filter(Boolean).join(' ');
+  
   // FAST PATH 1: Exact match on product name (O(1))
   if (effectiveProductName) {
     const exactMatch = productIndex.byExactName.get(effectiveProductName);
     if (exactMatch) {
       return { product: exactMatch, score: 1.0 };
+    }
+  }
+  
+  // PRIORITY PATH: Search transcript for product names (HIGHEST PRIORITY for matching)
+  if (videoTranscript && videoTranscript.length > 15) {
+    // Search through top 150 products (sorted by revenue)
+    for (let i = 0; i < Math.min(products.length, 150); i++) {
+      const product = products[i];
+      // Product name must be meaningful (> 3 chars) to avoid false positives
+      if (product.normalizedName.length > 3) {
+        // Check if transcript contains the full product name
+        if (videoTranscript.includes(product.normalizedName)) {
+          return { product, score: 0.92 };
+        }
+        // Check if transcript contains key product words (min 2 keywords match)
+        if (product.keywords.length >= 2) {
+          let keywordMatches = 0;
+          for (const kw of product.keywords) {
+            if (kw.length > 3 && videoTranscript.includes(kw)) {
+              keywordMatches++;
+            }
+          }
+          if (keywordMatches >= 2 && keywordMatches >= product.keywords.length * 0.5) {
+            return { product, score: 0.88 };
+          }
+        }
+      }
     }
   }
   
@@ -138,37 +168,30 @@ function findBestMatch(
     }
   }
   
-  // FAST PATH 5: Transcript contains product name (if available)
-  if (videoTranscript && videoTranscript.length > 20) {
-    for (let i = 0; i < Math.min(products.length, 100); i++) {
-      const product = products[i];
-      if (product.normalizedName.length > 4 && videoTranscript.includes(product.normalizedName)) {
-        return { product, score: 0.75 };
-      }
-    }
-  }
-  
-  // MEDIUM PATH: Keyword overlap (only if we have product name)
-  if (effectiveProductName) {
-    const vpKeywords = extractKeywords(effectiveProductName);
-    if (vpKeywords.length > 0) {
+  // MEDIUM PATH: Keyword overlap using ALL text (transcript + title + product_name)
+  if (allSearchableText.length > 20) {
+    const allKeywords = extractKeywords(allSearchableText);
+    if (allKeywords.length > 0) {
       let bestMatch: { product: Product; score: number } | null = null;
       
       for (let i = 0; i < Math.min(products.length, 300); i++) {
         const product = products[i];
         if (product.keywords.length === 0) continue;
         
-        const set2 = new Set(product.keywords);
+        const productKeywordSet = new Set(product.keywords);
         let matches = 0;
-        for (const w of vpKeywords) {
-          if (set2.has(w)) matches++;
+        for (const w of allKeywords) {
+          if (productKeywordSet.has(w)) matches++;
         }
         
-        const overlap = matches / Math.max(vpKeywords.length, product.keywords.length);
-        if (overlap >= 0.5) {
-          const score = 0.7 + (overlap * 0.2);
-          if (!bestMatch || score > bestMatch.score) {
-            bestMatch = { product, score };
+        // Need at least 2 keyword matches
+        if (matches >= 2) {
+          const overlap = matches / Math.max(3, product.keywords.length);
+          if (overlap >= 0.4) {
+            const score = 0.65 + (overlap * 0.2);
+            if (!bestMatch || score > bestMatch.score) {
+              bestMatch = { product, score };
+            }
           }
         }
       }

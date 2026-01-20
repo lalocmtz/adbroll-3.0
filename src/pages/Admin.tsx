@@ -184,7 +184,7 @@ const Admin = () => {
     }
 
     try {
-      const result = await startParallelPipeline(useAI);
+      const result = await startParallelPipeline(useAI, selectedMarket);
       
       saveLastSync();
       await loadStats();
