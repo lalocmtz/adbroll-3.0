@@ -163,11 +163,18 @@ export function useParallelPipeline() {
     return data.remaining > 0;
   }, [state.stats.transcriptions, updateStats]);
 
-  const runMatchingWorker = useCallback(async (useAI: boolean): Promise<boolean> => {
+  const runMatchingWorker = useCallback(async (useAI: boolean, market: string): Promise<boolean> => {
     if (shouldStopRef.current) return false;
 
+    console.log(`🔗 Matching worker: market=${market}, useAI=${useAI}`);
+
     const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-      body: { batchSize: WORKER_CONFIGS.matching.batchSize, threshold: 0.5, useAI },
+      body: { 
+        batchSize: WORKER_CONFIGS.matching.batchSize, 
+        threshold: 0.5, 
+        useAI,
+        market, // CRITICAL: Pass market to ensure same-market matching only
+      },
     });
 
     if (error) {
@@ -175,7 +182,7 @@ export function useParallelPipeline() {
       updateStats("matching", {
         errors: state.stats.matching.errors + 1,
       });
-      return true;
+      return true; // Keep trying on error
     }
 
     if (data?.complete) {
@@ -190,10 +197,10 @@ export function useParallelPipeline() {
       aiMatched: state.stats.matching.aiMatched + aiMatched,
     });
 
-    // Stop if no progress for this batch
-    if (matched === 0 && (data?.batchProcessed || 0) > 0) {
-      return false;
-    }
+    // REMOVED: Premature stop condition
+    // Now continue processing until remainingUnmatched is 0
+    // Allow multiple passes - some videos may need AI fallback
+    console.log(`🔗 Batch result: matched=${matched}, aiMatched=${aiMatched}, remaining=${data?.remainingUnmatched}`);
 
     return (data?.remainingUnmatched || 0) > 0;
   }, [state.stats.matching, updateStats]);
@@ -221,7 +228,7 @@ export function useParallelPipeline() {
   }, [state.stats.avatars, updateStats]);
 
   // Main parallel pipeline
-  const startParallelPipeline = useCallback(async (useAI: boolean = false) => {
+  const startParallelPipeline = useCallback(async (useAI: boolean = false, market: string = 'mx') => {
     shouldStopRef.current = false;
 
     setState(prev => ({
@@ -269,7 +276,7 @@ export function useParallelPipeline() {
       const results = await Promise.all([
         downloadsActive ? runDownloadWorker() : Promise.resolve(false),
         transcriptionsActive ? runTranscriptionWorker() : Promise.resolve(false),
-        matchingActive ? runMatchingWorker(useAI) : Promise.resolve(false),
+        matchingActive ? runMatchingWorker(useAI, market) : Promise.resolve(false),
         avatarsActive ? runAvatarWorker() : Promise.resolve(false),
       ]);
 

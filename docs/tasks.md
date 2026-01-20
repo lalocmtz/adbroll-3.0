@@ -636,9 +636,15 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 - [x] **Prompt mejorado** - Enfatiza match por transcript y palabras exactas
 - [x] **Reglas explícitas** - IA instruida a NO vincular por categoría genérica
 
+### Pipeline Paralelo Corregido (Enero 20, 2025)
+- [x] **Market pasado al matcher** - `useParallelPipeline` ahora pasa `market` desde Admin UI
+- [x] **Stop prematuro eliminado** - Ya no detiene si un batch tiene 0 matches
+- [x] **Transcript prioritizado** - Matching busca primero en transcript antes de title/product_name
+- [x] **Keyword matching mejorado** - Extrae keywords de TODO el texto (transcript+title+product_name)
+
 ### Próximos Pasos
-- [ ] Re-ejecutar auto-match para MX después de esta limpieza
-- [ ] Verificar cero cross-market con query de validación
+- [x] Re-ejecutar auto-match para MX después de esta limpieza
+- [x] Verificar cero cross-market con query de validación
 
 ---
 
