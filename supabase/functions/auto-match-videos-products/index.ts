@@ -88,25 +88,29 @@ function findBestMatch(
 ): { product: Product; score: number } | null {
   const videoProductName = normalizeText(video.product_name);
   const videoTitle = normalizeText(video.title);
+  const videoTranscript = normalizeText(video.transcript);
   const videoHashtags = extractHashtags(video.title);
   
+  // FALLBACK: Use title as product_name if product_name is empty
+  const effectiveProductName = videoProductName || videoTitle;
+  
   // FAST PATH 1: Exact match on product name (O(1))
-  if (videoProductName) {
-    const exactMatch = productIndex.byExactName.get(videoProductName);
+  if (effectiveProductName) {
+    const exactMatch = productIndex.byExactName.get(effectiveProductName);
     if (exactMatch) {
       return { product: exactMatch, score: 1.0 };
     }
   }
   
   // FAST PATH 2: First word lookup + substring check (O(k) where k = products with same first word)
-  if (videoProductName) {
-    const firstWord = videoProductName.split(' ')[0];
+  if (effectiveProductName) {
+    const firstWord = effectiveProductName.split(' ')[0];
     if (firstWord && firstWord.length > 2) {
       const candidates = productIndex.byFirstWord.get(firstWord);
       if (candidates) {
         for (const product of candidates) {
-          if (videoProductName.includes(product.normalizedName) || 
-              product.normalizedName.includes(videoProductName)) {
+          if (effectiveProductName.includes(product.normalizedName) || 
+              product.normalizedName.includes(effectiveProductName)) {
             return { product, score: 0.9 };
           }
         }
@@ -134,9 +138,19 @@ function findBestMatch(
     }
   }
   
+  // FAST PATH 5: Transcript contains product name (if available)
+  if (videoTranscript && videoTranscript.length > 20) {
+    for (let i = 0; i < Math.min(products.length, 100); i++) {
+      const product = products[i];
+      if (product.normalizedName.length > 4 && videoTranscript.includes(product.normalizedName)) {
+        return { product, score: 0.75 };
+      }
+    }
+  }
+  
   // MEDIUM PATH: Keyword overlap (only if we have product name)
-  if (videoProductName) {
-    const vpKeywords = extractKeywords(videoProductName);
+  if (effectiveProductName) {
+    const vpKeywords = extractKeywords(effectiveProductName);
     if (vpKeywords.length > 0) {
       let bestMatch: { product: Product; score: number } | null = null;
       
@@ -185,13 +199,21 @@ async function matchWithAI(
     .map((p, i) => `${i + 1}. "${p.producto_nombre}" (${p.categoria || 'Sin categoría'})`)
     .join('\n');
 
-  // Batch videos for AI (max 10 per request)
-  const batch = videos.slice(0, 10);
+  // Batch videos for AI (increased to 25 per request for better efficiency)
+  const batch = videos.slice(0, 25);
   const videoDescriptions = batch
-    .map((v, i) => `${i + 1}. Título: "${v.title || 'Sin título'}" | Producto mencionado: "${v.product_name || 'No especificado'}"`)
+    .map((v, i) => {
+      const title = v.title || 'Sin título';
+      const productName = v.product_name || 'No especificado';
+      const transcript = v.transcript ? v.transcript.slice(0, 100) : 'Sin transcripción';
+      return `${i + 1}. Título: "${title}" | Producto: "${productName}" | Script: "${transcript}"`;
+    })
     .join('\n');
 
-  const prompt = `Eres un experto en TikTok Shop México. Necesito que vincules videos con productos.
+  const prompt = `Eres un experto en TikTok Shop México/USA. Vincula videos con productos basándote en:
+- El título del video (hashtags y descripción)
+- El nombre del producto mencionado  
+- El fragmento del script/transcripción
 
 PRODUCTOS DISPONIBLES:
 ${productSummary}
@@ -199,9 +221,13 @@ ${productSummary}
 VIDEOS A VINCULAR:
 ${videoDescriptions}
 
-Para cada video, indica el número de producto que mejor coincide. Si no hay coincidencia clara, responde 0.
+Para cada video, indica el número de producto que mejor coincide. Considera:
+- Productos que se mencionan explícitamente en el script
+- Hashtags que coinciden con nombres de productos
+- Palabras clave como "bocina", "tablet", "crema", etc.
+Si no hay coincidencia clara (confianza <70%), responde 0.
 
-Responde SOLO con JSON válido en este formato:
+Responde SOLO con JSON válido:
 {
   "matches": [
     {"videoIndex": 1, "productIndex": 5, "confidence": 0.9},

@@ -42,6 +42,46 @@ function normalizeVideoUrl(url: string): string {
   }
 }
 
+// Generic hashtags to ignore when extracting product names
+const GENERIC_HASHTAGS = new Set([
+  'fyp', 'foryou', 'foryoupage', 'parati', 'viral', 'viralvideo', 'trending',
+  'tiktok', 'tiktokmx', 'tiktokmexico', 'tiktokviral', 'tiktokshop', 'tiktokshopmexico',
+  'tiktokfinds', 'tiktokusa', 'tiktokmademebuyit', 'compratiktok', 'asmr',
+  'humor', 'comedia', 'funny', 'lol', 'greenscreen', 'review', 'unboxing',
+  'haul', 'reseña', 'recomendacion', 'tutorial', 'diy', 'howto', 'hack', 'lifehack',
+  'fy', 'fypシ', 'xyzba', 'xyzbca', 'xyz', 'duet', 'stitch', 'voiceover'
+]);
+
+// Extract meaningful product name from video description/hashtags
+function extractProductNameFromDescription(description: string | null): string | null {
+  if (!description) return null;
+  
+  // Extract all hashtags
+  const hashtagRegex = /#(\w+)/gi;
+  const matches = description.match(hashtagRegex) || [];
+  const hashtags = matches.map(h => h.slice(1).toLowerCase());
+  
+  // Filter out generic hashtags
+  const meaningfulHashtags = hashtags.filter(h => !GENERIC_HASHTAGS.has(h) && h.length > 2);
+  
+  if (meaningfulHashtags.length === 0) {
+    // Try extracting text before first hashtag as product name
+    const textBeforeHashtag = description.split('#')[0].trim();
+    if (textBeforeHashtag.length > 3 && textBeforeHashtag.length < 100) {
+      return textBeforeHashtag;
+    }
+    return null;
+  }
+  
+  // Take up to 3 most meaningful hashtags and combine them
+  // Capitalize first letter of each word for readability
+  const productWords = meaningfulHashtags.slice(0, 3).map(h => 
+    h.charAt(0).toUpperCase() + h.slice(1)
+  );
+  
+  return productWords.join(' ');
+}
+
 serve(async (req) => {
   const startTime = Date.now();
   
@@ -110,11 +150,16 @@ serve(async (req) => {
       const creatorHandle = row["Usuario del creador"] || null;
       const revenueMxn = row["Ingresos (M$)"] || 0;
 
+      const videoDescription = row["Descripción del vídeo"] || null;
+      // Extract product name from description/hashtags for better matching
+      const extractedProductName = extractProductNameFromDescription(videoDescription);
+
       return {
         video_url: normalizedUrl,
         original_url: videoUrl,
         rank: idx + 1,
-        title: row["Descripción del vídeo"] || null,
+        title: videoDescription,
+        product_name: extractedProductName, // New: extracted from description for matching
         creator_name: creatorHandle,
         creator_handle: creatorHandle,
         sales: row["Ventas"] || 0,
