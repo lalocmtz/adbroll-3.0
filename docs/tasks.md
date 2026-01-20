@@ -544,6 +544,26 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ PIPELINE ROBUSTO CON REINTENTOS (Enero 2025)
+
+### Mejoras al Pipeline de Procesamiento
+- [x] **Retry Failed Transcriptions** - Parámetro `retryFailed` para reintentar fallidos
+- [x] **AI Fallback para Matching** - Si fuzzy falla y `useAI=true`, GPT-4 intenta match
+- [x] **Stats Sincronizadas** - Conteos de Admin.tsx y useParallelPipeline usan misma lógica
+- [x] **Failed vs Pending** - UI ahora diferencia "pendientes" de "fallidos"
+- [x] **totalFailed en response** - Edge function retorna contador de fallidos
+
+### Cambios en Edge Functions
+- `transcribe-videos-batch`: acepta `retryFailed`, retorna `totalFailed`
+- `auto-match-videos-products`: implementa `matchWithAI()` con Lovable AI Gateway
+
+### UI Admin Mejorado
+- Tarjeta de transcripción muestra "X pendientes (Y fallidos)"
+- Stats separadas para pendingTranscription vs failedTranscription
+- Conteos ahora coinciden exactamente con lo que procesan las funciones
+
+---
+
 ## ✅ PRE-LANZAMIENTO FACEBOOK ADS (Enero 2025)
 
 ### Flujo de Registro de Creadores

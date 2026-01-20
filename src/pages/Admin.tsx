@@ -55,6 +55,7 @@ const Admin = () => {
     readyToShow: 0,
     pendingDownload: 0,
     pendingTranscription: 0,
+    failedTranscription: 0,
     pendingMatch: 0,
     pendingAvatars: 0,
   });
@@ -90,7 +91,16 @@ const Admin = () => {
       const creators = creatorsRes.data || [];
       const withProduct = videos.filter(v => v.product_id).length;
       const readyToShow = videos.filter(v => v.video_mp4_url && v.product_id).length;
-      const pendingTranscription = videos.filter(v => v.video_mp4_url && !v.transcript).length;
+      
+      // Pending = has MP4, no transcript, NOT failed
+      const pendingTranscription = videos.filter(v => 
+        v.video_mp4_url && !v.transcript && v.processing_status !== 'transcription_failed'
+      ).length;
+      
+      // Failed = has MP4, no transcript, status is transcription_failed
+      const failedTranscription = videos.filter(v => 
+        v.video_mp4_url && !v.transcript && v.processing_status === 'transcription_failed'
+      ).length;
       
       // Exclude permanently_failed and videos with max attempts from pending count
       const pendingDownload = videos.filter(v => 
@@ -111,6 +121,7 @@ const Admin = () => {
         readyToShow,
         pendingDownload,
         pendingTranscription,
+        failedTranscription,
         pendingMatch: videos.length - withProduct,
         pendingAvatars,
       });
@@ -613,7 +624,9 @@ const Admin = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">📝 Sin script</p>
                   <p className="text-2xl font-bold text-blue-600">{stats.pendingTranscription}</p>
-                  <p className="text-xs text-blue-600">Pendientes transcribir</p>
+                  <p className="text-xs text-blue-600">
+                    Pendientes{stats.failedTranscription > 0 && ` (${stats.failedTranscription} fallidos)`}
+                  </p>
                 </div>
                 <FileSpreadsheet className="h-6 w-6 text-blue-500" />
               </div>

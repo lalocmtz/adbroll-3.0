@@ -168,6 +168,97 @@ function findBestMatch(
   return null;
 }
 
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
+// AI-powered matching for videos that fuzzy couldn't match
+async function matchWithAI(
+  videos: Video[], 
+  products: Product[]
+): Promise<Map<string, { productId: string; confidence: number }>> {
+  const results = new Map<string, { productId: string; confidence: number }>();
+  
+  if (!LOVABLE_API_KEY || videos.length === 0) return results;
+
+  // Create a compact product list for AI
+  const productSummary = products
+    .slice(0, 100)
+    .map((p, i) => `${i + 1}. "${p.producto_nombre}" (${p.categoria || 'Sin categoría'})`)
+    .join('\n');
+
+  // Batch videos for AI (max 10 per request)
+  const batch = videos.slice(0, 10);
+  const videoDescriptions = batch
+    .map((v, i) => `${i + 1}. Título: "${v.title || 'Sin título'}" | Producto mencionado: "${v.product_name || 'No especificado'}"`)
+    .join('\n');
+
+  const prompt = `Eres un experto en TikTok Shop México. Necesito que vincules videos con productos.
+
+PRODUCTOS DISPONIBLES:
+${productSummary}
+
+VIDEOS A VINCULAR:
+${videoDescriptions}
+
+Para cada video, indica el número de producto que mejor coincide. Si no hay coincidencia clara, responde 0.
+
+Responde SOLO con JSON válido en este formato:
+{
+  "matches": [
+    {"videoIndex": 1, "productIndex": 5, "confidence": 0.9},
+    {"videoIndex": 2, "productIndex": 0, "confidence": 0}
+  ]
+}`;
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: 'Eres un experto en e-commerce y TikTok Shop. Responde solo con JSON válido.' },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      console.warn('[AI Match] API error:', await response.text());
+      return results;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    const cleaned = content.replace(/```json\n?|\n?```/g, '').trim();
+    
+    const parsed = JSON.parse(cleaned);
+    const matches = parsed.matches || [];
+
+    for (const match of matches) {
+      const videoIndex = match.videoIndex - 1;
+      const productIndex = match.productIndex - 1;
+      
+      if (videoIndex >= 0 && videoIndex < batch.length && 
+          productIndex >= 0 && productIndex < products.length &&
+          match.confidence > 0.5) {
+        results.set(batch[videoIndex].id, {
+          productId: products[productIndex].id,
+          confidence: match.confidence
+        });
+      }
+    }
+
+    console.log(`[AI Match] Matched ${results.size}/${batch.length} videos`);
+  } catch (error) {
+    console.error('[AI Match] Error:', error);
+  }
+
+  return results;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -180,15 +271,17 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let batchSize = 100; // Increased from 20
+    let batchSize = 100;
     let threshold = 0.5;
     let market: string | null = null;
+    let useAI = false;
     
     try {
       const body = await req.json();
       batchSize = Math.min(body.batchSize || 100, 200);
       threshold = body.threshold || 0.5;
       market = body.market || null;
+      useAI = body.useAI || false;
     } catch {
       // Use defaults
     }
@@ -270,7 +363,7 @@ serve(async (req) => {
 
     // Process all videos and collect updates
     const matchedUpdates: { id: string; update: Record<string, unknown> }[] = [];
-    const unmatchedUpdates: { id: string }[] = [];
+    const unmatchedVideos: Video[] = [];
 
     for (const video of videos) {
       const result = findBestMatch(video, products, productIndex, threshold);
@@ -289,9 +382,42 @@ serve(async (req) => {
           }
         });
       } else {
-        unmatchedUpdates.push({ id: video.id });
+        unmatchedVideos.push(video);
       }
     }
+
+    // AI fallback for unmatched videos
+    let aiMatched = 0;
+    if (useAI && unmatchedVideos.length > 0 && LOVABLE_API_KEY) {
+      console.log(`🤖 Trying AI match for ${unmatchedVideos.length} unmatched videos...`);
+      const aiResults = await matchWithAI(unmatchedVideos, products);
+      
+      for (const [videoId, match] of aiResults) {
+        const product = products.find(p => p.id === match.productId);
+        if (product) {
+          matchedUpdates.push({
+            id: videoId,
+            update: {
+              product_id: product.id,
+              product_name: product.producto_nombre,
+              product_price: product.price,
+              product_revenue: product.total_ingresos_mxn,
+              product_sales: product.total_ventas,
+              ai_match_confidence: match.confidence,
+              ai_match_attempted_at: new Date().toISOString(),
+            }
+          });
+          aiMatched++;
+        }
+      }
+      console.log(`🤖 AI matched ${aiMatched} additional videos`);
+    }
+
+    // Collect truly unmatched videos (after AI attempt)
+    const matchedIds = new Set(matchedUpdates.map(m => m.id));
+    const unmatchedUpdates = unmatchedVideos
+      .filter(v => !matchedIds.has(v.id))
+      .map(v => ({ id: v.id }));
 
     // Batch update matched videos (in chunks of 50)
     const CHUNK_SIZE = 50;
@@ -328,13 +454,15 @@ serve(async (req) => {
     const remainingUnmatched = Math.max(0, (totalUnmatched || 0) - successfulUpdates);
     const complete = videos.length < batchSize;
 
-    console.log(`✅ ${successfulUpdates}/${videos.length} matched in ${Date.now() - startTime}ms`);
+    console.log(`✅ ${successfulUpdates}/${videos.length} matched (${aiMatched} via AI) in ${Date.now() - startTime}ms`);
 
     return new Response(
       JSON.stringify({
         success: true,
         batchProcessed: videos.length,
         matchedInBatch: successfulUpdates,
+        fuzzyMatched: successfulUpdates - aiMatched,
+        aiMatched,
         remainingUnmatched,
         complete,
         executionTimeMs: Date.now() - startTime,

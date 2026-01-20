@@ -180,7 +180,7 @@ serve(async (req) => {
   }
 
   try {
-    const { batchSize = 3 } = await req.json().catch(() => ({}));
+    const { batchSize = 3, retryFailed = false } = await req.json().catch(() => ({}));
     
     if (!ASSEMBLYAI_API_KEY) {
       return new Response(
@@ -201,15 +201,20 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get videos that have MP4 but no transcript yet
-    const { data: pendingVideos, error: fetchError } = await supabase
+    // If retryFailed=true, include transcription_failed videos for retry
+    let query = supabase
       .from('videos')
-      .select('id, video_mp4_url')
+      .select('id, video_mp4_url, processing_status')
       .not('video_mp4_url', 'is', null)
       .is('transcript', null)
       .not('processing_status', 'eq', 'transcribing')
-      .not('processing_status', 'eq', 'analyzing')
-      .not('processing_status', 'eq', 'transcription_failed')
-      .limit(batchSize);
+      .not('processing_status', 'eq', 'analyzing');
+    
+    if (!retryFailed) {
+      query = query.not('processing_status', 'eq', 'transcription_failed');
+    }
+    
+    const { data: pendingVideos, error: fetchError } = await query.limit(batchSize);
 
     if (fetchError) {
       throw new Error(`Failed to fetch pending videos: ${fetchError.message}`);
@@ -245,13 +250,26 @@ serve(async (req) => {
       await new Promise(r => setTimeout(r, 1000));
     }
 
-    // Count remaining
-    const { count: remaining } = await supabase
+    // Count remaining (excluding failed unless retrying)
+    let countQuery = supabase
+      .from('videos')
+      .select('id', { count: 'exact', head: true })
+      .not('video_mp4_url', 'is', null)
+      .is('transcript', null);
+    
+    if (!retryFailed) {
+      countQuery = countQuery.not('processing_status', 'eq', 'transcription_failed');
+    }
+    
+    const { count: remaining } = await countQuery;
+    
+    // Also count failed ones for stats
+    const { count: failedCount } = await supabase
       .from('videos')
       .select('id', { count: 'exact', head: true })
       .not('video_mp4_url', 'is', null)
       .is('transcript', null)
-      .not('processing_status', 'eq', 'transcription_failed');
+      .eq('processing_status', 'transcription_failed');
 
     return new Response(
       JSON.stringify({ 
@@ -260,7 +278,9 @@ serve(async (req) => {
         successful: successCount,
         failed: failCount,
         remaining: remaining || 0,
-        complete: (remaining || 0) === 0
+        totalFailed: failedCount || 0,
+        complete: (remaining || 0) === 0,
+        retryMode: retryFailed
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
