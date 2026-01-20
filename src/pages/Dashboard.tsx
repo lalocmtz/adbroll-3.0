@@ -93,7 +93,6 @@ const Dashboard = () => {
   const productFilter = searchParams.get("productName");
   const creatorFilter = searchParams.get("creator");
   const ITEMS_PER_PAGE = 20;
-  const MAX_VIDEOS = 100;
   const FREE_PREVIEW_LIMIT = 10; // Videos visitors can see without blur
 
   useEffect(() => {
@@ -188,7 +187,11 @@ const Dashboard = () => {
       // Apply pagination after filtering
       const paginatedData = filteredData.slice(from, to + 1);
       setVideos(paginatedData);
-      setTotalCount(Math.min(filteredData.length, MAX_VIDEOS));
+      // Use the real count (backend count for non-category filter, or filtered length)
+      const realCount = selectedCategory && selectedCategory !== "all" 
+        ? filteredData.length 
+        : (count || filteredData.length);
+      setTotalCount(realCount);
     } catch (error: any) {
       toast({
         title: "Error al cargar videos",
@@ -204,7 +207,8 @@ const Dashboard = () => {
         <p className="text-muted-foreground">{t("loadingVideos")}</p>
       </div>;
   }
-  const totalPages = Math.min(Math.ceil(totalCount / ITEMS_PER_PAGE), 5);
+  // Remove artificial 5-page limit - show all pages
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({

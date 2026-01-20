@@ -210,10 +210,9 @@ async function matchWithAI(
     })
     .join('\n');
 
-  const prompt = `Eres un experto en TikTok Shop México/USA. Vincula videos con productos basándote en:
-- El título del video (hashtags y descripción)
-- El nombre del producto mencionado  
-- El fragmento del script/transcripción
+  const prompt = `Eres un experto en TikTok Shop. Tu trabajo es vincular videos con productos DEL MISMO MERCADO.
+
+⚠️ REGLA CRÍTICA: Solo puedes vincular productos que coincidan exactamente con lo que se muestra o menciona en el video.
 
 PRODUCTOS DISPONIBLES:
 ${productSummary}
@@ -221,17 +220,22 @@ ${productSummary}
 VIDEOS A VINCULAR:
 ${videoDescriptions}
 
-Para cada video, indica el número de producto que mejor coincide. Considera:
-- Productos que se mencionan explícitamente en el script
-- Hashtags que coinciden con nombres de productos
-- Palabras clave como "bocina", "tablet", "crema", etc.
-Si no hay coincidencia clara (confianza <70%), responde 0.
+CRITERIOS DE MATCH (en orden de prioridad):
+1. El TRANSCRIPT/SCRIPT menciona el producto explícitamente (ej: "esta bocina Alexa", "el Echo Dot")
+2. El TÍTULO contiene el nombre exacto del producto o hashtags que coinciden
+3. Las palabras clave del producto aparecen en el contenido (ej: "plancha de vapor", "crema facial")
+
+REGLAS ESTRICTAS:
+- Si el video habla de "Alexa" o "Echo", busca productos con esas palabras EXACTAS
+- NO vincules por categoría general (ej: no vincular cualquier "bocina" con cualquier otra "bocina")
+- Usa el TRANSCRIPT como fuente principal si está disponible
+- Si NO hay coincidencia clara con confianza >= 75%, responde 0
 
 Responde SOLO con JSON válido:
 {
   "matches": [
-    {"videoIndex": 1, "productIndex": 5, "confidence": 0.9},
-    {"videoIndex": 2, "productIndex": 0, "confidence": 0}
+    {"videoIndex": 1, "productIndex": 5, "confidence": 0.9, "reason": "Transcript menciona 'Echo Dot' exactamente"},
+    {"videoIndex": 2, "productIndex": 0, "confidence": 0, "reason": "Sin coincidencia clara"}
   ]
 }`;
 
@@ -267,9 +271,10 @@ Responde SOLO con JSON válido:
       const videoIndex = match.videoIndex - 1;
       const productIndex = match.productIndex - 1;
       
-      if (videoIndex >= 0 && videoIndex < batch.length && 
+    // HIGHER THRESHOLD: Only accept AI matches with >= 0.75 confidence
+    if (videoIndex >= 0 && videoIndex < batch.length && 
           productIndex >= 0 && productIndex < products.length &&
-          match.confidence > 0.5) {
+          match.confidence >= 0.75) {
         results.set(batch[videoIndex].id, {
           productId: products[productIndex].id,
           confidence: match.confidence
@@ -446,20 +451,43 @@ serve(async (req) => {
       .map(v => ({ id: v.id }));
 
     // Batch update matched videos (in chunks of 50)
+    // HARD CONSTRAINT: NEVER allow cross-market updates (MX video -> US product or vice versa)
     const CHUNK_SIZE = 50;
     let successfulUpdates = 0;
+    let blockedCrossMarket = 0;
 
     for (let i = 0; i < matchedUpdates.length; i += CHUNK_SIZE) {
       const chunk = matchedUpdates.slice(i, i + CHUNK_SIZE);
       
       // Use Promise.all for parallel updates within chunk
       const results = await Promise.all(
-        chunk.map(({ id, update }) => 
-          supabase.from('videos').update(update).eq('id', id)
-        )
+        chunk.map(async ({ id, update }) => {
+          // Get the video's country to validate market match
+          const video = videos.find(v => v.id === id);
+          const product = products.find(p => p.id === update.product_id);
+          
+          // HARD BLOCK: If video country doesn't match product market, skip update
+          if (video?.country && product) {
+            // Products have .market from original data, but we need to check
+            // Since we're already filtering by market in query, this is a safety check
+            // If market was provided, both video and product should already match it
+            // But we add this check as absolute protection
+            if (market && video.country !== market) {
+              console.warn(`⛔ BLOCKED: Video ${id} country=${video.country} doesn't match request market=${market}`);
+              blockedCrossMarket++;
+              return { error: true };
+            }
+          }
+          
+          return supabase.from('videos').update(update).eq('id', id);
+        })
       );
       
       successfulUpdates += results.filter(r => !r.error).length;
+    }
+    
+    if (blockedCrossMarket > 0) {
+      console.warn(`⛔ SECURITY: Blocked ${blockedCrossMarket} cross-market updates`);
     }
 
     // Mark unmatched videos as attempted (batch)

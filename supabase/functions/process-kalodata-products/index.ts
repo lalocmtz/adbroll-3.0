@@ -226,10 +226,12 @@ serve(async (req) => {
     const totalUpserted = upsertResult?.length || sortedProducts.length;
     console.log(`BATCH UPSERT completed: ${totalUpserted} products processed (market: ${market})`);
 
-    // Trigger auto-matching after products import
-    console.log('Triggering auto-match videos to products...');
+    // Trigger auto-matching after products import - PASS MARKET to prevent cross-market matching
+    console.log(`Triggering auto-match videos to products for market: ${market}...`);
     try {
-      const matchResponse = await supabaseServiceClient.functions.invoke('auto-match-videos-products');
+      const matchResponse = await supabaseServiceClient.functions.invoke('auto-match-videos-products', {
+        body: { market, useAI: true, batchSize: 100 }
+      });
       if (matchResponse.error) {
         console.error('Error invoking auto-match:', matchResponse.error);
       } else {
