@@ -615,4 +615,31 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ SISTEMA BLINDADO MX/US (Enero 2025)
+
+### Dashboard Sin Límites Artificiales
+- [x] **MAX_VIDEOS eliminado** - Ya no hay límite de 100 videos
+- [x] **Límite 5 páginas eliminado** - Paginación completa sin tope artificial
+- [x] **Count real del backend** - totalCount usa count exacto de Supabase
+
+### Blindaje Cross-Market (MX/US JAMÁS SE CRUZAN)
+- [x] **process-kalodata-products** - Pasa `market` al invocar auto-match
+- [x] **auto-match-videos-products** - HARD CONSTRAINT: bloquea updates si `video.country != product.market`
+- [x] **Logs de seguridad** - Registra intentos de cross-market bloqueados
+
+### Limpieza de Data Contaminada
+- [x] **Migración SQL** - Nullifica product_id para ~43 videos con market incorrecto
+- [x] **Reset de ai_match_* fields** - Permite re-matching limpio
+
+### IA Matching Mejorada
+- [x] **Threshold subido a 0.75** - Solo acepta matches con alta confianza
+- [x] **Prompt mejorado** - Enfatiza match por transcript y palabras exactas
+- [x] **Reglas explícitas** - IA instruida a NO vincular por categoría genérica
+
+### Próximos Pasos
+- [ ] Re-ejecutar auto-match para MX después de esta limpieza
+- [ ] Verificar cero cross-market con query de validación
+
+---
+
 **Última actualización:** Enero 2025
