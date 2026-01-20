@@ -1,15 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Heart, Sparkles, DollarSign, ShoppingCart, Eye, Play, ExternalLink, Lock } from 'lucide-react';
+import { Heart, Sparkles, DollarSign, ShoppingCart, Eye, Play, ExternalLink, Lock, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import VideoAnalysisModalOriginal from './VideoAnalysisModalOriginal';
+import ProductAssignmentModal from './ProductAssignmentModal';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
 import { cn } from '@/lib/utils';
 import { openTikTokLink } from '@/lib/tiktokDeepLink';
-
 interface Video {
   id: string;
   video_url: string;
@@ -28,6 +28,8 @@ interface Video {
   analysis_json?: any;
   variants_json?: any;
   processing_status?: string | null;
+  visual_keywords?: string[] | null;
+  visual_product_detected?: string | null;
   product?: {
     id: string;
     producto_nombre: string;
@@ -67,14 +69,17 @@ const formatCurrency = (num: number | null | undefined): string => {
 const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardOriginalProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentProductId, setCurrentProductId] = useState(video.product_id);
+  const [currentProductName, setCurrentProductName] = useState(video.product_name);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { hasPaid, isLoggedIn, openPaywall, shouldBlur, shouldBlurPartial } = useBlurGateContext();
+  const { hasPaid, isLoggedIn, openPaywall, shouldBlur, shouldBlurPartial, isFounder } = useBlurGateContext();
   
   const commissionRate = video.product?.commission || 6;
   const commissionEstimated = (video.revenue_mxn || 0) * (commissionRate / 100);
@@ -84,6 +89,11 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   // Free preview videos show all data even for non-paid users
   const showFullData = hasPaid || isFreePreview;
   const needsBlur = !showFullData && (shouldBlur || shouldBlurPartial);
+
+  const handleProductAssigned = (productId: string | null, productName: string | null) => {
+    setCurrentProductId(productId);
+    setCurrentProductName(productName);
+  };
 
   // Autoplay muted when video enters viewport (works on mobile and desktop)
   useEffect(() => {
@@ -293,27 +303,51 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
           </div>
 
           {/* Product Association - Compact on mobile, full on desktop */}
-          {(video.product || video.product_name) && (
-            <button 
-              onClick={navigateToProduct}
-              className="flex items-center gap-1.5 md:gap-2.5 w-full p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#F8FAFC] dark:bg-muted/50 hover:bg-[#F1F5F9] dark:hover:bg-muted transition-colors text-left"
-            >
-              {video.product?.imagen_url ? (
-                <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-7 h-7 md:w-10 md:h-10 rounded-md md:rounded-lg object-cover flex-shrink-0 border border-[#E2E8F0]" />
-              ) : (
-                <div className="w-7 h-7 md:w-10 md:h-10 rounded-md md:rounded-lg bg-[#F31260]/10 flex items-center justify-center flex-shrink-0">
-                  <ShoppingCart className="h-3.5 w-3.5 md:h-5 md:w-5 text-[#F31260]" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <span className="text-[11px] md:text-[13px] text-[#0F172A] dark:text-foreground font-medium line-clamp-1">
-                  {video.product?.producto_nombre || video.product_name}
-                </span>
-                {video.product?.total_ingresos_mxn && (
-                  <span className="hidden md:inline text-[11px] text-[#94A3B8]">GMV: {formatCurrency(video.product.total_ingresos_mxn)}</span>
+          {(video.product || video.product_name || currentProductName) && (
+            <div className="relative">
+              <button 
+                onClick={navigateToProduct}
+                className="flex items-center gap-1.5 md:gap-2.5 w-full p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-muted/50 hover:bg-muted transition-colors text-left"
+              >
+                {video.product?.imagen_url ? (
+                  <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-7 h-7 md:w-10 md:h-10 rounded-md md:rounded-lg object-cover flex-shrink-0 border border-border" />
+                ) : (
+                  <div className="w-7 h-7 md:w-10 md:h-10 rounded-md md:rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <ShoppingCart className="h-3.5 w-3.5 md:h-5 md:w-5 text-primary" />
+                  </div>
                 )}
-              </div>
-              <span className="text-[10px] md:text-[11px] text-[#94A3B8] shrink-0">→</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[11px] md:text-[13px] text-foreground font-medium line-clamp-1">
+                    {video.product?.producto_nombre || currentProductName || video.product_name}
+                  </span>
+                  {video.product?.total_ingresos_mxn && (
+                    <span className="hidden md:inline text-[11px] text-muted-foreground">GMV: {formatCurrency(video.product.total_ingresos_mxn)}</span>
+                  )}
+                </div>
+                <span className="text-[10px] md:text-[11px] text-muted-foreground shrink-0">→</span>
+              </button>
+              
+              {/* Founder Edit Button */}
+              {isFounder && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowProductModal(true); }}
+                  className="absolute -top-1.5 -right-1.5 h-6 w-6 rounded-full bg-amber-500 hover:bg-amber-600 flex items-center justify-center shadow-md transition-colors z-10"
+                  title="Cambiar producto"
+                >
+                  <Pencil className="h-3 w-3 text-white" />
+                </button>
+              )}
+            </div>
+          )}
+          
+          {/* No product - show assign button for founders */}
+          {isFounder && !video.product && !video.product_name && !currentProductName && (
+            <button
+              onClick={() => setShowProductModal(true)}
+              className="flex items-center justify-center gap-2 w-full p-2 md:p-2.5 rounded-lg md:rounded-xl border-2 border-dashed border-amber-400/50 hover:border-amber-400 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 transition-colors text-left"
+            >
+              <Pencil className="h-4 w-4 text-amber-600" />
+              <span className="text-xs md:text-sm text-amber-700 dark:text-amber-400 font-medium">Asignar producto</span>
             </button>
           )}
 
@@ -373,6 +407,23 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
       </motion.div>
 
       {showModal && <VideoAnalysisModalOriginal isOpen={showModal} onClose={() => setShowModal(false)} video={video} />}
+      
+      {showProductModal && (
+        <ProductAssignmentModal 
+          isOpen={showProductModal} 
+          onClose={() => setShowProductModal(false)} 
+          video={{
+            id: video.id,
+            video_url: video.video_url,
+            product_id: currentProductId,
+            product_name: currentProductName,
+            visual_keywords: video.visual_keywords,
+            visual_product_detected: video.visual_product_detected,
+            thumbnail_url: video.thumbnail_url
+          }}
+          onProductAssigned={handleProductAssigned}
+        />
+      )}
     </>
   );
 };
