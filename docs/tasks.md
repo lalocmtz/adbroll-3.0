@@ -659,10 +659,18 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 - [x] **Búsqueda expandida** - Para videos TOP, busca en TODOS los productos (no solo 150)
 - [x] **Orden por rank** - Videos TOP se procesan primero para mejor matching
 
+### Sistema de Vision IA para Matching (Enero 20, 2025)
+- [x] **analyze-thumbnail-product** - Nueva edge function con Gemini Vision
+- [x] **Visual mismatch detection** - Detecta si thumbnail muestra producto diferente al vinculado
+- [x] **Auditoría con Vision** - Switch "Vision IA" en MatchAuditPanel
+- [x] **Thumbnails en issues** - Muestra thumbnail en cada issue para verificación
+- [x] **Auto-fix visual mismatches** - Desvincula productos incorrectos detectados visualmente
+- [x] **Regla: Precisión sobre Cobertura** - Si confianza < 0.75, no asigna producto
+
 ### Próximos Pasos
-- [ ] Re-ejecutar auto-match para MX con nuevo algoritmo
-- [ ] Ejecutar auditoría para verificar calidad de matches
-- [ ] Verificar cero cross-market con query de validación
+- [ ] Ejecutar auditoría visual en TOP 200 de México
+- [ ] Activar auto-corregir y re-procesar con Vision
+- [ ] Verificar calidad final con nueva auditoría
 
 ---
 
