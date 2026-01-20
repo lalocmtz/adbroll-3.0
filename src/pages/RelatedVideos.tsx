@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronRight, ArrowLeft, Package, DollarSign, ExternalLink, Eye, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAccountType } from "@/hooks/useAccountType";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import VideoCardOriginal from "@/components/VideoCardOriginal";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
@@ -88,7 +88,7 @@ const RelatedVideos = () => {
   const { productId, creatorId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isFounder } = useAccountType();
+  const { isFounder } = useBlurGateContext();
   
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -377,7 +377,7 @@ const RelatedVideos = () => {
                   {auditResults.issues} issues detectados
                 </Badge>
                 {auditResults.fixed > 0 && (
-                  <Badge variant="outline" className="text-green-600">
+                  <Badge variant="outline" className="text-emerald-600 dark:text-emerald-400">
                     {auditResults.fixed} corregidos
                   </Badge>
                 )}
