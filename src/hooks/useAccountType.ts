@@ -18,7 +18,6 @@ interface UseAccountTypeReturn {
   accountType: AccountType;
   isBrand: boolean;
   isCreator: boolean;
-  isFounder: boolean;
   isLoading: boolean;
   brandProfile: BrandProfile | null;
   refetch: () => Promise<void>;
@@ -28,7 +27,6 @@ export const useAccountType = (): UseAccountTypeReturn => {
   const [accountType, setAccountType] = useState<AccountType>("loading");
   const [brandProfile, setBrandProfile] = useState<BrandProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isFounder, setIsFounder] = useState(false);
 
   const fetchAccountType = async () => {
     try {
@@ -39,19 +37,8 @@ export const useAccountType = (): UseAccountTypeReturn => {
       if (!user) {
         setAccountType("creator");
         setBrandProfile(null);
-        setIsFounder(false);
         return;
       }
-
-      // Check if user has founder role
-      const { data: founderRole } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "founder")
-        .maybeSingle();
-      
-      setIsFounder(!!founderRole);
 
       // Check if user has brand role
       const { data: roleData } = await supabase
@@ -104,7 +91,6 @@ export const useAccountType = (): UseAccountTypeReturn => {
     accountType,
     isBrand: accountType === "brand",
     isCreator: accountType === "creator",
-    isFounder,
     isLoading,
     brandProfile,
     refetch: fetchAccountType,
