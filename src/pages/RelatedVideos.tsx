@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronRight, ArrowLeft, Package, User, DollarSign, ExternalLink } from "lucide-react";
-import VideoCardOriginal from "@/components/VideoCardOriginal";
+import { ChevronRight, ArrowLeft, Package, DollarSign, ExternalLink, Eye, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAccountType } from "@/hooks/useAccountType";
+import VideoCardOriginal from "@/components/VideoCardOriginal";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { openTikTokLink } from "@/lib/tiktokDeepLink";
@@ -87,6 +88,7 @@ const RelatedVideos = () => {
   const { productId, creatorId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isFounder } = useAccountType();
   
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +96,8 @@ const RelatedVideos = () => {
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   const [sortOrder, setSortOrder] = useState("revenue");
   const [currentPage, setCurrentPage] = useState(1);
+  const [auditing, setAuditing] = useState(false);
+  const [auditResults, setAuditResults] = useState<{ issues: number; fixed: number } | null>(null);
 
   const isProductView = !!productId;
   const isCreatorView = !!creatorId;
@@ -213,6 +217,42 @@ const RelatedVideos = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleAuditProduct = async (autoFix: boolean = false) => {
+    if (!productId) return;
+    
+    setAuditing(true);
+    setAuditResults(null);
+    
+    try {
+      const response = await supabase.functions.invoke('audit-product-videos', {
+        body: { productId, autoFix, limit: 100 }
+      });
+      
+      if (response.error) throw response.error;
+      
+      const data = response.data;
+      setAuditResults({ issues: data.issuesCount, fixed: data.fixed });
+      
+      toast({
+        title: autoFix ? "Auditoría con corrección completada" : "Auditoría completada",
+        description: `${data.analyzed} videos analizados, ${data.issuesCount} issues encontrados${autoFix ? `, ${data.fixed} corregidos` : ''}`
+      });
+      
+      // Refresh videos if fixes were made
+      if (autoFix && data.fixed > 0) {
+        fetchData();
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error en auditoría",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setAuditing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
@@ -283,17 +323,67 @@ const RelatedVideos = () => {
                 GMV 30D: {formatCurrency(productInfo.total_ingresos_mxn)}
               </p>
             </div>
-            {productInfo.producto_url && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(productInfo.producto_url!, '_blank')}
-              >
-                <ExternalLink className="h-4 w-4 mr-1.5" />
-                Ver producto
-              </Button>
-            )}
+            <div className="flex flex-col sm:flex-row gap-2">
+              {productInfo.producto_url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(productInfo.producto_url!, '_blank')}
+                >
+                  <ExternalLink className="h-4 w-4 mr-1.5" />
+                  Ver producto
+                </Button>
+              )}
+              
+              {/* Audit buttons - Founders only */}
+              {isFounder && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAuditProduct(false)}
+                    disabled={auditing}
+                  >
+                    {auditing ? (
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    ) : (
+                      <Eye className="h-4 w-4 mr-1.5" />
+                    )}
+                    Auditar
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleAuditProduct(true)}
+                    disabled={auditing}
+                  >
+                    {auditing ? (
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    ) : (
+                      <Eye className="h-4 w-4 mr-1.5" />
+                    )}
+                    Auto-corregir
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
+          
+          {/* Audit results */}
+          {auditResults && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="flex items-center gap-3 text-sm">
+                <Badge variant={auditResults.issues > 0 ? "destructive" : "secondary"}>
+                  {auditResults.issues} issues detectados
+                </Badge>
+                {auditResults.fixed > 0 && (
+                  <Badge variant="outline" className="text-green-600">
+                    {auditResults.fixed} corregidos
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
         </Card>
       )}
 

@@ -1738,6 +1738,10 @@ export type Database = {
           video_mp4_url: string | null
           video_url: string
           views: number | null
+          visual_analyzed_at: string | null
+          visual_confidence: number | null
+          visual_keywords: string[] | null
+          visual_product_detected: string | null
         }
         Insert: {
           ai_match_attempted_at?: string | null
@@ -1771,6 +1775,10 @@ export type Database = {
           video_mp4_url?: string | null
           video_url: string
           views?: number | null
+          visual_analyzed_at?: string | null
+          visual_confidence?: number | null
+          visual_keywords?: string[] | null
+          visual_product_detected?: string | null
         }
         Update: {
           ai_match_attempted_at?: string | null
@@ -1804,6 +1812,10 @@ export type Database = {
           video_mp4_url?: string | null
           video_url?: string
           views?: number | null
+          visual_analyzed_at?: string | null
+          visual_confidence?: number | null
+          visual_keywords?: string[] | null
+          visual_product_detected?: string | null
         }
         Relationships: [
           {
