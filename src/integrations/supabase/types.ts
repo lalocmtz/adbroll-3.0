@@ -1719,6 +1719,9 @@ export type Database = {
           duration: number | null
           id: string
           imported_at: string | null
+          manual_match: boolean | null
+          manual_matched_at: string | null
+          manual_matched_by: string | null
           processing_status: string | null
           product_id: string | null
           product_name: string | null
@@ -1756,6 +1759,9 @@ export type Database = {
           duration?: number | null
           id?: string
           imported_at?: string | null
+          manual_match?: boolean | null
+          manual_matched_at?: string | null
+          manual_matched_by?: string | null
           processing_status?: string | null
           product_id?: string | null
           product_name?: string | null
@@ -1793,6 +1799,9 @@ export type Database = {
           duration?: number | null
           id?: string
           imported_at?: string | null
+          manual_match?: boolean | null
+          manual_matched_at?: string | null
+          manual_matched_by?: string | null
           processing_status?: string | null
           product_id?: string | null
           product_name?: string | null
