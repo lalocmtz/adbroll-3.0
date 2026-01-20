@@ -23,6 +23,7 @@ import { CreditAnalytics } from "@/components/admin/CreditAnalytics";
 import CreatorDirectoryManager from "@/components/admin/CreatorDirectoryManager";
 import CampaignManager from "@/components/admin/CampaignManager";
 import { ParallelProgressPanel } from "@/components/admin/ParallelProgressPanel";
+import { MatchAuditPanel } from "@/components/admin/MatchAuditPanel";
 import { useParallelPipeline } from "@/hooks/useParallelPipeline";
 
 type Market = "mx" | "us";
@@ -870,6 +871,12 @@ const Admin = () => {
 
         {/* Asset Uploader */}
         <AssetUploader />
+
+        {/* Match Audit Panel */}
+        <MatchAuditPanel 
+          market={selectedMarket} 
+          onAuditComplete={loadStats}
+        />
 
         {/* Pending Links Section (Manual Assignment) */}
         {stats.pendingMatch > 0 && (
