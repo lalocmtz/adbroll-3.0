@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface WorkerStats {
   downloads: { processed: number; pending: number; errors: number };
-  transcriptions: { processed: number; pending: number; errors: number };
-  matching: { processed: number; pending: number; errors: number };
+  transcriptions: { processed: number; pending: number; errors: number; failed: number };
+  matching: { processed: number; pending: number; errors: number; aiMatched: number };
   avatars: { processed: number; pending: number; errors: number };
 }
 
@@ -34,8 +34,8 @@ export function useParallelPipeline() {
     isPaused: false,
     stats: {
       downloads: { processed: 0, pending: 0, errors: 0 },
-      transcriptions: { processed: 0, pending: 0, errors: 0 },
-      matching: { processed: 0, pending: 0, errors: 0 },
+      transcriptions: { processed: 0, pending: 0, errors: 0, failed: 0 },
+      matching: { processed: 0, pending: 0, errors: 0, aiMatched: 0 },
       avatars: { processed: 0, pending: 0, errors: 0 },
     },
     phase: "",
@@ -77,8 +77,14 @@ export function useParallelPipeline() {
       (v.download_attempts || 0) < 5
     ).length;
 
+    // Pending = has MP4, no transcript, not failed
     const pendingTranscription = videos.filter(v =>
-      v.video_mp4_url && !v.transcript
+      v.video_mp4_url && !v.transcript && v.processing_status !== 'transcription_failed'
+    ).length;
+    
+    // Failed = has MP4, no transcript, status is transcription_failed
+    const failedTranscription = videos.filter(v =>
+      v.video_mp4_url && !v.transcript && v.processing_status === 'transcription_failed'
     ).length;
 
     const pendingMatch = videos.filter(v => !v.product_id).length;
@@ -91,13 +97,13 @@ export function useParallelPipeline() {
       ...prev,
       stats: {
         downloads: { ...prev.stats.downloads, pending: pendingDownload },
-        transcriptions: { ...prev.stats.transcriptions, pending: pendingTranscription },
+        transcriptions: { ...prev.stats.transcriptions, pending: pendingTranscription, failed: failedTranscription },
         matching: { ...prev.stats.matching, pending: pendingMatch },
         avatars: { ...prev.stats.avatars, pending: pendingAvatars },
       },
     }));
 
-    return { pendingDownload, pendingTranscription, pendingMatch, pendingAvatars };
+    return { pendingDownload, pendingTranscription, pendingMatch, pendingAvatars, failedTranscription };
   }, []);
 
   // Individual worker functions
@@ -151,6 +157,7 @@ export function useParallelPipeline() {
     updateStats("transcriptions", {
       processed: state.stats.transcriptions.processed + (data.successful || 0),
       pending: data.remaining || 0,
+      failed: data.totalFailed || 0,
     });
 
     return data.remaining > 0;
@@ -176,9 +183,11 @@ export function useParallelPipeline() {
     }
 
     const matched = data?.matchedInBatch || 0;
+    const aiMatched = data?.aiMatched || 0;
     updateStats("matching", {
       processed: state.stats.matching.processed + matched,
       pending: data?.remainingUnmatched || 0,
+      aiMatched: state.stats.matching.aiMatched + aiMatched,
     });
 
     // Stop if no progress for this batch
@@ -222,8 +231,8 @@ export function useParallelPipeline() {
       phase: "Iniciando pipeline paralelo...",
       stats: {
         downloads: { processed: 0, pending: 0, errors: 0 },
-        transcriptions: { processed: 0, pending: 0, errors: 0 },
-        matching: { processed: 0, pending: 0, errors: 0 },
+        transcriptions: { processed: 0, pending: 0, errors: 0, failed: 0 },
+        matching: { processed: 0, pending: 0, errors: 0, aiMatched: 0 },
         avatars: { processed: 0, pending: 0, errors: 0 },
       },
     }));
