@@ -49,11 +49,30 @@ function extractKeywords(text: string): string[] {
   return text.split(' ').filter(w => w.length > 3);
 }
 
+// HIGH-PRIORITY KEYWORDS - If found in transcript, MUST match product with same keyword
+const EXACT_MATCH_KEYWORDS = [
+  'alexa', 'echo', 'echo dot', 'echo pop', 'echo show',
+  'airpod', 'airpods', 'iphone', 'ipad', 'apple watch', 'macbook',
+  'samsung', 'galaxy', 'xiaomi', 'redmi', 'huawei', 'poco',
+  'faja', 'fajas', 'plancha', 'secadora', 'rizador', 'alisadora', 'cepillo',
+  'bocina', 'audifonos', 'auriculares', 'smartwatch', 'tablet', 'reloj',
+  'crema', 'serum', 'mascarilla', 'vitamina', 'colageno', 'protector',
+  'wavytalk', 'dyson', 'philips', 'braun', 'revlon', 'conair',
+  'estante', 'organizador', 'lampara', 'luces', 'tira led',
+  'parka', 'chamarra', 'playera', 'vestido', 'pantalon', 'jeans'
+];
+
 // Extract hashtags from text
 function extractHashtags(text: string | null): string[] {
   if (!text) return [];
   const matches = text.match(HASHTAG_REGEX) || [];
   return matches.map(h => h.slice(1).toLowerCase());
+}
+
+// Find exact match keywords in text
+function findExactKeywords(text: string): string[] {
+  const normalized = normalizeText(text);
+  return EXACT_MATCH_KEYWORDS.filter(kw => normalized.includes(kw));
 }
 
 // Build product lookup index for O(1) exact matching
@@ -79,12 +98,13 @@ function buildProductIndex(products: Product[]): {
   return { byExactName, byFirstWord };
 }
 
-// Fast matching with indexed lookups - PRIORITIZES TRANSCRIPT
+// Fast matching with indexed lookups - PRIORITIZES TRANSCRIPT + EXACT KEYWORDS
 function findBestMatch(
   video: Video,
   products: Product[],
   productIndex: { byExactName: Map<string, Product>; byFirstWord: Map<string, Product[]> },
-  threshold: number
+  threshold: number,
+  isTopVideo: boolean = false
 ): { product: Product; score: number } | null {
   const videoProductName = normalizeText(video.product_name);
   const videoTitle = normalizeText(video.title);
@@ -97,6 +117,9 @@ function findBestMatch(
   // NEW: Extract all searchable text - prioritize transcript
   const allSearchableText = [videoTranscript, videoTitle, videoProductName].filter(Boolean).join(' ');
   
+  // Search limit - expand for top videos
+  const searchLimit = isTopVideo ? products.length : 300;
+  
   // FAST PATH 1: Exact match on product name (O(1))
   if (effectiveProductName) {
     const exactMatch = productIndex.byExactName.get(effectiveProductName);
@@ -105,13 +128,44 @@ function findBestMatch(
     }
   }
   
-  // PRIORITY PATH: Search transcript for product names (HIGHEST PRIORITY for matching)
+  // ========================================
+  // CRITICAL: EXACT KEYWORD MATCHING (NEW!)
+  // If transcript mentions "Alexa", MUST find product with "Alexa"
+  // ========================================
   if (videoTranscript && videoTranscript.length > 15) {
-    // Search through top 150 products (sorted by revenue)
-    for (let i = 0; i < Math.min(products.length, 150); i++) {
+    const transcriptKeywords = findExactKeywords(videoTranscript);
+    
+    if (transcriptKeywords.length > 0) {
+      // Search ALL products for exact keyword match (critical for accuracy)
+      for (let i = 0; i < Math.min(products.length, searchLimit); i++) {
+        const product = products[i];
+        const productNormalized = product.normalizedName;
+        
+        // Check if product contains ANY of the exact keywords from transcript
+        for (const keyword of transcriptKeywords) {
+          if (productNormalized.includes(keyword)) {
+            console.log(`🎯 EXACT KEYWORD MATCH: "${keyword}" in product "${product.producto_nombre}"`);
+            return { product, score: 0.95 };
+          }
+        }
+      }
+      
+      // If we have important keywords but no product matches, don't settle for generic matches
+      // Return null to trigger AI matching or manual review
+      if (transcriptKeywords.some(kw => ['alexa', 'echo', 'airpod', 'iphone', 'samsung', 'faja', 'wavytalk'].includes(kw))) {
+        console.log(`⚠️ Important keyword "${transcriptKeywords[0]}" found but no matching product - skipping generic match`);
+        return null;
+      }
+    }
+  }
+  
+  // PRIORITY PATH: Search transcript for product names
+  if (videoTranscript && videoTranscript.length > 15) {
+    // Search through products (expanded limit for top videos)
+    for (let i = 0; i < Math.min(products.length, searchLimit); i++) {
       const product = products[i];
-      // Product name must be meaningful (> 3 chars) to avoid false positives
-      if (product.normalizedName.length > 3) {
+      // Product name must be meaningful (> 4 chars) to avoid false positives
+      if (product.normalizedName.length > 4) {
         // Check if transcript contains the full product name
         if (videoTranscript.includes(product.normalizedName)) {
           return { product, score: 0.92 };
@@ -120,7 +174,7 @@ function findBestMatch(
         if (product.keywords.length >= 2) {
           let keywordMatches = 0;
           for (const kw of product.keywords) {
-            if (kw.length > 3 && videoTranscript.includes(kw)) {
+            if (kw.length > 4 && videoTranscript.includes(kw)) {
               keywordMatches++;
             }
           }
@@ -378,11 +432,12 @@ serve(async (req) => {
 
     console.log(`📦 ${products.length} products indexed`);
 
-    // Fetch unmatched videos
+    // Fetch unmatched videos - include rank for priority matching
     let videosQuery = supabase
       .from('videos')
-      .select('id, title, video_url, product_name, product_id, transcript, country')
+      .select('id, title, video_url, product_name, product_id, transcript, country, rank')
       .is('product_id', null)
+      .order('rank', { ascending: true, nullsFirst: false })
       .order('revenue_mxn', { ascending: false, nullsFirst: false })
       .limit(batchSize);
     
@@ -419,8 +474,14 @@ serve(async (req) => {
     const matchedUpdates: { id: string; update: Record<string, unknown> }[] = [];
     const unmatchedVideos: Video[] = [];
 
+    // Get video ranks for priority matching
+    const videoRanks = new Map(videos.map(v => [v.id, (v as unknown as { rank?: number }).rank || 999]));
+
     for (const video of videos) {
-      const result = findBestMatch(video, products, productIndex, threshold);
+      const videoRank = videoRanks.get(video.id) || 999;
+      const isTopVideo = videoRank <= 100;
+      
+      const result = findBestMatch(video, products, productIndex, threshold, isTopVideo);
       
       if (result) {
         matchedUpdates.push({

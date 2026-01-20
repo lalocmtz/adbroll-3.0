@@ -642,9 +642,27 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 - [x] **Transcript prioritizado** - Matching busca primero en transcript antes de title/product_name
 - [x] **Keyword matching mejorado** - Extrae keywords de TODO el texto (transcript+title+product_name)
 
+### Sistema de Auditoría de Matches (Enero 20, 2025)
+- [x] **audit-video-matches** - Nueva edge function para auditoría automática
+- [x] **Detección cross-market** - Identifica videos MX vinculados a productos US (y viceversa)
+- [x] **Detección keyword mismatch** - Si transcript dice "Alexa" pero producto es "Bocina Xiaomi"
+- [x] **Detección low confidence** - Videos top con confidence < 70%
+- [x] **Detección missing match** - Videos top sin producto vinculado
+- [x] **Auto-fix opcional** - Parámetro `autoFix` para corregir automáticamente
+- [x] **Reporte detallado** - Severidades (critical/high/medium/low) por tipo de issue
+
+### Matching con Palabras Clave Exactas (Enero 20, 2025)
+- [x] **EXACT_MATCH_KEYWORDS** - Lista de 50+ keywords de alta prioridad
+- [x] **findExactKeywords()** - Busca keywords exactas en transcript
+- [x] **Prioridad máxima** - Si transcript dice "alexa", SOLO vincula a productos con "alexa"
+- [x] **Rechazo inteligente** - Si hay keyword importante pero no hay match, no vincula genéricamente
+- [x] **Búsqueda expandida** - Para videos TOP, busca en TODOS los productos (no solo 150)
+- [x] **Orden por rank** - Videos TOP se procesan primero para mejor matching
+
 ### Próximos Pasos
-- [x] Re-ejecutar auto-match para MX después de esta limpieza
-- [x] Verificar cero cross-market con query de validación
+- [ ] Re-ejecutar auto-match para MX con nuevo algoritmo
+- [ ] Ejecutar auditoría para verificar calidad de matches
+- [ ] Verificar cero cross-market con query de validación
 
 ---
 
