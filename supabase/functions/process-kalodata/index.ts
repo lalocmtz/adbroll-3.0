@@ -125,6 +125,7 @@ serve(async (req) => {
         processing_status: 'pending',
         imported_at: new Date().toISOString(),
         snapshot_date_range: row["Rango de fechas"] || null,
+        snapshot_at: new Date().toISOString(),
       };
     }).filter(Boolean) as any[];
 
@@ -148,6 +149,21 @@ serve(async (req) => {
       .map((v, idx) => ({ ...v, rank: idx + 1 }));
 
     console.log(`[TIMING] Dedupe: ${Date.now() - dedupeStart}ms, ${uniqueVideos.length} unique videos`);
+
+    // ========== PHASE 3.5: Reset rank for all videos in this market ==========
+    // This ensures only videos in the NEW file get a rank
+    const resetStart = Date.now();
+    console.log(`Reseteando rank de todos los videos en ${market}...`);
+    const { error: resetError } = await supabaseServiceClient
+      .from("videos")
+      .update({ rank: null, snapshot_at: null })
+      .eq("country", market);
+    
+    if (resetError) {
+      console.error("Error resetting ranks:", resetError.message);
+    } else {
+      console.log(`[TIMING] Reset ranks: ${Date.now() - resetStart}ms`);
+    }
 
     // ========== PHASE 4: Batch UPSERT (chunked for reliability) ==========
     const upsertStart = Date.now();
