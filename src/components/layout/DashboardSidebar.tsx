@@ -65,7 +65,6 @@ const exploreItems: NavItem[] = [
 // TU CENTRO - Work tools (Tools hidden for non-founders)
 const workspaceItems: NavItem[] = [
   { to: "/tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true, founderOnly: true },
-  { to: "/library", labelEs: "Mi Biblioteca", labelEn: "My Library", icon: FolderOpen, lockedForVisitor: true },
   { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
   { to: "/affiliates", labelEs: "Afiliados", labelEn: "Affiliates", icon: Coins, lockedForVisitor: true },
 ];
