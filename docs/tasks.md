@@ -674,4 +674,18 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ LIMPIEZA UI Y TRADUCCIÓN SCRIPTS (Enero 2025)
+
+### Simplificación de Navegación
+- [x] **Eliminar "Mi Biblioteca"** - Removido de sidebar (workspaceItems)
+- [x] **Eliminar UGC Generator** - Removido de Tools.tsx
+
+### Traducción de Scripts
+- [x] **translate-script edge function** - Nueva función con Lovable AI (Gemini 3 Flash)
+- [x] **UI de traducción** - Botones ES→EN y EN→ES en pestaña Script
+- [x] **Flujo bidireccional** - Traduce scripts extraídos para adaptar a otros mercados
+- [x] **Botón "Original"** - Permite volver al texto original después de traducir
+
+---
+
 **Última actualización:** Enero 2025

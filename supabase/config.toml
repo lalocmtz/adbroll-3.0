@@ -137,3 +137,6 @@ verify_jwt = true
 
 [functions.kie-ugc-callback]
 verify_jwt = false
+
+[functions.translate-script]
+verify_jwt = true
