@@ -150,21 +150,62 @@ const Tools = () => {
     setIsGettingDownloadUrl(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("get-tiktok-download-url", {
-        body: { tiktokUrl: downloadVideoUrl.trim() }
-      });
+      // Use proxy download - the edge function will return the video bytes directly
+      const response = await fetch(
+        `https://gcntnilurlulejwwtpaa.supabase.co/functions/v1/get-tiktok-download-url`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            tiktokUrl: downloadVideoUrl.trim(),
+            proxyDownload: true 
+          })
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to download video');
+      }
 
-      if (data?.downloadUrl) {
-        setDownloadLink(data.downloadUrl);
-        setDownloadVideoTitle(data.title || "tiktok-video");
-        toast({ title: language === "es" ? "✓ Video listo" : "✓ Video ready" });
+      // Check if we got video bytes or JSON
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType?.includes('video/mp4')) {
+        // Got video bytes directly - create blob and download
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
         
-        // Auto-trigger download
-        triggerDownload(data.downloadUrl, data.title || "tiktok-video");
+        const disposition = response.headers.get('content-disposition');
+        const filenameMatch = disposition?.match(/filename="(.+)"/);
+        const filename = filenameMatch ? filenameMatch[1] : 'tiktok-video.mp4';
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the blob URL after a short delay
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        
+        setDownloadLink(url);
+        setDownloadVideoTitle(filename.replace('.mp4', ''));
+        toast({ title: language === "es" ? "✓ Video descargado" : "✓ Video downloaded" });
       } else {
-        throw new Error(language === "es" ? "No se pudo obtener el video" : "Could not get video");
+        // Got JSON response with download URL
+        const data = await response.json();
+        if (data?.downloadUrl) {
+          setDownloadLink(data.downloadUrl);
+          setDownloadVideoTitle(data.title || "tiktok-video");
+          triggerDownload(data.downloadUrl, data.title || "tiktok-video");
+          toast({ title: language === "es" ? "✓ Video listo" : "✓ Video ready" });
+        } else {
+          throw new Error(language === "es" ? "No se pudo obtener el video" : "Could not get video");
+        }
       }
     } catch (err: any) {
       console.error("Download URL error:", err);
