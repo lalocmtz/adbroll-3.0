@@ -140,3 +140,6 @@ verify_jwt = false
 
 [functions.translate-script]
 verify_jwt = true
+
+[functions.get-tiktok-download-url]
+verify_jwt = false

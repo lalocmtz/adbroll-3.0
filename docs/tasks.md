@@ -340,6 +340,20 @@ El sistema de generación de videos IA fue removido para simplificar la platafor
 
 ---
 
+## ✅ UI SIMPLIFICACIÓN (Enero 2025)
+
+### Navegación Limpiada
+- [x] **Mi Biblioteca removido** - Eliminado de la sección "Tu Centro" en sidebar
+- [x] **Generador UGC removido** - Eliminado de la página de Herramientas
+
+### Nuevas Funcionalidades Tools
+- [x] **Traducción de guiones** - ES ↔ EN bidireccional en Extractor de Guiones
+- [x] **Descargador HD de Video** - Descargar videos TikTok sin marca de agua
+- [x] Edge function `translate-script` - Traducción con Gemini 3 Flash
+- [x] Edge function `get-tiktok-download-url` - Obtiene URL MP4 para descarga directa
+
+---
+
 ## ✅ MARKET SWITCHER MX/USA (Enero 2025)
 
 ### Switch entre TikTok Shop México y USA

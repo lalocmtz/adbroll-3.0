@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   FileText, Copy, Loader2, Zap, PenTool, Check, AlertCircle, 
   Link2, RotateCcw, Play, Heart, Download, Sparkles, ChevronRight,
-  Languages
+  Languages, Video
 } from "lucide-react";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -98,6 +98,13 @@ const Tools = () => {
   const [translatedTranscript, setTranslatedTranscript] = useState<string | null>(null);
   const [translationDirection, setTranslationDirection] = useState<'es-to-en' | 'en-to-es' | null>(null);
 
+  // Video Downloader State
+  const [downloadVideoUrl, setDownloadVideoUrl] = useState("");
+  const [isGettingDownloadUrl, setIsGettingDownloadUrl] = useState(false);
+  const [downloadLink, setDownloadLink] = useState<string | null>(null);
+  const [downloadVideoTitle, setDownloadVideoTitle] = useState<string>("tiktok-video");
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
   const handleTranslate = async (direction: 'es-to-en' | 'en-to-es') => {
     if (!transcript) return;
     
@@ -128,6 +135,62 @@ const Tools = () => {
   const handleResetTranslation = () => {
     setTranslatedTranscript(null);
     setTranslationDirection(null);
+  };
+
+  // Video Downloader Handler
+  const handleGetDownloadUrl = async () => {
+    setDownloadError(null);
+    setDownloadLink(null);
+
+    if (!downloadVideoUrl.trim() || !isValidTikTokUrl(downloadVideoUrl)) {
+      setDownloadError(language === "es" ? "Ingresa un enlace válido de TikTok" : "Enter a valid TikTok link");
+      return;
+    }
+
+    setIsGettingDownloadUrl(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("get-tiktok-download-url", {
+        body: { tiktokUrl: downloadVideoUrl.trim() }
+      });
+
+      if (error) throw error;
+
+      if (data?.downloadUrl) {
+        setDownloadLink(data.downloadUrl);
+        setDownloadVideoTitle(data.title || "tiktok-video");
+        toast({ title: language === "es" ? "✓ Video listo" : "✓ Video ready" });
+        
+        // Auto-trigger download
+        triggerDownload(data.downloadUrl, data.title || "tiktok-video");
+      } else {
+        throw new Error(language === "es" ? "No se pudo obtener el video" : "Could not get video");
+      }
+    } catch (err: any) {
+      console.error("Download URL error:", err);
+      setDownloadError(err.message || (language === "es" ? "Error al procesar el video" : "Error processing video"));
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsGettingDownloadUrl(false);
+    }
+  };
+
+  const triggerDownload = (url: string, title: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title.replace(/[^a-zA-Z0-9]/g, '-')}.mp4`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const resetVideoDownloader = () => {
+    setDownloadVideoUrl("");
+    setDownloadLink(null);
+    setDownloadError(null);
+    setDownloadVideoTitle("tiktok-video");
   };
 
   useEffect(() => {
@@ -784,7 +847,91 @@ const Tools = () => {
         )}
       </Card>
 
-      {/* 2. Hook Generator - Compact */}
+      {/* 2. Video Downloader HD */}
+      <Card className="overflow-hidden border-border/50 shadow-sm">
+        <div className="p-5 md:p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-cyan-500/10">
+              <Video className="h-5 w-5 text-cyan-500" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">
+                {language === "es" ? "Descargador de Video HD" : "HD Video Downloader"}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {language === "es" ? "Descarga videos de TikTok sin marca de agua" : "Download TikTok videos without watermark"}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+              <Input
+                placeholder={language === "es" ? "https://tiktok.com/@usuario/video/..." : "https://tiktok.com/@user/video/..."}
+                value={downloadVideoUrl}
+                onChange={(e) => {
+                  setDownloadVideoUrl(e.target.value);
+                  setDownloadError(null);
+                  setDownloadLink(null);
+                }}
+                className="h-11 pl-10 rounded-xl border-border/60"
+              />
+            </div>
+            <Button 
+              onClick={handleGetDownloadUrl}
+              disabled={isGettingDownloadUrl}
+              className="h-11 px-5 rounded-xl bg-cyan-500 hover:bg-cyan-600 shadow-sm"
+            >
+              {isGettingDownloadUrl ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  {language === "es" ? "Descargar" : "Download"}
+                </>
+              )}
+            </Button>
+          </div>
+          
+          {/* Error State */}
+          {downloadError && (
+            <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              <span>{downloadError}</span>
+              <Button 
+                onClick={resetVideoDownloader} 
+                variant="ghost" 
+                size="sm" 
+                className="ml-auto h-6 text-xs"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                {language === "es" ? "Reintentar" : "Retry"}
+              </Button>
+            </div>
+          )}
+          
+          {/* Success State */}
+          {downloadLink && !downloadError && (
+            <div className="flex items-center gap-3 mt-3 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700">
+              <Check className="h-4 w-4 shrink-0" />
+              <span className="text-xs font-medium flex-1">
+                {language === "es" ? "¡Video listo para descargar!" : "Video ready to download!"}
+              </span>
+              <Button 
+                onClick={() => triggerDownload(downloadLink, downloadVideoTitle)}
+                size="sm"
+                className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                {language === "es" ? "Descargar MP4" : "Download MP4"}
+              </Button>
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* 3. Hook Generator - Compact */}
       <Card className="p-5 border-border/50 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 rounded-xl bg-amber-500/10">
@@ -855,7 +1002,7 @@ const Tools = () => {
         )}
       </Card>
 
-      {/* 3. Script Generator - Visual Product Cards */}
+      {/* 4. Script Generator - Visual Product Cards */}
       <Card className="p-5 border-border/50 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 rounded-xl bg-purple-500/10">
