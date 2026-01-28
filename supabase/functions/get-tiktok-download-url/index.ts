@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { tiktokUrl } = await req.json();
+    const { tiktokUrl, proxyDownload } = await req.json();
     
     if (!tiktokUrl) {
       return new Response(
@@ -54,8 +54,8 @@ serve(async (req) => {
     const rapidApiData = await rapidApiResponse.json();
     console.log(`[get-tiktok-download-url] API response:`, JSON.stringify(rapidApiData).substring(0, 500));
 
-    // Extract MP4 URL from elisbushaj2 API response
-    const mp4Url = rapidApiData.downloadUrl || rapidApiData.video?.downloadUrl || rapidApiData.url;
+    // Extract MP4 URL
+    let mp4Url = rapidApiData.downloadUrl || rapidApiData.video?.downloadUrl || rapidApiData.url;
 
     if (!mp4Url) {
       console.error(`[get-tiktok-download-url] No MP4 URL in response:`, rapidApiData);
@@ -65,13 +65,49 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[get-tiktok-download-url] MP4 URL found: ${mp4Url}`);
+    console.log(`[get-tiktok-download-url] Download URL: ${mp4Url}`);
 
+    // If proxyDownload is true, download the video and return the bytes directly
+    if (proxyDownload) {
+      console.log(`[get-tiktok-download-url] Proxying download...`);
+      
+      const videoResponse = await fetch(mp4Url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      
+      if (!videoResponse.ok) {
+        console.error(`[get-tiktok-download-url] Failed to download video: ${videoResponse.status}`);
+        return new Response(
+          JSON.stringify({ error: 'Failed to download video' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const videoBuffer = await videoResponse.arrayBuffer();
+      const contentLength = videoBuffer.byteLength;
+      console.log(`[get-tiktok-download-url] Video downloaded: ${contentLength} bytes`);
+
+      const title = rapidApiData.title || rapidApiData.author?.nickname || 'tiktok-video';
+      const filename = `${title.replace(/[^a-zA-Z0-9]/g, '-')}.mp4`;
+
+      return new Response(videoBuffer, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'video/mp4',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Content-Length': contentLength.toString(),
+        }
+      });
+    }
+
+    // Otherwise return the download URL for the client to handle
     return new Response(
       JSON.stringify({ 
         success: true, 
         downloadUrl: mp4Url,
-        title: rapidApiData.title || 'tiktok-video'
+        title: rapidApiData.title || rapidApiData.author?.nickname || 'tiktok-video'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
