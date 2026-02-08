@@ -1,147 +1,101 @@
 
-## Plan: Descargador de Video HD de TikTok
 
-### Resumen
-Agregar una nueva herramienta en la página Tools que permita a los usuarios pegar un link de TikTok y descargar el video HD sin marca de agua directamente a su dispositivo.
+## Plan: Mejorar la Seccion de Emails en Admin
+
+### Problema Actual
+- La seccion "Emails Capturados" solo muestra la tabla `email_captures` (leads de checkout)
+- Hay correos repetidos (ej: `lalocmtz@gmail.com` aparece 6 veces)
+- No muestra todos los usuarios registrados (ej: `geraas.santiago@gmail.com` no aparece)
+- No hay seccion de suscriptores activos con fecha de renovacion
+
+### Solucion
+
+Reemplazar el componente `EmailLeadsList` con un componente mejorado que tenga **3 secciones con tabs**:
 
 ---
 
-## Arquitectura
-
-### Flujo de Descarga
+### Tab 1: Usuarios Registrados
+Muestra todos los correos de la tabla `profiles` (usuarios que crearon cuenta):
 
 ```text
-Usuario pega URL → Edge Function obtiene MP4 → Retorna URL → Usuario descarga a su dispositivo
+Usuarios Registrados (7)
+----------------------------------------
+geraas.santiago@gmail.com   29 ene 2026
+test3@gmail.com             08 dic 2025
+test2@gmail.com             08 dic 2025
+test@gmail.com              08 dic 2025
+data2bet@gmail.com          08 dic 2025
+adbrollapp@gmail.com        08 dic 2025
+lalocmtz@gmail.com          28 nov 2025
 ```
 
-La diferencia con la función existente `download-tiktok-video` es que:
-- **Función existente**: Descarga el video, lo sube a Supabase Storage, y actualiza la DB
-- **Nueva función**: Solo obtiene la URL del MP4 y la retorna al cliente para descarga directa
+- Sin duplicados (cada email aparece una sola vez)
+- Muestra nombre completo si existe
+- Fecha de registro
 
----
-
-## Nueva Edge Function
-
-**Archivo:** `supabase/functions/get-tiktok-download-url/index.ts`
-
-Esta función:
-1. Recibe una URL de TikTok
-2. Llama a la API de RapidAPI (elisbushaj2) que ya está configurada
-3. Retorna la URL del MP4 sin marca de agua
-4. El navegador del usuario descarga directamente desde esa URL
-
-```typescript
-// Usa la misma API que download-tiktok-video
-// pero solo retorna la URL de descarga, no la guarda
-```
-
----
-
-## Cambios en UI
-
-**Archivo:** `src/pages/Tools.tsx`
-
-### Nuevo Estado:
-```typescript
-// Video Downloader State
-const [downloadUrl, setDownloadUrl] = useState("");
-const [isGettingDownloadUrl, setIsGettingDownloadUrl] = useState(false);
-const [downloadLink, setDownloadLink] = useState<string | null>(null);
-const [downloadError, setDownloadError] = useState<string | null>(null);
-```
-
-### Nueva Función:
-```typescript
-const handleGetDownloadUrl = async () => {
-  // Valida URL de TikTok
-  // Llama a get-tiktok-download-url
-  // Obtiene MP4 URL
-  // Inicia descarga automáticamente usando <a download>
-};
-```
-
-### Nueva Card de Herramienta:
-
-Se añade una nueva Card debajo del Script Extractor (o como tercera herramienta) con:
+### Tab 2: Suscriptores Activos
+Muestra los usuarios con suscripcion activa y su fecha de renovacion:
 
 ```text
-┌────────────────────────────────────────────────────────────┐
-│ 📥 Descargador de Video                                    │
-│ Descarga videos de TikTok en HD sin marca de agua          │
-├────────────────────────────────────────────────────────────┤
-│ [🔗 Input: https://tiktok.com/...    ] [📥 Descargar]     │
-│                                                            │
-│ ✓ Video listo - 3.2 MB                [⬇️ Descargar]      │
-└────────────────────────────────────────────────────────────┘
+Suscriptores Activos (2)
+----------------------------------------
+geraas.santiago@gmail.com   Activa   Renueva: 31 dic 2099
+lalocmtz@gmail.com          Activa   Renueva: --
 ```
 
-**Estados de la UI:**
-1. **Idle**: Input vacío + botón "Obtener Video"
-2. **Loading**: Spinner + "Procesando video..."
-3. **Success**: Muestra tamaño + botón de descarga directa
-4. **Error**: Mensaje de error + botón reintentar
+- Email del suscriptor
+- Estado (activa/cancelada)
+- Fecha de renovacion (`renew_at`)
+- Badge verde para activos
+
+### Tab 3: Email Leads (actual)
+Mantiene la funcionalidad actual de `email_captures` pero **deduplicado**:
+- Agrupa por email, muestra solo el registro mas reciente
+- Mantiene botones de seguimiento
+- Mantiene indicador de convertido/pendiente
 
 ---
 
-## Archivos a Crear
+### Cambios Tecnicos
 
-| Archivo | Propósito |
-|---------|-----------|
-| `supabase/functions/get-tiktok-download-url/index.ts` | Edge function ligera que retorna URL de descarga |
+**Archivo:** `src/components/admin/EmailLeadsList.tsx`
 
-## Archivos a Modificar
+1. Agregar consulta a `profiles` para obtener todos los usuarios registrados
+2. Agregar consulta a `subscriptions` (join con `profiles`) para suscriptores activos  
+3. Agregar tabs internos: "Registrados", "Suscriptores", "Leads"
+4. Deduplicar leads de `email_captures` agrupando por email (conservar el mas reciente)
+5. Contar totales para cada tab
 
-| Archivo | Cambios |
-|---------|---------|
-| `src/pages/Tools.tsx` | Agregar nueva sección Descargador de Video |
-| `supabase/config.toml` | Registrar la nueva function |
-| `docs/tasks.md` | Agregar nueva tarea completada |
+**Archivos a modificar:**
 
----
+| Archivo | Cambio |
+|---------|--------|
+| `src/components/admin/EmailLeadsList.tsx` | Reescribir con 3 tabs y datos deduplicados |
 
-## Consideraciones Técnicas
-
-### Descarga en Cliente
-
-Para iniciar la descarga desde el navegador, se usa una técnica que fuerza descarga:
-
-```typescript
-// Crear link temporal para forzar descarga
-const link = document.createElement('a');
-link.href = mp4Url;
-link.download = 'tiktok-video.mp4';
-link.target = '_blank';
-document.body.appendChild(link);
-link.click();
-document.body.removeChild(link);
-```
-
-**Nota:** Algunos navegadores bloquean descargas cross-origin. Si esto ocurre, se mostrará el link para que el usuario lo abra manualmente.
-
-### Reutilización de Infraestructura
-
-- Se usa la misma `RAPIDAPI_KEY` ya configurada
-- Se usa la misma API de elisbushaj2 (plan gratuito)
-- No se guarda nada en Supabase Storage (ahorra espacio)
-- No se requiere autenticación (herramienta pública para visitantes)
+**Sin cambios en base de datos** - solo se leen tablas existentes (`profiles`, `subscriptions`, `email_captures`).
 
 ---
 
-## Orden de las Herramientas (Después del Cambio)
+### Resultado Visual
 
 ```text
-HERRAMIENTAS:
-1. Extractor de Guiones     ← Existente
-2. Descargador de Video HD  ← NUEVO
-3. Generador de Hooks IA    ← Existente
-4. Generador de Guiones IA  ← Existente
++---------------------------------------------------+
+| Directorio de Emails (7 registrados)   [Actualizar]|
+|                                                     |
+| [Registrados (7)] [Suscriptores (2)] [Leads (2)]   |
+|                                                     |
+| Tab Registrados:                                    |
+|  geraas.santiago@gmail.com  Gerardo Santiago  29ene |
+|  test3@gmail.com            Armando cuellar   08dic |
+|  ...                                               |
+|                                                     |
+| Tab Suscriptores:                                   |
+|  geraas.santiago@gmail.com  Activa  Renueva: 2099  |
+|  lalocmtz@gmail.com         Activa  Renueva: --    |
+|                                                     |
+| Tab Leads:                                          |
+|  lalocmtz@gmail.com   (mas reciente)   [Seguimiento]|
+|  data2bet@gmail.com   (mas reciente)   [Seguimiento]|
++---------------------------------------------------+
 ```
 
----
-
-## Beneficio para Usuarios
-
-- Descargar videos virales sin marca de agua para estudiarlos
-- No necesitan instalar apps externas o visitar sitios con anuncios
-- Calidad HD preservada
-- Descarga rápida y directa al dispositivo
