@@ -43,6 +43,8 @@ const Admin = () => {
   const [useAI, setUseAI] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [useParallelMode, setUseParallelMode] = useState(true);
+  const [isResettingDownloads, setIsResettingDownloads] = useState(false);
+  const [failedDownloadsCount, setFailedDownloadsCount] = useState(0);
   const { toast } = useToast();
   const shouldStopRef = useRef(false);
   
@@ -107,8 +109,15 @@ const Admin = () => {
       const pendingDownload = videos.filter(v => 
         !v.video_mp4_url && 
         v.processing_status !== 'permanently_failed' &&
+        v.processing_status !== 'download_failed' &&
         (v.download_attempts || 0) < 5
       ).length;
+
+      // Count failed downloads (permanently_failed + download_failed)
+      const failedDownloads = videos.filter(v =>
+        v.processing_status === 'permanently_failed' || v.processing_status === 'download_failed'
+      ).length;
+      setFailedDownloadsCount(failedDownloads);
       
       // Count creators with avatar_url but no avatar_storage_url
       const pendingAvatars = creators.filter(c => 
@@ -660,6 +669,40 @@ const Admin = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Reset Failed Downloads Button */}
+        {failedDownloadsCount > 0 && (
+          <div className="mb-4">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setIsResettingDownloads(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke("reset-failed-downloads");
+                  if (error) throw new Error(error.message);
+                  toast({
+                    title: "✅ Descargas reseteadas",
+                    description: `${data.resetCount} videos listos para reintentar.`,
+                  });
+                  await loadStats();
+                } catch (err: any) {
+                  toast({
+                    title: "Error",
+                    description: err.message,
+                    variant: "destructive",
+                  });
+                } finally {
+                  setIsResettingDownloads(false);
+                }
+              }}
+              disabled={isResettingDownloads || pipelineState.isRunning || isProcessing}
+              className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isResettingDownloads ? 'animate-spin' : ''}`} />
+              {isResettingDownloads ? "Reseteando..." : `🔄 Reintentar ${failedDownloadsCount} descargas fallidas`}
+            </Button>
+          </div>
+        )}
 
         {/* MASTER BUTTON: Procesar Pendientes (Parallel) */}
         <Card className="mb-6 border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5">
