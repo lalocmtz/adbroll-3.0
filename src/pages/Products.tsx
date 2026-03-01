@@ -36,12 +36,13 @@ const PLACEHOLDER_IMAGE = "/placeholder.svg";
 const PRODUCTS_PER_PAGE = 20;
 
 const SORT_OPTIONS = [
+  { value: "ranking", label: "Ranking actual" },
   { value: "revenue_30d", label: "Más ingresos" },
   { value: "commission", label: "Más comisión" },
   { value: "creators_count", label: "Más creadores" },
 ];
 
-type SortOption = "revenue_30d" | "commission" | "creators_count";
+type SortOption = "ranking" | "revenue_30d" | "commission" | "creators_count";
 
 const FREE_PREVIEW_LIMIT = 3;
 
@@ -57,7 +58,7 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   
-  const [sortBy, setSortBy] = useState<SortOption>("revenue_30d");
+  const [sortBy, setSortBy] = useState<SortOption>("ranking");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [categories, setCategories] = useState<string[]>([]);
 
@@ -161,12 +162,19 @@ const Products = () => {
   const applyFiltersAndSort = () => {
     let result = [...products];
     
+    // In ranking mode, only show products with rank (latest import)
+    if (sortBy === "ranking") {
+      result = result.filter(p => p.rank !== null);
+    }
+    
     if (categoryFilter !== "all") {
       result = result.filter(p => p.categoria === categoryFilter);
     }
     
     result.sort((a, b) => {
       switch (sortBy) {
+        case "ranking":
+          return (a.rank || 9999) - (b.rank || 9999);
         case "revenue_30d":
           return (getRevenue(b) || 0) - (getRevenue(a) || 0);
         case "commission":

@@ -207,6 +207,19 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     }));
 
+    // RESET ranks for this market before upsert (only latest import keeps rank)
+    console.log(`Resetting ranks for market ${market} before upsert...`);
+    const { error: resetError } = await supabaseServiceClient
+      .from("products")
+      .update({ rank: null })
+      .eq("market", market);
+
+    if (resetError) {
+      console.error("Error resetting ranks:", resetError);
+    } else {
+      console.log(`Ranks reset for market ${market}`);
+    }
+
     console.log(`Batch upserting ${sortedProducts.length} products...`);
 
     // BATCH UPSERT - single operation instead of N queries

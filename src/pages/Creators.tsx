@@ -95,6 +95,7 @@ const Creators = () => {
         .from("creators")
         .select("*")
         .eq("country", market)
+        .not("last_imported_from_kalodata_at", "is", null)
         .order("total_ingresos_mxn", { ascending: false })
         .limit(100);
 

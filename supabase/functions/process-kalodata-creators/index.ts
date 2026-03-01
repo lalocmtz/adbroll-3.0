@@ -353,6 +353,19 @@ serve(async (req) => {
     const top50Creators = sortedCreators.slice(0, 50);
     console.log(`Top 50 creadores seleccionados (market: ${market})`);
 
+    // RESET last_imported_from_kalodata_at for this market (only latest import is current)
+    console.log(`Resetting last_imported_from_kalodata_at for market ${market}...`);
+    const { error: resetError } = await supabaseServiceClient
+      .from("creators")
+      .update({ last_imported_from_kalodata_at: null })
+      .eq("country", market);
+
+    if (resetError) {
+      console.error("Error resetting creator timestamps:", resetError);
+    } else {
+      console.log(`Creator timestamps reset for market ${market}`);
+    }
+
     // SMART UPSERT: Check existing creators by handle AND market
     let insertedCount = 0;
     let updatedCount = 0;
@@ -381,6 +394,7 @@ serve(async (req) => {
           revenue_videos: c.revenue_videos,
           updated_at: new Date().toISOString(),
           last_import: new Date().toISOString(),
+          last_imported_from_kalodata_at: new Date().toISOString(),
         };
 
         // Only update avatar_url if we have a new one and existing doesn't have one
@@ -423,6 +437,7 @@ serve(async (req) => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             last_import: new Date().toISOString(),
+            last_imported_from_kalodata_at: new Date().toISOString(),
           })
           .select("id, tiktok_url, avatar_url, avatar_storage_url")
           .single();
