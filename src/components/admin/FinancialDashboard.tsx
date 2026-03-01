@@ -60,7 +60,7 @@ export const FinancialDashboard = () => {
       const proSubs = activeSubs.filter(s => (s.price_usd || 0) <= 20);
       const premiumSubs = activeSubs.filter(s => (s.price_usd || 0) > 20);
       
-      const mrrPro = proSubs.reduce((sum, s) => sum + (s.price_usd || 14.99), 0);
+      const mrrPro = proSubs.reduce((sum, s) => sum + (s.price_usd || 25), 0);
       const mrrPremium = premiumSubs.reduce((sum, s) => sum + (s.price_usd || 49), 0);
       const mrr = mrrPro + mrrPremium;
 

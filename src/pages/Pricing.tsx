@@ -148,7 +148,7 @@ const Pricing = () => {
     }
   };
 
-  const price = 14.99;
+  const price = 25;
   const discountedPrice = referralValid ? price * 0.5 : price;
 
   return (
@@ -241,7 +241,7 @@ const Pricing = () => {
                 )}
                 <span className="text-muted-foreground text-lg">/{language === "es" ? "mes" : "month"}</span>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">~$300 MXN/{language === "es" ? "mes" : "month"}</p>
+              <p className="text-sm text-muted-foreground mt-2">~$500 MXN/{language === "es" ? "mes" : "month"}</p>
               {referralValid && (
                 <p className="text-sm text-green-600 mt-2 font-medium">
                   🎉 50% off {language === "es" ? "primer mes" : "first month"}

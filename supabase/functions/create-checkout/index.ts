@@ -79,7 +79,7 @@ serve(async (req) => {
       }
     }
 
-    // Single plan: Pro at $14.99
+    // Single plan: Pro at $25
     const priceId = Deno.env.get("STRIPE_PRICE_ID_PRO");
 
     if (!priceId) {
@@ -102,7 +102,7 @@ serve(async (req) => {
       metadata: {
         supabase_user_id: user.id,
         plan_type: "pro",
-        price_usd: "14.99",
+        price_usd: "25",
       },
     };
 

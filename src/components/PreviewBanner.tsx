@@ -35,7 +35,7 @@ export const PreviewBanner = () => {
           onClick={() => navigate(isLoggedIn ? "/pricing" : "/register")}
           className="text-xs h-7 px-3"
         >
-          {isLoggedIn ? "Activar $14.99/mes" : "Crear cuenta gratis"}
+          {isLoggedIn ? "Activar $25/mes" : "Crear cuenta gratis"}
         </Button>
       </div>
     </div>

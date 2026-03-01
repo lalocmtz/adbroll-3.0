@@ -419,7 +419,7 @@ const Landing = () => {
                 <p className="text-sm text-muted-foreground">Para creadores que graban</p>
               </div>
               <div className="text-center mb-6">
-                <span className="text-4xl font-bold">$14.99</span>
+                <span className="text-4xl font-bold">$25</span>
                 <span className="text-muted-foreground">/mes</span>
               </div>
               <ul className="space-y-3 mb-6">
@@ -486,7 +486,7 @@ const Landing = () => {
             <Accordion type="single" collapsible className="space-y-4">
               {[{
                 question: "¿Cuánto cuesta Adbroll?",
-                answer: "Adbroll Pro cuesta $14.99 USD/mes (~$300 MXN/mes). Un solo plan con acceso completo a todas las funciones."
+                answer: "Adbroll Pro cuesta $25 USD/mes (~$500 MXN/mes). Un solo plan con acceso completo a todas las funciones."
               }, {
                 question: "¿Qué tan precisos son los datos?",
                 answer: "Nuestros datos provienen directamente de Kalodata, la fuente más confiable para métricas de TikTok Shop. Actualizamos los rankings y videos diariamente para darte información real y actualizada."

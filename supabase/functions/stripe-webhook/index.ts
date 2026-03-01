@@ -163,7 +163,7 @@ serve(async (req) => {
 async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
-  const priceUsd = 14.99; // Single price
+  const priceUsd = 25; // Single price
   
   const guestEmail = session.metadata?.guest_email;
   const createAccountOnSuccess = session.metadata?.create_account_on_success === "true";
@@ -260,7 +260,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     
     if (profile?.email && !isNewAccount) {
       await sendEmail(profile.email, "subscription_confirmed", { 
-        price: "14.99",
+        price: "25",
         plan: "Adbroll Pro",
       });
     }
@@ -282,7 +282,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     return;
   }
 
-  const priceAmount = 14.99;
+  const priceAmount = 25;
 
   await supabaseAdmin
     .from("subscriptions")
@@ -298,7 +298,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const isRenewal = invoice.billing_reason === "subscription_cycle";
   if (isRenewal && profile.email) {
     await sendEmail(profile.email, "subscription_confirmed", { 
-      price: "14.99",
+      price: "25",
       plan: "Adbroll Pro",
     });
   }

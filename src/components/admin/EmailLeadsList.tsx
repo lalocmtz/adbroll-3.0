@@ -168,7 +168,7 @@ export const EmailLeadsList = () => {
                 <li>✅ Generación de variantes de hooks</li>
                 <li>✅ Oportunidades de productos con alto margen</li>
               </ul>
-              <p><strong>Por solo $14.99 USD/mes</strong></p>
+              <p><strong>Por solo $25 USD/mes</strong></p>
               <a href="https://adbroll.lovable.app/pricing" style="display: inline-block; background: #F31260; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">
                 Activar Adbroll Pro
               </a>
