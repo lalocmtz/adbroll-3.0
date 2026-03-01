@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, Search } from "lucide-react";
+import { Package, Search, Globe } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useMarket } from "@/contexts/MarketContext";
 
 interface Product {
   id: string;
@@ -12,6 +13,7 @@ interface Product {
   imagen_url: string | null;
   total_ingresos_mxn: number | null;
   total_ventas: number | null;
+  market?: string;
 }
 
 interface Props {
@@ -27,19 +29,21 @@ const formatCurrency = (num: number | null | undefined): string => {
 };
 
 export const AttributionProductSelector = ({ selectedProduct, onSelectProduct }: Props) => {
+  const { market } = useMarket();
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [market]);
 
   const loadProducts = async () => {
     setLoading(true);
     const { data } = await supabase
       .from("products")
-      .select("id, producto_nombre, imagen_url, total_ingresos_mxn, total_ventas")
+      .select("id, producto_nombre, imagen_url, total_ingresos_mxn, total_ventas, market")
+      .eq("market", market)
       .order("total_ingresos_mxn", { ascending: false, nullsFirst: false })
       .limit(200);
     setProducts(data || []);
@@ -54,10 +58,17 @@ export const AttributionProductSelector = ({ selectedProduct, onSelectProduct }:
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-2">
+        <Badge variant="outline" className="text-xs">
+          <Globe className="h-3 w-3 mr-1" />
+          {market === 'mx' ? '🇲🇽 MX' : '🇺🇸 US'}
+        </Badge>
+        <span className="text-xs text-muted-foreground">{products.length} productos</span>
+      </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar producto..."
+          placeholder={`Buscar producto en ${market.toUpperCase()}...`}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="pl-9"

@@ -105,11 +105,11 @@ export function useParallelPipeline() {
     return { pendingDownload, pendingTranscription, pendingMatch, pendingAvatars, failedTranscription };
   }, []);
 
-  const runDownloadWorker = useCallback(async (): Promise<boolean> => {
+  const runDownloadWorker = useCallback(async (market: string): Promise<boolean> => {
     if (shouldStopRef.current || quotaExceededRef.current) return false;
 
     const { data, error } = await supabase.functions.invoke("download-videos-batch", {
-      body: { batchSize: WORKER_CONFIGS.downloads.batchSize },
+      body: { batchSize: WORKER_CONFIGS.downloads.batchSize, market },
     });
 
     if (error) {
@@ -156,11 +156,11 @@ export function useParallelPipeline() {
     return data.remaining > 0;
   }, [state.stats.downloads, updateStats]);
 
-  const runTranscriptionWorker = useCallback(async (): Promise<boolean> => {
+  const runTranscriptionWorker = useCallback(async (market: string): Promise<boolean> => {
     if (shouldStopRef.current) return false;
 
     const { data, error } = await supabase.functions.invoke("transcribe-videos-batch", {
-      body: { batchSize: WORKER_CONFIGS.transcriptions.batchSize },
+      body: { batchSize: WORKER_CONFIGS.transcriptions.batchSize, market },
     });
 
     if (error) {
@@ -302,8 +302,8 @@ export function useParallelPipeline() {
       }));
 
       const results = await Promise.all([
-        downloadsActive && !quotaExceededRef.current ? runDownloadWorker() : Promise.resolve(false),
-        transcriptionsActive ? runTranscriptionWorker() : Promise.resolve(false),
+        downloadsActive && !quotaExceededRef.current ? runDownloadWorker(market) : Promise.resolve(false),
+        transcriptionsActive ? runTranscriptionWorker(market) : Promise.resolve(false),
         matchingActive ? runMatchingWorker(useAI, market) : Promise.resolve(false),
         avatarsActive ? runAvatarWorker() : Promise.resolve(false),
       ]);

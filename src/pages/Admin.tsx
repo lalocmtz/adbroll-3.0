@@ -407,7 +407,7 @@ const Admin = () => {
 
         while (!shouldStopRef.current) {
           const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-            body: { batchSize: useAI ? 10 : 50, threshold: 0.5, useAI },
+            body: { batchSize: useAI ? 10 : 50, threshold: 0.75, useAI, market: selectedMarket },
           });
 
           if (error) {
