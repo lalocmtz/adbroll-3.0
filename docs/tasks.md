@@ -726,4 +726,16 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ RANKING BASADO EN ÚLTIMA IMPORTACIÓN (Marzo 2025)
+
+### Solo mostrar datos de la importación más reciente
+- [x] **process-kalodata-products** - Reset `rank = NULL` antes de upsert por market
+- [x] **process-kalodata-creators** - Reset `last_imported_from_kalodata_at = NULL` antes de upsert, setear timestamp en cada creador importado
+- [x] **Products.tsx** - Nuevo sort "Ranking actual" como default, filtra `rank IS NOT NULL`
+- [x] **Creators.tsx** - Filtra solo creadores con `last_imported_from_kalodata_at IS NOT NULL`
+- [x] **Opportunities.tsx** - Filtra solo productos con `rank IS NOT NULL` (última importación)
+- [x] **Dashboard.tsx** - Ya funcionaba correctamente, sin cambios
+
+---
+
 **Última actualización:** Marzo 2025
