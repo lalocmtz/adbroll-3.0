@@ -46,6 +46,7 @@ import BrandUpgrade from "./pages/brand/BrandUpgrade";
 import BrandRegister from "./pages/brand/BrandRegister";
 import CreatorProgram from "./pages/CreatorProgram";
 import Redeem from "./pages/Redeem";
+import VideoAttribution from "./pages/admin/VideoAttribution";
 
 const queryClient = new QueryClient();
 
@@ -338,6 +339,14 @@ const App = () => {
                     element={
                       <AppRoute session={session} requiresAuth>
                         <Admin />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/attribution"
+                    element={
+                      <AppRoute session={session} requiresAuth>
+                        <VideoAttribution />
                       </AppRoute>
                     }
                   />

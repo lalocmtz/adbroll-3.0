@@ -44,9 +44,17 @@ function normalizeText(text: string | null): string {
     .trim();
 }
 
-// Extract keywords (words > 3 chars)
+// Generic words blacklist - should NOT count as meaningful keyword matches
+const GENERIC_BLACKLIST = new Set([
+  'aceite', 'crema', 'set', 'pack', 'kit', 'gel', 'spray', 'para', 'con', 'del',
+  'mini', 'pro', 'plus', 'max', 'super', 'ultra', 'premium', 'original',
+  'grande', 'pequeno', 'nuevo', 'mejor', 'natural', 'organico', 'piezas',
+  'agua', 'caja', 'bolsa', 'sobre', 'polvo', 'liquido', 'capsulas',
+]);
+
+// Extract keywords (words > 3 chars, excluding generic blacklist)
 function extractKeywords(text: string): string[] {
-  return text.split(' ').filter(w => w.length > 3);
+  return text.split(' ').filter(w => w.length > 3 && !GENERIC_BLACKLIST.has(w));
 }
 
 // HIGH-PRIORITY KEYWORDS - If found in transcript, MUST match product with same keyword
@@ -380,7 +388,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     let batchSize = 100;
-    let threshold = 0.5;
+    let threshold = 0.6;
     let market: string | null = null;
     let useAI = false;
     
@@ -417,7 +425,7 @@ serve(async (req) => {
     }
 
     // Pre-compute normalized names, keywords, and first word for index
-    const products: Product[] = rawProducts.map(p => {
+    const rawProductsList: Product[] = rawProducts.map(p => {
       const normalizedName = normalizeText(p.producto_nombre);
       return {
         ...p,
@@ -426,6 +434,29 @@ serve(async (req) => {
         firstWord: normalizedName.split(' ')[0] || ''
       };
     });
+
+    // DEDUPLICATION: Group products by first 30 chars of normalized name
+    // Keep only the one with highest total_ingresos_mxn per group
+    const productGroups = new Map<string, Product>();
+    const duplicateMap = new Map<string, string>(); // duplicateId -> primaryId
+    for (const p of rawProductsList) {
+      const groupKey = p.normalizedName.slice(0, 30).trim();
+      const existing = productGroups.get(groupKey);
+      if (!existing) {
+        productGroups.set(groupKey, p);
+      } else {
+        // Keep the one with more revenue as primary
+        if ((p.total_ingresos_mxn || 0) > (existing.total_ingresos_mxn || 0)) {
+          duplicateMap.set(existing.id, p.id);
+          productGroups.set(groupKey, p);
+        } else {
+          duplicateMap.set(p.id, existing.id);
+        }
+      }
+    }
+
+    const products = Array.from(productGroups.values());
+    console.log(`📦 ${rawProductsList.length} products -> ${products.length} after dedup (${duplicateMap.size} duplicates merged)`);
 
     // Build lookup index for O(1) exact matches
     const productIndex = buildProductIndex(products);
