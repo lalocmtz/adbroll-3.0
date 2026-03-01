@@ -8,21 +8,26 @@ const corsHeaders = {
 
 const MAX_DOWNLOAD_ATTEMPTS = 5;
 
-// Download a single video from TikTok
+function isQuotaExceeded(text: string): boolean {
+  const lower = text.toLowerCase();
+  return lower.includes('exceeded') && (lower.includes('quota') || lower.includes('limit')) ||
+    lower.includes('upgrade your plan') ||
+    lower.includes('monthly quota') ||
+    lower.includes('rate limit');
+}
+
 async function downloadSingleVideo(
   videoId: string,
   tiktokUrl: string,
   rapidApiKey: string,
   supabase: any,
   currentAttempts: number
-): Promise<{ success: boolean; error?: string; permanentlyFailed?: boolean }> {
+): Promise<{ success: boolean; error?: string; permanentlyFailed?: boolean; quotaExceeded?: boolean }> {
   try {
     console.log(`[download] Starting: ${videoId} (attempt ${currentAttempts + 1}/${MAX_DOWNLOAD_ATTEMPTS})`);
     
-    // Update status to downloading
     await supabase.from('videos').update({ processing_status: 'downloading' }).eq('id', videoId);
 
-    // Call Tiktok Download Video API (llbbmm)
     const rapidApiResponse = await fetch(
       `https://tiktok-download-video1.p.rapidapi.com/getVideo?url=${encodeURIComponent(tiktokUrl)}&hd=1`,
       {
@@ -37,13 +42,32 @@ async function downloadSingleVideo(
     if (!rapidApiResponse.ok) {
       const errorText = await rapidApiResponse.text();
       console.error(`[download] RapidAPI error for ${videoId}: ${errorText}`);
+      
+      // Quota exceeded — don't increment attempts, mark as blocked
+      if (isQuotaExceeded(errorText) || rapidApiResponse.status === 429) {
+        console.log(`[download] ⚠️ QUOTA EXCEEDED — stopping batch`);
+        await supabase.from('videos').update({ 
+          processing_status: 'download_blocked_quota'
+        }).eq('id', videoId);
+        return { success: false, error: 'Quota exceeded', quotaExceeded: true };
+      }
+      
       return await handleDownloadFailure(supabase, videoId, currentAttempts, 'RapidAPI request failed');
     }
 
     const rapidApiData = await rapidApiResponse.json();
     console.log(`[download] API response for ${videoId}:`, JSON.stringify(rapidApiData).substring(0, 300));
     
-    // Extract MP4 URL from llbbmm API response
+    // Check quota in response body
+    const responseStr = JSON.stringify(rapidApiData);
+    if (isQuotaExceeded(responseStr)) {
+      console.log(`[download] ⚠️ QUOTA EXCEEDED in response body — stopping batch`);
+      await supabase.from('videos').update({ 
+        processing_status: 'download_blocked_quota'
+      }).eq('id', videoId);
+      return { success: false, error: 'Quota exceeded', quotaExceeded: true };
+    }
+
     const mp4Url = rapidApiData.data?.play || rapidApiData.data?.hdplay || rapidApiData.data?.wmplay || rapidApiData.downloadUrl || rapidApiData.url;
 
     if (!mp4Url) {
@@ -51,21 +75,16 @@ async function downloadSingleVideo(
       return await handleDownloadFailure(supabase, videoId, currentAttempts, 'No MP4 URL in API response');
     }
 
-    console.log(`[download] Got MP4 URL for ${videoId}`);
-
-    // Download the video file with 60s timeout
     const videoResponse = await fetch(mp4Url, {
-      signal: AbortSignal.timeout(60000) // 60 second timeout
+      signal: AbortSignal.timeout(60000)
     });
     if (!videoResponse.ok) {
-      console.error(`[download] MP4 fetch failed for ${videoId}: ${videoResponse.status} ${videoResponse.statusText}`);
       return await handleDownloadFailure(supabase, videoId, currentAttempts, `MP4 fetch failed: ${videoResponse.status}`);
     }
 
     const videoBuffer = await videoResponse.arrayBuffer();
     console.log(`[download] Downloaded ${videoId}: ${(videoBuffer.byteLength / 1024 / 1024).toFixed(2)} MB`);
 
-    // Upload to Supabase Storage
     const fileName = `${videoId}.mp4`;
     const { error: uploadError } = await supabase.storage
       .from('videos')
@@ -75,16 +94,13 @@ async function downloadSingleVideo(
       });
 
     if (uploadError) {
-      console.error(`[download] Upload error: ${uploadError.message}`);
       return await handleDownloadFailure(supabase, videoId, currentAttempts, uploadError.message);
     }
 
-    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from('videos')
       .getPublicUrl(fileName);
 
-    // Update database with success - reset attempts on success
     await supabase
       .from('videos')
       .update({ 
@@ -103,7 +119,6 @@ async function downloadSingleVideo(
   }
 }
 
-// Handle download failure with attempt tracking
 async function handleDownloadFailure(
   supabase: any, 
   videoId: string, 
@@ -113,7 +128,6 @@ async function handleDownloadFailure(
   const newAttempts = currentAttempts + 1;
   
   if (newAttempts >= MAX_DOWNLOAD_ATTEMPTS) {
-    // Mark as permanently failed - won't be retried
     console.log(`[download] ⛔ Video ${videoId} permanently failed after ${newAttempts} attempts`);
     await supabase
       .from('videos')
@@ -125,7 +139,6 @@ async function handleDownloadFailure(
     return { success: false, error: errorMessage, permanentlyFailed: true };
   }
   
-  // Mark as failed but can retry
   await supabase
     .from('videos')
     .update({ 
@@ -148,12 +161,10 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const rapidApiKey = Deno.env.get("RAPIDAPI_KEY") ?? "";
 
-    // Admin-only authentication check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { 
-        status: 401, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
     }
 
@@ -163,12 +174,10 @@ serve(async (req) => {
     
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { 
-        status: 401, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
     }
 
-    // Check if user has founder role
     const { data: roleData } = await supabaseAuth
       .from("user_roles")
       .select("role")
@@ -178,8 +187,7 @@ serve(async (req) => {
 
     if (!roleData) {
       return new Response(JSON.stringify({ error: "Admin access required" }), { 
-        status: 403, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } 
       });
     }
 
@@ -189,11 +197,10 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get batch size from request or default to 5
     const body = await req.json().catch(() => ({}));
     const batchSize = body.batchSize || 5;
 
-    // Reset videos stuck in 'downloading' status for more than 5 minutes
+    // Reset stuck 'downloading' videos
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const { data: resetVideos } = await supabase
       .from('videos')
@@ -206,13 +213,12 @@ serve(async (req) => {
       console.log(`[batch] Reset ${resetVideos.length} stuck 'downloading' videos to pending`);
     }
 
-    // Get pending videos that need download
-    // EXCLUDE videos with >= MAX_DOWNLOAD_ATTEMPTS (they're permanently failed)
+    // Get pending videos — also include download_blocked_quota for retry
     const { data: pendingVideos, error: queryError } = await supabase
       .from('videos')
       .select('id, video_url, revenue_mxn, download_attempts')
       .is('video_mp4_url', null)
-      .in('processing_status', ['pending', 'downloading', 'download_failed', 'no_mp4_url'])
+      .in('processing_status', ['pending', 'downloading', 'download_failed', 'no_mp4_url', 'download_blocked_quota'])
       .lt('download_attempts', MAX_DOWNLOAD_ATTEMPTS)
       .order('revenue_mxn', { ascending: false, nullsFirst: false })
       .limit(batchSize);
@@ -222,7 +228,6 @@ serve(async (req) => {
     }
 
     if (!pendingVideos || pendingVideos.length === 0) {
-      // Get status counts
       const { data: statusCounts } = await supabase
         .from('videos')
         .select('processing_status');
@@ -246,11 +251,20 @@ serve(async (req) => {
 
     console.log(`[batch] Processing ${pendingVideos.length} videos`);
 
-    // Process each video in the batch
     const results = [];
     let permanentlyFailedCount = 0;
+    let quotaHit = false;
     
     for (const video of pendingVideos) {
+      // If quota was hit, mark remaining videos as blocked without calling API
+      if (quotaHit) {
+        await supabase.from('videos').update({ 
+          processing_status: 'download_blocked_quota'
+        }).eq('id', video.id);
+        results.push({ id: video.id, success: false, error: 'Quota exceeded', quotaExceeded: true });
+        continue;
+      }
+
       const result = await downloadSingleVideo(
         video.id,
         video.video_url,
@@ -260,23 +274,27 @@ serve(async (req) => {
       );
       results.push({ id: video.id, ...result });
       
+      if (result.quotaExceeded) {
+        quotaHit = true;
+        console.log(`[batch] ⚠️ Quota exceeded — skipping remaining videos in batch`);
+        continue;
+      }
+      
       if (result.permanentlyFailed) {
         permanentlyFailedCount++;
       }
       
-      // Small delay between downloads
       await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     const successCount = results.filter(r => r.success).length;
-    const failCount = results.filter(r => !r.success).length;
+    const failCount = results.filter(r => !r.success && !r.quotaExceeded).length;
 
-    // Get remaining count (exclude permanently_failed and those with max attempts)
     const { count: remainingCount } = await supabase
       .from('videos')
       .select('id', { count: 'exact', head: true })
       .is('video_mp4_url', null)
-      .in('processing_status', ['pending', 'downloading', 'download_failed', 'no_mp4_url'])
+      .in('processing_status', ['pending', 'downloading', 'download_failed', 'no_mp4_url', 'download_blocked_quota'])
       .lt('download_attempts', MAX_DOWNLOAD_ATTEMPTS);
 
     return new Response(
@@ -287,6 +305,7 @@ serve(async (req) => {
         failed: failCount,
         permanentlyFailed: permanentlyFailedCount,
         remaining: remainingCount || 0,
+        quotaExceeded: quotaHit,
         results
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

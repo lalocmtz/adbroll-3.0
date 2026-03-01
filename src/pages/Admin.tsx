@@ -113,9 +113,9 @@ const Admin = () => {
         (v.download_attempts || 0) < 5
       ).length;
 
-      // Count failed downloads (permanently_failed + download_failed)
+      // Count failed downloads (permanently_failed + download_failed + download_blocked_quota)
       const failedDownloads = videos.filter(v =>
-        v.processing_status === 'permanently_failed' || v.processing_status === 'download_failed'
+        v.processing_status === 'permanently_failed' || v.processing_status === 'download_failed' || v.processing_status === 'download_blocked_quota'
       ).length;
       setFailedDownloadsCount(failedDownloads);
       
@@ -205,9 +205,14 @@ const Admin = () => {
       if (result.matching.processed > 0) summary.push(`${result.matching.processed} vinculados`);
       if (result.avatars.processed > 0) summary.push(`${result.avatars.processed} fotos`);
 
+      const quotaWarning = pipelineState.quotaExceeded 
+        ? " ⚠️ Cuota mensual del API de descargas agotada. Upgrade tu plan en RapidAPI para continuar." 
+        : "";
+
       toast({
-        title: pipelineState.isPaused ? "⏸️ Proceso pausado" : "✅ Proceso completado",
-        description: summary.join(", ") || "Sin cambios",
+        title: pipelineState.isPaused ? "⏸️ Proceso pausado" : pipelineState.quotaExceeded ? "⚠️ Cuota agotada" : "✅ Proceso completado",
+        description: (summary.join(", ") || "Sin cambios") + quotaWarning,
+        variant: pipelineState.quotaExceeded ? "destructive" : "default",
       });
     } catch (error: any) {
       toast({
@@ -670,6 +675,18 @@ const Admin = () => {
           </Card>
         </div>
 
+        {/* Quota Exceeded Warning Banner */}
+        {pipelineState.quotaExceeded && (
+          <div className="mb-4 p-4 rounded-lg border-2 border-destructive/50 bg-destructive/10">
+            <p className="font-semibold text-destructive">⚠️ Cuota mensual agotada</p>
+            <p className="text-sm text-destructive/80 mt-1">
+              El proveedor de descargas (RapidAPI/llbbmm) ha alcanzado el límite mensual de tu plan.
+              Necesitas <strong>upgrade tu plan en RapidAPI</strong> para continuar descargando videos.
+              Después, usa "Reintentar descargas" para reanudar.
+            </p>
+          </div>
+        )}
+
         {/* Reset Failed Downloads Button */}
         {failedDownloadsCount > 0 && (
           <div className="mb-4">
@@ -682,7 +699,7 @@ const Admin = () => {
                   if (error) throw new Error(error.message);
                   toast({
                     title: "✅ Descargas reseteadas",
-                    description: `${data.resetCount} videos listos para reintentar.`,
+                    description: `${data.resetCount} videos listos para reintentar. Asegúrate de tener cuota disponible en RapidAPI antes de procesar.`,
                   });
                   await loadStats();
                 } catch (err: any) {

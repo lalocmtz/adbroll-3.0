@@ -738,4 +738,32 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ ANTI-FREEZE PIPELINE + CUOTA AGOTADA (Marzo 2025)
+
+### Detección de cuota agotada del proveedor
+- [x] **get-tiktok-download-url** - Detecta error de cuota y responde `quotaExceeded: true`
+- [x] **download-tiktok-video** - Detecta error de cuota y responde `quotaExceeded: true`
+- [x] **download-videos-batch** - Detecta cuota, marca videos como `download_blocked_quota`, corta batch temprano
+- [x] **reset-failed-downloads** - Incluye estado `download_blocked_quota` en el reset
+
+### Anti-freeze en pipeline paralelo
+- [x] **useParallelPipeline.ts** - Detiene descargas al detectar `quotaExceeded`, continúa otras fases
+- [x] **useParallelPipeline.ts** - Detección de "sin progreso" (5 ciclos sin avance → detener fase)
+- [x] **PipelineState** - Nuevo campo `quotaExceeded` para UX
+
+### UX de cuota agotada en Admin
+- [x] **Admin.tsx** - Banner de alerta cuando se detecta cuota agotada
+- [x] **Admin.tsx** - Toast descriptivo con instrucciones de upgrade
+- [x] **Admin.tsx** - Botón reset mejorado con mensaje de cuota
+- [x] **Admin.tsx** - Incluye `download_blocked_quota` en conteo de fallidos
+
+### Checklist de soporte
+| Síntoma | Causa probable | Acción |
+|---|---|---|
+| Pipeline se queda en ciclo sin progreso | Cuota mensual agotada en RapidAPI | Upgrade plan en RapidAPI → Reintentar descargas |
+| Banner rojo "Cuota agotada" en Admin | Límite de requests alcanzado | Esperar reset mensual o upgrade |
+| Videos en estado `download_blocked_quota` | Cuota agotada durante batch | Resetear + procesar cuando haya cuota |
+
+---
+
 **Última actualización:** Marzo 2025

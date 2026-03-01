@@ -6,6 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function isQuotaExceeded(text: string): boolean {
+  const lower = text.toLowerCase();
+  return lower.includes('exceeded') && (lower.includes('quota') || lower.includes('limit')) ||
+    lower.includes('upgrade your plan') ||
+    lower.includes('monthly quota') ||
+    lower.includes('rate limit');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -30,9 +38,7 @@ serve(async (req) => {
     }
 
     console.log(`[download-tiktok-video] Processing video: ${videoId}`);
-    console.log(`[download-tiktok-video] TikTok URL: ${tiktokUrl}`);
 
-    // Call Tiktok Download Video API (llbbmm)
     const rapidApiResponse = await fetch(
       `https://tiktok-download-video1.p.rapidapi.com/getVideo?url=${encodeURIComponent(tiktokUrl)}&hd=1`,
       {
@@ -47,6 +53,18 @@ serve(async (req) => {
     if (!rapidApiResponse.ok) {
       const errorText = await rapidApiResponse.text();
       console.error(`[download-tiktok-video] RapidAPI error: ${errorText}`);
+      
+      if (isQuotaExceeded(errorText) || rapidApiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Cuota mensual agotada',
+            quotaExceeded: true,
+            retryable: false
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Failed to fetch video from RapidAPI', details: errorText }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -56,20 +74,28 @@ serve(async (req) => {
     const rapidApiData = await rapidApiResponse.json();
     console.log(`[download-tiktok-video] RapidAPI response:`, JSON.stringify(rapidApiData).substring(0, 500));
 
-    // Extract MP4 URL from llbbmm API response
+    // Check for quota errors in response body
+    const responseStr = JSON.stringify(rapidApiData);
+    if (isQuotaExceeded(responseStr)) {
+      return new Response(
+        JSON.stringify({
+          error: 'Cuota mensual agotada',
+          quotaExceeded: true,
+          retryable: false
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     let mp4Url = rapidApiData.data?.play || rapidApiData.data?.hdplay || rapidApiData.data?.wmplay || rapidApiData.downloadUrl || rapidApiData.url;
 
     if (!mp4Url) {
-      console.error(`[download-tiktok-video] No MP4 URL in response:`, rapidApiData);
       return new Response(
         JSON.stringify({ error: 'No video URL in RapidAPI response', data: rapidApiData }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[download-tiktok-video] MP4 URL found: ${mp4Url}`);
-
-    // Download the video
     const videoResponse = await fetch(mp4Url);
     if (!videoResponse.ok) {
       return new Response(
@@ -81,13 +107,12 @@ serve(async (req) => {
     const videoBuffer = await videoResponse.arrayBuffer();
     console.log(`[download-tiktok-video] Video downloaded, size: ${videoBuffer.byteLength} bytes`);
 
-    // Upload to Supabase Storage
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const fileName = `${videoId}.mp4`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('videos')
       .upload(fileName, videoBuffer, {
         contentType: 'video/mp4',
@@ -95,22 +120,18 @@ serve(async (req) => {
       });
 
     if (uploadError) {
-      console.error(`[download-tiktok-video] Upload error:`, uploadError);
       return new Response(
         JSON.stringify({ error: 'Failed to upload video to storage', details: uploadError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from('videos')
       .getPublicUrl(fileName);
 
     const videoMp4Url = publicUrlData.publicUrl;
-    console.log(`[download-tiktok-video] Video uploaded: ${videoMp4Url}`);
 
-    // Update database with new video URL
     const { error: updateError } = await supabase
       .from('videos')
       .update({ 
@@ -120,7 +141,6 @@ serve(async (req) => {
       .eq('id', videoId);
 
     if (updateError) {
-      console.error(`[download-tiktok-video] DB update error:`, updateError);
       return new Response(
         JSON.stringify({ error: 'Failed to update database', details: updateError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

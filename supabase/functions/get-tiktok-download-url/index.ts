@@ -5,6 +5,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Detect quota exceeded errors from RapidAPI
+function isQuotaExceeded(text: string): boolean {
+  const lower = text.toLowerCase();
+  return lower.includes('exceeded') && (lower.includes('quota') || lower.includes('limit')) ||
+    lower.includes('upgrade your plan') ||
+    lower.includes('monthly quota') ||
+    lower.includes('rate limit');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -30,7 +39,6 @@ serve(async (req) => {
 
     console.log(`[get-tiktok-download-url] Processing URL: ${tiktokUrl}`);
 
-    // Call Tiktok Download Video API (llbbmm)
     const rapidApiResponse = await fetch(
       `https://tiktok-download-video1.p.rapidapi.com/getVideo?url=${encodeURIComponent(tiktokUrl)}&hd=1`,
       {
@@ -45,6 +53,20 @@ serve(async (req) => {
     if (!rapidApiResponse.ok) {
       const errorText = await rapidApiResponse.text();
       console.error(`[get-tiktok-download-url] RapidAPI error: ${errorText}`);
+      
+      // Check for quota exceeded
+      if (isQuotaExceeded(errorText) || rapidApiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Cuota mensual agotada del proveedor de descargas',
+            quotaExceeded: true,
+            retryable: false,
+            providerMessage: errorText
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ error: 'Failed to fetch video from API', details: errorText }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -54,7 +76,21 @@ serve(async (req) => {
     const rapidApiData = await rapidApiResponse.json();
     console.log(`[get-tiktok-download-url] API response:`, JSON.stringify(rapidApiData).substring(0, 500));
 
-    // Extract MP4 URL from llbbmm API response
+    // Check for quota errors in response body
+    const responseStr = JSON.stringify(rapidApiData);
+    if (isQuotaExceeded(responseStr)) {
+      console.error(`[get-tiktok-download-url] Quota exceeded in response body`);
+      return new Response(
+        JSON.stringify({
+          error: 'Cuota mensual agotada del proveedor de descargas',
+          quotaExceeded: true,
+          retryable: false,
+          providerMessage: responseStr.substring(0, 300)
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     let mp4Url = rapidApiData.data?.play || rapidApiData.data?.hdplay || rapidApiData.data?.wmplay || rapidApiData.downloadUrl || rapidApiData.url;
 
     if (!mp4Url) {
@@ -67,7 +103,6 @@ serve(async (req) => {
 
     console.log(`[get-tiktok-download-url] Download URL: ${mp4Url}`);
 
-    // If proxyDownload is true, download the video and return the bytes directly
     if (proxyDownload) {
       console.log(`[get-tiktok-download-url] Proxying download...`);
       
@@ -102,7 +137,6 @@ serve(async (req) => {
       });
     }
 
-    // Otherwise return the download URL for the client to handle
     return new Response(
       JSON.stringify({ 
         success: true, 
