@@ -1,87 +1,93 @@
 
-I'm using knowledge
 
-## Objetivo
-Eliminar el “congelamiento” del pipeline de descargas y dejar clarísimo por qué falla, qué debes hacer tú, y cómo blindar el sistema para que no vuelva a quedarse en bucle silencioso.
+## Sistema Global de Atribución de Videos a Productos
 
-## Diagnóstico confirmado (con evidencia)
-1. **Causa raíz actual:** el proveedor de descarga está devolviendo:
-   - `"You have exceeded the MONTHLY quota for Requests on your current plan, BASIC"`
-2. Esto significa que **no es un bug de parsing ni de importación**; es **límite de cuota agotada** del API externo.
-3. El sistema parece “congelado” por dos razones de UX/lógica:
-   - El worker sigue intentando en ciclos aunque no hay progreso real.
-   - El botón de “Reintentar” resetea estados, pero con cuota agotada vuelve a fallar inmediatamente.
+### Problemas identificados
 
-## Qué necesitas hacer tú (bloqueante operativo)
-1. **Subir plan/cuota** del API actual en RapidAPI (llbbmm) para permitir más requests.
-2. Después del upgrade, ejecutar “Reintentar descargas fallidas” + procesar pipeline.
-3. Sin cuota disponible, **ningún cambio de código puede descargar MP4s**.
+1. **Productos duplicados**: Hay 3-4 variantes del mismo producto (ej: "Aceite de Orégano" aparece con nombres ligeramente diferentes), fragmentando los videos entre ellos
+2. **Matching incorrecto**: El producto #1 "Aceite de Orégano" tiene 1 solo video vinculado, y es sobre "Aceite de Afeitado" (match falso por la palabra "aceite")
+3. **1,067 videos sin producto** de 2,790 totales (38% sin vincular)
+4. **No hay herramienta de asignación masiva** -- solo se puede asignar uno por uno desde cada VideoCard
 
-## Plan de implementación (código) para que no vuelva a “congelarse”
-### Fase 1 — Fail-fast y mensaje claro de cuota agotada
-**Archivos:**
-- `supabase/functions/download-videos-batch/index.ts`
-- `supabase/functions/download-tiktok-video/index.ts`
-- `supabase/functions/get-tiktok-download-url/index.ts`
+### Solución: 3 componentes
 
-**Cambios:**
-- Detectar explícitamente error de cuota del proveedor (`MONTHLY quota`, `exceeded`, `Upgrade your plan`).
-- Responder con bandera estructurada (ej: `quotaExceeded: true`, `providerMessage`, `retryable: false`).
-- No tratar ese caso como “error genérico”.
-- En ese escenario, cortar batch temprano para evitar consumo inútil y spam de reintentos.
+---
 
-### Fase 2 — Estado de videos más preciso para cuota agotada
-**Archivos:**
-- `supabase/functions/download-videos-batch/index.ts`
-- `supabase/functions/reset-failed-downloads/index.ts`
+### 1. Panel de Asignación Masiva (nueva página `/admin/attribution`)
 
-**Cambios:**
-- Marcar videos afectados con estado dedicado (ej: `download_blocked_quota`) o equivalente semántico.
-- Evitar incrementar intentos de forma engañosa cuando la falla es por cuota global (no por video roto).
-- Incluir ese estado en el reset para que “Reintentar” realmente recupere todo cuando ya haya cuota.
+Una vista diseñada para asignar videos a productos rápido y en lote:
 
-### Fase 3 — Evitar bucles infinitos en UI/pipeline
-**Archivos:**
-- `src/hooks/useParallelPipeline.ts`
-- `src/pages/Admin.tsx`
+- **Layout**: Dos columnas
+  - **Izquierda**: Lista de videos (con thumbnail, título, producto actual si tiene)
+  - **Derecha**: Selector de producto destino (búsqueda + producto seleccionado fijo)
+- **Flujo de trabajo**:
+  1. El admin selecciona un producto destino (ej: "Aceite de Orégano")
+  2. El sistema muestra videos candidatos: videos que mencionan ese producto en título/transcript pero NO están vinculados, más videos actualmente mal vinculados
+  3. El admin marca con checkbox los videos correctos
+  4. Clic en "Asignar seleccionados" -- vinculación instantánea en lote
+- **Filtros**: Ver solo sin producto, ver solo mal vinculados, buscar por texto
+- **Acción rápida de desvincular**: Botón "X" para quitar producto de un video con un clic
 
-**Cambios:**
-- Si backend devuelve `quotaExceeded`, detener sólo la fase de descargas de inmediato.
-- Mostrar toast/error explícito: “Cuota mensual agotada del proveedor de descargas”.
-- Agregar condición de “no progreso” por N ciclos para descargas y matching (evitar ciclo 1..100 sin cambio real).
-- Mantener fases no dependientes funcionando cuando aplique, pero sin dar impresión de que “descarga sigue viva”.
+**Archivos nuevos:**
+- `src/pages/admin/VideoAttribution.tsx` -- Página principal del panel
+- `src/components/admin/AttributionVideoList.tsx` -- Lista de videos seleccionables
+- `src/components/admin/AttributionProductSelector.tsx` -- Selector de producto destino
 
-### Fase 4 — UX de recuperación (“Reintentar” que sí se entienda)
-**Archivo:**
-- `src/pages/Admin.tsx`
+**Archivos modificados:**
+- `src/App.tsx` -- Agregar ruta `/admin/attribution`
+- `src/pages/Admin.tsx` -- Agregar botón de acceso al panel de atribución
 
-**Cambios:**
-- Mejorar copy del botón y resultado:
-  - Qué se reseteó
-  - Qué paso sigue (si falta cuota)
-- Opcional recomendado: tras reset exitoso, ofrecer acción inmediata “Iniciar descargas ahora”.
+---
 
-### Fase 5 — Documentación operativa
-**Archivo:**
-- `docs/tasks.md`
+### 2. Mejora del matching automático: Deduplicación de productos
 
-**Cambios:**
-- Registrar tarea completada: “Manejo de cuota agotada + anti-freeze pipeline”.
-- Dejar checklist corto para soporte futuro (síntoma → causa → acción).
+El matcher actual falla porque hay productos duplicados. Antes de hacer matching, se agrupan los duplicados.
 
-## Impacto esperado
-- Ya no verás el pipeline “trabajando” indefinidamente sin avances.
-- El sistema dirá claramente si el bloqueo es por plan/cuota.
-- “Reintentar” será útil y predecible cuando vuelvas a tener cuota.
-- Menos videos enviados a `permanently_failed` por un problema global temporal.
+**Cambios en `supabase/functions/auto-match-videos-products/index.ts`:**
+- Agregar paso de "agrupación de productos similares" usando los primeros 30 caracteres normalizados del nombre
+- Cuando un video matchea con un duplicado, vincularlo al producto "principal" (el de mayor `total_ingresos_mxn`)
+- Aumentar threshold de keyword matching de 0.5 a 0.6 para reducir falsos positivos (como "aceite de afeitado" matcheando con "aceite de orégano")
+- Agregar lista negra de palabras genéricas que no deben contar como match (aceite, crema, set, pack, etc.)
 
-## Verificación que haré al implementar
-1. Simular/forzar respuesta de cuota agotada y validar que:
-   - Se corta el loop
-   - Se muestra mensaje claro en Admin
-2. Ejecutar reset y confirmar que incluye estados bloqueados por cuota.
-3. Con cuota activa, correr pipeline y validar descenso real de `pending` + aumento de `downloaded`.
-4. Confirmar que ya no hay ciclos infinitos de matching con 0 progreso.
+---
 
-## Nota importante
-No se requieren cambios de esquema/RLS para este fix; es un ajuste de lógica de backend functions + UX de administración y manejo de estado.
+### 3. Mejora de "Ver videos" en productos (RelatedVideos)
+
+**Cambios en `src/pages/RelatedVideos.tsx`:**
+- Agregar búsqueda de "videos candidatos" además de los ya vinculados: videos cuyo título/transcript menciona el producto pero no están vinculados
+- Mostrar sección separada "Videos posiblemente relacionados (sin vincular)" con botón "Vincular" en cada uno
+- Agregar botón "Desvincular" visible en cada video vinculado (solo founders)
+- Crear una edge function `supabase/functions/find-candidate-videos/index.ts` que busca videos candidatos por nombre de producto en título/transcript
+
+---
+
+### Edge function nueva: `find-candidate-videos`
+
+Busca videos que probablemente pertenecen a un producto pero no están vinculados:
+- Busca por palabras clave del nombre del producto en `title`, `product_name`, y `transcript`
+- Excluye videos ya vinculados a otro producto (a menos que tengan baja confianza)
+- Devuelve hasta 50 candidatos ordenados por relevancia
+
+---
+
+### Resumen de archivos
+
+**Nuevos (4):**
+- `src/pages/admin/VideoAttribution.tsx`
+- `src/components/admin/AttributionVideoList.tsx`
+- `src/components/admin/AttributionProductSelector.tsx`
+- `supabase/functions/find-candidate-videos/index.ts`
+
+**Modificados (4):**
+- `src/App.tsx` (nueva ruta)
+- `src/pages/Admin.tsx` (botón de acceso)
+- `src/pages/RelatedVideos.tsx` (videos candidatos + desvincular)
+- `supabase/functions/auto-match-videos-products/index.ts` (deduplicación + threshold)
+
+### Impacto esperado
+
+- Asignación masiva: vincular 20-50 videos a un producto en menos de 1 minuto
+- Desvincular videos incorrectos con un solo clic
+- Auto-matching más preciso al agrupar duplicados y filtrar palabras genéricas
+- Vista de producto muestra todos los videos relevantes, vinculados y candidatos
+
