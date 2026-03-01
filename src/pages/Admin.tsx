@@ -932,6 +932,26 @@ const Admin = () => {
         {/* Asset Uploader */}
         <AssetUploader />
 
+        {/* Attribution Panel Link */}
+        <Card className="mb-6 border-2 border-primary/20 bg-primary/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-sm">🎯 Atribución masiva de videos</p>
+                <p className="text-xs text-muted-foreground">Asigna videos a productos de forma rápida y en lote</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/admin/attribution")}
+              >
+                <Link2 className="h-4 w-4 mr-1.5" />
+                Abrir panel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Match Audit Panel */}
         <MatchAuditPanel 
           market={selectedMarket} 
