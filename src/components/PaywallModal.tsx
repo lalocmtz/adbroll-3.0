@@ -40,7 +40,7 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
 
   const handleSelectPlan = async (plan: "pro" | "premium") => {
     // Track InitiateCheckout event for Meta Pixel
-    const value = plan === "premium" ? 29.99 : 14.99;
+    const value = plan === "premium" ? 29.99 : 25;
     const planName = plan === "premium" ? "Adbroll Premium" : "Adbroll Pro";
     trackInitiateCheckout(value, "USD", planName);
     
@@ -102,7 +102,7 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
             <Card className="p-4 border-2 border-border hover:border-primary/50 transition-colors">
               <div className="text-center mb-4">
                 <h3 className="text-lg font-bold">Pro</h3>
-                <div className="text-2xl font-bold mt-1">$14.99<span className="text-sm font-normal text-muted-foreground">/mes</span></div>
+                <div className="text-2xl font-bold mt-1">$25<span className="text-sm font-normal text-muted-foreground">/mes</span></div>
                 <p className="text-xs text-muted-foreground mt-1">Para creadores que graban</p>
               </div>
 

@@ -174,7 +174,7 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
     { icon: Zap, text: "Actualizaciones diarias" },
   ];
 
-  const proPrice = 14.99;
+  const proPrice = 25;
   const premiumPrice = 29.99;
   const basePrice = plan === 'premium' ? premiumPrice : proPrice;
   const displayPrice = codeValid ? `$${(basePrice * 0.5).toFixed(2)}` : `$${basePrice.toFixed(2)}`;

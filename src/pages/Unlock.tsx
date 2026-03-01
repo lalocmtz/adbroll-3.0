@@ -124,7 +124,7 @@ const Unlock = () => {
     setIsLoading(true);
     
     // Track InitiateCheckout event for Meta Pixel
-    trackInitiateCheckout(14.99, "USD", "Adbroll Pro");
+    trackInitiateCheckout(25, "USD", "Adbroll Pro");
 
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout-guest", {
@@ -230,9 +230,9 @@ const Unlock = () => {
                   <p className="text-sm text-muted-foreground">Todo lo que necesitas para vender</p>
                 </div>
                 <div className="text-center mb-6">
-                  <span className="text-5xl font-bold text-primary">$14.99</span>
+                  <span className="text-5xl font-bold text-primary">$25</span>
                   <span className="text-muted-foreground text-lg">/mes</span>
-                  <p className="text-sm text-muted-foreground mt-1">~$300 MXN/mes</p>
+                  <p className="text-sm text-muted-foreground mt-1">~$500 MXN/mes</p>
                 </div>
                 <ul className="space-y-3 mb-6 text-sm">
                   {[
@@ -466,7 +466,7 @@ const Unlock = () => {
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1" className="border-b border-border">
                 <AccordionTrigger className="text-left text-sm md:text-base py-4">
-                  ¿Qué incluye la suscripción de $14.99/mes?
+                  ¿Qué incluye la suscripción de $25/mes?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground text-sm md:text-base pb-4">
                   Incluye acceso completo al dashboard de videos virales, extracción automática de scripts, 
@@ -479,7 +479,7 @@ const Unlock = () => {
                   ¿Cómo funciona el programa de afiliados?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground text-sm md:text-base pb-4">
-                  Comparte tu código de referido y gana 30% de comisión ($4.50 USD) por cada persona 
+                  Comparte tu código de referido y gana 30% de comisión ($7.50 USD) por cada persona 
                   que se suscriba usando tu código. La comisión es recurrente mientras la persona 
                   mantenga su suscripción activa.
                 </AccordionContent>
@@ -542,7 +542,7 @@ const Unlock = () => {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  Empezar ahora — $14.99/mes
+                  Empezar ahora — $25/mes
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}

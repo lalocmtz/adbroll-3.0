@@ -157,7 +157,7 @@ export const ApiUsageMonitor = () => {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            * Stripe cobra por transacción. Con $14.99/mes por usuario, recibes ~$14.25 neto.
+            * Stripe cobra por transacción. Con $25/mes por usuario, recibes ~$23.98 neto.
           </p>
         </div>
       </CardContent>

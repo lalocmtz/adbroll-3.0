@@ -702,4 +702,18 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
-**Última actualización:** Enero 2025
+## ✅ PRICING UPDATE $25 USD (Marzo 2025)
+
+### Cambio de precio de suscripción
+- [x] **$14.99 → $25 USD/mes** - Precio actualizado en toda la plataforma
+- [x] **~$300 MXN → ~$500 MXN** - Equivalente en pesos actualizado
+- [x] **Comisión afiliados** - 30% de $25 = $7.50/referido/mes (automático)
+- [x] **Frontend** - PaywallModal, PricingCard, PricingModal, PreviewBanner, Landing, Unlock, Settings, Pricing, EmailCaptureModal, CheckoutSuccess, CreatorDirectory, CampaignsTab
+- [x] **Backend** - stripe-webhook (priceUsd, emails), create-checkout (metadata)
+- [x] **Emails** - Templates de confirmación y renovación actualizados
+- [x] **Admin** - ApiUsageMonitor, FinancialDashboard, EmailLeadsList actualizados
+- [ ] **PENDIENTE** - Crear nuevo Price ID de $25/mes en Stripe y actualizar secret STRIPE_PRICE_ID_PRO
+
+---
+
+**Última actualización:** Marzo 2025

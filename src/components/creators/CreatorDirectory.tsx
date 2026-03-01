@@ -152,7 +152,7 @@ const CreatorDirectory = () => {
               onClick={() => openPaywall("creator_directory")}
             >
               <Crown className="h-4 w-4" />
-              {language === "es" ? "Desbloquear por $14.99/mes" : "Unlock for $14.99/mo"}
+              {language === "es" ? "Desbloquear por $25/mes" : "Unlock for $25/mo"}
             </Button>
             {!isLoggedIn && (
               <Button variant="outline" size="lg" onClick={() => window.location.href = "/login"}>

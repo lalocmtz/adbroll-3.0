@@ -53,7 +53,7 @@ const CheckoutSuccess = () => {
         trackPurchase(value, "USD", sessionId, checkoutEmail || undefined, checkoutPlan || undefined);
       } else {
         // Default to pro price if no stored value
-        trackPurchase(14.99, "USD", sessionId, checkoutEmail || undefined, checkoutPlan || "Adbroll Pro");
+        trackPurchase(25, "USD", sessionId, checkoutEmail || undefined, checkoutPlan || "Adbroll Pro");
       }
     }
     

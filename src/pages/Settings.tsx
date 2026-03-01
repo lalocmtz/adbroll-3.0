@@ -275,7 +275,7 @@ const Settings = () => {
                   <Zap className="h-5 w-5 text-primary" />
                   <span className="font-semibold">Adbroll Pro</span>
                 </div>
-                <p className="text-2xl font-bold mb-2">$14.99<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+                <p className="text-2xl font-bold mb-2">$25<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
                 <p className="text-sm text-muted-foreground mb-4">
                   {language === "es" 
                     ? "Acceso completo a todas las herramientas" 
