@@ -30,14 +30,14 @@ serve(async (req) => {
 
     console.log(`[get-tiktok-download-url] Processing URL: ${tiktokUrl}`);
 
-    // Call TikTok Video Downloader API (elisbushaj2)
+    // Call Tiktok Download Video API (llbbmm)
     const rapidApiResponse = await fetch(
-      `https://tiktok-video-downloader-api.p.rapidapi.com/media?videoUrl=${encodeURIComponent(tiktokUrl)}`,
+      `https://tiktok-download-video1.p.rapidapi.com/getVideo?url=${encodeURIComponent(tiktokUrl)}&hd=1`,
       {
         method: 'GET',
         headers: {
           'x-rapidapi-key': RAPIDAPI_KEY,
-          'x-rapidapi-host': 'tiktok-video-downloader-api.p.rapidapi.com'
+          'x-rapidapi-host': 'tiktok-download-video1.p.rapidapi.com'
         }
       }
     );
@@ -54,8 +54,8 @@ serve(async (req) => {
     const rapidApiData = await rapidApiResponse.json();
     console.log(`[get-tiktok-download-url] API response:`, JSON.stringify(rapidApiData).substring(0, 500));
 
-    // Extract MP4 URL
-    let mp4Url = rapidApiData.downloadUrl || rapidApiData.video?.downloadUrl || rapidApiData.url;
+    // Extract MP4 URL from llbbmm API response
+    let mp4Url = rapidApiData.data?.play || rapidApiData.data?.hdplay || rapidApiData.data?.wmplay || rapidApiData.downloadUrl || rapidApiData.url;
 
     if (!mp4Url) {
       console.error(`[get-tiktok-download-url] No MP4 URL in response:`, rapidApiData);
@@ -89,7 +89,7 @@ serve(async (req) => {
       const contentLength = videoBuffer.byteLength;
       console.log(`[get-tiktok-download-url] Video downloaded: ${contentLength} bytes`);
 
-      const title = rapidApiData.title || rapidApiData.author?.nickname || 'tiktok-video';
+      const title = rapidApiData.data?.title || rapidApiData.title || rapidApiData.data?.author?.nickname || 'tiktok-video';
       const filename = `${title.replace(/[^a-zA-Z0-9]/g, '-')}.mp4`;
 
       return new Response(videoBuffer, {
@@ -107,7 +107,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         downloadUrl: mp4Url,
-        title: rapidApiData.title || rapidApiData.author?.nickname || 'tiktok-video'
+        title: rapidApiData.data?.title || rapidApiData.title || rapidApiData.data?.author?.nickname || 'tiktok-video'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
