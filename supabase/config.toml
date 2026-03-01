@@ -143,3 +143,6 @@ verify_jwt = true
 
 [functions.get-tiktok-download-url]
 verify_jwt = false
+
+[functions.reset-failed-downloads]
+verify_jwt = true

@@ -716,4 +716,14 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ RESET FAILED DOWNLOADS (Marzo 2025)
+
+### Botón para reintentar descargas fallidas
+- [x] **Edge function `reset-failed-downloads`** - Resetea videos permanently_failed/download_failed a pending con download_attempts=0
+- [x] **Admin.tsx** - Botón "Reintentar X descargas fallidas" visible cuando hay videos fallidos
+- [x] **Verificación founder** - Solo el founder puede ejecutar el reset
+- [x] **Stats actualizados** - Cuenta separada de videos fallidos vs pendientes
+
+---
+
 **Última actualización:** Marzo 2025
