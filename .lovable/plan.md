@@ -1,101 +1,69 @@
 
 
-## Plan: Mejorar la Seccion de Emails en Admin
+## Plan: Cambiar precio de suscripcion a $25 USD/mes
 
-### Problema Actual
-- La seccion "Emails Capturados" solo muestra la tabla `email_captures` (leads de checkout)
-- Hay correos repetidos (ej: `lalocmtz@gmail.com` aparece 6 veces)
-- No muestra todos los usuarios registrados (ej: `geraas.santiago@gmail.com` no aparece)
-- No hay seccion de suscriptores activos con fecha de renovacion
+### Lo que TU necesitas hacer en Stripe (antes de que yo cambie el codigo)
 
-### Solucion
+**Paso 1: Identifica cual cuenta de Stripe estas usando**
 
-Reemplazar el componente `EmailLeadsList` con un componente mejorado que tenga **3 secciones con tabs**:
+Tu proyecto tiene configurado un secret llamado `STRIPE_SECRET_KEY`. La cuenta correcta es la que tiene esa clave. Para verificar:
+- Entra a https://dashboard.stripe.com
+- Si tienes dos cuentas, revisa cual tiene productos/clientes existentes de Adbroll
+- Esa es la cuenta correcta
 
----
+**Paso 2: Crea un nuevo Price en Stripe**
 
-### Tab 1: Usuarios Registrados
-Muestra todos los correos de la tabla `profiles` (usuarios que crearon cuenta):
+1. Ve a **Productos** en tu dashboard de Stripe
+2. Busca tu producto existente "Adbroll Pro" (o crealo si no existe)
+3. Agrega un nuevo **Price**: $25.00 USD, recurrente, mensual
+4. Copia el **Price ID** (empieza con `price_...`)
+5. Damelo para que yo lo configure como el nuevo `STRIPE_PRICE_ID_PRO`
 
-```text
-Usuarios Registrados (7)
-----------------------------------------
-geraas.santiago@gmail.com   29 ene 2026
-test3@gmail.com             08 dic 2025
-test2@gmail.com             08 dic 2025
-test@gmail.com              08 dic 2025
-data2bet@gmail.com          08 dic 2025
-adbrollapp@gmail.com        08 dic 2025
-lalocmtz@gmail.com          28 nov 2025
-```
+**Paso 3 (opcional): Desactiva el price anterior de $14.99**
+- En Stripe, archiva el price viejo para que no se use mas
 
-- Sin duplicados (cada email aparece una sola vez)
-- Muestra nombre completo si existe
-- Fecha de registro
+### Lo que yo voy a cambiar en el codigo (11 archivos)
 
-### Tab 2: Suscriptores Activos
-Muestra los usuarios con suscripcion activa y su fecha de renovacion:
+Una vez que me des el nuevo Price ID, hare estos cambios:
 
-```text
-Suscriptores Activos (2)
-----------------------------------------
-geraas.santiago@gmail.com   Activa   Renueva: 31 dic 2099
-lalocmtz@gmail.com          Activa   Renueva: --
-```
-
-- Email del suscriptor
-- Estado (activa/cancelada)
-- Fecha de renovacion (`renew_at`)
-- Badge verde para activos
-
-### Tab 3: Email Leads (actual)
-Mantiene la funcionalidad actual de `email_captures` pero **deduplicado**:
-- Agrupa por email, muestra solo el registro mas reciente
-- Mantiene botones de seguimiento
-- Mantiene indicador de convertido/pendiente
-
----
-
-### Cambios Tecnicos
-
-**Archivo:** `src/components/admin/EmailLeadsList.tsx`
-
-1. Agregar consulta a `profiles` para obtener todos los usuarios registrados
-2. Agregar consulta a `subscriptions` (join con `profiles`) para suscriptores activos  
-3. Agregar tabs internos: "Registrados", "Suscriptores", "Leads"
-4. Deduplicar leads de `email_captures` agrupando por email (conservar el mas reciente)
-5. Contar totales para cada tab
-
-**Archivos a modificar:**
+**Backend (Edge Functions):**
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/components/admin/EmailLeadsList.tsx` | Reescribir con 3 tabs y datos deduplicados |
+| `supabase/functions/stripe-webhook/index.ts` | Cambiar `14.99` a `25` en lineas 166, 263, 285, 300 |
+| `supabase/functions/create-checkout/index.ts` | Cambiar comentario y metadata de `14.99` a `25` |
+| `supabase/functions/create-checkout-guest/index.ts` | Sin cambios de precio (usa Price ID dinamico) |
 
-**Sin cambios en base de datos** - solo se leen tablas existentes (`profiles`, `subscriptions`, `email_captures`).
+**Frontend (UI):**
 
----
+| Archivo | Cambio |
+|---------|--------|
+| `src/components/PaywallModal.tsx` | `$14.99` -> `$25`, eliminar plan Premium de 2 columnas, dejar solo 1 plan |
+| `src/components/PricingCard.tsx` | `price = 14.99` -> `price = 25` |
+| `src/components/PricingModal.tsx` | `proPrice = 14.99` -> `proPrice = 25`, eliminar Premium |
+| `src/components/PreviewBanner.tsx` | `$14.99/mes` -> `$25/mes` |
+| `src/pages/Landing.tsx` | `$14.99` -> `$25` en precio y FAQ |
+| `src/pages/Unlock.tsx` | `$14.99` -> `$25` en multiples lugares |
+| `src/pages/Settings.tsx` | `$14.99` -> `$25` |
+| `src/components/creators/CreatorDirectory.tsx` | `$14.99/mes` -> `$25/mes` |
+| `src/components/creators/CampaignsTab.tsx` | `$14.99/mes` -> `$25/mes` |
 
-### Resultado Visual
+**Emails:**
 
-```text
-+---------------------------------------------------+
-| Directorio de Emails (7 registrados)   [Actualizar]|
-|                                                     |
-| [Registrados (7)] [Suscriptores (2)] [Leads (2)]   |
-|                                                     |
-| Tab Registrados:                                    |
-|  geraas.santiago@gmail.com  Gerardo Santiago  29ene |
-|  test3@gmail.com            Armando cuellar   08dic |
-|  ...                                               |
-|                                                     |
-| Tab Suscriptores:                                   |
-|  geraas.santiago@gmail.com  Activa  Renueva: 2099  |
-|  lalocmtz@gmail.com         Activa  Renueva: --    |
-|                                                     |
-| Tab Leads:                                          |
-|  lalocmtz@gmail.com   (mas reciente)   [Seguimiento]|
-|  data2bet@gmail.com   (mas reciente)   [Seguimiento]|
-+---------------------------------------------------+
-```
+| Archivo | Cambio |
+|---------|--------|
+| `src/lib/email.ts` | Default price `$14.99 USD` -> `$25 USD` |
+| `src/components/admin/EmailLeadsList.tsx` | `$14.99` -> `$25` en template de seguimiento |
+| `src/components/admin/ApiUsageMonitor.tsx` | Actualizar nota de Stripe fee |
+
+**Comision de afiliados:**
+- Actualmente es 30% de $14.99 = $4.50/referido/mes
+- Con $25 sera 30% de $25 = **$7.50/referido/mes** (sin cambios de codigo, se calcula automaticamente)
+
+### Resumen de pasos
+
+1. **Tu**: Entra a Stripe, crea un Price de $25/mes, dame el Price ID
+2. **Yo**: Actualizo el secret `STRIPE_PRICE_ID_PRO` con el nuevo ID
+3. **Yo**: Cambio todas las referencias de $14.99 a $25 en codigo y edge functions
+4. Los suscriptores existentes seguiran pagando $14.99 hasta que cancelen (Stripe respeta el price original)
 
