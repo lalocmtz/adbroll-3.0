@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Link2, ExternalLink, AlertCircle, Check, X, Search, ChevronLeft, ChevronRight, Trash2, Play } from "lucide-react";
+import { Link2, ExternalLink, AlertCircle, Check, X, Search, ChevronLeft, ChevronRight, Trash2, Play, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { useMarket } from "@/contexts/MarketContext";
 
 interface UnlinkedVideo {
   id: string;
@@ -29,6 +30,7 @@ interface Product {
 const VIDEOS_PER_PAGE = 20;
 
 export function PendingLinks() {
+  const { market } = useMarket();
   const [unlinkedVideos, setUnlinkedVideos] = useState<UnlinkedVideo[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,7 @@ export function PendingLinks() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [market]);
 
   const loadData = async () => {
     setLoading(true);
@@ -51,12 +53,14 @@ export function PendingLinks() {
           .from("videos")
           .select("id, title, video_url, video_mp4_url, thumbnail_url, creator_name, revenue_mxn, views, product_name")
           .is("product_id", null)
+          .eq("country", market)
           .neq("processing_status", "permanently_failed")
           .order("revenue_mxn", { ascending: false, nullsFirst: false })
           .limit(500),
         supabase
           .from("products")
           .select("id, producto_nombre, imagen_url")
+          .eq("market", market)
           .order("total_ingresos_mxn", { ascending: false, nullsFirst: false }),
       ]);
 
@@ -174,6 +178,10 @@ export function PendingLinks() {
           <CardTitle className="flex items-center gap-2 text-base">
             <AlertCircle className="h-4 w-4 text-amber-500" />
             Videos sin producto ({unlinkedVideos.length})
+            <Badge variant="outline" className="text-xs ml-2">
+              <Globe className="h-3 w-3 mr-1" />
+              {market === 'mx' ? '🇲🇽 MX' : '🇺🇸 US'}
+            </Badge>
           </CardTitle>
           <Button variant="outline" size="sm" onClick={loadData}>
             <Link2 className="h-4 w-4 mr-2" />

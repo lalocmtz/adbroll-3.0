@@ -34,7 +34,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { productId, productName, limit = 50 } = await req.json();
+    const { productId, productName, market, limit = 50 } = await req.json();
 
     if (!productId || !productName) {
       return new Response(
@@ -62,13 +62,20 @@ serve(async (req) => {
     ).join(',');
 
     // Fetch videos that mention the product keywords but are NOT linked to this product
-    const { data: candidates, error } = await supabase
+    let query = supabase
       .from('videos')
-      .select('id, title, video_url, video_mp4_url, thumbnail_url, creator_handle, creator_name, product_name, product_id, sales, revenue_mxn, views, transcript, processing_status')
+      .select('id, title, video_url, video_mp4_url, thumbnail_url, creator_handle, creator_name, product_name, product_id, sales, revenue_mxn, views, transcript, processing_status, country')
       .or(orConditions)
       .neq('product_id', productId)
       .order('revenue_mxn', { ascending: false, nullsFirst: false })
       .limit(limit);
+
+    // MARKET ISOLATION: Only show videos from the same market
+    if (market) {
+      query = query.eq('country', market);
+    }
+
+    const { data: candidates, error } = await query;
 
     if (error) throw error;
 

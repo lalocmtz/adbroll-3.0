@@ -220,8 +220,17 @@ const RelatedVideos = () => {
     if (!productInfo) return;
     setCandidatesLoading(true);
     try {
+      // Load product's market to pass to candidate search
+      const { data: productData } = await supabase
+        .from("products")
+        .select("market")
+        .eq("id", productInfo.id)
+        .maybeSingle();
+      
+      const productMarket = productData?.market || 'mx';
+      
       const { data } = await supabase.functions.invoke("find-candidate-videos", {
-        body: { productId: productInfo.id, productName: productInfo.producto_nombre, limit: 30 }
+        body: { productId: productInfo.id, productName: productInfo.producto_nombre, market: productMarket, limit: 30 }
       });
       setCandidates(data?.candidates || []);
     } catch (err) {

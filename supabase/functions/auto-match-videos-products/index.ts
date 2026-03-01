@@ -388,14 +388,14 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     let batchSize = 100;
-    let threshold = 0.6;
+    let threshold = 0.75; // PRECISION > COVERAGE: Only assign if >= 0.75
     let market: string | null = null;
     let useAI = false;
     
     try {
       const body = await req.json();
       batchSize = Math.min(body.batchSize || 100, 200);
-      threshold = body.threshold || 0.5;
+      threshold = Math.max(body.threshold || 0.75, 0.75); // Never go below 0.75
       market = body.market || null;
       useAI = body.useAI || false;
     } catch {
@@ -464,10 +464,12 @@ serve(async (req) => {
     console.log(`📦 ${products.length} products indexed`);
 
     // Fetch unmatched videos - include rank for priority matching
+    // RESPECT manual_match: never touch manually matched videos
     let videosQuery = supabase
       .from('videos')
-      .select('id, title, video_url, product_name, product_id, transcript, country, rank')
+      .select('id, title, video_url, product_name, product_id, transcript, country, rank, manual_match')
       .is('product_id', null)
+      .or('manual_match.is.null,manual_match.eq.false')
       .order('rank', { ascending: true, nullsFirst: false })
       .order('revenue_mxn', { ascending: false, nullsFirst: false })
       .limit(batchSize);

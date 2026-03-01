@@ -766,4 +766,46 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ SISTEMA DE ATRIBUCIÓN VIDEO-FIRST + AISLAMIENTO MX/US (Marzo 2025)
+
+### Fase 1: Aislamiento de Mercado en TODAS las Capas
+- [x] **AttributionProductSelector** - Filtra `.eq("market", market)` con badge de mercado
+- [x] **PendingLinks** - Filtra videos por `country=market` y productos por `market`
+- [x] **find-candidate-videos** - Acepta `market`, filtra videos por `country=market`
+- [x] **useParallelPipeline** - Pasa `market` a download y transcribe workers
+- [x] **Admin.tsx secuencial** - Pasa `market: selectedMarket` a auto-match con threshold 0.75
+
+### Fase 2: Atribución Video-First
+- [x] **VideoAttribution reescrito** - Layout video-first: video actual + productos probables
+- [x] **find-candidate-products** - Nueva edge function que sugiere productos por keywords del transcript/title
+- [x] **Flujo 1-click** - Seleccionar video → ver sugerencias → clic para vincular → siguiente
+- [x] **Cola de videos** - Lista scrollable con navegación prev/next/skip
+- [x] **Búsqueda manual** - Input para buscar productos del mismo mercado manualmente
+- [x] **Filtros** - Sin producto, baja confianza, todos
+
+### Fase 3: Precisión del Auto-Match
+- [x] **Threshold 0.75** - auto-match NO asigna si score < 0.75 (precision > coverage)
+- [x] **manual_match respetado** - Videos con manual_match=true NUNCA se tocan por auto-match
+- [x] **Blacklist expandida** - Más palabras genéricas filtradas (este, esta, como, pero, etc.)
+
+### Fase 4: Importación Unificada
+- [x] **Un solo botón "Procesar Paralelo"** - Pipeline paralelo es el estándar
+- [x] **Market-aware en todas las fases** - Download, transcribe, match reciben market
+
+### Criterios de Aceptación
+- [x] En mercado MX, NUNCA aparecen productos US en atribución
+- [x] En mercado US, NUNCA aparecen productos MX
+- [x] find-candidate-products regresa solo datos del mercado solicitado
+- [x] Auto-match no asigna si score < 0.75
+- [x] manual_match no se sobrescribe por procesos automáticos
+
+### SOP para el Equipo
+1. Seleccionar mercado (MX/US) en Admin
+2. Subir archivos Kalodata → Importar
+3. Clic "Procesar Paralelo" → descarga + transcribe + vincula
+4. Ir a "Atribución Video-First" → validar low-confidence y sin producto
+5. Videos se procesan uno por uno con sugerencias automáticas
+
+---
+
 **Última actualización:** Marzo 2025
