@@ -13,6 +13,7 @@ export interface PipelineState {
   isPaused: boolean;
   stats: WorkerStats;
   phase: string;
+  quotaExceeded: boolean;
 }
 
 interface WorkerConfig {
@@ -28,6 +29,8 @@ const WORKER_CONFIGS: Record<keyof WorkerStats, WorkerConfig> = {
   avatars: { maxConcurrent: 1, batchSize: 50, delayMs: 500 },
 };
 
+const MAX_NO_PROGRESS_CYCLES = 5;
+
 export function useParallelPipeline() {
   const [state, setState] = useState<PipelineState>({
     isRunning: false,
@@ -39,15 +42,12 @@ export function useParallelPipeline() {
       avatars: { processed: 0, pending: 0, errors: 0 },
     },
     phase: "",
+    quotaExceeded: false,
   });
 
   const shouldStopRef = useRef(false);
-  const activeWorkersRef = useRef({
-    downloads: 0,
-    transcriptions: 0,
-    matching: 0,
-    avatars: 0,
-  });
+  const quotaExceededRef = useRef(false);
+  const noProgressCountRef = useRef({ downloads: 0, matching: 0 });
 
   const updateStats = useCallback((
     worker: keyof WorkerStats,
@@ -74,15 +74,14 @@ export function useParallelPipeline() {
     const pendingDownload = videos.filter(v =>
       !v.video_mp4_url &&
       v.processing_status !== 'permanently_failed' &&
+      v.processing_status !== 'download_blocked_quota' &&
       (v.download_attempts || 0) < 5
     ).length;
 
-    // Pending = has MP4, no transcript, not failed
     const pendingTranscription = videos.filter(v =>
       v.video_mp4_url && !v.transcript && v.processing_status !== 'transcription_failed'
     ).length;
     
-    // Failed = has MP4, no transcript, status is transcription_failed
     const failedTranscription = videos.filter(v =>
       v.video_mp4_url && !v.transcript && v.processing_status === 'transcription_failed'
     ).length;
@@ -106,9 +105,8 @@ export function useParallelPipeline() {
     return { pendingDownload, pendingTranscription, pendingMatch, pendingAvatars, failedTranscription };
   }, []);
 
-  // Individual worker functions
   const runDownloadWorker = useCallback(async (): Promise<boolean> => {
-    if (shouldStopRef.current) return false;
+    if (shouldStopRef.current || quotaExceededRef.current) return false;
 
     const { data, error } = await supabase.functions.invoke("download-videos-batch", {
       body: { batchSize: WORKER_CONFIGS.downloads.batchSize },
@@ -117,19 +115,42 @@ export function useParallelPipeline() {
     if (error) {
       console.warn("Download worker error:", error.message);
       updateStats("downloads", {
-        errors: state.stats.downloads.errors + 1,
+        errors: (state.stats.downloads.errors || 0) + 1,
       });
-      return true; // Continue trying
+      return true;
+    }
+
+    // QUOTA EXCEEDED — stop downloads immediately
+    if (data?.quotaExceeded) {
+      console.warn("⚠️ Download quota exceeded — stopping downloads");
+      quotaExceededRef.current = true;
+      setState(prev => ({ ...prev, quotaExceeded: true }));
+      updateStats("downloads", {
+        processed: (state.stats.downloads.processed || 0) + (data.successful || 0),
+        pending: data.remaining || 0,
+      });
+      return false;
     }
 
     if (!data || data.processed === 0 || data.remaining === 0) {
-      return false; // No more work
+      return false;
+    }
+
+    // No-progress detection
+    if (data.successful === 0) {
+      noProgressCountRef.current.downloads++;
+      if (noProgressCountRef.current.downloads >= MAX_NO_PROGRESS_CYCLES) {
+        console.warn("⚠️ Downloads: no progress for 5 cycles, stopping");
+        return false;
+      }
+    } else {
+      noProgressCountRef.current.downloads = 0;
     }
 
     updateStats("downloads", {
-      processed: state.stats.downloads.processed + (data.successful || 0),
+      processed: (state.stats.downloads.processed || 0) + (data.successful || 0),
       pending: data.remaining || 0,
-      errors: state.stats.downloads.errors + (data.permanentlyFailed || 0),
+      errors: (state.stats.downloads.errors || 0) + (data.permanentlyFailed || 0),
     });
 
     return data.remaining > 0;
@@ -145,7 +166,7 @@ export function useParallelPipeline() {
     if (error) {
       console.warn("Transcription worker error:", error.message);
       updateStats("transcriptions", {
-        errors: state.stats.transcriptions.errors + 1,
+        errors: (state.stats.transcriptions.errors || 0) + 1,
       });
       return true;
     }
@@ -155,7 +176,7 @@ export function useParallelPipeline() {
     }
 
     updateStats("transcriptions", {
-      processed: state.stats.transcriptions.processed + (data.successful || 0),
+      processed: (state.stats.transcriptions.processed || 0) + (data.successful || 0),
       pending: data.remaining || 0,
       failed: data.totalFailed || 0,
     });
@@ -166,23 +187,21 @@ export function useParallelPipeline() {
   const runMatchingWorker = useCallback(async (useAI: boolean, market: string): Promise<boolean> => {
     if (shouldStopRef.current) return false;
 
-    console.log(`🔗 Matching worker: market=${market}, useAI=${useAI}`);
-
     const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
       body: { 
         batchSize: WORKER_CONFIGS.matching.batchSize, 
         threshold: 0.5, 
         useAI,
-        market, // CRITICAL: Pass market to ensure same-market matching only
+        market,
       },
     });
 
     if (error) {
       console.warn("Matching worker error:", error.message);
       updateStats("matching", {
-        errors: state.stats.matching.errors + 1,
+        errors: (state.stats.matching.errors || 0) + 1,
       });
-      return true; // Keep trying on error
+      return true;
     }
 
     if (data?.complete) {
@@ -191,16 +210,23 @@ export function useParallelPipeline() {
 
     const matched = data?.matchedInBatch || 0;
     const aiMatched = data?.aiMatched || 0;
-    updateStats("matching", {
-      processed: state.stats.matching.processed + matched,
-      pending: data?.remainingUnmatched || 0,
-      aiMatched: state.stats.matching.aiMatched + aiMatched,
-    });
 
-    // REMOVED: Premature stop condition
-    // Now continue processing until remainingUnmatched is 0
-    // Allow multiple passes - some videos may need AI fallback
-    console.log(`🔗 Batch result: matched=${matched}, aiMatched=${aiMatched}, remaining=${data?.remainingUnmatched}`);
+    // No-progress detection for matching
+    if (matched === 0) {
+      noProgressCountRef.current.matching++;
+      if (noProgressCountRef.current.matching >= MAX_NO_PROGRESS_CYCLES) {
+        console.warn("⚠️ Matching: no progress for 5 cycles, stopping");
+        return false;
+      }
+    } else {
+      noProgressCountRef.current.matching = 0;
+    }
+
+    updateStats("matching", {
+      processed: (state.stats.matching.processed || 0) + matched,
+      pending: data?.remainingUnmatched || 0,
+      aiMatched: (state.stats.matching.aiMatched || 0) + aiMatched,
+    });
 
     return (data?.remainingUnmatched || 0) > 0;
   }, [state.stats.matching, updateStats]);
@@ -212,29 +238,31 @@ export function useParallelPipeline() {
 
     if (error) {
       console.warn("Avatar worker error:", error.message);
-      updateStats("avatars", { errors: state.stats.avatars.errors + 1 });
+      updateStats("avatars", { errors: (state.stats.avatars.errors || 0) + 1 });
       return false;
     }
 
     if (data) {
       updateStats("avatars", {
         processed: data.successCount || 0,
-        errors: state.stats.avatars.errors + (data.errorCount || 0),
+        errors: (state.stats.avatars.errors || 0) + (data.errorCount || 0),
         pending: 0,
       });
     }
 
-    return false; // Avatars run once per cycle
+    return false;
   }, [state.stats.avatars, updateStats]);
 
-  // Main parallel pipeline
   const startParallelPipeline = useCallback(async (useAI: boolean = false, market: string = 'mx') => {
     shouldStopRef.current = false;
+    quotaExceededRef.current = false;
+    noProgressCountRef.current = { downloads: 0, matching: 0 };
 
     setState(prev => ({
       ...prev,
       isRunning: true,
       isPaused: false,
+      quotaExceeded: false,
       phase: "Iniciando pipeline paralelo...",
       stats: {
         downloads: { processed: 0, pending: 0, errors: 0 },
@@ -244,7 +272,6 @@ export function useParallelPipeline() {
       },
     }));
 
-    // Load initial stats
     const initialStats = await loadCurrentStats();
 
     let downloadsActive = initialStats.pendingDownload > 0;
@@ -253,7 +280,7 @@ export function useParallelPipeline() {
     let avatarsActive = initialStats.pendingAvatars > 0;
 
     let cycleCount = 0;
-    const MAX_CYCLES = 100; // Safety limit
+    const MAX_CYCLES = 100;
 
     while (
       !shouldStopRef.current &&
@@ -262,50 +289,53 @@ export function useParallelPipeline() {
     ) {
       cycleCount++;
 
+      const phaseLabels = [
+        downloadsActive ? (quotaExceededRef.current ? "⚠️ Cuota agotada" : "📥 Descargando") : "",
+        transcriptionsActive ? "📝 Transcribiendo" : "",
+        matchingActive ? "🔗 Vinculando" : "",
+        avatarsActive ? "📷 Fotos" : "",
+      ].filter(Boolean).join(" • ");
+
       setState(prev => ({
         ...prev,
-        phase: `Ciclo ${cycleCount}: ${[
-          downloadsActive ? "📥 Descargando" : "",
-          transcriptionsActive ? "📝 Transcribiendo" : "",
-          matchingActive ? "🔗 Vinculando" : "",
-          avatarsActive ? "📷 Fotos" : "",
-        ].filter(Boolean).join(" • ")}`,
+        phase: `Ciclo ${cycleCount}: ${phaseLabels}`,
       }));
 
-      // Run all workers in parallel
       const results = await Promise.all([
-        downloadsActive ? runDownloadWorker() : Promise.resolve(false),
+        downloadsActive && !quotaExceededRef.current ? runDownloadWorker() : Promise.resolve(false),
         transcriptionsActive ? runTranscriptionWorker() : Promise.resolve(false),
         matchingActive ? runMatchingWorker(useAI, market) : Promise.resolve(false),
         avatarsActive ? runAvatarWorker() : Promise.resolve(false),
       ]);
 
-      // Update worker states
-      downloadsActive = results[0];
+      // If quota hit, stop downloads but let other workers continue
+      downloadsActive = quotaExceededRef.current ? false : results[0];
       transcriptionsActive = results[1] || (results[0] && initialStats.pendingTranscription > 0);
       matchingActive = results[2];
       avatarsActive = results[3];
 
-      // Re-check pending stats periodically
       if (cycleCount % 5 === 0) {
         const refreshedStats = await loadCurrentStats();
-        // Activate transcriptions if new videos were downloaded
         if (refreshedStats.pendingTranscription > 0 && !transcriptionsActive) {
           transcriptionsActive = true;
         }
       }
 
-      // Small delay between cycles
       await new Promise(r => setTimeout(r, 1500));
     }
 
-    // Final stats refresh
     await loadCurrentStats();
+
+    const finalPhase = shouldStopRef.current 
+      ? "⏸️ Pausado" 
+      : quotaExceededRef.current 
+        ? "⚠️ Cuota agotada — upgrade tu plan en RapidAPI" 
+        : "✅ Completado";
 
     setState(prev => ({
       ...prev,
       isRunning: false,
-      phase: shouldStopRef.current ? "⏸️ Pausado" : "✅ Completado",
+      phase: finalPhase,
     }));
 
     return state.stats;

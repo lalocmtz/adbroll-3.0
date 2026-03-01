@@ -24,7 +24,6 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify caller is founder
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -50,13 +49,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role to update videos
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    // Reset permanently_failed, download_failed, AND download_blocked_quota
     const { data, error } = await adminClient
       .from("videos")
       .update({ processing_status: "pending", download_attempts: 0 })
-      .in("processing_status", ["permanently_failed", "download_failed"])
+      .in("processing_status", ["permanently_failed", "download_failed", "download_blocked_quota"])
       .select("id");
 
     if (error) {
