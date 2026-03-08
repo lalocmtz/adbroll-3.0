@@ -808,4 +808,20 @@ Al subir archivos Kalodata, todos los rankings (Videos, Productos, Creadores, Op
 
 ---
 
+## ✅ TALENT LANDING PAGE REDESIGN (Marzo 2025)
+
+### /talento — Landing de Adquisición de Creadores
+- [x] **Hero section** — Headline aspiracional, 3 bullets (campañas pagadas, productos gratis, marcas verificadas), CTAs primario y secundario
+- [x] **How it works** — 3 pasos: Regístrate → Recibe campañas → Gana dinero
+- [x] **Mock campaigns preview** — 3 cards de ejemplo con marca, pago, requisito
+- [x] **Benefits grid** — Pagos seguros, campañas semanales, sin contratos, trabaja con marcas
+- [x] **Final CTA** — "Empieza a ganar con TikTok Shop"
+- [x] **Tabs preservados** — Aplicar / Campañas / Creadores con lógica intacta
+- [x] **Status badges mejorados** — Amarillo "Revisión en proceso", Verde "Aprobado", Rojo "Rechazado"
+- [x] **Mensaje de revisión** — "Nuestro equipo revisa tu perfil antes de activarte para campañas"
+- [x] **Mobile-first** — Spacing 48px mobile / 80px desktop, botones grandes, cards verticales
+- [x] **Zero logic changes** — Backend, API, handlers, hooks, validaciones intactos
+
+---
+
 **Última actualización:** Marzo 2025
