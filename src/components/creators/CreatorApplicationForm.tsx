@@ -316,14 +316,22 @@ const CreatorApplicationForm = () => {
       return (
         <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
           <CheckCircle2 className="h-3 w-3 mr-1" />
-          {language === "es" ? "Publicado" : "Published"}
+          {language === "es" ? "Aprobado" : "Approved"}
+        </Badge>
+      );
+    }
+    if (status === "rechazado") {
+      return (
+        <Badge variant="secondary" className="bg-red-500/10 text-red-600 border-red-500/20">
+          <Clock className="h-3 w-3 mr-1" />
+          {language === "es" ? "Rechazado" : "Rejected"}
         </Badge>
       );
     }
     return (
       <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
         <Clock className="h-3 w-3 mr-1" />
-        {language === "es" ? "Pendiente" : "Pending"}
+        {language === "es" ? "Revisión en proceso" : "Under review"}
       </Badge>
     );
   };
@@ -438,9 +446,16 @@ const CreatorApplicationForm = () => {
             </div>
             <p className="text-sm text-blue-700 dark:text-blue-300">
               {language === "es" 
-                ? `Estado: ${existingCreator.status === 'publico' ? 'Publicado en el directorio' : 'Pendiente de aprobación'}`
-                : `Status: ${existingCreator.status === 'publico' ? 'Published in directory' : 'Pending approval'}`}
+                ? `Estado: ${existingCreator.status === 'publico' ? 'Aprobado — visible en el directorio' : 'Revisión en proceso'}`
+                : `Status: ${existingCreator.status === 'publico' ? 'Approved — visible in directory' : 'Under review'}`}
             </p>
+            {existingCreator.status !== 'publico' && (
+              <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">
+                {language === "es" 
+                  ? "Nuestro equipo revisa tu perfil antes de activarte para campañas."
+                  : "Our team reviews your profile before activating you for campaigns."}
+              </p>
+            )}
             <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
               {language === "es" 
                 ? `Registrado el ${format(new Date(existingCreator.created_at), 'dd/MM/yyyy')}`
