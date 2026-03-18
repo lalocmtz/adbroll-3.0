@@ -579,6 +579,51 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_leads: {
+        Row: {
+          age: number
+          campaign_tag: string
+          comfortable_on_camera: boolean | null
+          content_preferences: string[] | null
+          created_at: string
+          email: string
+          id: string
+          instagram_username: string | null
+          name: string
+          tiktok_username: string | null
+          user_id: string | null
+          whatsapp: string
+        }
+        Insert: {
+          age: number
+          campaign_tag?: string
+          comfortable_on_camera?: boolean | null
+          content_preferences?: string[] | null
+          created_at?: string
+          email: string
+          id?: string
+          instagram_username?: string | null
+          name: string
+          tiktok_username?: string | null
+          user_id?: string | null
+          whatsapp: string
+        }
+        Update: {
+          age?: number
+          campaign_tag?: string
+          comfortable_on_camera?: boolean | null
+          content_preferences?: string[] | null
+          created_at?: string
+          email?: string
+          id?: string
+          instagram_username?: string | null
+          name?: string
+          tiktok_username?: string | null
+          user_id?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       creator_program_applications: {
         Row: {
           approved_at: string | null
