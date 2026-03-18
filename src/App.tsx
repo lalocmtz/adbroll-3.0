@@ -47,6 +47,7 @@ import BrandRegister from "./pages/brand/BrandRegister";
 import CreatorProgram from "./pages/CreatorProgram";
 import Redeem from "./pages/Redeem";
 import VideoAttribution from "./pages/admin/VideoAttribution";
+import RecruitGDL from "./pages/RecruitGDL";
 
 const queryClient = new QueryClient();
 
@@ -152,6 +153,7 @@ const App = () => {
                   <Route path="/checkout/cancel" element={<CheckoutCancel />} />
                   <Route path="/programa-creadores" element={<CreatorProgram />} />
                   <Route path="/canjear" element={<Redeem />} />
+                  <Route path="/reclutamiento-gdl" element={<RecruitGDL />} />
                   
                   {/* APP-FIRST: Main app routes (viewable by all, gated by blur) */}
                   <Route
