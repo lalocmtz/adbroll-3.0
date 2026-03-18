@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause, BarChart3, Upload, Megaphone, Camera, Rocket } from "lucide-react";
+import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause, BarChart3, Upload, Megaphone, Camera, Rocket, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
@@ -25,6 +25,7 @@ import CampaignManager from "@/components/admin/CampaignManager";
 import { ParallelProgressPanel } from "@/components/admin/ParallelProgressPanel";
 import { MatchAuditPanel } from "@/components/admin/MatchAuditPanel";
 import { useParallelPipeline } from "@/hooks/useParallelPipeline";
+import CreatorLeadsDashboard from "@/components/admin/CreatorLeadsDashboard";
 
 type Market = "mx" | "us";
 
@@ -533,10 +534,14 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Analytics
+            </TabsTrigger>
+            <TabsTrigger value="leads" className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              Leads
             </TabsTrigger>
             <TabsTrigger value="campaigns" className="flex items-center gap-2">
               <Megaphone className="h-4 w-4" />
@@ -574,6 +579,12 @@ const Admin = () => {
             
             {/* API Usage Monitor */}
             <ApiUsageMonitor />
+          </TabsContent>
+
+
+          {/* Leads Tab */}
+          <TabsContent value="leads" className="space-y-6">
+            <CreatorLeadsDashboard />
           </TabsContent>
 
           {/* Campaigns Tab */}
