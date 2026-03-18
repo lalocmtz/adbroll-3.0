@@ -153,6 +153,7 @@ const App = () => {
                   <Route path="/checkout/cancel" element={<CheckoutCancel />} />
                   <Route path="/programa-creadores" element={<CreatorProgram />} />
                   <Route path="/canjear" element={<Redeem />} />
+                  <Route path="/reclutamiento-gdl" element={<RecruitGDL />} />
                   
                   {/* APP-FIRST: Main app routes (viewable by all, gated by blur) */}
                   <Route
