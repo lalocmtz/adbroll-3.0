@@ -581,6 +581,12 @@ const Admin = () => {
             <ApiUsageMonitor />
           </TabsContent>
 
+
+          {/* Leads Tab */}
+          <TabsContent value="leads" className="space-y-6">
+            <CreatorLeadsDashboard />
+          </TabsContent>
+
           {/* Campaigns Tab */}
           <TabsContent value="campaigns">
             <CampaignManager />
