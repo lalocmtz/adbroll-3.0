@@ -149,9 +149,6 @@ const RecruitGDL = () => {
   // ─── MAIN PAGE ────────────────────────────────
   return (
     <div className="min-h-screen bg-background">
-      {/* Noindex */}
-      <meta name="robots" content="noindex, nofollow" />
-
       {/* Minimal header */}
       <div className="py-6 px-4 flex justify-center">
         <img src={logoDark} alt="adbroll" className="h-8" />
