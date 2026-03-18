@@ -351,28 +351,42 @@ const CreatorApplicationForm = () => {
     return (
       <Card className="max-w-2xl mx-auto">
         <CardContent className="pt-12 pb-12 text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="h-8 w-8 text-primary" />
+          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="h-8 w-8 text-green-600" />
           </div>
           <h2 className="text-xl font-bold mb-2">
-            {language === "es" ? "¡Gracias por postularte!" : "Thank you for applying!"}
+            {language === "es" ? "¡Registro exitoso!" : "Registration successful!"}
           </h2>
           <p className="text-muted-foreground max-w-md mx-auto mb-8">
             {language === "es"
-              ? "El equipo de adbroll revisará tu perfil. Te notificaremos cuando tu perfil sea publicado en el directorio."
-              : "The adbroll team will review your profile. We'll notify you when your profile is published in the directory."}
+              ? "Nuestro equipo revisará tu perfil. Te notificaremos cuando seas activado para recibir campañas."
+              : "Our team will review your profile. We'll notify you when you're activated to receive campaigns."}
           </p>
           
-          {/* CTAs to explore platform */}
-          <div className="bg-muted/30 rounded-xl p-6 max-w-md mx-auto">
-            <p className="text-sm font-medium mb-4">
+          <div className="bg-muted/30 rounded-xl p-6 max-w-md mx-auto space-y-4">
+            <p className="text-sm font-medium">
               {language === "es" 
-                ? "Mientras esperas, explora la plataforma:" 
-                : "While you wait, explore the platform:"}
+                ? "Únete al canal de WhatsApp para recibir alertas de campañas:" 
+                : "Join the WhatsApp channel to get campaign alerts:"}
             </p>
-            <div className="space-y-3">
+            <Button
+              variant="default"
+              className="w-full justify-between"
+              onClick={() => window.open("https://whatsapp.com/channel/0029VbB2Vx6KGGGMzWfT5W3Q", "_blank")}
+            >
+              <span className="flex items-center gap-2">
+                📢 {language === "es" ? "Unirse al canal de alertas" : "Join alerts channel"}
+              </span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+
+            <div className="border-t border-border pt-4 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                {language === "es" ? "También puedes explorar:" : "You can also explore:"}
+              </p>
               <Button
-                variant="default"
+                variant="outline"
+                size="sm"
                 className="w-full justify-between"
                 onClick={() => navigate("/app")}
               >
@@ -384,6 +398,7 @@ const CreatorApplicationForm = () => {
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 className="w-full justify-between"
                 onClick={() => navigate("/opportunities")}
               >
