@@ -17,7 +17,7 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
   const [transcript, setTranscript] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<TranscriptionStatus>('idle');
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef(false);
 
   const reset = useCallback(() => {

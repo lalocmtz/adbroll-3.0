@@ -41,7 +41,7 @@ export function useUGCGeneration() {
   const [progress, setProgress] = useState(0);
   const [assets, setAssets] = useState<UGCAssets | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getStepLabel = (currentStep: UGCStep, language: 'es' | 'en' = 'es') => {
     return STEP_LABELS[currentStep]?.[language] || '';
