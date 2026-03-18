@@ -130,8 +130,8 @@ const RecruitGDL = () => {
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
         <Card className="max-w-md w-full">
           <CardContent className="pt-10 pb-10 text-center space-y-6">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="h-8 w-8 text-primary" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">¡Gracias por tu registro!</h1>
             <p className="text-muted-foreground">
