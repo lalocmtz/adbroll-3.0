@@ -25,6 +25,7 @@ import CampaignManager from "@/components/admin/CampaignManager";
 import { ParallelProgressPanel } from "@/components/admin/ParallelProgressPanel";
 import { MatchAuditPanel } from "@/components/admin/MatchAuditPanel";
 import { useParallelPipeline } from "@/hooks/useParallelPipeline";
+import CreatorLeadsDashboard from "@/components/admin/CreatorLeadsDashboard";
 
 type Market = "mx" | "us";
 
