@@ -30,7 +30,7 @@ export const useProductSearch = (): UseProductSearchReturn => {
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingPopular, setIsLoadingPopular] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   // Load popular products on mount
   useEffect(() => {
