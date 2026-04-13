@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Gift, Loader2, X } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
 import { trackSignUp, track, Events } from "@/lib/analytics";
+import logoDark from "@/assets/logo-dark.png";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -235,8 +236,8 @@ const Register = () => {
         </button>
         <CardHeader>
           <div className="text-center mb-4">
-            <img 
-              src="/src/assets/logo-dark.png"
+            <img
+              src={logoDark}
               alt="adbroll"
               className="h-16 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/")}

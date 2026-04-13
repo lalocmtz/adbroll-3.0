@@ -109,7 +109,7 @@ const faqs = [
   },
   {
     q: "¿Puedo cancelar cuando quiera?",
-    a: "Sí, en un click, sin letra chica. Pagas $499 MXN al mes y cancelas desde el dashboard. No tocamos tu tarjeta si cancelas antes del siguiente cobro.",
+    a: "Sí, en un clic, sin letra chica. Pagas $499 MXN al mes y cancelas desde el dashboard. No tocamos tu tarjeta si cancelas antes del siguiente cobro.",
   },
 ];
 
@@ -238,25 +238,25 @@ const Landing = () => {
         <div className="relative mx-auto max-w-6xl px-[var(--page-pad-x)] pt-24 pb-24 md:pt-28 md:pb-32">
           {/* urgency chip */}
           <div className="mb-6 flex justify-center">
-            <span className="inline-flex items-center gap-2 rounded-pill border border-brand-pink/40 bg-brand-pink/10 px-4 py-1.5 text-micro text-brand-pink-200 backdrop-blur animate-fade-in-up motion-reduce:animate-none">
+            <span className="inline-flex items-center gap-2 rounded-pill border border-brand-pink/40 bg-brand-pink/15 px-4 py-1.5 text-sm font-medium text-brand-pink-100 backdrop-blur animate-fade-in-up motion-reduce:animate-none">
               <span className="relative inline-flex size-2">
                 <span className="absolute inset-0 rounded-full bg-brand-pink animate-pulse-glow-pink motion-reduce:animate-none" />
                 <span className="relative size-2 rounded-full bg-brand-pink" />
               </span>
-              50 % OFF · primeros 100 creadores · quedan 37
+              50% OFF para los primeros 100 · últimos cupos
             </span>
           </div>
 
           {/* narrative H1 */}
           <h1 className="text-center text-display-lg md:text-display-xl font-display font-extrabold tracking-tight text-balance max-w-4xl mx-auto">
-            Ana se despertó a las 6 am y vio que{" "}
-            <span className="text-brand-pink">Susana ganó</span>{" "}
+            Ana se despertó a las 6 am.{" "}
+            <span className="text-brand-pink">Susana ya había ganado</span>{" "}
             <MoneyNumber
               value={14320}
-              size="xl"
-              className="inline-block align-baseline text-brand-pink"
+              size="lg"
+              className="inline-block align-baseline text-brand-pink md:text-money-xl"
             />{" "}
-            ayer con este video.
+            con este video.
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-center text-lg md:text-xl leading-relaxed text-brand-mist/75">
@@ -290,7 +290,7 @@ const Landing = () => {
           {/* live GMV counter */}
           <div className="mt-10 flex flex-col items-center gap-2">
             <span className="text-micro uppercase tracking-[0.12em] text-brand-mist/55">
-              Rastreado hoy en TikTok Shop México
+              Vendido hoy en TikTok Shop México
             </span>
             <span className="font-mono tabular-nums text-money-xl text-brand-cyan">
               {counterFormatted}
@@ -363,8 +363,8 @@ const Landing = () => {
               Top 20 videos · hoy
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-brand-ink/60">
-              Ordenado por ingresos reales. Desbloqueas los 15 restantes cuando
-              creas tu cuenta.
+              Ordenado por ingresos reales. Los 15 restantes se desbloquean al
+              crear tu cuenta.
             </p>
           </div>
 
@@ -450,7 +450,7 @@ const Landing = () => {
               El guión
             </span>
             <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight">
-              Tres versiones por video. Una te queda.
+              Tres versiones. Una te queda.
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-brand-mist/60">
               Transcripción literal, reescritura para tu producto, y versión
@@ -553,9 +553,9 @@ const Landing = () => {
             />
             <div className="relative grid gap-10 md:grid-cols-[1.2fr_1fr] md:items-center">
               <div>
-                <div className="mb-2 inline-flex items-center gap-2 rounded-pill bg-brand-pink/15 px-3 py-1 text-micro text-brand-pink-200">
+                <div className="mb-2 inline-flex items-center gap-2 rounded-pill bg-brand-pink/20 px-3 py-1 text-sm font-medium text-brand-pink-100">
                   <Zap className="h-3 w-3" />
-                  Primeros 100 · 50 % OFF
+                  Primeros 100 · 50% OFF
                 </div>
                 <div className="mb-3 flex items-baseline gap-3">
                   <MoneyNumber value={249} currency="MXN" size="xl" className="text-brand-mist" />
@@ -593,8 +593,8 @@ const Landing = () => {
                   Empezar por $249 MXN
                   <ArrowRight className="ml-1 h-5 w-5" />
                 </Button>
-                <p className="text-center text-xs text-brand-mist/40">
-                  Cobra $249 MXN el primer mes, luego $499. Cancelas cuando quieras.
+                <p className="text-center text-sm font-medium text-brand-mist/70">
+                  $249 el primer mes, $499 después · Cancelas en 1 clic
                 </p>
               </div>
             </div>
@@ -639,7 +639,7 @@ const Landing = () => {
             />
             <div className="relative">
               <h2 className="mx-auto max-w-2xl text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-balance">
-                El Top 20 de mañana sale en unas horas. ¿Lo quieres antes que tu
+                El Top 20 de mañana sale en horas. ¿Lo ves antes que tu
                 competencia?
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-white/85">

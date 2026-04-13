@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Lock, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { StreakBadge } from "@/components/brand/StreakBadge";
 import { VariantResearchCard } from "@/components/research/VariantResearchCard";
 import { Events, track } from "@/lib/analytics";
 
@@ -97,6 +96,10 @@ const Dashboard = () => {
   const creatorFilter = searchParams.get("creator");
   const ITEMS_PER_PAGE = 20;
   const FREE_PREVIEW_LIMIT = 10; // Videos visitors can see without blur
+
+  // Track what caused the current fetch so Top20Loaded can carry a
+  // `trigger` prop — first_load vs filter/sort/page/market churn.
+  const triggerRef = useRef<"first_load" | "filter" | "sort" | "page" | "market">("first_load");
 
   useEffect(() => {
     fetchCategories();
@@ -206,7 +209,12 @@ const Dashboard = () => {
         product_filter: productFilter,
         creator_filter: creatorFilter,
         logged_in: isLoggedIn,
+        trigger: triggerRef.current,
       });
+      // Next fetch is either a filter/sort/page change — reset for the
+      // following render to classify it correctly. Subsequent effects
+      // will bump this ref before calling fetchVideos.
+      triggerRef.current = "page";
     } catch (error: any) {
       toast({
         title: "Error al cargar videos",
@@ -218,8 +226,26 @@ const Dashboard = () => {
     }
   };
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">{t("loadingVideos")}</p>
+    // Skeleton that mirrors the real grid shape so CLS is minimized and
+    // perceived wait drops — avoids the generic "loading..." bounce on
+    // slow mobile connections.
+    return <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
+        <div className="mb-3 md:mb-4">
+          <div className="h-6 md:h-7 w-48 rounded bg-muted/60 animate-pulse" />
+          <div className="mt-2 h-3 w-64 rounded bg-muted/40 animate-pulse" />
+        </div>
+        <div className="mb-4 md:mb-6 flex gap-2 overflow-hidden">
+          {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-7 md:h-8 w-24 rounded-full bg-muted/50 animate-pulse flex-shrink-0" />)}
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-5">
+          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="rounded-xl overflow-hidden">
+              <div className="aspect-[9/16] bg-muted/50 animate-pulse" />
+              <div className="p-2 md:p-3 space-y-2">
+                <div className="h-3 w-3/4 rounded bg-muted/60 animate-pulse" />
+                <div className="h-3 w-1/2 rounded bg-muted/40 animate-pulse" />
+              </div>
+            </div>)}
+        </div>
       </div>;
   }
   // Remove artificial 5-page limit - show all pages
@@ -239,10 +265,9 @@ const Dashboard = () => {
       <div className="mb-3 md:mb-4 py-1 md:py-0">
         <div className="md:hidden">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-base font-bold text-foreground leading-tight">
+            <h1 className="text-xl font-bold text-foreground leading-tight">
               🔥 Lo que vende HOY
             </h1>
-            {isLoggedIn && <StreakBadge days={3} compact />}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {todayFormatted} · TikTok Shop {marketLabel}
@@ -253,13 +278,12 @@ const Dashboard = () => {
         <div className="hidden md:flex md:items-center md:justify-between gap-2">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-lg font-bold text-foreground leading-tight">
+              <h1 className="text-2xl font-bold text-foreground leading-tight">
                 🔥 Lo que vende HOY, {todayFormatted}
               </h1>
-              {isLoggedIn && <StreakBadge days={3} />}
             </div>
             <p className="text-xs text-muted-foreground">
-              TikTok Shop {marketLabel} · Guiones y productos que generan $$$
+              TikTok Shop {marketLabel} · Los guiones y productos que están vendiendo
             </p>
           </div>
           {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
@@ -276,30 +300,34 @@ const Dashboard = () => {
       {/* Filter Pills - Compact horizontal scrollable on mobile */}
       <div className="mb-4 md:mb-6">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
-          {!isLoggedIn ? <div className="flex gap-1.5 opacity-60 cursor-pointer flex-wrap" onClick={() => {
-          navigate("/unlock");
-          window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-          });
-        }}>
+          {!isLoggedIn ? <button
+              type="button"
+              className="flex gap-1.5 opacity-60 flex-wrap text-left"
+              aria-label="Desbloquear filtros"
+              onClick={() => {
+                navigate("/unlock");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
               {SORT_OPTIONS.map((option, i) => <span key={option.value} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[11px] md:text-xs font-medium h-7 md:h-8 flex items-center gap-1 whitespace-nowrap ${i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"}`}>
                   <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   {option.label}
                 </span>)}
-            </div> : <FilterPills options={SORT_OPTIONS} value={sortOrder} onChange={setSortOrder} />}
-          
+            </button> : <FilterPills options={SORT_OPTIONS} value={sortOrder} onChange={setSortOrder} />}
+
           {/* Category Dropdown - Locked for visitors */}
-          {!isLoggedIn ? <div className="h-7 md:h-8 px-2.5 md:px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1 text-[11px] md:text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap flex-shrink-0" onClick={() => {
-          navigate("/unlock");
-          window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-          });
-        }}>
+          {!isLoggedIn ? <button
+              type="button"
+              className="h-7 md:h-8 px-2.5 md:px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1 text-[11px] md:text-xs text-muted-foreground opacity-60 whitespace-nowrap flex-shrink-0"
+              aria-label="Desbloquear categorías"
+              onClick={() => {
+                navigate("/unlock");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
               <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
               Categorías
-            </div> : <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            </button> : <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger className="h-7 md:h-8 w-auto min-w-[100px] md:min-w-[120px] text-[11px] md:text-xs rounded-full border-border/50 bg-muted/60 flex-shrink-0">
                 <SelectValue placeholder="Categoría" />
               </SelectTrigger>
@@ -338,8 +366,10 @@ const Dashboard = () => {
               product_id: video.product_id,
               product_name: video.product_name,
               creator_handle: video.creator_handle,
-              rank: globalIndex + 1,
+              position: globalIndex + 1,
+              sort_order: sortOrder,
               revenue_mxn: video.revenue_mxn,
+              market,
               locked: isLocked,
               logged_in: isLoggedIn,
             });
@@ -374,22 +404,28 @@ const Dashboard = () => {
           {/* Variant research prompt — shown once per session after the grid */}
           {isLoggedIn && videos.length >= 6 && (
             <div className="mt-8 mb-4 max-w-2xl mx-auto">
-              <VariantResearchCard context="dashboard_inline" />
+              <VariantResearchCard
+                context="dashboard_inline"
+                loggedIn={isLoggedIn}
+                market={market}
+              />
             </div>
           )}
 
           {/* Pagination */}
           {totalPages > 1 && <div className="mt-6 mb-16 md:mb-0">
-              {!isLoggedIn ? <div className="flex items-center justify-center gap-2 opacity-60 cursor-pointer" onClick={() => {
-          navigate("/unlock");
-          window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-          });
-        }}>
+              {!isLoggedIn ? <button
+                  type="button"
+                  className="flex items-center justify-center gap-2 opacity-60 w-full"
+                  aria-label="Desbloquear más videos"
+                  onClick={() => {
+                    navigate("/unlock");
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
                   <Lock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Ver más videos</span>
-                </div> : <CompactPagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />}
+                </button> : <CompactPagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />}
             </div>}
         </>}
 

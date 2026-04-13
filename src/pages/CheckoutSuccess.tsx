@@ -42,18 +42,20 @@ const CheckoutSuccess = () => {
   const sessionId = searchParams.get("session_id");
 
   useEffect(() => {
-    // Track Purchase event if session_id exists (successful checkout)
+    // Idempotent purchase + subscription tracking. Key reasons:
+    //  - React StrictMode re-mounts effects in dev → dedupe guard
+    //  - Safari back-forward cache can rehydrate this page → dedupe guard
+    //  - Email must be read BEFORE checkAuthStatus() which removes it
     if (sessionId) {
+      const dedupeKey = `adbroll_purchase_fired_${sessionId}`;
+      const alreadyFired = sessionStorage.getItem(dedupeKey) === "1";
       const checkoutValue = localStorage.getItem("adbroll_checkout_value");
       const checkoutPlan = localStorage.getItem("adbroll_checkout_plan");
       const checkoutEmail = localStorage.getItem("adbroll_checkout_email") || localStorage.getItem("adbroll_prospect_email");
-      
-      if (checkoutValue) {
+
+      if (!alreadyFired && checkoutValue) {
         const value = parseFloat(checkoutValue);
         trackPurchase(value, "USD", sessionId, checkoutEmail || undefined, checkoutPlan || undefined);
-        // Typed SubscriptionActivated event for PostHog funnel alongside
-        // the Meta Pixel Purchase event above. Keeps Track 3 event
-        // contract intact (top20 + guion + trial + subscription).
         track(Events.SubscriptionActivated, {
           plan: checkoutPlan || undefined,
           value,
@@ -61,19 +63,14 @@ const CheckoutSuccess = () => {
           transaction_id: sessionId,
           email: checkoutEmail || undefined,
         });
-      } else {
-        // Default to pro price if no stored value
-        trackPurchase(25, "USD", sessionId, checkoutEmail || undefined, checkoutPlan || "Adbroll Pro");
-        track(Events.SubscriptionActivated, {
-          plan: checkoutPlan || "Adbroll Pro",
-          value: 25,
-          currency: "USD",
-          transaction_id: sessionId,
-          email: checkoutEmail || undefined,
-        });
+        sessionStorage.setItem(dedupeKey, "1");
+      } else if (!alreadyFired && !checkoutValue) {
+        // Skip typed event when we lack trustworthy value data — better
+        // signal than a hardcoded fallback that silently lies to PostHog.
+        console.warn("CheckoutSuccess: no stored checkout value, skipping revenue events");
       }
     }
-    
+
     checkAuthStatus();
   }, [sessionId]);
 

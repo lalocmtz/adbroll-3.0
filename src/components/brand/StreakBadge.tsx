@@ -31,12 +31,7 @@ export const StreakBadge = ({
       )}
       aria-label={`Racha de ${days} ${label}`}
     >
-      <Flame
-        className={cn(
-          compact ? "h-3 w-3" : "h-3.5 w-3.5",
-          "animate-pulse-glow-pink motion-reduce:animate-none",
-        )}
-      />
+      <Flame className={cn(compact ? "h-3 w-3" : "h-3.5 w-3.5")} />
       <span className="font-semibold">{days}</span>
       {!compact && (
         <span className="font-normal opacity-80 uppercase tracking-wide text-[10px]">

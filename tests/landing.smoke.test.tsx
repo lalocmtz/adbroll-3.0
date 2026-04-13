@@ -35,16 +35,16 @@ describe("Landing page (smoke) — Variante E", () => {
     expect(
       screen.getByText(/Ana se despertó a las 6 am/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Susana ganó/i)).toBeInTheDocument();
+    expect(screen.getByText(/Susana ya había ganado/i)).toBeInTheDocument();
   });
 
   it("shows the urgency chip and live GMV counter", () => {
     renderLanding();
     expect(
-      screen.getByText(/50 % OFF · primeros 100 creadores/i),
+      screen.getByText(/50% OFF para los primeros 100/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Rastreado hoy en TikTok Shop México/i),
+      screen.getByText(/Vendido hoy en TikTok Shop México/i),
     ).toBeInTheDocument();
   });
 

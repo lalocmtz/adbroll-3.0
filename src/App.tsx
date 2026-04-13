@@ -123,8 +123,26 @@ const App = () => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+
+      // Fire TrialStarted once-per-user on first SIGNED_IN after OAuth.
+      // The email/password path fires it inline in Register.tsx, but the
+      // Google OAuth path redirects away before we can fire — catch it
+      // here. localStorage guard keyed by user id prevents re-fire on
+      // subsequent logins.
+      if (event === "SIGNED_IN" && session?.user) {
+        const userId = session.user.id;
+        const guardKey = `adbroll_trial_fired_${userId}`;
+        if (!localStorage.getItem(guardKey)) {
+          const provider = session.user.app_metadata?.provider || "email";
+          track(Events.TrialStarted, {
+            method: provider,
+            email: session.user.email || null,
+          });
+          localStorage.setItem(guardKey, "1");
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
