@@ -92,12 +92,31 @@ export const trackStandard = (
     | "ViewContent"
     | "InitiateCheckout"
     | "Subscribe"
-    | "StartTrial",
+    | "StartTrial"
+    | "Customize",
   params?: PrimitiveProps,
 ) => {
   metaTrack(event, params, "track");
   track(`meta.${event.toLowerCase()}`, params);
 };
+
+/* =============================================================
+   Timing helper — captures performance marks on the client so we
+   can compute time_to_*_ms props (e.g. guion.copied.time_to_copy_ms
+   from guion.modal_opened, or auth.login_succeeded → guion.copied
+   for the P50 activation metric in the brief §10).
+   ============================================================= */
+const marks = new Map<string, number>();
+export const mark = (key: string) => {
+  if (typeof performance === "undefined") return;
+  marks.set(key, performance.now());
+};
+export const measureSince = (key: string): number | undefined => {
+  if (typeof performance === "undefined") return undefined;
+  const t = marks.get(key);
+  return t !== undefined ? Math.round(performance.now() - t) : undefined;
+};
+export const clearMark = (key: string) => marks.delete(key);
 
 export const trackPageView = (path: string) => {
   if (posthogReady) {
@@ -130,9 +149,13 @@ export const reset = () => {
    ============================================================= */
 export const Events = {
   // Landing funnel
+  LandingViewed: "landing.viewed",
   LandingCtaClicked: "landing.cta_clicked",
   LandingVideoSelected: "landing.hero_video_selected",
+  LandingCalculatorUsed: "landing.calculator_used",
   LandingFaqOpened: "landing.faq_opened",
+  LandingPricingViewed: "landing.pricing_viewed",
+  LandingFooterViewed: "landing.footer_viewed",
 
   // Auth
   AuthRegisterSubmitted: "auth.register_submitted",
@@ -141,10 +164,26 @@ export const Events = {
   AuthLoginSucceeded: "auth.login_succeeded",
   AuthLogout: "auth.logout",
 
+  // Trial / subscription (server → client re-hydrate or webhook)
+  TrialStarted: "trial.started",
+  SubscriptionActivated: "subscription.activated",
+
   // Dashboard
   DashboardViewed: "dashboard.viewed",
   VideoCardOpened: "dashboard.video_opened",
   ScriptModalOpened: "dashboard.script_opened",
+
+  // Top 20 + guion (activation loop)
+  Top20Loaded: "top20.loaded",
+  Top20RowClicked: "top20.row_clicked",
+  GuionModalOpened: "guion.modal_opened",
+  GuionVariantSelected: "guion.variant_selected",
+  GuionCopied: "guion.copied",
+
+  // Variant generator research survey (P7)
+  VariantResearchViewed: "variant_research.viewed",
+  VariantResearchEmailSubmitted: "variant_research.email_submitted",
+  VariantResearchDismissed: "variant_research.dismissed",
 
   // Admin / ingestion
   AdminUploadStarted: "admin.upload_started",
@@ -156,6 +195,9 @@ export const Events = {
   OpportunityExpanded: "opportunity.expanded",
   OpportunityFormatViewed: "opportunity.format_viewed",
   OpportunityToolClicked: "opportunity.tool_clicked",
+
+  // Creator Partner Program (Fase 7 — only partner_link_clicked is live in Phase 3)
+  PartnerLinkClicked: "partner_link_clicked",
 } as const;
 
 export type EventName = (typeof Events)[keyof typeof Events];
