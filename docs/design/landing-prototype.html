@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>adbroll · Variante E — Landing prototype (Phase 2)</title>
+  <meta name="description" content="Los 20 videos que más vendieron hoy en TikTok Shop México, con guión listo para copiar. Prototipo estático Phase 2." />
+
+  <!-- Fonts: Inter + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* === Layer 1 — raw values (mirrors tailwind.config.ts extend) === */
+    :root {
+      --brand-pink: #FE2C55;
+      --brand-pink-400: #FF5577;
+      --brand-pink-600: #E01344;
+      --brand-pink-soft: #FFDCE3;
+      --brand-cyan: #25F4EE;
+      --brand-cyan-soft: #CDFBF9;
+      --brand-ink: #0A0A0F;
+      --brand-ink-800: #14141D;
+      --brand-ink-700: #1C1C28;
+      --brand-mist: #F7F7FB;
+      --brand-mist-200: #EEEEF5;
+      --brand-money: #16A34A;
+      --brand-alert: #F59E0B;
+      --brand-border: #E4E4EC;
+
+      --gradient-brand: linear-gradient(135deg, #FE2C55 0%, #FF5577 100%);
+      --gradient-cyber: linear-gradient(135deg, #FE2C55 0%, #25F4EE 100%);
+      --gradient-ink: linear-gradient(180deg, #0A0A0F 0%, #1C1C28 100%);
+
+      --font-sans: "Inter", system-ui, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+      --page-pad-x: 16px;
+      --section-pad-y: 48px;
+      --card-gap: 12px;
+      --touch-min: 44px;
+
+      --radius-card: 14px;
+      --radius-button: 10px;
+      --radius-pill: 999px;
+
+      --shadow-card: 0 1px 2px rgba(10,10,15,0.06), 0 4px 16px -4px rgba(10,10,15,0.1);
+      --shadow-card-lg: 0 2px 4px rgba(10,10,15,0.08), 0 12px 32px -8px rgba(10,10,15,0.18);
+      --shadow-glow-pink: 0 0 0 1px rgba(254,44,85,0.2), 0 10px 30px -5px rgba(254,44,85,0.35);
+      --shadow-glow-cyan: 0 0 0 1px rgba(37,244,238,0.2), 0 10px 30px -5px rgba(37,244,238,0.35);
+    }
+
+    @media (min-width: 768px) {
+      :root { --page-pad-x: 32px; --section-pad-y: 80px; }
+    }
+    @media (min-width: 1280px) {
+      :root { --page-pad-x: 64px; --section-pad-y: 120px; }
+    }
+
+    /* === Reset + base === */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; font-family: var(--font-sans); background: var(--brand-mist); color: var(--brand-ink); -webkit-font-smoothing: antialiased; }
+    img, svg { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; cursor: pointer; border: none; background: none; }
+
+    /* === Container === */
+    .container { max-width: 1280px; margin: 0 auto; padding-left: var(--page-pad-x); padding-right: var(--page-pad-x); }
+
+    /* === Typography scale === */
+    .display-xl { font-size: 48px; line-height: 52px; letter-spacing: -0.03em; font-weight: 800; }
+    .display-lg { font-size: 36px; line-height: 40px; letter-spacing: -0.025em; font-weight: 800; }
+    .display-md { font-size: 28px; line-height: 32px; letter-spacing: -0.02em; font-weight: 700; }
+    .display-sm { font-size: 22px; line-height: 28px; letter-spacing: -0.015em; font-weight: 700; }
+    .money-xl { font-family: var(--font-mono); font-size: 40px; line-height: 44px; letter-spacing: -0.01em; font-weight: 700; }
+    .money-lg { font-family: var(--font-mono); font-size: 28px; line-height: 32px; font-weight: 600; }
+    .money-md { font-family: var(--font-mono); font-size: 20px; line-height: 24px; font-weight: 600; }
+    .micro { font-size: 11px; line-height: 14px; letter-spacing: 0.04em; font-weight: 600; text-transform: uppercase; }
+    .body { font-size: 16px; line-height: 1.6; }
+    .body-sm { font-size: 14px; line-height: 1.5; }
+
+    @media (min-width: 768px) {
+      .display-xl { font-size: 64px; line-height: 68px; }
+      .display-lg { font-size: 44px; line-height: 48px; }
+    }
+
+    /* === Header === */
+    .header { position: sticky; top: 0; z-index: 50; background: rgba(247,247,251,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--brand-border); }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+    .brand::before { content: ""; width: 22px; height: 22px; border-radius: 6px; background: var(--gradient-brand); display: inline-block; }
+    .header-cta { display: flex; gap: 8px; }
+
+    /* === Buttons === */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--radius-button); font-weight: 600; transition: transform 0.2s, background 0.2s, box-shadow 0.2s; min-height: var(--touch-min); padding: 0 20px; }
+    .btn:active { transform: scale(0.97); }
+    .btn-sm { min-height: 36px; padding: 0 12px; font-size: 13px; }
+    .btn-md { min-height: 44px; padding: 0 20px; font-size: 15px; }
+    .btn-lg { min-height: 52px; padding: 0 24px; font-size: 17px; font-weight: 700; }
+    .btn-xl { min-height: 56px; padding: 0 28px; font-size: 18px; font-weight: 700; }
+    .btn-brand { background: var(--brand-pink); color: white; box-shadow: var(--shadow-glow-pink); }
+    .btn-brand:hover { background: var(--brand-pink-600); }
+    .btn-brand-outline { border: 2px solid var(--brand-pink); color: var(--brand-pink); }
+    .btn-brand-outline:hover { background: rgba(254,44,85,0.08); }
+    .btn-ghost { color: var(--brand-ink); }
+    .btn-ghost:hover { background: rgba(10,10,15,0.06); }
+
+    /* === Hero === */
+    .hero { padding-top: 24px; padding-bottom: var(--section-pad-y); background: radial-gradient(120% 80% at 50% 0%, rgba(254,44,85,0.08) 0%, transparent 60%), var(--brand-mist); }
+    .urgency-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--brand-pink-soft); color: var(--brand-pink-600); padding: 8px 14px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 600; margin-bottom: 20px; animation: pulse-soft 2.4s ease-in-out infinite; }
+    .urgency-chip::before { content: "🔥"; }
+    @keyframes pulse-soft { 0%,100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+
+    .hero h1 { margin: 0 0 16px; max-width: 720px; }
+    .hero p.sub { margin: 0 0 28px; font-size: 18px; line-height: 1.55; color: rgba(10,10,15,0.7); max-width: 560px; }
+
+    .hero-story { display: flex; flex-direction: column; gap: 20px; }
+    .hero-video-card { background: white; border-radius: var(--radius-card); box-shadow: var(--shadow-card-lg); padding: 16px; max-width: 340px; }
+    .hero-video-thumb { aspect-ratio: 9 / 16; background: linear-gradient(135deg, #1C1C28 0%, #0A0A0F 100%); border-radius: 10px; position: relative; overflow: hidden; max-height: 420px; }
+    .hero-video-thumb::before { content: "▶"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: white; font-size: 48px; opacity: 0.8; }
+    .hero-video-caption { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+    .hero-video-caption .money-lg { color: var(--brand-money); }
+    .hero-video-caption .duration { font-family: var(--font-mono); font-size: 13px; color: rgba(10,10,15,0.6); }
+
+    .hero-cta-row { display: flex; flex-direction: column; gap: 12px; margin-top: 28px; }
+    .hero-counter { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 13px; color: rgba(10,10,15,0.7); margin-top: 8px; }
+    .hero-counter .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--brand-money); box-shadow: 0 0 0 4px rgba(22,163,74,0.2); animation: blink 2s ease-in-out infinite; }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .hero-price { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; }
+    .hero-price .new { color: var(--brand-pink); }
+    .hero-price .old { text-decoration: line-through; color: rgba(10,10,15,0.4); font-family: var(--font-mono); font-size: 18px; }
+    .hero-price .note { font-size: 12px; color: rgba(10,10,15,0.6); }
+
+    @media (min-width: 768px) {
+      .hero-layout { display: grid; grid-template-columns: 1fr 400px; gap: 48px; align-items: center; }
+      .hero-video-card { max-width: 400px; }
+    }
+
+    /* === Creator spotlight strip === */
+    .spotlight { padding: 32px 0; background: var(--brand-ink); color: white; }
+    .spotlight-label { color: rgba(255,255,255,0.6); margin-bottom: 16px; }
+    .spotlight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .spotlight-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-card); padding: 14px; }
+    .spotlight-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .spotlight-mxn { font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: var(--brand-cyan); }
+    .spotlight-caption { color: rgba(255,255,255,0.5); margin-top: 12px; }
+    @media (min-width: 768px) {
+      .spotlight-grid { grid-template-columns: repeat(6, 1fr); }
+      .spotlight-card:nth-child(n+4) { display: none; }
+      .spotlight-grid.desktop-full .spotlight-card:nth-child(n+4) { display: block; }
+    }
+
+    /* === Top 20 mock === */
+    .top20 { padding: var(--section-pad-y) 0; }
+    .top20-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; gap: 12px; }
+    .top20-title h2 { margin: 0; }
+    .top20-freshness { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 12px; color: var(--brand-money); margin-top: 4px; }
+    .top20-freshness::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--brand-money); animation: blink 2s ease-in-out infinite; }
+
+    .top20-list { display: flex; flex-direction: column; gap: var(--card-gap); }
+    .top20-row { display: flex; gap: 12px; background: white; border-radius: var(--radius-card); padding: 12px; box-shadow: var(--shadow-card); min-height: 84px; align-items: center; }
+    .top20-rank { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: rgba(10,10,15,0.4); width: 28px; text-align: center; }
+    .top20-thumb { width: 64px; height: 64px; border-radius: 10px; background: linear-gradient(135deg, #FE2C55 0%, #25F4EE 100%); flex-shrink: 0; position: relative; overflow: hidden; }
+    .top20-thumb::before { content: "▶"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: rgba(255,255,255,0.9); font-size: 20px; }
+    .top20-info { flex: 1; min-width: 0; }
+    .top20-product { font-weight: 600; font-size: 14px; margin: 0 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .top20-mxn { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--brand-money); }
+    .top20-delta { font-family: var(--font-mono); font-size: 12px; color: var(--brand-money); margin-left: 6px; }
+    .top20-creator { font-size: 12px; color: rgba(10,10,15,0.5); }
+    .top20-cta { background: var(--brand-pink); color: white; min-height: 36px; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+
+    .top20-blur-wrap { position: relative; }
+    .top20-blur { position: absolute; inset: auto 0 0 0; height: 120px; background: linear-gradient(180deg, transparent 0%, var(--brand-mist) 70%); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 12px; pointer-events: none; }
+    .top20-blur-cta { pointer-events: auto; }
+
+    /* === Guion modal mock === */
+    .guion-demo { padding: var(--section-pad-y) 0; background: white; }
+    .guion-demo h2 { text-align: center; margin-bottom: 8px; }
+    .guion-demo .caption { text-align: center; color: rgba(10,10,15,0.6); margin-bottom: 32px; }
+    .guion-modal { max-width: 380px; margin: 0 auto; background: white; border: 1px solid var(--brand-border); border-radius: var(--radius-card); box-shadow: var(--shadow-card-lg); overflow: hidden; }
+    .guion-tabs { display: flex; border-bottom: 1px solid var(--brand-border); }
+    .guion-tab { flex: 1; padding: 14px 8px; font-size: 12px; font-weight: 600; color: rgba(10,10,15,0.6); background: var(--brand-mist); transition: background 0.2s, color 0.2s; }
+    .guion-tab.active { background: white; color: var(--brand-pink); border-bottom: 2px solid var(--brand-pink); margin-bottom: -1px; }
+    .guion-body { padding: 18px; font-size: 14px; line-height: 1.6; color: var(--brand-ink); min-height: 160px; }
+    .guion-copy-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: var(--brand-mist); border-top: 1px solid var(--brand-border); }
+    .guion-copy-row .btn { background: var(--brand-ink); color: white; }
+
+    /* === Trust stats === */
+    .trust { padding: 32px 0; background: var(--brand-mist-200); }
+    .trust-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .trust-stat { text-align: center; }
+    .trust-stat .num { font-family: var(--font-mono); font-size: 24px; font-weight: 700; color: var(--brand-ink); }
+    .trust-stat .label { font-size: 11px; color: rgba(10,10,15,0.6); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    @media (min-width: 768px) {
+      .trust-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    /* === Pricing (collapsed) === */
+    .pricing { padding: var(--section-pad-y) 0; }
+    .pricing-card { max-width: 400px; margin: 0 auto; background: var(--gradient-ink); color: white; border-radius: var(--radius-card); padding: 32px 24px; text-align: center; box-shadow: var(--shadow-card-lg); }
+    .pricing-card h3 { margin: 0 0 16px; }
+    .pricing-card .price-main { margin: 24px 0; }
+    .pricing-card .price-new { font-family: var(--font-mono); font-size: 48px; font-weight: 700; color: var(--brand-pink); }
+    .pricing-card .price-old { font-family: var(--font-mono); font-size: 18px; text-decoration: line-through; color: rgba(255,255,255,0.4); margin-left: 10px; }
+    .pricing-card .price-sub { color: rgba(255,255,255,0.7); font-size: 13px; margin-top: 6px; }
+    .pricing-benefits { text-align: left; list-style: none; padding: 0; margin: 24px 0; }
+    .pricing-benefits li { padding: 8px 0; display: flex; align-items: center; gap: 10px; font-size: 15px; }
+    .pricing-benefits li::before { content: "✓"; color: var(--brand-cyan); font-weight: 700; }
+
+    /* === FAQ === */
+    .faq { padding: var(--section-pad-y) 0; background: var(--brand-mist-200); }
+    .faq h2 { text-align: center; margin-bottom: 32px; }
+    .faq-list { max-width: 680px; margin: 0 auto; }
+    .faq-item { background: white; border: 1px solid var(--brand-border); border-radius: var(--radius-card); margin-bottom: 12px; overflow: hidden; }
+    .faq-q { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; font-weight: 600; font-size: 15px; cursor: pointer; width: 100%; text-align: left; }
+    .faq-q::after { content: "+"; font-size: 24px; color: rgba(10,10,15,0.5); }
+    .faq-item[open] .faq-q::after { content: "−"; }
+    .faq-a { padding: 0 20px 18px; font-size: 14px; line-height: 1.6; color: rgba(10,10,15,0.7); display: none; }
+    .faq-item[open] .faq-a { display: block; }
+
+    /* === Final CTA === */
+    .final-cta { padding: var(--section-pad-y) 0; text-align: center; background: var(--gradient-brand); color: white; }
+    .final-cta h2 { margin: 0 0 12px; }
+    .final-cta p { margin: 0 0 28px; font-size: 17px; color: rgba(255,255,255,0.9); }
+    .final-cta .btn { background: white; color: var(--brand-pink); }
+
+    /* === Footer === */
+    .footer { padding: 32px 0; background: var(--brand-ink); color: rgba(255,255,255,0.5); font-size: 13px; text-align: center; }
+
+    /* === Reduced motion === */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="#" class="brand">adbroll</a>
+      <div class="header-cta">
+        <a href="#" class="btn btn-ghost btn-sm">Iniciar sesión</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO (Variante E sintetizada: narrativo C + chip urgencia D) -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-layout">
+        <div>
+          <div class="urgency-chip">50% OFF primer mes · primeros 100 partners</div>
+          <h1 class="display-xl">Ana se levantó a las 6am y vio que Susana ganó <span style="color: var(--brand-pink)">$14,320&nbsp;MXN</span> ayer con este video.</h1>
+          <p class="sub">Ana copió el guión. Hoy grabó su versión. Tú también puedes.</p>
+
+          <div class="hero-cta-row">
+            <a href="#" class="btn btn-brand btn-xl">Yo también quiero →</a>
+            <div class="hero-price">
+              <span class="money-lg new">$249&nbsp;MXN</span>
+              <span class="old">$499</span>
+              <span class="note">primer mes · luego $499/mes</span>
+            </div>
+            <div class="hero-counter"><span class="dot"></span>12 / 100 lugares tomados</div>
+          </div>
+        </div>
+
+        <div class="hero-video-card">
+          <div class="hero-video-thumb"></div>
+          <div class="hero-video-caption">
+            <span class="money-lg">$14,320&nbsp;MXN</span>
+            <span class="duration">27s</span>
+          </div>
+          <div style="margin-top: 8px; font-size: 13px; color: rgba(10,10,15,0.6);">@susana.tiktokshop · 2.4M views</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CREATOR SPOTLIGHT -->
+  <section class="spotlight">
+    <div class="container">
+      <div class="micro spotlight-label">Ayer ganaron con Adbroll</div>
+      <div class="spotlight-grid">
+        <div class="spotlight-card">
+          <div class="spotlight-name">@ana.skincare</div>
+          <div class="spotlight-mxn">$14,320 MXN</div>
+        </div>
+        <div class="spotlight-card">
+          <div class="spotlight-name">@luis.gym</div>
+          <div class="spotlight-mxn">$9,840 MXN</div>
+        </div>
+        <div class="spotlight-card">
+          <div class="spotlight-name">@itze.cocina</div>
+          <div class="spotlight-mxn">$7,210 MXN</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOP 20 mock (mid credibility A) -->
+  <section class="top20">
+    <div class="container">
+      <div class="top20-header">
+        <div class="top20-title">
+          <div class="micro" style="color: rgba(10,10,15,0.5)">Top 20 · 12 abril 2026</div>
+          <h2 class="display-lg">Esto vendió ayer.</h2>
+          <div class="top20-freshness">actualizado hace 2h · datos Kalodata</div>
+        </div>
+      </div>
+
+      <div class="top20-list top20-blur-wrap">
+        <div class="top20-row">
+          <div class="top20-rank">01</div>
+          <div class="top20-thumb"></div>
+          <div class="top20-info">
+            <h3 class="top20-product">Serum Vitamina C 30ml</h3>
+            <span class="top20-mxn">$142,340 MXN</span>
+            <span class="top20-delta">+18%</span>
+            <div class="top20-creator">@ana.skincare</div>
+          </div>
+          <button class="top20-cta">Guión</button>
+        </div>
+        <div class="top20-row">
+          <div class="top20-rank">02</div>
+          <div class="top20-thumb"></div>
+          <div class="top20-info">
+            <h3 class="top20-product">Resistencia Pro Kit</h3>
+            <span class="top20-mxn">$98,120 MXN</span>
+            <span class="top20-delta">+9%</span>
+            <div class="top20-creator">@luis.gym</div>
+          </div>
+          <button class="top20-cta">Guión</button>
+        </div>
+        <div class="top20-row">
+          <div class="top20-rank">03</div>
+          <div class="top20-thumb"></div>
+          <div class="top20-info">
+            <h3 class="top20-product">Set de Sartenes Antiadherentes</h3>
+            <span class="top20-mxn">$76,450 MXN</span>
+            <span class="top20-delta">+14%</span>
+            <div class="top20-creator">@itze.cocina</div>
+          </div>
+          <button class="top20-cta">Guión</button>
+        </div>
+        <div class="top20-row">
+          <div class="top20-rank">04</div>
+          <div class="top20-thumb"></div>
+          <div class="top20-info">
+            <h3 class="top20-product">Labial líquido mate</h3>
+            <span class="top20-mxn">$62,300 MXN</span>
+            <span class="top20-delta">+5%</span>
+            <div class="top20-creator">@fer.makeup</div>
+          </div>
+          <button class="top20-cta">Guión</button>
+        </div>
+        <div class="top20-row">
+          <div class="top20-rank">05</div>
+          <div class="top20-thumb"></div>
+          <div class="top20-info">
+            <h3 class="top20-product">Audífonos inalámbricos</h3>
+            <span class="top20-mxn">$51,800 MXN</span>
+            <span class="top20-delta">+22%</span>
+            <div class="top20-creator">@tech.diego</div>
+          </div>
+          <button class="top20-cta">Guión</button>
+        </div>
+        <div class="top20-blur">
+          <a href="#" class="btn btn-brand-outline btn-md top20-blur-cta">Desbloquear los 15 restantes →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRUST STATS -->
+  <section class="trust">
+    <div class="container">
+      <div class="trust-grid">
+        <div class="trust-stat"><div class="num">20</div><div class="label">Videos actualizados cada día</div></div>
+        <div class="trust-stat"><div class="num">100%</div><div class="label">Datos verificados Kalodata</div></div>
+        <div class="trust-stat"><div class="num">2.8x</div><div class="label">ROAS promedio del top 20</div></div>
+        <div class="trust-stat"><div class="num">&lt;2h</div><div class="label">Freshness garantizada</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GUION DEMO -->
+  <section class="guion-demo">
+    <div class="container">
+      <h2 class="display-md">Así se ve el guión listo para copiar.</h2>
+      <p class="caption body-sm">3 versiones por cada video: tal cual lo dijo, optimizado por IA, y versión más agresiva.</p>
+
+      <div class="guion-modal">
+        <div class="guion-tabs">
+          <button class="guion-tab">Transcrito</button>
+          <button class="guion-tab active">IA optimizado</button>
+          <button class="guion-tab">IA agresivo</button>
+        </div>
+        <div class="guion-body">
+          Mira esto. Llevo 2 meses usando el Serum Vit C y mi piel cambió completamente. Antes tenía manchas y poros enormes. Ahora? Liso. <br><br>Y lo mejor: cuesta menos de lo que pagas por un café al mes. Toca el enlace abajo antes de que se agote.
+        </div>
+        <div class="guion-copy-row">
+          <span class="micro" style="color: rgba(10,10,15,0.5)">1,240 caracteres · 42 segundos</span>
+          <button class="btn btn-md">Copiar guión</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing">
+    <div class="container">
+      <div class="pricing-card">
+        <div class="micro" style="color: var(--brand-cyan)">Oferta de lanzamiento</div>
+        <h3 class="display-md">Empieza hoy</h3>
+        <div class="price-main">
+          <span class="price-new">$249</span>
+          <span class="price-old">$499</span>
+          <div class="price-sub">MXN · primer mes · $25 USD</div>
+        </div>
+        <ul class="pricing-benefits">
+          <li>Top 20 diario de TikTok Shop MX</li>
+          <li>Guión en 3 versiones por video</li>
+          <li>Datos verificados Kalodata</li>
+          <li>Sin anuncios, sin compromisos</li>
+          <li>Cancela cuando quieras</li>
+        </ul>
+        <a href="#" class="btn btn-brand btn-xl" style="width: 100%;">Empezar 3 días gratis →</a>
+        <div class="price-sub" style="margin-top: 12px;">Tarjeta requerida · se cobra $249 MXN al día 4</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq">
+    <div class="container">
+      <h2 class="display-md">Preguntas frecuentes</h2>
+      <div class="faq-list">
+        <details class="faq-item" open>
+          <summary class="faq-q">¿De dónde vienen los datos?</summary>
+          <div class="faq-a">100 % de Kalodata, la fuente principal de intelligence de TikTok Shop. Actualizamos cada 2 horas.</div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">¿Puedo cancelar cuando quiera?</summary>
+          <div class="faq-a">Sí, un click en la app. Sin llamadas, sin formularios. Cancelas y no se cobra el siguiente mes.</div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">¿Qué incluyen los 3 días gratis?</summary>
+          <div class="faq-a">Todo. Los 20 videos del día, los guiones en las 3 versiones, el spotlight de creadores. Requiere tarjeta pero no se cobra si cancelas antes del día 4.</div>
+        </details>
+        <details class="faq-item">
+          <summary class="faq-q">¿Funciona si apenas empiezo en TikTok Shop?</summary>
+          <div class="faq-a">Sí — de hecho, es mejor. Empezar copiando lo que ya funciona te ahorra 3 meses de adivinar qué grabar.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final-cta">
+    <div class="container">
+      <h2 class="display-lg">Tu primer guión en menos de 2 minutos.</h2>
+      <p>Sin tarjetas de crédito ocultas. Sin trucos de renovación.</p>
+      <a href="#" class="btn btn-xl">Empezar gratis →</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      © 2026 adbroll · Datos de <a href="https://kalodata.com" style="color: var(--brand-cyan);">Kalodata</a> · Hecho en México
+    </div>
+  </footer>
+
+  <script>
+    // Guion tab interactivity (prototype only)
+    document.querySelectorAll('.guion-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.guion-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+      });
+    });
+
+    // FAQ: details/summary is native, no JS needed
+  </script>
+</body>
+</html>
