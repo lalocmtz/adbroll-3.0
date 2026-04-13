@@ -62,6 +62,7 @@ export default {
             500: "var(--brand-pink-500)",
             600: "var(--brand-pink-600)",
             700: "var(--brand-pink-700)",
+            text: "var(--brand-pink-text)",
           },
           cyan: {
             DEFAULT: "var(--brand-cyan)",
@@ -89,6 +90,7 @@ export default {
           money: {
             DEFAULT: "var(--brand-money)",
             600: "var(--brand-money-600)",
+            text: "var(--brand-money-text)",
           },
           alert: "var(--brand-alert)",
         },

@@ -356,7 +356,7 @@ const Landing = () => {
       <section className="bg-brand-mist">
         <div className="mx-auto max-w-5xl px-[var(--page-pad-x)] py-20 md:py-28">
           <div className="mb-10 text-center">
-            <span className="text-micro uppercase text-brand-pink">
+            <span className="text-micro uppercase text-brand-pink-text">
               El dashboard
             </span>
             <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-brand-ink">
@@ -386,7 +386,7 @@ const Landing = () => {
                   key={row.rank}
                   className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-brand-mist-100"
                 >
-                  <div className="flex size-9 items-center justify-center rounded-button bg-brand-pink/10 font-mono text-sm font-bold text-brand-pink">
+                  <div className="flex size-9 items-center justify-center rounded-button bg-brand-pink/10 font-mono text-sm font-bold text-brand-pink-text">
                     #{row.rank}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -399,7 +399,7 @@ const Landing = () => {
                     <p className="font-mono tabular-nums text-sm font-bold">
                       {formatMXN(row.revenue)}
                     </p>
-                    <p className="text-[10px] text-brand-money">
+                    <p className="text-[10px] font-semibold text-brand-money-text">
                       ROAS {row.roas.toFixed(1)}x
                     </p>
                   </div>
@@ -473,7 +473,7 @@ const Landing = () => {
                     className={cn(
                       "rounded-button px-4 py-2 text-sm font-semibold transition-colors min-h-touch",
                       active
-                        ? "bg-brand-pink text-white shadow-brand-glow-pink"
+                        ? "bg-brand-pink-700 text-white shadow-brand-glow-pink"
                         : "bg-white/5 text-brand-mist/70 hover:bg-white/10",
                     )}
                   >
@@ -536,7 +536,7 @@ const Landing = () => {
       >
         <div className="mx-auto max-w-4xl px-[var(--page-pad-x)] py-20 md:py-28">
           <div className="mb-10 text-center">
-            <span className="text-micro uppercase text-brand-pink">Precio</span>
+            <span className="text-micro uppercase text-brand-pink-text">Precio</span>
             <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-brand-ink">
               Un plan. Un precio. Sin letra chica.
             </h2>
@@ -606,7 +606,7 @@ const Landing = () => {
       <section className="bg-brand-mist">
         <div className="mx-auto max-w-3xl px-[var(--page-pad-x)] py-20">
           <div className="mb-10 text-center">
-            <span className="text-micro uppercase text-brand-pink">FAQ</span>
+            <span className="text-micro uppercase text-brand-pink-text">FAQ</span>
             <h2 className="mt-3 text-display-md font-display font-extrabold tracking-tight text-brand-ink">
               Dudas frecuentes
             </h2>

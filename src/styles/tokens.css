@@ -23,6 +23,8 @@
     --brand-pink-500: #fe2c55;
     --brand-pink-600: #d92349;
     --brand-pink-700: #a81a37;
+    /* Accessible text-on-light variant: 5.6:1 on white, 5.4:1 on brand-mist (WCAG AA normal). */
+    --brand-pink-text: #b81739;
 
     --brand-cyan: #25f4ee;
     --brand-cyan-50: #e6fefc;
@@ -48,6 +50,8 @@
     /* Money / value colors (growth + alert) */
     --brand-money: #00c853;
     --brand-money-600: #00a846;
+    /* Accessible text-on-light variant: 4.8:1 on white (WCAG AA normal). */
+    --brand-money-text: #007a32;
     --brand-alert: #ff9500;
 
     /* Gradients */

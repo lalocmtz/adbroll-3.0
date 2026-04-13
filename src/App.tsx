@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,44 +12,53 @@ import { BlurGateProvider } from "@/contexts/BlurGateContext";
 import { Events, track, trackPageView } from "@/lib/analytics";
 import { captureAttribution } from "@/lib/attribution";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+// Landing is the first paint route — keep it eager so the hero renders immediately.
 import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Unlock from "./pages/Unlock";
-import Dashboard from "./pages/Dashboard";
-import Products from "./pages/Products";
-import Creators from "./pages/Creators";
-import Talent from "./pages/Talent";
-import Favorites from "./pages/Favorites";
-import Library from "./pages/Library";
-import Tools from "./pages/Tools";
-import Settings from "./pages/Settings";
-import Support from "./pages/Support";
-import Admin from "./pages/Admin";
-import RelatedVideos from "./pages/RelatedVideos";
-import Opportunities from "./pages/Opportunities";
-import Affiliates from "./pages/Affiliates";
-import FAQ from "./pages/FAQ";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import RefundPolicy from "./pages/RefundPolicy";
-import About from "./pages/About";
-import Pricing from "./pages/Pricing";
-import CheckoutSuccess from "./pages/CheckoutSuccess";
-import CheckoutCancel from "./pages/CheckoutCancel";
-import NotFound from "./pages/NotFound";
-import Campaigns from "./pages/Campaigns";
-import CampaignDetail from "./pages/CampaignDetail";
-import MySubmissions from "./pages/MySubmissions";
-import BrandDashboard from "./pages/brand/BrandDashboard";
-import BrandCampaigns from "./pages/brand/BrandCampaigns";
-import BrandSubmissions from "./pages/brand/BrandSubmissions";
-import BrandUpgrade from "./pages/brand/BrandUpgrade";
-import BrandRegister from "./pages/brand/BrandRegister";
-import CreatorProgram from "./pages/CreatorProgram";
-import Redeem from "./pages/Redeem";
-import VideoAttribution from "./pages/admin/VideoAttribution";
-import RecruitGDL from "./pages/RecruitGDL";
+
+// All other routes lazy-loaded so the landing payload stays small.
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Unlock = lazy(() => import("./pages/Unlock"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Products = lazy(() => import("./pages/Products"));
+const Creators = lazy(() => import("./pages/Creators"));
+const Talent = lazy(() => import("./pages/Talent"));
+const Favorites = lazy(() => import("./pages/Favorites"));
+const Library = lazy(() => import("./pages/Library"));
+const Tools = lazy(() => import("./pages/Tools"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Support = lazy(() => import("./pages/Support"));
+const Admin = lazy(() => import("./pages/Admin"));
+const RelatedVideos = lazy(() => import("./pages/RelatedVideos"));
+const Opportunities = lazy(() => import("./pages/Opportunities"));
+const Affiliates = lazy(() => import("./pages/Affiliates"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const About = lazy(() => import("./pages/About"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
+const CheckoutCancel = lazy(() => import("./pages/CheckoutCancel"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Campaigns = lazy(() => import("./pages/Campaigns"));
+const CampaignDetail = lazy(() => import("./pages/CampaignDetail"));
+const MySubmissions = lazy(() => import("./pages/MySubmissions"));
+const BrandDashboard = lazy(() => import("./pages/brand/BrandDashboard"));
+const BrandCampaigns = lazy(() => import("./pages/brand/BrandCampaigns"));
+const BrandSubmissions = lazy(() => import("./pages/brand/BrandSubmissions"));
+const BrandUpgrade = lazy(() => import("./pages/brand/BrandUpgrade"));
+const BrandRegister = lazy(() => import("./pages/brand/BrandRegister"));
+const CreatorProgram = lazy(() => import("./pages/CreatorProgram"));
+const Redeem = lazy(() => import("./pages/Redeem"));
+const VideoAttribution = lazy(() => import("./pages/admin/VideoAttribution"));
+const RecruitGDL = lazy(() => import("./pages/RecruitGDL"));
+
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="h-8 w-8 rounded-full border-2 border-brand-pink/30 border-t-brand-pink animate-spin" />
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -166,6 +175,7 @@ const App = () => {
               <BrowserRouter>
                 <PageTracker />
                 <BlurGateProvider>
+                <Suspense fallback={<RouteFallback />}>
                 <Routes>
                   {/* Public marketing landing (Variante E) */}
                   <Route path="/" element={<Landing />} />
@@ -394,6 +404,7 @@ const App = () => {
                   
                 <Route path="*" element={<NotFound />} />
                 </Routes>
+                </Suspense>
                 </BlurGateProvider>
               </BrowserRouter>
           </LanguageProvider>
