@@ -117,6 +117,8 @@ export type Database = {
           guion_ia: string | null
           id: string
           ingresos_mxn: number
+          last_import: string | null
+          matched_by: string | null
           product_id: string | null
           producto_nombre: string | null
           producto_url: string | null
@@ -124,6 +126,7 @@ export type Database = {
           ratio_ads: number | null
           roas: number
           tiktok_url: string
+          tiktok_video_id: string | null
           transcripcion_original: string | null
           ventas: number
           visualizaciones: number
@@ -143,6 +146,8 @@ export type Database = {
           guion_ia?: string | null
           id?: string
           ingresos_mxn: number
+          last_import?: string | null
+          matched_by?: string | null
           product_id?: string | null
           producto_nombre?: string | null
           producto_url?: string | null
@@ -150,6 +155,7 @@ export type Database = {
           ratio_ads?: number | null
           roas: number
           tiktok_url: string
+          tiktok_video_id?: string | null
           transcripcion_original?: string | null
           ventas: number
           visualizaciones: number
@@ -169,6 +175,8 @@ export type Database = {
           guion_ia?: string | null
           id?: string
           ingresos_mxn?: number
+          last_import?: string | null
+          matched_by?: string | null
           product_id?: string | null
           producto_nombre?: string | null
           producto_url?: string | null
@@ -176,6 +184,7 @@ export type Database = {
           ratio_ads?: number | null
           roas?: number
           tiktok_url?: string
+          tiktok_video_id?: string | null
           transcripcion_original?: string | null
           ventas?: number
           visualizaciones?: number
@@ -341,28 +350,46 @@ export type Database = {
         Row: {
           created_at: string | null
           creators_imported: number | null
+          detected_format: string | null
+          duration_ms: number | null
           file_name: string | null
           id: string
+          kind: string | null
+          matched_count: number | null
           products_imported: number | null
+          stub_count: number | null
           total_rows: number | null
+          unmatched_count: number | null
           videos_imported: number | null
         }
         Insert: {
           created_at?: string | null
           creators_imported?: number | null
+          detected_format?: string | null
+          duration_ms?: number | null
           file_name?: string | null
           id?: string
+          kind?: string | null
+          matched_count?: number | null
           products_imported?: number | null
+          stub_count?: number | null
           total_rows?: number | null
+          unmatched_count?: number | null
           videos_imported?: number | null
         }
         Update: {
           created_at?: string | null
           creators_imported?: number | null
+          detected_format?: string | null
+          duration_ms?: number | null
           file_name?: string | null
           id?: string
+          kind?: string | null
+          matched_count?: number | null
           products_imported?: number | null
+          stub_count?: number | null
           total_rows?: number | null
+          unmatched_count?: number | null
           videos_imported?: number | null
         }
         Relationships: []
@@ -374,6 +401,7 @@ export type Database = {
           created_at: string | null
           currency: string | null
           descripcion: string | null
+          from_video: boolean | null
           id: string
           imagen_url: string | null
           is_opportunity: boolean | null
@@ -383,10 +411,12 @@ export type Database = {
           producto_nombre: string
           producto_url: string | null
           promedio_roas: number | null
+          source: string | null
           tiktok_product_id: string | null
           total_ingresos_mxn: number | null
           total_ventas: number | null
           updated_at: string | null
+          video_count: number | null
         }
         Insert: {
           categoria?: string | null
@@ -394,6 +424,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           descripcion?: string | null
+          from_video?: boolean | null
           id?: string
           imagen_url?: string | null
           is_opportunity?: boolean | null
@@ -403,10 +434,12 @@ export type Database = {
           producto_nombre: string
           producto_url?: string | null
           promedio_roas?: number | null
+          source?: string | null
           tiktok_product_id?: string | null
           total_ingresos_mxn?: number | null
           total_ventas?: number | null
           updated_at?: string | null
+          video_count?: number | null
         }
         Update: {
           categoria?: string | null
@@ -414,6 +447,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           descripcion?: string | null
+          from_video?: boolean | null
           id?: string
           imagen_url?: string | null
           is_opportunity?: boolean | null
@@ -423,10 +457,12 @@ export type Database = {
           producto_nombre?: string
           producto_url?: string | null
           promedio_roas?: number | null
+          source?: string | null
           tiktok_product_id?: string | null
           total_ingresos_mxn?: number | null
           total_ventas?: number | null
           updated_at?: string | null
+          video_count?: number | null
         }
         Relationships: []
       }
@@ -557,6 +593,8 @@ export type Database = {
           creator_name: string | null
           id: string
           imported_at: string | null
+          last_import: string | null
+          matched_by: string | null
           product_id: string | null
           product_name: string | null
           product_price: number | null
@@ -566,6 +604,8 @@ export type Database = {
           revenue_mxn: number | null
           roas: number | null
           sales: number | null
+          source: string | null
+          tiktok_video_id: string | null
           title: string | null
           video_url: string
           views: number | null
@@ -577,6 +617,8 @@ export type Database = {
           creator_name?: string | null
           id?: string
           imported_at?: string | null
+          last_import?: string | null
+          matched_by?: string | null
           product_id?: string | null
           product_name?: string | null
           product_price?: number | null
@@ -586,6 +628,8 @@ export type Database = {
           revenue_mxn?: number | null
           roas?: number | null
           sales?: number | null
+          source?: string | null
+          tiktok_video_id?: string | null
           title?: string | null
           video_url: string
           views?: number | null
@@ -597,6 +641,8 @@ export type Database = {
           creator_name?: string | null
           id?: string
           imported_at?: string | null
+          last_import?: string | null
+          matched_by?: string | null
           product_id?: string | null
           product_name?: string | null
           product_price?: number | null
@@ -606,6 +652,8 @@ export type Database = {
           revenue_mxn?: number | null
           roas?: number | null
           sales?: number | null
+          source?: string | null
+          tiktok_video_id?: string | null
           title?: string | null
           video_url?: string
           views?: number | null

@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Database, ArrowLeft, Video, Package, Users, Plus, Trash2, Edit } from "lucide-react";
+import { Upload, Database, ArrowLeft, Video, Package, Users, Plus, Trash2, Edit, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DataQualityPanel } from "@/components/admin/DataQualityPanel";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -362,8 +363,12 @@ const Admin = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <Tabs defaultValue="videos" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="quality" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="quality">
+                <Activity className="h-4 w-4 mr-2" />
+                Calidad
+              </TabsTrigger>
               <TabsTrigger value="videos">
                 <Video className="h-4 w-4 mr-2" />
                 Videos
@@ -377,6 +382,11 @@ const Admin = () => {
                 Creadores
               </TabsTrigger>
             </TabsList>
+
+            {/* Data Quality Tab */}
+            <TabsContent value="quality" className="space-y-6">
+              <DataQualityPanel />
+            </TabsContent>
 
             {/* Videos Tab */}
             <TabsContent value="videos" className="space-y-6">
