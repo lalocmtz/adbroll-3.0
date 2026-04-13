@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Lock, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { StreakBadge } from "@/components/brand/StreakBadge";
 
 interface Video {
   id: string;
@@ -223,20 +224,26 @@ const Dashboard = () => {
       {/* Compact Mobile Hero Section - Dynamic Date */}
       <div className="mb-3 md:mb-4 py-1 md:py-0">
         <div className="md:hidden">
-          <h1 className="text-base font-bold text-foreground leading-tight">
-            🔥 Lo que vende HOY
-          </h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-base font-bold text-foreground leading-tight">
+              🔥 Lo que vende HOY
+            </h1>
+            {isLoggedIn && <StreakBadge days={3} compact />}
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {todayFormatted} · TikTok Shop {marketLabel}
           </p>
         </div>
-        
+
         {/* Desktop minimal header */}
         <div className="hidden md:flex md:items-center md:justify-between gap-2">
           <div>
-            <h1 className="text-lg font-bold text-foreground leading-tight">
-              🔥 Lo que vende HOY, {todayFormatted}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-bold text-foreground leading-tight">
+                🔥 Lo que vende HOY, {todayFormatted}
+              </h1>
+              {isLoggedIn && <StreakBadge days={3} />}
+            </div>
             <p className="text-xs text-muted-foreground">
               TikTok Shop {marketLabel} · Guiones y productos que generan $$$
             </p>
