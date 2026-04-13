@@ -28,48 +28,74 @@ const renderLanding = () =>
     </MemoryRouter>,
   );
 
-describe("Landing page (smoke)", () => {
-  it("renders the hero headline", () => {
+describe("Landing page (smoke) — Variante E", () => {
+  it("renders the narrative hero headline", () => {
+    renderLanding();
+    // Headline is split across inline spans; match the distinctive phrase.
+    expect(
+      screen.getByText(/Ana se despertó a las 6 am/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Susana ganó/i)).toBeInTheDocument();
+  });
+
+  it("shows the urgency chip and live GMV counter", () => {
     renderLanding();
     expect(
-      screen.getByText(/Deja de adivinar qué creativo sube/i),
+      screen.getByText(/50 % OFF · primeros 100 creadores/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Rastreado hoy en TikTok Shop México/i),
     ).toBeInTheDocument();
   });
 
-  it("shows the 4 trust stats", () => {
+  it("renders the Top 20 dashboard mock with at least 3 real rows", () => {
     renderLanding();
-    expect(screen.getByText(/Videos actualizados/i)).toBeInTheDocument();
-    expect(screen.getByText(/Datos verificados Kalodata/i)).toBeInTheDocument();
-    expect(screen.getByText(/ROAS promedio del top 20/i)).toBeInTheDocument();
-  });
-
-  it("renders all three hero video rows with MXN revenue", () => {
-    renderLanding();
-    // "Serum Vitamina C 30ml" appears in both the list row and the
-    // selected-video detail panel, so assert presence, not uniqueness.
-    expect(screen.getAllByText("Serum Vitamina C 30ml").length).toBeGreaterThan(0);
+    expect(screen.getByText("Serum Vitamina C 30ml")).toBeInTheDocument();
     expect(screen.getByText("Resistencia Pro Kit")).toBeInTheDocument();
     expect(
-      screen.getByText("Set de Sartenes Antiadherentes"),
+      screen.getByText("Sartenes Antiadherentes x5"),
     ).toBeInTheDocument();
   });
 
-  it("lets the user switch between hero videos", () => {
+  it("exposes the primary hero CTAs", () => {
     renderLanding();
-    // Second hero video switches the selected-video detail panel
-    fireEvent.click(screen.getByText("Resistencia Pro Kit"));
-    // The detail panel shows the label "Video seleccionado" above the
-    // product name — both should still be on screen after switching.
-    expect(screen.getAllByText("Resistencia Pro Kit").length).toBeGreaterThan(0);
-  });
-
-  it("exposes both primary CTAs in the hero", () => {
-    renderLanding();
-    const ctas = screen.getAllByRole("button", { name: /Crear cuenta gratis/i });
-    expect(ctas.length).toBeGreaterThanOrEqual(1);
+    // Hero: "Ver el Top 20 de hoy" and "Ya tengo cuenta"
     expect(
-      screen.getByRole("button", { name: /Ver demo en vivo/i }),
+      screen.getByRole("button", { name: /Ver el Top 20 de hoy/i }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Ya tengo cuenta/i }),
+    ).toBeInTheDocument();
+    // Top20 unlock CTA
+    expect(
+      screen.getByRole("button", { name: /Desbloquear los 20 videos/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the guion demo with three tab variants", () => {
+    renderLanding();
+    expect(screen.getByRole("tab", { name: /Transcrito/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /Optimizado IA/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Agresivo/i })).toBeInTheDocument();
+  });
+
+  it("switches guion variants when a tab is clicked", () => {
+    renderLanding();
+    // Agresivo tab surfaces a distinctive phrase not present in ia_optimizado.
+    fireEvent.click(screen.getByRole("tab", { name: /Agresivo/i }));
+    expect(
+      screen.getByText(/5 productos caros no pudieron/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders the pricing card with promo price and gated fine print", () => {
+    renderLanding();
+    expect(
+      screen.getByRole("button", { name: /Empezar por \$249 MXN/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Antes \$499 MXN · \$25 USD/i)).toBeInTheDocument();
   });
 
   it("renders the FAQ questions", () => {
@@ -77,6 +103,8 @@ describe("Landing page (smoke)", () => {
     expect(
       screen.getByText(/¿De dónde vienen los datos\?/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/¿Puedo cancelar cuando quiera\?/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/¿Puedo cancelar cuando quiera\?/i),
+    ).toBeInTheDocument();
   });
 });
