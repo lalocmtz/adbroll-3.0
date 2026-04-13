@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { trackPurchase } from "@/lib/analytics";
+import { trackPurchase, track, Events } from "@/lib/analytics";
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -51,9 +51,26 @@ const CheckoutSuccess = () => {
       if (checkoutValue) {
         const value = parseFloat(checkoutValue);
         trackPurchase(value, "USD", sessionId, checkoutEmail || undefined, checkoutPlan || undefined);
+        // Typed SubscriptionActivated event for PostHog funnel alongside
+        // the Meta Pixel Purchase event above. Keeps Track 3 event
+        // contract intact (top20 + guion + trial + subscription).
+        track(Events.SubscriptionActivated, {
+          plan: checkoutPlan || undefined,
+          value,
+          currency: "USD",
+          transaction_id: sessionId,
+          email: checkoutEmail || undefined,
+        });
       } else {
         // Default to pro price if no stored value
         trackPurchase(25, "USD", sessionId, checkoutEmail || undefined, checkoutPlan || "Adbroll Pro");
+        track(Events.SubscriptionActivated, {
+          plan: checkoutPlan || "Adbroll Pro",
+          value: 25,
+          currency: "USD",
+          transaction_id: sessionId,
+          email: checkoutEmail || undefined,
+        });
       }
     }
     

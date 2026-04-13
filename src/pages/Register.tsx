@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Gift, Loader2, X } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
-import { trackSignUp } from "@/lib/analytics";
+import { trackSignUp, track, Events } from "@/lib/analytics";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -163,6 +163,14 @@ const Register = () => {
 
       // Track CompleteRegistration event for Meta Pixel
       trackSignUp("email", result.data.email);
+
+      // Trial starts immediately on signup in this product — fire typed
+      // TrialStarted event so PostHog/PostHog-funnel dashboards can track
+      // the activation loop (trial → top20 → guion → subscription).
+      track(Events.TrialStarted, {
+        method: "email",
+        email: result.data.email,
+      });
 
       toast({
         title: "¡Cuenta creada!",

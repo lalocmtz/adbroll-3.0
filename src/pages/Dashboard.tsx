@@ -15,6 +15,8 @@ import { Lock, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { StreakBadge } from "@/components/brand/StreakBadge";
+import { VariantResearchCard } from "@/components/research/VariantResearchCard";
+import { Events, track } from "@/lib/analytics";
 
 interface Video {
   id: string;
@@ -189,10 +191,22 @@ const Dashboard = () => {
       const paginatedData = filteredData.slice(from, to + 1);
       setVideos(paginatedData);
       // Use the real count (backend count for non-category filter, or filtered length)
-      const realCount = selectedCategory && selectedCategory !== "all" 
-        ? filteredData.length 
+      const realCount = selectedCategory && selectedCategory !== "all"
+        ? filteredData.length
         : (count || filteredData.length);
       setTotalCount(realCount);
+
+      track(Events.Top20Loaded, {
+        count: paginatedData.length,
+        total: realCount,
+        page,
+        sort_order: sortOrder,
+        category: selectedCategory,
+        market,
+        product_filter: productFilter,
+        creator_filter: creatorFilter,
+        logged_in: isLoggedIn,
+      });
     } catch (error: any) {
       toast({
         title: "Error al cargar videos",
@@ -317,8 +331,23 @@ const Dashboard = () => {
           const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
           const isFreePreview = !isLoggedIn && globalIndex < FREE_PREVIEW_LIMIT;
           const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+
+          const handleRowClick = () => {
+            track(Events.Top20RowClicked, {
+              video_id: video.id,
+              product_id: video.product_id,
+              product_name: video.product_name,
+              creator_handle: video.creator_handle,
+              rank: globalIndex + 1,
+              revenue_mxn: video.revenue_mxn,
+              locked: isLocked,
+              logged_in: isLoggedIn,
+            });
+          };
+
           if (isLocked) {
             return <div key={video.id} className="relative cursor-pointer group" onClick={() => {
+              handleRowClick();
               navigate("/unlock");
               window.scrollTo({
                 top: 0,
@@ -336,9 +365,18 @@ const Dashboard = () => {
                     </div>
                   </div>;
           }
-          return <VideoCardOriginal key={video.id} video={video} ranking={globalIndex + 1} isFreePreview={isFreePreview} />;
+          return <div key={video.id} onClickCapture={handleRowClick}>
+            <VideoCardOriginal video={video} ranking={globalIndex + 1} isFreePreview={isFreePreview} />
+          </div>;
         })}
           </div>
+
+          {/* Variant research prompt — shown once per session after the grid */}
+          {isLoggedIn && videos.length >= 6 && (
+            <div className="mt-8 mb-4 max-w-2xl mx-auto">
+              <VariantResearchCard context="dashboard_inline" />
+            </div>
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && <div className="mt-6 mb-16 md:mb-0">
