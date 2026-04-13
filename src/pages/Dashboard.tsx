@@ -1,322 +1,366 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import VideoCard from "@/components/VideoCard";
+import VideoCardOriginal from "@/components/VideoCardOriginal";
 import { useToast } from "@/hooks/use-toast";
-import DashboardNav from "@/components/DashboardNav";
-import GlobalHeader from "@/components/GlobalHeader";
-import FilterSidebar from "@/components/FilterSidebar";
-import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useMarket } from "@/contexts/MarketContext";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
+import { FilterPills, DataSubtitle } from "@/components/FilterPills";
+import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter } from "lucide-react";
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
-  PaginationLink, 
-  PaginationNext, 
-  PaginationPrevious 
-} from "@/components/ui/pagination";
+import { Lock, Sparkles } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface Video {
   id: string;
-  tiktok_url: string;
-  descripcion_video: string;
-  creador: string;
-  producto_nombre: string | null;
-  producto_url: string | null;
+  video_url: string;
+  video_mp4_url: string | null;
+  thumbnail_url: string | null;
+  title: string | null;
+  creator_name: string | null;
+  creator_handle: string | null;
+  creator_id: string | null;
+  product_name: string | null;
   product_id: string | null;
-  ventas: number;
-  ingresos_mxn: number;
-  visualizaciones: number;
+  sales: number | null;
+  revenue_mxn: number | null;
+  views: number | null;
   roas: number | null;
-  cpa_mxn: number;
-  duracion: string;
-  fecha_publicacion: string;
-  transcripcion_original: string | null;
-  guion_ia: string | null;
   category: string | null;
   country: string | null;
-  product_price: number | null;
-  product_sales: number | null;
-  product_revenue: number | null;
-  created_at: string | null;
+  rank: number | null;
+  imported_at: string | null;
+  transcript: string | null;
+  analysis_json: any;
+  variants_json: any;
+  processing_status: string | null;
+  // Joined product data
+  product?: {
+    id: string;
+    producto_nombre: string;
+    imagen_url: string | null;
+    total_ingresos_mxn: number | null;
+    commission: number | null;
+    price: number | null;
+    precio_mxn: number | null;
+    categoria: string | null;
+    revenue_30d: number | null;
+    producto_url: string | null;
+  } | null;
 }
-
+const SORT_OPTIONS = [{
+  value: "rank",
+  label: "Ranking actual"
+}, {
+  value: "revenue",
+  label: "Más ingresos"
+}, {
+  value: "sales",
+  label: "Más ventas"
+}, {
+  value: "views",
+  label: "Más vistas"
+}, {
+  value: "earnings",
+  label: "Ganancias estimadas"
+}];
 const Dashboard = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<string>("rank");
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedDate, setSelectedDate] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<"sales" | "revenue">("revenue");
-  const [filterSidebarOpen, setFilterSidebarOpen] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
+  const {
+    t
+  } = useLanguage();
+  const {
+    market
+  } = useMarket();
+  const {
+    isLoggedIn
+  } = useBlurGateContext();
   const [searchParams] = useSearchParams();
   const productFilter = searchParams.get("productName");
   const creatorFilter = searchParams.get("creator");
-  
   const ITEMS_PER_PAGE = 20;
-  const MAX_VIDEOS = 100;
+  const FREE_PREVIEW_LIMIT = 10; // Videos visitors can see without blur
 
   useEffect(() => {
     fetchCategories();
-  }, []);
-
+  }, [market]);
   useEffect(() => {
     setCurrentPage(1);
-    fetchVideos(1);
-  }, [productFilter, creatorFilter, selectedCategory, selectedDate, sortOrder]);
-
+  }, [productFilter, creatorFilter, sortOrder, selectedCategory, market]);
   useEffect(() => {
     fetchVideos(currentPage);
-  }, [currentPage]);
-
+  }, [currentPage, sortOrder, selectedCategory, productFilter, creatorFilter, market]);
   const fetchCategories = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("daily_feed")
-        .select("category")
-        .not("category", "is", null);
-
-      if (error) throw error;
-
-      const uniqueCategories = Array.from(
-        new Set(data?.map((item) => item.category).filter(Boolean))
-      ) as string[];
-
+    const {
+      data
+    } = await supabase.from("products").select("categoria").eq("market", market).not("categoria", "is", null);
+    if (data) {
+      const uniqueCategories = [...new Set(data.map(p => p.categoria).filter(Boolean))] as string[];
       setCategories(uniqueCategories.sort());
-    } catch (error: any) {
-      console.error("Error loading categories:", error.message);
     }
   };
-
   const fetchVideos = async (page: number) => {
     try {
       setLoading(true);
-
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
-      const primarySort = sortOrder === "sales" ? "ventas" : "ingresos_mxn";
-      const secondarySort = sortOrder === "sales" ? "ingresos_mxn" : "ventas";
+      // Use JOIN to get product data
+      // ONLY show videos that are COMPLETE (downloaded AND have product assigned)
+      // Filter by market/country (using lowercase: 'mx' or 'us')
+      let query = supabase.from("videos").select(`
+          *,
+          product:products (
+            id,
+            producto_nombre,
+            imagen_url,
+            total_ingresos_mxn,
+            commission,
+            price,
+            precio_mxn,
+            categoria,
+            revenue_30d,
+            producto_url
+          )
+        `, {
+        count: "exact"
+      }).not("video_mp4_url", "is", null) // Must be downloaded
+      .not("product_id", "is", null) // Must have product assigned
+      .eq("country", market); // Filter by market (lowercase 'mx' or 'us')
 
-      let query = supabase
-        .from("daily_feed")
-        .select("*", { count: "exact" })
-        .order(primarySort, { ascending: false })
-        .order(secondarySort, { ascending: false })
-        .range(from, to);
-
-      if (selectedCategory !== "all") {
-        query = query.eq("category", selectedCategory);
+      // Apply sorting first (before category filter which happens client-side)
+      if (sortOrder === "rank") {
+        // Only show videos with current rank (from latest Kalodata import)
+        query = query.not("rank", "is", null).order("rank", {
+          ascending: true
+        });
+      } else if (sortOrder === "revenue") {
+        query = query.order("revenue_mxn", {
+          ascending: false
+        });
+      } else if (sortOrder === "sales") {
+        query = query.order("sales", {
+          ascending: false
+        });
+      } else if (sortOrder === "views") {
+        query = query.order("views", {
+          ascending: false
+        });
+      } else if (sortOrder === "earnings") {
+        query = query.order("revenue_mxn", {
+          ascending: false
+        });
       }
-
       if (productFilter) {
-        query = query.ilike("producto_nombre", `%${productFilter}%`);
+        query = query.ilike("product_name", `%${productFilter}%`);
       }
-
       if (creatorFilter) {
-        query = query.ilike("creador", `%${creatorFilter}%`);
+        query = query.or(`creator_name.ilike.%${creatorFilter}%,creator_handle.ilike.%${creatorFilter}%`);
       }
-
-      const { data, error, count } = await query;
-
+      const {
+        data,
+        error,
+        count
+      } = await query;
       if (error) throw error;
 
-      setVideos((data ?? []) as Video[]);
-      setTotalCount(Math.min(count || 0, MAX_VIDEOS));
+      // Filter by category client-side (since category is in the joined product)
+      let filteredData = data || [];
+      if (selectedCategory && selectedCategory !== "all") {
+        filteredData = filteredData.filter(v => v.product?.categoria === selectedCategory);
+      }
+
+      // Apply pagination after filtering
+      const paginatedData = filteredData.slice(from, to + 1);
+      setVideos(paginatedData);
+      // Use the real count (backend count for non-category filter, or filtered length)
+      const realCount = selectedCategory && selectedCategory !== "all" 
+        ? filteredData.length 
+        : (count || filteredData.length);
+      setTotalCount(realCount);
     } catch (error: any) {
       toast({
         title: "Error al cargar videos",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Cargando videos...</p>
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">{t("loadingVideos")}</p>
+      </div>;
   }
-
-  const totalPages = Math.min(Math.ceil(totalCount / ITEMS_PER_PAGE), 5);
-
+  // Remove artificial 5-page limit - show all pages
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
   };
-
-  const activeFilterCount = 
-    (selectedCategory !== "all" ? 1 : 0) + 
-    (selectedDate !== "all" ? 1 : 0);
-
-  const PaginationComponent = () => (
-    <Pagination>
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious 
-            onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-          />
-        </PaginationItem>
-        
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-          <PaginationItem key={page}>
-            <PaginationLink
-              onClick={() => handlePageChange(page)}
-              isActive={currentPage === page}
-              className="cursor-pointer"
-            >
-              {page}
-            </PaginationLink>
-          </PaginationItem>
-        ))}
-        
-        <PaginationItem>
-          <PaginationNext 
-            onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
-            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  );
-
-  return (
-    <div className="min-h-screen bg-background">
-      <GlobalHeader />
-      <DashboardNav />
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 md:px-6 py-2 max-w-7xl">
-        {/* Compact Header - Single Row */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
-          <h1 className="text-2xl md:text-3xl font-bold">
-            {productFilter 
-              ? `Videos de: ${productFilter}` 
-              : creatorFilter 
-              ? `Videos de @${creatorFilter}`
-              : "Top 100 Videos de TikTok Shop México"}
+  const marketLabel = market === 'mx' ? 'México' : 'Estados Unidos';
+  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: es });
+  
+  return <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
+      {/* Compact Mobile Hero Section - Dynamic Date */}
+      <div className="mb-3 md:mb-4 py-1 md:py-0">
+        <div className="md:hidden">
+          <h1 className="text-base font-bold text-foreground leading-tight">
+            🔥 Lo que vende HOY
           </h1>
-
-          <div className="flex items-center gap-3">
-            {/* Sort Selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium hidden md:inline">Ordenar:</span>
-              <Select value={sortOrder} onValueChange={(value: "sales" | "revenue") => setSortOrder(value)}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="revenue">Más ingresos</SelectItem>
-                  <SelectItem value="sales">Más ventas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filter Button */}
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => setFilterSidebarOpen(true)}
-              className="gap-2"
-            >
-              <Filter className="h-4 w-4" />
-              Filtros
-              {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
-          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {todayFormatted} · TikTok Shop {marketLabel}
+          </p>
         </div>
-
-        {(productFilter || creatorFilter) && (
-          <div className="mb-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/app")}
-            >
-              Ver todos los videos
-            </Button>
-          </div>
-        )}
-
-        {videos.length === 0 ? (
-          <Card className="p-12 text-center">
-            <p className="text-muted-foreground text-lg">
-              {productFilter
-                ? `No se encontraron videos relacionados con "${productFilter}"`
-                : creatorFilter
-                ? `No se encontraron videos de @${creatorFilter}`
-                : "No hay videos disponibles. El fundador subirá datos pronto."}
+        
+        {/* Desktop minimal header */}
+        <div className="hidden md:flex md:items-center md:justify-between gap-2">
+          <div>
+            <h1 className="text-lg font-bold text-foreground leading-tight">
+              🔥 Lo que vende HOY, {todayFormatted}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              TikTok Shop {marketLabel} · Guiones y productos que generan $$$
             </p>
-          </Card>
-        ) : (
-          <>
-            {/* Pagination Info and Controls - TOP */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-              <p className="text-sm text-muted-foreground">
-                Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} de {Math.min(totalCount, MAX_VIDEOS)} videos
-              </p>
-              {totalPages > 1 && (
-                <div className="flex justify-center sm:justify-end">
-                  <PaginationComponent />
-                </div>
-              )}
-            </div>
+          </div>
+          {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
+              ← Ver todos
+            </Button>}
+        </div>
+        
+        {/* Mobile back button */}
+        {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7 md:hidden">
+            ← Ver todos
+          </Button>}
+      </div>
 
-            {/* Video Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
-              {videos.map((video, index) => (
-                <VideoCard
-                  key={video.id}
-                  video={video}
-                  ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
-                />
-              ))}
-            </div>
+      {/* Filter Pills - Compact horizontal scrollable on mobile */}
+      <div className="mb-4 md:mb-6">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
+          {!isLoggedIn ? <div className="flex gap-1.5 opacity-60 cursor-pointer flex-wrap" onClick={() => {
+          navigate("/unlock");
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        }}>
+              {SORT_OPTIONS.map((option, i) => <span key={option.value} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[11px] md:text-xs font-medium h-7 md:h-8 flex items-center gap-1 whitespace-nowrap ${i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"}`}>
+                  <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
+                  {option.label}
+                </span>)}
+            </div> : <FilterPills options={SORT_OPTIONS} value={sortOrder} onChange={setSortOrder} />}
+          
+          {/* Category Dropdown - Locked for visitors */}
+          {!isLoggedIn ? <div className="h-7 md:h-8 px-2.5 md:px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1 text-[11px] md:text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap flex-shrink-0" onClick={() => {
+          navigate("/unlock");
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        }}>
+              <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
+              Categorías
+            </div> : <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="h-7 md:h-8 w-auto min-w-[100px] md:min-w-[120px] text-[11px] md:text-xs rounded-full border-border/50 bg-muted/60 flex-shrink-0">
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Categorías</SelectItem>
+                {categories.map(cat => <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>)}
+              </SelectContent>
+            </Select>}
+        </div>
+        
+        <span className="text-[11px] text-muted-foreground block mt-1.5 md:hidden">
+          {totalCount} videos
+        </span>
+        <span className="text-xs text-muted-foreground hidden md:block mt-2">
+          {totalCount} videos
+        </span>
+      </div>
 
-            {/* Pagination - BOTTOM */}
-            {totalPages > 1 && (
-              <div className="mt-8 mb-4 flex justify-center">
-                <PaginationComponent />
-              </div>
-            )}
-          </>
-        )}
+      {videos.length === 0 ? <Card className="p-12 text-center">
+          <p className="text-muted-foreground text-lg">
+            {productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos disponibles."}
+          </p>
+        </Card> : <>
+          {/* Video Grid - 2 columns on mobile */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-5">
+            {videos.map((video, index) => {
+          const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
+          const isFreePreview = !isLoggedIn && globalIndex < FREE_PREVIEW_LIMIT;
+          const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+          if (isLocked) {
+            return <div key={video.id} className="relative cursor-pointer group" onClick={() => {
+              navigate("/unlock");
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+            }}>
+                    <div className="blur-[2px] pointer-events-none">
+                      <VideoCardOriginal video={video} ranking={globalIndex + 1} />
+                    </div>
+                    <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-xl">
+                      <div className="text-center p-4">
+                        <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-sm font-medium text-foreground">Desbloquear</p>
+                      </div>
+                    </div>
+                  </div>;
+          }
+          return <VideoCardOriginal key={video.id} video={video} ranking={globalIndex + 1} isFreePreview={isFreePreview} />;
+        })}
+          </div>
 
-        {/* Filter Sidebar */}
-        <FilterSidebar
-          open={filterSidebarOpen}
-          onOpenChange={setFilterSidebarOpen}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          categories={categories}
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-        />
-      </main>
-    </div>
-  );
+          {/* Pagination */}
+          {totalPages > 1 && <div className="mt-6 mb-16 md:mb-0">
+              {!isLoggedIn ? <div className="flex items-center justify-center gap-2 opacity-60 cursor-pointer" onClick={() => {
+          navigate("/unlock");
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        }}>
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Ver más videos</span>
+                </div> : <CompactPagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />}
+            </div>}
+        </>}
+
+      {/* Sticky CTA for visitors - Mobile only */}
+      {!isLoggedIn && <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
+          <Button className="w-full h-12 text-sm font-semibold shadow-lg" onClick={() => {
+        navigate("/unlock");
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Desbloquear acceso completo 
+          </Button>
+        </div>}
+    </div>;
 };
-
 export default Dashboard;

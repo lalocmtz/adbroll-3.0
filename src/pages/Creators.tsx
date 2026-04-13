@@ -1,200 +1,746 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { LogOut, Users, TrendingUp, DollarSign, Video } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Users, ExternalLink, Flame, Heart, Play, Lock, Sparkles, Video, Radio, ShoppingBag, Eye, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import DashboardNav from "@/components/DashboardNav";
-import GlobalHeader from "@/components/GlobalHeader";
 import { useToast } from "@/hooks/use-toast";
+import { FilterPills } from "@/components/FilterPills";
+import { CompactPagination } from "@/components/CompactPagination";
+import { openTikTokLink } from "@/lib/tiktokDeepLink";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
+import { useMarket } from "@/contexts/MarketContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { format } from "date-fns";
+import { es, enUS } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface Creator {
   id: string;
   usuario_creador: string;
   nombre_completo: string | null;
+  creator_handle: string | null;
   seguidores: number | null;
   total_ingresos_mxn: number | null;
-  total_ventas: number | null;
-  total_videos: number | null;
-  promedio_roas: number | null;
   promedio_visualizaciones: number | null;
-  mejor_video_url: string | null;
-  created_at: string | null;
+  avatar_url: string | null;
+  avatar_storage_url: string | null;
+  total_live_count: number | null;
+  gmv_live_mxn: number | null;
+  revenue_live: number | null;
+  revenue_videos: number | null;
+  tiktok_url: string | null;
+  country: string | null;
+  total_videos: number | null;
+  total_ventas: number | null;
+  views_30d: number | null;
+  sales_30d: number | null;
+  likes_30d: number | null;
 }
 
+type SortOption = "revenue" | "followers" | "views" | "lives" | "gmv_live" | "gmv_videos";
+
+const SORT_OPTIONS = [
+  { value: "revenue", label: "Más GMV" },
+  { value: "followers", label: "Más seguidores" },
+  { value: "gmv_videos", label: "Más GMV videos" },
+  { value: "gmv_live", label: "Más GMV lives" },
+  { value: "lives", label: "Más lives" },
+  { value: "views", label: "Más vistas" },
+];
+
+const ITEMS_PER_PAGE = 20;
+const FREE_PREVIEW_LIMIT = 3;
+
 const Creators = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { isLoggedIn } = useBlurGateContext();
+  const { market, marketLabel } = useMarket();
+  const { language } = useLanguage();
   const [creators, setCreators] = useState<Creator[]>([]);
+  const [sortedCreators, setSortedCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("revenue");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+
+  const handleImageError = (creatorId: string) => {
+    setImageErrors(prev => new Set(prev).add(creatorId));
+  };
 
   useEffect(() => {
     fetchCreators();
-  }, []);
+    fetchFavorites();
+  }, [market]);
+
+  useEffect(() => {
+    applySorting();
+    setCurrentPage(1);
+  }, [creators, sortBy]);
 
   const fetchCreators = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from("creators")
         .select("*")
-        .order("total_ingresos_mxn", { ascending: false });
+        .eq("country", market)
+        .not("last_imported_from_kalodata_at", "is", null)
+        .order("total_ingresos_mxn", { ascending: false })
+        .limit(100);
 
       if (error) throw error;
-
-      setCreators(data || []);
       
-      if (data && data.length > 0 && data[0].created_at) {
-        setLastUpdate(new Date(data[0].created_at));
-      }
+      setCreators(data || []);
     } catch (error: any) {
       toast({
         title: "Error al cargar creadores",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
-  };
+  const fetchFavorites = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-  const handleViewCreatorVideos = (creatorId: string) => {
-    navigate(`/videos/creator/${creatorId}`);
-  };
+    const { data } = await supabase
+      .from("favorites")
+      .select("item_id")
+      .eq("user_id", user.id)
+      .eq("item_type", "creator");
 
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null) return "N/A";
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatNumber = (num: number | null) => {
-    if (num === null) return "N/A";
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + "M";
+    if (data) {
+      setFavorites(new Set(data.map(f => f.item_id)));
     }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + "k";
+  };
+
+  const toggleFavorite = async (creatorId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast({ title: "Inicia sesión", description: "Debes iniciar sesión para guardar favoritos" });
+      navigate("/login");
+      return;
     }
-    return new Intl.NumberFormat("es-MX").format(num);
+
+    const isFav = favorites.has(creatorId);
+    
+    try {
+      if (isFav) {
+        const { error } = await supabase
+          .from("favorites")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("item_type", "creator")
+          .eq("item_id", creatorId);
+        if (error) throw error;
+        
+        setFavorites(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(creatorId);
+          return newSet;
+        });
+        toast({ title: "✓ Eliminado de favoritos" });
+      } else {
+        const { error } = await supabase
+          .from("favorites")
+          .insert({
+            user_id: user.id,
+            item_type: "creator",
+            item_id: creatorId,
+          });
+        if (error) throw error;
+        
+        setFavorites(prev => new Set([...prev, creatorId]));
+        toast({ title: "✓ Guardado en favoritos" });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const applySorting = () => {
+    const result = [...creators].sort((a, b) => {
+      switch (sortBy) {
+        case "revenue":
+          return (b.total_ingresos_mxn || 0) - (a.total_ingresos_mxn || 0);
+        case "followers":
+          return (b.seguidores || 0) - (a.seguidores || 0);
+        case "views":
+          return (b.promedio_visualizaciones || 0) - (a.promedio_visualizaciones || 0);
+        case "lives":
+          return (b.total_live_count || 0) - (a.total_live_count || 0);
+        case "gmv_live":
+          return (b.gmv_live_mxn || 0) - (a.gmv_live_mxn || 0);
+        case "gmv_videos":
+          return (b.revenue_videos || 0) - (a.revenue_videos || 0);
+        default:
+          return 0;
+      }
+    });
+    setSortedCreators(result);
+  };
+
+  const formatNumber = (num: number | null | undefined): string => {
+    if (num === null || num === undefined || num === 0) return "—";
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return new Intl.NumberFormat("es-MX").format(Math.round(num));
+  };
+
+  const formatCurrency = (amount: number | null | undefined): string => {
+    if (amount === null || amount === undefined || amount === 0) return "—";
+    if (amount >= 1000000) return `$${(amount / 1000000).toFixed(2)}M`;
+    if (amount >= 1000) return `$${(amount / 1000).toFixed(1)}K`;
+    return `$${new Intl.NumberFormat("es-MX").format(Math.round(amount))}`;
+  };
+
+  const calculateEstimatedEarnings = (revenue: number | null): string => {
+    if (!revenue || revenue === 0) return "—";
+    const commission = revenue * 0.08;
+    return formatCurrency(commission);
+  };
+
+  // Calculate video percentage of total GMV
+  const getVideoPercentage = (creator: Creator): number => {
+    const total = creator.total_ingresos_mxn || 0;
+    if (total === 0) return 0;
+    const videoRevenue = creator.revenue_videos || 0;
+    return Math.round((videoRevenue / total) * 100);
+  };
+
+  // Calculate live percentage of total GMV
+  const getLivePercentage = (creator: Creator): number => {
+    const total = creator.total_ingresos_mxn || 0;
+    if (total === 0) return 0;
+    const liveRevenue = creator.gmv_live_mxn || 0;
+    return Math.round((liveRevenue / total) * 100);
+  };
+
+  // Get GMV per live
+  const getGmvPerLive = (creator: Creator): string => {
+    const lives = creator.total_live_count || 0;
+    const gmv = creator.gmv_live_mxn || 0;
+    if (lives === 0 || gmv === 0) return "—";
+    return formatCurrency(gmv / lives);
+  };
+
+  const getReliableAvatarUrl = (creator: Creator): string => {
+    // 1. Priority: Use permanently stored avatar from our storage
+    if (creator.avatar_storage_url && creator.avatar_storage_url.length > 0) {
+      return creator.avatar_storage_url;
+    }
+    
+    // 2. Fallback to TikTok CDN (may fail due to CORS/expired tokens)
+    if (creator.avatar_url && creator.avatar_url.length > 0 && !imageErrors.has(creator.id)) {
+      return creator.avatar_url;
+    }
+    
+    // 3. Last resort: UI Avatars with initials
+    const name = encodeURIComponent(creator.nombre_completo || creator.usuario_creador);
+    return `https://ui-avatars.com/api/?name=${name}&background=F31260&color=fff&bold=true&size=128&format=svg`;
+  };
+
+  const getTikTokUrl = (creator: Creator): string | null => {
+    if (creator.tiktok_url) return creator.tiktok_url;
+    const handle = creator.creator_handle || creator.usuario_creador;
+    if (handle) return `https://www.tiktok.com/@${handle.replace("@", "")}`;
+    return null;
+  };
+
+  const getInitials = (name: string | null, handle: string): string => {
+    if (name) {
+      const parts = name.split(" ");
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return name.substring(0, 2).toUpperCase();
+    }
+    return handle.substring(0, 2).toUpperCase();
+  };
+
+  const isTop5 = (index: number): boolean => index < 5;
+
+  const totalPages = Math.ceil(sortedCreators.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedCreators = sortedCreators.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRowClick = (creator: Creator, isLocked: boolean) => {
+    if (isLocked || !isLoggedIn) {
+      navigate("/unlock");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    navigate(`/videos/creator/${creator.id}`);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <p className="text-muted-foreground">Cargando creadores...</p>
       </div>
     );
   }
 
+  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: language === 'es' ? es : enUS });
+
   return (
-    <div className="min-h-screen bg-background">
-      <GlobalHeader />
-      <DashboardNav />
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            Creadores TikTok Shop México
+    <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
+      {/* Header Section */}
+      <div className="mb-3 md:mb-4 py-1 md:py-0">
+        <div className="md:hidden">
+          <h1 className="text-base font-bold text-foreground leading-tight">
+            📊 {language === "es" ? "Ranking de Creadores" : "Creator Rankings"}
           </h1>
-          <p className="text-lg text-muted-foreground mb-4">
-            Top creadores con mejores resultados
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {todayFormatted} · TikTok Shop {marketLabel}
           </p>
-          <Badge variant="secondary" className="mt-2">
-            {creators.length} creadores encontrados
-          </Badge>
         </div>
+        
+        <div className="hidden md:block">
+          <h1 className="text-lg font-bold text-foreground leading-tight">
+            📊 {language === "es" ? "Ranking de Creadores" : "Creator Rankings"} · {todayFormatted}
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            {language === "es" 
+              ? `TikTok Shop ${marketLabel} · Descubre qué creadores están vendiendo más HOY`
+              : `TikTok Shop ${marketLabel} · Discover which creators are selling the most TODAY`}
+          </p>
+        </div>
+      </div>
 
-        {creators.length === 0 ? (
-          <Card className="p-12 text-center">
-            <Users className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
-            <p className="text-muted-foreground text-lg">
-              No hay creadores disponibles. Sube un archivo desde el panel de administración.
-            </p>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {creators.map((creator, index) => (
-              <Card key={creator.id} className="card-premium">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Avatar className="h-12 w-12 border-2 border-primary/20">
-                          <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
-                            {creator.usuario_creador.substring(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-lg line-clamp-1">
-                            {creator.nombre_completo || creator.usuario_creador}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            @{creator.usuario_creador}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <Badge className="shrink-0">#{index + 1}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                      <div className="flex items-center gap-2 mb-1">
-                        <DollarSign className="h-4 w-4 text-primary" />
-                        <span className="text-xs text-muted-foreground">Revenue</span>
-                      </div>
-                      <p className="text-base font-bold text-success">
-                        {formatCurrency(creator.total_ingresos_mxn)}
-                      </p>
-                    </div>
+      {/* Filter Pills */}
+      <div className="mb-4 md:mb-6">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
+          {!isLoggedIn ? (
+            <div 
+              className="flex gap-1.5 flex-wrap"
+              onClick={() => {
+                navigate("/unlock");
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              {SORT_OPTIONS.map((option, i) => (
+                <span
+                  key={option.value}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 whitespace-nowrap ${
+                    i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
+                  }`}
+                >
+                  <Lock className="h-3 w-3" />
+                  {option.label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <FilterPills
+              options={SORT_OPTIONS}
+              value={sortBy}
+              onChange={(v) => setSortBy(v as SortOption)}
+            />
+          )}
+        </div>
+        
+        <span className="text-[11px] text-muted-foreground block mt-1.5">
+          {sortedCreators.length} creadores
+        </span>
+      </div>
 
-                    <div className="p-3 rounded-lg bg-muted">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Users className="h-4 w-4 text-foreground" />
-                        <span className="text-xs text-muted-foreground">Seguidores</span>
+      {sortedCreators.length === 0 ? (
+        <div className="bg-card rounded-xl border border-border p-12 text-center">
+          <Users className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
+          <p className="text-muted-foreground text-lg">
+            No hay creadores disponibles.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Desktop Table - Enhanced with horizontal scroll */}
+          <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table className="min-w-[1100px]">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
+                    <TableHead className="w-12 text-center sticky left-0 bg-muted/30">#</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                    <TableHead className="min-w-[260px]">Creador</TableHead>
+                    <TableHead className="text-right">Seguidores</TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <TrendingUp className="h-3 w-3 text-emerald-500" />
+                        GMV Total
                       </div>
-                      <p className="text-base font-bold text-foreground">
-                        {formatNumber(creator.seguidores)}
-                      </p>
-                    </div>
-
-                    <div className="p-3 rounded-lg bg-muted col-span-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Video className="h-4 w-4 text-foreground" />
-                        <span className="text-xs text-muted-foreground">Videos</span>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <ShoppingBag className="h-3 w-3 text-amber-500" />
+                        Ganancias Est.
                       </div>
-                      <p className="text-base font-bold text-foreground">
-                        {creator.total_videos ?? "N/A"}
-                      </p>
-                    </div>
-                  </div>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Video className="h-3 w-3 text-blue-500" />
+                        GMV Videos
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Radio className="h-3 w-3 text-rose-500" />
+                        GMV Lives
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">Lives</TableHead>
+                    <TableHead className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Eye className="h-3 w-3" />
+                        Vistas
+                      </div>
+                    </TableHead>
+                    <TableHead className="w-[160px]">
+                      <div className="flex items-center gap-1">
+                        <Play className="h-3 w-3 text-primary" />
+                        Videos
+                      </div>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedCreators.map((creator, pageIndex) => {
+                    const tiktokUrl = getTikTokUrl(creator);
+                    const globalIndex = startIndex + pageIndex;
+                    const ranking = globalIndex + 1;
+                    const isFav = favorites.has(creator.id);
+                    const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+                    const videoPercent = getVideoPercentage(creator);
+                    const livePercent = getLivePercentage(creator);
 
-                  <Button 
-                    variant="default" 
-                    className="w-full"
-                    onClick={() => handleViewCreatorVideos(creator.id)}
-                  >
-                    Ver videos
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                    return (
+                      <TableRow 
+                        key={creator.id}
+                        className={cn(
+                          "cursor-pointer transition-colors",
+                          isTop5(globalIndex) && "bg-gradient-to-r from-amber-50/50 to-transparent dark:from-amber-950/20",
+                          isLocked && "opacity-50"
+                        )}
+                        onClick={() => handleRowClick(creator, isLocked)}
+                      >
+                        {/* Ranking */}
+                        <TableCell className="font-bold text-center sticky left-0 bg-card">
+                          <span className={cn(
+                            "inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-full text-xs font-bold",
+                            isTop5(globalIndex)
+                              ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+                              : "bg-muted text-foreground"
+                          )}>
+                            {ranking}{isTop5(globalIndex) && <Flame className="h-3 w-3 ml-0.5" />}
+                          </span>
+                        </TableCell>
+
+                        {/* Favorite */}
+                        <TableCell className="p-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isLocked || !isLoggedIn) {
+                                navigate("/unlock");
+                                return;
+                              }
+                              toggleFavorite(creator.id, e);
+                            }}
+                            className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center hover:bg-muted transition-colors"
+                          >
+                            <Heart className={cn("h-4 w-4 transition-colors", isFav ? "text-primary fill-primary" : "text-muted-foreground hover:text-foreground")} />
+                          </button>
+                        </TableCell>
+
+                        {/* Creator Info + Ver cuenta button */}
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                            <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-sm">
+                                <AvatarImage 
+                                  src={getReliableAvatarUrl(creator)} 
+                                  alt={creator.nombre_completo || creator.usuario_creador}
+                                  onError={() => handleImageError(creator.id)}
+                                />
+                                <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-xs">
+                                  {getInitials(creator.nombre_completo, creator.usuario_creador)}
+                                </AvatarFallback>
+                              </Avatar>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-sm truncate text-foreground">
+                                @{creator.creator_handle || creator.usuario_creador}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate max-w-[100px]">
+                                {creator.nombre_completo || "—"}
+                              </p>
+                            </div>
+                            {/* Ver cuenta button */}
+                            {tiktokUrl && !isLocked && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-7 text-xs shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openTikTokLink(tiktokUrl);
+                                }}
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                Ver cuenta
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Followers */}
+                        <TableCell className="text-right font-medium">
+                          {isLocked ? "•••" : formatNumber(creator.seguidores)}
+                        </TableCell>
+
+                        {/* GMV Total */}
+                        <TableCell className="text-right">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            {isLocked ? "•••" : formatCurrency(creator.total_ingresos_mxn)}
+                          </span>
+                        </TableCell>
+
+                        {/* Estimated Earnings */}
+                        <TableCell className="text-right">
+                          <span className="text-amber-600 dark:text-amber-400 font-medium">
+                            {isLocked ? "•••" : calculateEstimatedEarnings(creator.total_ingresos_mxn)}
+                          </span>
+                        </TableCell>
+
+                        {/* GMV Videos */}
+                        <TableCell className="text-right">
+                          <div>
+                            <span className="text-blue-600 dark:text-blue-400 font-medium">
+                              {isLocked ? "•••" : formatCurrency(creator.revenue_videos)}
+                            </span>
+                            {!isLocked && creator.revenue_videos && creator.revenue_videos > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {videoPercent}%
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* GMV Lives */}
+                        <TableCell className="text-right">
+                          <div>
+                            <span className="text-rose-600 dark:text-rose-400 font-medium">
+                              {isLocked ? "•••" : formatCurrency(creator.gmv_live_mxn)}
+                            </span>
+                            {!isLocked && creator.gmv_live_mxn && creator.gmv_live_mxn > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {livePercent}%
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Lives Count */}
+                        <TableCell className="text-right font-medium">
+                          <div>
+                            {isLocked ? "•••" : (creator.total_live_count ? formatNumber(creator.total_live_count) : "—")}
+                            {!isLocked && creator.total_live_count && creator.total_live_count > 0 && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {getGmvPerLive(creator)}/live
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+
+                        {/* Views */}
+                        <TableCell className="text-right font-medium">
+                          {isLocked ? "•••" : formatNumber(creator.promedio_visualizaciones)}
+                        </TableCell>
+
+                        {/* Videos button */}
+                        <TableCell className="p-2">
+                          {!isLocked ? (
+                            <Button 
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/videos/creator/${creator.id}`);
+                              }}
+                            >
+                              <Play className="h-3 w-3 mr-1" />
+                              Ver mejores videos
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" className="h-7 text-xs">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Unlock
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-        )}
-      </main>
+
+          {/* Mobile Table - Enhanced Compact View */}
+          <div className="md:hidden bg-card rounded-xl border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
+                  <TableHead className="w-8 text-center p-2">#</TableHead>
+                  <TableHead className="p-2">Creador</TableHead>
+                  <TableHead className="text-right p-2">GMV</TableHead>
+                  <TableHead className="text-right p-2 w-20">Ganancias</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedCreators.map((creator, pageIndex) => {
+                  const tiktokUrl = getTikTokUrl(creator);
+                  const globalIndex = startIndex + pageIndex;
+                  const ranking = globalIndex + 1;
+                  const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+
+                  return (
+                    <TableRow 
+                      key={creator.id}
+                      className={cn(
+                        "cursor-pointer transition-colors",
+                        isTop5(globalIndex) && "bg-gradient-to-r from-amber-50/50 to-transparent dark:from-amber-950/20",
+                        isLocked && "opacity-50"
+                      )}
+                      onClick={() => handleRowClick(creator, isLocked)}
+                    >
+                      {/* Ranking */}
+                      <TableCell className="p-2 text-center">
+                        <span className={cn(
+                          "inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold",
+                          isTop5(globalIndex)
+                            ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
+                            : "bg-muted text-foreground"
+                        )}>
+                          {ranking}
+                        </span>
+                      </TableCell>
+
+                      {/* Creator Info */}
+                      <TableCell className="p-2">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8 border border-primary/20 shrink-0">
+                            <AvatarImage 
+                              src={getReliableAvatarUrl(creator)} 
+                              alt={creator.nombre_completo || creator.usuario_creador}
+                              onError={() => handleImageError(creator.id)}
+                            />
+                            <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-[10px]">
+                              {getInitials(creator.nombre_completo, creator.usuario_creador)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-xs truncate text-foreground">
+                              @{creator.creator_handle || creator.usuario_creador}
+                            </p>
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <Users className="h-2.5 w-2.5" />
+                              {isLocked ? "•••" : formatNumber(creator.seguidores)}
+                              {!isLocked && tiktokUrl && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openTikTokLink(tiktokUrl);
+                                  }}
+                                  className="ml-1 text-primary hover:underline"
+                                >
+                                  Ver cuenta ↗
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* GMV */}
+                      <TableCell className="p-2 text-right">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                          {isLocked ? "•••" : formatCurrency(creator.total_ingresos_mxn)}
+                        </span>
+                      </TableCell>
+
+                      {/* Estimated Earnings */}
+                      <TableCell className="p-2 text-right">
+                        <span className="text-amber-600 dark:text-amber-400 font-semibold text-[11px]">
+                          {isLocked ? "•••" : calculateEstimatedEarnings(creator.total_ingresos_mxn)}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-6">
+              {!isLoggedIn ? (
+                <div 
+                  className="flex items-center justify-center gap-2 opacity-60 cursor-pointer"
+                  onClick={() => {
+                    navigate("/unlock");
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Ver más creadores</span>
+                </div>
+              ) : (
+                <CompactPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              )}
+            </div>
+          )}
+        </>
+      )}
+      
+      {/* Sticky CTA for visitors - Mobile only */}
+      {!isLoggedIn && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
+          <Button 
+            className="w-full h-12 text-sm font-semibold shadow-lg" 
+            onClick={() => {
+              navigate("/unlock");
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Desbloquear acceso completo 
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

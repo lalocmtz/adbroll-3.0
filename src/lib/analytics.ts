@@ -93,11 +93,61 @@ export const trackStandard = (
     | "InitiateCheckout"
     | "Subscribe"
     | "StartTrial"
-    | "Customize",
+    | "Customize"
+    | "Purchase",
   params?: PrimitiveProps,
 ) => {
   metaTrack(event, params, "track");
   track(`meta.${event.toLowerCase()}`, params);
+};
+
+/* =============================================================
+   Compatibility wrappers — legacy Lovable call sites import named
+   track* helpers. Keep these as thin shims over trackStandard +
+   custom track() so existing pages (Unlock, PaywallModal,
+   CheckoutSuccess, Register, VideoAnalysisModal, SimpleEmailCapture)
+   keep building without a refactor pass.
+   ============================================================= */
+export const trackLead = (source?: string, email?: string) => {
+  trackStandard("Lead", { source, email });
+  track("lead.captured", { source, email });
+};
+
+export const trackSignUp = (method?: string, email?: string) => {
+  trackStandard("CompleteRegistration", { method, email });
+  track("auth.signup", { method, email });
+};
+
+export const trackViewContent = (contentType?: string, contentId?: string) => {
+  trackStandard("ViewContent", { content_type: contentType, content_id: contentId });
+};
+
+export const trackInitiateCheckout = (
+  value?: number,
+  currency?: string,
+  plan?: string,
+) => {
+  trackStandard("InitiateCheckout", { value, currency, plan });
+};
+
+export const trackPurchase = (
+  value?: number,
+  currency?: string,
+  transactionId?: string,
+  email?: string,
+  plan?: string,
+) => {
+  trackStandard("Purchase", {
+    value,
+    currency,
+    transaction_id: transactionId,
+    email,
+    plan,
+  });
+};
+
+export const trackScriptAnalysis = (videoId?: string) => {
+  track("guion.analysis_requested", { video_id: videoId });
 };
 
 /* =============================================================

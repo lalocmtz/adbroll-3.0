@@ -18,7 +18,6 @@ interface VideoCardProps {
     ventas: number;
     visualizaciones: number;
     cpa_mxn: number;
-    
     duracion: string;
     fecha_publicacion: string;
     transcripcion_original: string | null;
@@ -60,7 +59,6 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     document.body.appendChild(script);
 
     return () => {
-      // Cleanup script on unmount
       const existingScript = document.querySelector('script[src="https://www.tiktok.com/embed.js"]');
       if (existingScript) {
         existingScript.remove();
@@ -129,7 +127,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     }).format(num);
   };
 
-  const commissionRate = productData?.commission || 6; // Default 6% if not specified
+  const commissionRate = productData?.commission || 6;
   const commissionEstimated = video.ingresos_mxn * (commissionRate / 100);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
@@ -159,9 +157,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
         if (error) throw error;
 
         setIsFavorite(false);
-        toast({
-          title: "✓ Eliminado de favoritos",
-        });
+        toast({ title: "✓ Eliminado de favoritos" });
       } else {
         const { data: videoData, error: fetchError } = await supabase
           .from("daily_feed")
@@ -182,9 +178,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
         if (error) throw error;
 
         setIsFavorite(true);
-        toast({
-          title: "✓ Guardado en favoritos",
-        });
+        toast({ title: "✓ Guardado en favoritos" });
       }
     } catch (error: any) {
       console.error("Error toggling favorite:", error);
@@ -196,6 +190,15 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAnalyzeClick = () => {
+    // Open modal - it handles transcription internally via AssemblyAI
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
   };
 
   return (
@@ -231,7 +234,6 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             </div>
           </div>
 
-
           {/* TikTok Official Embed */}
           {videoId ? (
             <div ref={embedRef} className="w-full h-full">
@@ -256,7 +258,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
           {/* Title and Creator */}
           <div>
             <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
-              {video.descripcion_video}
+              {video.descripcion_video?.split(' ').slice(0, 20).join(' ')}{video.descripcion_video?.split(' ').length > 20 ? '...' : ''}
             </h3>
             <div className="flex items-center justify-between mt-0.5">
               <p className="text-[10px] text-muted-foreground">
@@ -273,8 +275,6 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
               )}
             </div>
           </div>
-
-
 
           {/* Metrics Grid - 2x2 Compact */}
           <div className="grid grid-cols-2 gap-1.5">
@@ -323,7 +323,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
           <Button
             className="w-full h-8 text-xs font-semibold" 
             variant="default"
-            onClick={() => setShowModal(true)}
+            onClick={handleAnalyzeClick}
           >
             <Sparkles className="h-3 w-3 mr-1.5" />
             Analizar guion y replicar
@@ -331,11 +331,13 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
         </CardContent>
       </Card>
 
-      <VideoAnalysisModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        video={video}
-      />
+      {showModal && (
+        <VideoAnalysisModal
+          isOpen={showModal}
+          onClose={handleCloseModal}
+          video={video}
+        />
+      )}
     </>
   );
 };

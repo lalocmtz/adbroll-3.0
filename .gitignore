@@ -22,11 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Claude Flow local state
-.claude-flow/
-
-# Env
-.env
-.env.local
-.env.*.local
