@@ -111,4 +111,43 @@ All colors MUST be HSL.
   .text-balance {
     text-wrap: balance;
   }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.6) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.6) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent;
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15),
+      0 20px 60px -20px hsl(var(--primary) / 0.45);
+  }
+}
+
+@layer utilities {
+  @keyframes float-slow {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes ticker-up {
+    0% { transform: translateY(8px); opacity: 0; }
+    15%, 85% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-8px); opacity: 0; }
+  }
+  @keyframes marquee-x {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+  .animate-marquee { animation: marquee-x 40s linear infinite; }
 }
