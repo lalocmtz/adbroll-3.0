@@ -1,0 +1,98 @@
+/*
+ * adbroll brand tokens — Layer 2 of the design system
+ *
+ * Layered architecture:
+ *   Layer 1: tailwind.config.ts extend (raw values, class names)
+ *   Layer 2: src/styles/tokens.css (CSS custom properties for runtime/brand) <-- YOU ARE HERE
+ *   Layer 3: src/index.css (shadcn semantic vars — DO NOT edit --primary here)
+ *   Layer 4: components (consume via Tailwind classes or var(--brand-*))
+ *
+ * This file is imported from src/index.css. Keep it brand-only, no shadcn overrides.
+ * Lovable sync rule: brand colors live here, never inline-hardcoded in components.
+ */
+
+@layer base {
+  :root {
+    /* TikTok-native brand */
+    --brand-pink: #fe2c55;
+    --brand-pink-50: #fff1f4;
+    --brand-pink-100: #ffd9e1;
+    --brand-pink-200: #ffa8ba;
+    --brand-pink-300: #ff7693;
+    --brand-pink-400: #ff446c;
+    --brand-pink-500: #fe2c55;
+    --brand-pink-600: #d92349;
+    --brand-pink-700: #a81a37;
+
+    --brand-cyan: #25f4ee;
+    --brand-cyan-50: #e6fefc;
+    --brand-cyan-100: #c0fdf9;
+    --brand-cyan-200: #7bfaf3;
+    --brand-cyan-300: #4cf7f0;
+    --brand-cyan-400: #25f4ee;
+    --brand-cyan-500: #15dbd5;
+    --brand-cyan-600: #0fb0ab;
+    --brand-cyan-700: #0a8582;
+
+    /* Neutral "ink" scale (dark mode-friendly) */
+    --brand-ink: #0a0a0f;
+    --brand-ink-900: #0a0a0f;
+    --brand-ink-800: #16161d;
+    --brand-ink-700: #24242e;
+    --brand-ink-600: #33333f;
+
+    --brand-mist: #f7f7fb;
+    --brand-mist-100: #f0f0f6;
+    --brand-mist-200: #e5e5ee;
+
+    /* Money / value colors (growth + alert) */
+    --brand-money: #00c853;
+    --brand-money-600: #00a846;
+    --brand-alert: #ff9500;
+
+    /* Gradients */
+    --gradient-brand: linear-gradient(135deg, #fe2c55 0%, #ff6b9d 100%);
+    --gradient-cyber: linear-gradient(135deg, #25f4ee 0%, #fe2c55 100%);
+    --gradient-ink: linear-gradient(180deg, #0a0a0f 0%, #16161d 100%);
+    --gradient-money: linear-gradient(135deg, #00c853 0%, #25f4ee 100%);
+
+    /* Spacing rhythm */
+    --page-pad-x: 1.25rem; /* 20px mobile */
+    --section-pad-y: 5rem; /* 80px mobile */
+    --touch-min: 44px; /* iOS HIG floor */
+
+    /* Shadows (tactile + brand glow) */
+    --shadow-card-tactile: 0 1px 0 0 rgba(10, 10, 15, 0.04),
+      0 2px 4px -1px rgba(10, 10, 15, 0.06), 0 8px 16px -4px rgba(10, 10, 15, 0.08);
+    --shadow-card-tactile-lg: 0 2px 0 0 rgba(10, 10, 15, 0.05),
+      0 8px 16px -4px rgba(10, 10, 15, 0.1), 0 24px 48px -12px rgba(10, 10, 15, 0.16);
+    --shadow-brand-glow-pink: 0 0 0 1px rgba(254, 44, 85, 0.2),
+      0 12px 32px -8px rgba(254, 44, 85, 0.45);
+    --shadow-brand-glow-cyan: 0 0 0 1px rgba(37, 244, 238, 0.2),
+      0 12px 32px -8px rgba(37, 244, 238, 0.4);
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --page-pad-x: 2rem;
+      --section-pad-y: 7rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    :root {
+      --page-pad-x: 3rem;
+      --section-pad-y: 8rem;
+    }
+  }
+
+  .dark {
+    --brand-mist: #16161d;
+    --brand-mist-100: #1e1e26;
+    --brand-mist-200: #24242e;
+    --shadow-card-tactile: 0 1px 0 0 rgba(0, 0, 0, 0.4),
+      0 2px 4px -1px rgba(0, 0, 0, 0.5), 0 8px 16px -4px rgba(0, 0, 0, 0.6);
+    --shadow-card-tactile-lg: 0 2px 0 0 rgba(0, 0, 0, 0.5),
+      0 8px 16px -4px rgba(0, 0, 0, 0.6), 0 24px 48px -12px rgba(0, 0, 0, 0.7);
+  }
+}

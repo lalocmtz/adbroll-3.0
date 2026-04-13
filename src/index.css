@@ -1,13 +1,6 @@
-@tailwind base;
+@import "./styles/tokens.css";
 
-/* Hide scrollbar for horizontal scroll elements */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -17,223 +10,79 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Base surfaces */
     --background: 0 0% 98%;
     --foreground: 222 47% 11%;
+
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
+
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    
-    /* Borders & separators */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --separator: 210 40% 96%;
-    
-    /* Primary - TikTok Pink */
-    --primary: 340 91% 51%;
+
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 338 89% 45%;
-    
-    /* Secondary - TikTok Blue */
-    --secondary: 214 100% 97%;
-    --secondary-foreground: 217 91% 60%;
-    --secondary-dark: 224 76% 48%;
-    
-    /* Muted */
-    --muted: 220 14% 96%;
-    --muted-foreground: 215 16% 47%;
-    
-    /* Accent */
-    --accent: 217 91% 60%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 46%;
+
+    --accent: 221 83% 53%;
     --accent-foreground: 0 0% 100%;
-    
-    /* Success - Green for revenue/gains */
-    --success: 160 84% 39%;
+
+    --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-    --success-muted: 149 80% 90%;
-    
-    /* Destructive - Red for CPA/losses */
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-muted: 0 93% 94%;
-    
-    --ring: 340 91% 51%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
     --radius: 0.75rem;
 
-    /* Typography colors */
-    --text-heading: 222 47% 11%;
-    --text-subheading: 217 33% 17%;
-    --text-body: 215 25% 27%;
-    --text-muted: 215 16% 47%;
-    --text-disabled: 215 16% 65%;
-    --text-code: 217 33% 17%;
-
-    /* Button colors */
-    --btn-primary: 340 91% 51%;
-    --btn-primary-hover: 338 89% 45%;
-    --btn-primary-shadow: 340 91% 51%;
-    
-    --btn-secondary: 214 100% 97%;
-    --btn-secondary-text: 217 91% 60%;
-    --btn-secondary-border: 217 91% 60%;
-    --btn-secondary-hover: 217 91% 60%;
-    --btn-secondary-hover-text: 0 0% 100%;
-    
-    --btn-danger: 0 93% 94%;
-    --btn-danger-text: 0 73% 42%;
-    --btn-danger-hover: 0 84% 60%;
-    --btn-danger-hover-text: 0 0% 100%;
-    
-    --btn-link: 217 91% 60%;
-    --btn-link-hover: 224 76% 48%;
-
-    /* Badge colors */
-    --badge-bg: 220 14% 96%;
-    --badge-text: 221 39% 17%;
-
     /* Premium shadows */
-    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.04);
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
-    --shadow-cta: 0 4px 14px rgba(243, 18, 96, 0.1);
-    --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.06);
-    --shadow-card-hover: 0 6px 16px rgba(0, 0, 0, 0.08);
-    --shadow-card-active: 0 2px 6px rgba(0, 0, 0, 0.1);
-
-    /* Card system - Premium refinements */
-    --card-radius: 16px;
-    --card-padding: 16px;
-    --card-gap: 24px;
-    --card-spacing: 12px;
-    --media-radius: 12px;
-    --section-gap: 32px;
-    
-    /* Typography refinements */
-    --text-secondary: 0 0% 54%; /* #8A8A8A */
-    --text-card-title: 15px;
-    --text-card-secondary: 13px;
-    --text-badge: 11px;
-    
-    /* Section divider */
-    --divider-color: 0 0% 92%; /* #EAEAEA */
-    
-    /* Sidebar system */
-    --sidebar-width: 240px;
-    --sidebar-collapsed-width: 80px;
-    --sidebar-bg: 0 0% 100%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-separator: 214 32% 91%;
-    --sidebar-padding-x: 20px;
-    --sidebar-padding-y: 24px;
-    --sidebar-item-hover-bg: 336 100% 97%;
-    --sidebar-item-active-bg: 336 100% 97%;
-    --sidebar-item-active-border: 340 91% 51%;
-    --sidebar-icon-default: 215 16% 65%;
-    --sidebar-icon-active: 340 91% 51%;
-    --sidebar-affiliate-bg: 149 80% 96%;
-    --sidebar-affiliate-text: 162 72% 17%;
-    --sidebar-user-bg: 210 40% 98%;
-    
-    /* Label colors - Gains */
-    --label-gain-bg: 149 80% 90%;
-    --label-gain-text: 162 72% 17%;
-    
-    /* Label colors - Alert/Trend */
-    --label-alert-bg: 48 96% 89%;
-    --label-alert-text: 32 81% 29%;
-    
-    /* Label colors - Position badge gradient */
-    --badge-position-from: 340 91% 51%;
-    --badge-position-to: 338 89% 45%;
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-card: all 200ms ease-in-out;
   }
 
   .dark {
-    /* Base surfaces */
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;
+
     --card: 222 47% 13%;
     --card-foreground: 210 40% 98%;
+
     --popover: 222 47% 13%;
     --popover-foreground: 210 40% 98%;
-    
-    /* Borders & separators */
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --separator: 217 33% 17%;
-    
-    /* Primary - TikTok Pink */
-    --primary: 340 91% 51%;
+
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 340 91% 58%;
-    
-    /* Secondary */
+
     --secondary: 217 33% 17%;
-    --secondary-foreground: 217 91% 70%;
-    --secondary-dark: 217 91% 60%;
-    
-    /* Muted */
+    --secondary-foreground: 210 40% 98%;
+
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
-    
-    /* Accent */
-    --accent: 217 91% 60%;
+
+    --accent: 221 83% 53%;
     --accent-foreground: 0 0% 100%;
-    
-    /* Success */
-    --success: 160 84% 39%;
+
+    --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-    --success-muted: 160 40% 20%;
-    
-    /* Destructive */
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-muted: 0 40% 20%;
-    
-    --ring: 340 91% 51%;
 
-    /* Typography colors - dark mode */
-    --text-heading: 210 40% 98%;
-    --text-subheading: 214 32% 91%;
-    --text-body: 215 20% 80%;
-    --text-muted: 215 20% 65%;
-    --text-disabled: 215 16% 47%;
-    --text-code: 210 40% 98%;
-
-    /* Button colors - dark mode */
-    --btn-secondary: 217 33% 20%;
-    --btn-secondary-text: 217 91% 70%;
-    --btn-secondary-border: 217 33% 30%;
-    --btn-secondary-hover: 217 91% 60%;
-    --btn-secondary-hover-text: 0 0% 100%;
-    
-    --btn-danger: 0 40% 20%;
-    --btn-danger-text: 0 84% 70%;
-    --btn-danger-hover: 0 84% 60%;
-    --btn-danger-hover-text: 0 0% 100%;
-
-    /* Badge colors - dark mode */
-    --badge-bg: 217 33% 20%;
-    --badge-text: 210 40% 98%;
-
-    /* Shadows - dark mode */
-    --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.2);
-    --shadow-cta: 0 4px 14px rgba(243, 18, 96, 0.2);
-
-    /* Sidebar system - dark mode */
-    --sidebar-bg: 222 47% 13%;
-    --sidebar-border: 217 33% 20%;
-    --sidebar-separator: 217 33% 25%;
-    --sidebar-item-hover-bg: 340 30% 20%;
-    --sidebar-item-active-bg: 340 30% 20%;
-    --sidebar-affiliate-bg: 160 30% 15%;
-    --sidebar-affiliate-text: 160 60% 70%;
-    --sidebar-user-bg: 217 33% 17%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 221 83% 53%;
   }
 }
 
@@ -243,206 +92,20 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground antialiased font-sans;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  h1 {
-    @apply text-h1 tracking-tight;
-    color: hsl(var(--text-heading));
-  }
-
-  h2 {
-    @apply text-h2 tracking-tight;
-    color: hsl(var(--text-heading));
-  }
-
-  h3 {
-    @apply text-h3;
-    color: hsl(var(--text-subheading));
-  }
-
-  h4, h5, h6 {
+  h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
-  }
-
-  p {
-    @apply text-body;
-    color: hsl(var(--text-body));
-  }
-
-  small {
-    @apply text-note;
-    color: hsl(var(--text-muted));
-  }
-
-  .text-note {
-    font-size: 14px;
-    line-height: 1.5;
-    font-weight: 400;
-    color: hsl(var(--text-muted));
-  }
-
-  code, pre {
-    @apply font-mono text-code;
-    color: hsl(var(--text-code));
   }
 }
 
 @layer components {
-  /* Global Card System - Premium */
-  .card-global {
-    @apply bg-card border border-border transition-all;
-    border-radius: var(--card-radius);
-    padding: var(--card-padding);
-    box-shadow: var(--shadow-card);
-    transition: var(--transition-card);
-  }
-
-  .card-global:hover {
-    box-shadow: var(--shadow-card-hover);
-  }
-
-  .card-global:active {
-    box-shadow: var(--shadow-card-active);
-  }
-
   .card-premium {
-    @apply bg-card border border-border;
-    border-radius: var(--card-radius);
-    box-shadow: var(--shadow-card);
-    transition: var(--transition-card);
+    @apply bg-card rounded-xl border border-border shadow-md hover:shadow-xl transition-all duration-300;
   }
 
-  .card-premium:hover {
-    box-shadow: var(--shadow-card-hover);
-  }
-
-  /* Card Grid System */
-  .card-grid {
-    display: grid;
-    gap: var(--card-gap);
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  @media (max-width: 1280px) {
-    .card-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-  }
-
-  @media (max-width: 1024px) {
-    .card-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (max-width: 640px) {
-    .card-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  /* Section divider */
-  .section-divider {
-    border-top: 1px solid hsl(var(--divider-color));
-    margin-top: var(--section-gap);
-    padding-top: var(--section-gap);
-  }
-
-  /* Card Media */
-  .card-media {
-    border-radius: var(--media-radius);
-    @apply overflow-hidden;
-  }
-
-  /* Card Typography */
-  .card-title {
-    font-size: var(--text-card-title);
-    font-weight: 600;
-    line-height: 1.5;
-    color: hsl(var(--text-heading));
-  }
-
-  .card-secondary {
-    font-size: var(--text-card-secondary);
-    line-height: 1.5;
-    color: hsl(var(--text-secondary));
-  }
-
-  /* Labels & Badges - Premium */
-  .label-gain {
-    background-color: hsl(var(--label-gain-bg));
-    color: hsl(var(--label-gain-text));
-    @apply font-medium px-2 py-1;
-    font-size: var(--text-badge);
-    border-radius: 12px;
-  }
-
-  .label-alert {
-    background-color: hsl(var(--label-alert-bg));
-    color: hsl(var(--label-alert-text));
-    @apply font-medium px-2 py-1;
-    font-size: var(--text-badge);
-    border-radius: 12px;
-  }
-
-  .badge-position {
-    background: linear-gradient(135deg, hsl(var(--badge-position-from)), hsl(var(--badge-position-to)));
-    @apply text-white font-bold px-2.5 py-1;
-    font-size: var(--text-badge);
-    border-radius: 12px;
-  }
-
-  .badge-position-neutral {
-    @apply bg-background/90 text-foreground border border-border font-bold px-2.5 py-1;
-    font-size: var(--text-badge);
-    border-radius: 12px;
-  }
-
-  .badge-earnings {
-    @apply bg-black/80 text-white font-medium px-2 py-1;
-    font-size: var(--text-badge);
-    border-radius: 12px;
-  }
-
-  /* Product embed inside card */
-  .card-product-embed {
-    @apply p-2.5 rounded-lg border;
-    background-color: hsl(210 40% 98%);
-    border-color: hsl(214 32% 91%);
-  }
-
-  .dark .card-product-embed {
-    background-color: hsl(217 33% 17%);
-    border-color: hsl(217 33% 25%);
-  }
-
-  /* Metric box */
-  .metric-box {
-    @apply p-2 rounded-lg;
-  }
-
-  .metric-box-success {
-    @apply metric-box;
-    background-color: hsl(var(--success-muted));
-    border: 1px solid hsl(var(--success) / 0.2);
-  }
-
-  .metric-box-muted {
-    @apply metric-box bg-muted;
-  }
-
-  /* Icon interactions */
-  .icon-interactive {
-    @apply text-muted-foreground transition-colors duration-200;
-  }
-
-  .icon-interactive:hover {
-    @apply text-primary;
-  }
-
-  /* Glass effect */
   .glass-effect {
     @apply bg-background/80 backdrop-blur-md border border-border/50;
   }
@@ -451,192 +114,42 @@ All colors MUST be HSL.
     text-wrap: balance;
   }
 
-  /* Landing page premium styles - LIGHT THEME */
-  .landing-light {
-    background: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 20% 97%) 100%);
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.6) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.6) 1px, transparent 1px);
+    background-size: 56px 56px;
   }
 
-  .landing-section-alt {
-    background: hsl(220 20% 97%);
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 40%, transparent 100%);
   }
 
-  .landing-hero-glow {
-    position: absolute;
-    width: 600px;
-    height: 600px;
-    border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.4;
-    pointer-events: none;
-  }
-
-  .landing-hero-glow-pink {
-    background: hsl(var(--primary) / 0.3);
-    top: -200px;
-    right: -100px;
-  }
-
-  .landing-hero-glow-blue {
-    background: hsl(var(--accent) / 0.3);
-    bottom: -200px;
-    left: -100px;
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent;
   }
 
   .glow-primary {
-    box-shadow: 0 0 60px -12px hsl(var(--primary) / 0.4);
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15),
+      0 20px 60px -20px hsl(var(--primary) / 0.45);
   }
+}
 
-  .glow-accent {
-    box-shadow: 0 0 60px -12px hsl(var(--accent) / 0.4);
+@layer utilities {
+  @keyframes float-slow {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
   }
-
-  .blur-paywall {
-    filter: blur(8px);
-    pointer-events: none;
-    user-select: none;
+  @keyframes ticker-up {
+    0% { transform: translateY(8px); opacity: 0; }
+    15%, 85% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-8px); opacity: 0; }
   }
-
-  .card-landing-light {
-    @apply bg-white border border-border rounded-2xl p-6;
-    box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition: all 0.3s ease;
+  @keyframes marquee-x {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
-
-  .card-landing-light:hover {
-    box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05);
-    transform: translateY(-2px);
-  }
-
-  .card-landing-light-featured {
-    @apply card-landing-light border-primary;
-    box-shadow: 0 4px 24px -4px hsl(var(--primary) / 0.15), 0 1px 2px rgba(0, 0, 0, 0.04);
-  }
-
-  .badge-landing-light {
-    @apply px-3 py-1.5 rounded-full text-xs font-medium;
-    background: hsl(var(--primary) / 0.1);
-    color: hsl(var(--primary));
-  }
-
-  .text-gradient {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
-  }
-
-  .text-gradient-alt {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(340 91% 51%), hsl(250 91% 60%));
-  }
-
-  /* Mockup container with browser chrome - Premium style */
-  .mockup-browser {
-    @apply bg-white overflow-hidden border border-border/50;
-    border-radius: 24px;
-    box-shadow: 
-      0 0 0 1px rgba(0, 0, 0, 0.03),
-      0 8px 40px -8px rgba(0, 0, 0, 0.12),
-      0 20px 60px -15px rgba(0, 0, 0, 0.08);
-    transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
-  }
-
-  .mockup-browser:hover {
-    box-shadow: 
-      0 0 0 1px rgba(0, 0, 0, 0.05),
-      0 12px 50px -8px rgba(0, 0, 0, 0.15),
-      0 25px 70px -15px rgba(0, 0, 0, 0.1);
-    transform: translateY(-4px);
-  }
-
-  .mockup-browser-bar {
-    @apply flex items-center gap-2 px-5 py-3 border-b border-border/40;
-    background: linear-gradient(180deg, hsl(var(--muted)) 0%, hsl(var(--background)) 100%);
-  }
-
-  .mockup-browser-dot {
-    @apply w-3 h-3 rounded-full;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
-  }
-
-  /* Floating elements animation */
-  .float-element {
-    animation: float-gentle 6s ease-in-out infinite;
-  }
-
-  @keyframes float-gentle {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-15px) rotate(1deg); }
-  }
-
-  /* Step connector line */
-  .step-connector {
-    @apply hidden md:block absolute top-1/2 left-full w-full h-0.5;
-    background: linear-gradient(90deg, hsl(var(--primary) / 0.3), transparent);
-  }
-
-  /* Premium button glow */
-  .btn-glow {
-    position: relative;
-    overflow: visible;
-  }
-
-  .btn-glow::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
-    border-radius: inherit;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: -1;
-    filter: blur(12px);
-  }
-
-  .btn-glow:hover::before {
-    opacity: 0.5;
-  }
-
-  /* Feature icon container */
-  .feature-icon-container {
-    @apply w-14 h-14 rounded-xl flex items-center justify-center;
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--accent) / 0.1));
-  }
-
-  /* Mobile sticky CTA */
-  .mobile-sticky-cta {
-    @apply fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-border z-50 md:hidden;
-  }
-
-  /* Animations */
-  @keyframes fade-in-up {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-
-  .animate-fade-in-up {
-    animation: fade-in-up 0.6s ease-out forwards;
-  }
-
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  .animation-delay-100 { animation-delay: 0.1s; }
-  .animation-delay-200 { animation-delay: 0.2s; }
-  .animation-delay-300 { animation-delay: 0.3s; }
-  .animation-delay-400 { animation-delay: 0.4s; }
+  .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+  .animate-marquee { animation: marquee-x 40s linear infinite; }
 }

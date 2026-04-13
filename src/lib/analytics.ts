@@ -1,408 +1,253 @@
-// Analytics utility for Facebook Pixel and Google Analytics
-// With server-side Meta Conversions API support and event deduplication
+// Thin analytics layer for Adbroll.
+//
+// Wraps PostHog (product analytics), Meta Pixel (paid traffic conversions)
+// and Sentry breadcrumbs into a single surface. Everything is a no-op
+// when the corresponding env var is missing, so local dev never needs a
+// full stack to function.
+//
+// Use the event constants below instead of free-form strings so future
+// analysis / dashboards stay consistent.
+
+import posthog from "posthog-js";
+import * as Sentry from "@sentry/react";
+
+type PrimitiveProps = Record<
+  string,
+  string | number | boolean | null | undefined
+>;
+
+const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
+const POSTHOG_HOST =
+  (import.meta.env.VITE_POSTHOG_HOST as string | undefined) ??
+  "https://us.i.posthog.com";
+const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID as string | undefined;
+
+let posthogReady = false;
+
+export const initPostHog = () => {
+  if (posthogReady || !POSTHOG_KEY) return;
+  posthog.init(POSTHOG_KEY, {
+    api_host: POSTHOG_HOST,
+    person_profiles: "identified_only",
+    capture_pageview: false, // we fire our own via React Router
+    capture_pageleave: true,
+    autocapture: false,
+    disable_session_recording: import.meta.env.DEV,
+  });
+  posthogReady = true;
+};
 
 declare global {
   interface Window {
-    fbq: (...args: any[]) => void;
-    gtag: (...args: any[]) => void;
-    dataLayer: any[];
+    fbq?: (...args: unknown[]) => void;
+    _adbrollMetaReady?: boolean;
   }
 }
 
-// Generate unique event ID for deduplication between browser and server
-export const generateEventId = (): string => {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
-
-// Server-side Meta Conversions API
-interface ConversionEvent {
-  event_name: string;
-  event_id?: string; // For deduplication
-  event_time?: number;
-  event_source_url?: string;
-  user_data?: {
-    email?: string;
-    phone?: string;
-    fbc?: string;
-    fbp?: string;
-  };
-  custom_data?: {
-    currency?: string;
-    value?: number;
-    content_name?: string;
-    content_category?: string;
-    content_ids?: string[];
-    content_type?: string;
-    num_items?: number;
-  };
-  action_source?: string;
-}
-
-// Get Facebook cookies for better attribution
-const getFacebookCookies = () => {
-  const cookies: { fbc?: string; fbp?: string } = {};
-  if (typeof document !== "undefined") {
-    const cookieString = document.cookie;
-    const fbcMatch = cookieString.match(/_fbc=([^;]+)/);
-    const fbpMatch = cookieString.match(/_fbp=([^;]+)/);
-    if (fbcMatch) cookies.fbc = fbcMatch[1];
-    if (fbpMatch) cookies.fbp = fbpMatch[1];
-  }
-  return cookies;
-};
-
-// Generate or retrieve session ID for visitor tracking
-const getSessionId = (): string => {
-  if (typeof window === "undefined") return "";
-  
-  let sessionId = sessionStorage.getItem("adbroll_session_id");
-  if (!sessionId) {
-    sessionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    sessionStorage.setItem("adbroll_session_id", sessionId);
-  }
-  return sessionId;
-};
-
-// Send event to server-side Meta Conversions API
-const sendServerEvent = async (events: ConversionEvent[]) => {
+const metaTrack = (
+  event: string,
+  params?: PrimitiveProps,
+  type: "track" | "trackCustom" = "track",
+) => {
+  if (typeof window === "undefined") return;
+  // Read env inline so runtime stubs (and tests) pick up changes.
+  const pixelId = import.meta.env.VITE_META_PIXEL_ID as string | undefined;
+  if (!pixelId || !window.fbq) return;
   try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    if (!supabaseUrl) {
-      console.warn('[Meta Server] VITE_SUPABASE_URL not configured');
-      return;
-    }
-
-    const fbCookies = getFacebookCookies();
-    
-    // Enhance events with cookies and URL
-    const enhancedEvents = events.map(event => ({
-      ...event,
-      event_source_url: event.event_source_url || window.location.href,
-      user_data: {
-        ...event.user_data,
-        ...fbCookies,
-      },
-    }));
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/meta-conversions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ events: enhancedEvents }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('[Meta Server] Error:', error);
-    } else {
-      const result = await response.json();
-      console.log('[Meta Server] Events sent:', result.events_received);
-    }
-  } catch (error) {
-    console.error('[Meta Server] Failed to send event:', error);
+    window.fbq(type, event, params ?? {});
+  } catch {
+    /* swallow — analytics never breaks the app */
   }
 };
 
-// Track page view internally for analytics
-const trackInternalPageView = async (pageName: string) => {
-  try {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    if (!supabaseUrl) return;
-
-    const sessionId = getSessionId();
-    
-    await fetch(`${supabaseUrl}/functions/v1/track-page-view`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        page_path: pageName,
-        session_id: sessionId,
-        referrer: document.referrer || null,
-        user_agent: navigator.userAgent || null,
-      }),
-    });
-  } catch (error) {
-    // Silent fail - don't block user experience
-    console.error('[Internal Analytics] Failed to track:', error);
+/**
+ * Track a typed product event.
+ *
+ * Fires to PostHog, forwards as a custom event to Meta Pixel (for ad
+ * optimization against user behavior, not just standard conversions),
+ * and leaves a Sentry breadcrumb for error triage.
+ */
+export const track = (event: string, props?: PrimitiveProps) => {
+  if (posthogReady) {
+    posthog.capture(event, props);
   }
-};
-
-// Facebook Pixel Events (browser-side)
-export const trackFBEvent = (eventName: string, params?: Record<string, any>, eventId?: string) => {
-  if (typeof window !== "undefined" && window.fbq) {
-    const eventParams = eventId ? { ...params, eventID: eventId } : params;
-    window.fbq("track", eventName, eventParams);
-    console.log(`[FB Pixel] ${eventName}`, eventParams);
-  }
-};
-
-export const trackFBCustomEvent = (eventName: string, params?: Record<string, any>) => {
-  if (typeof window !== "undefined" && window.fbq) {
-    window.fbq("trackCustom", eventName, params);
-    console.log(`[FB Pixel Custom] ${eventName}`, params);
-  }
-};
-
-// Google Analytics Events
-export const trackGAEvent = (eventName: string, params?: Record<string, any>) => {
-  if (typeof window !== "undefined" && window.gtag) {
-    window.gtag("event", eventName, params);
-    console.log(`[GA] ${eventName}`, params);
-  }
-};
-
-// Combined tracking functions for common events (browser + server + internal)
-export const trackPageView = (pageName: string) => {
-  const eventId = generateEventId();
-  
-  trackFBEvent("PageView", { content_name: pageName }, eventId);
-  trackGAEvent("page_view", { page_title: pageName });
-  
-  // Internal tracking for admin dashboard
-  trackInternalPageView(pageName);
-  
-  // Server-side Meta with same event_id for deduplication
-  sendServerEvent([{
-    event_name: "PageView",
-    event_id: eventId,
-    custom_data: {
-      content_name: pageName,
-    },
-  }]);
-};
-
-export const trackViewContent = (contentName: string, contentId?: string, value?: number) => {
-  const eventId = generateEventId();
-  
-  trackFBEvent("ViewContent", {
-    content_name: contentName,
-    content_ids: contentId ? [contentId] : undefined,
-    value: value,
-    currency: "USD",
-  }, eventId);
-  trackGAEvent("view_item", {
-    item_name: contentName,
-    item_id: contentId,
-    value: value,
+  metaTrack(event, props, "trackCustom");
+  Sentry.addBreadcrumb({
+    category: "analytics",
+    level: "info",
+    message: event,
+    data: props,
   });
-  
-  // Server-side with deduplication
-  sendServerEvent([{
-    event_name: "ViewContent",
-    event_id: eventId,
-    custom_data: {
-      content_name: contentName,
-      content_ids: contentId ? [contentId] : undefined,
-      value: value,
-      currency: "USD",
-    },
-  }]);
 };
 
-export const trackInitiateCheckout = (value: number, currency: string = "USD", planName?: string) => {
-  const eventId = generateEventId();
-  
-  trackFBEvent("InitiateCheckout", {
-    value: value,
-    currency: currency,
-    content_name: planName,
-  }, eventId);
-  trackGAEvent("begin_checkout", {
-    value: value,
-    currency: currency,
-    item_name: planName,
-  });
-  
-  // Store checkout info for Purchase tracking
-  if (typeof window !== "undefined") {
-    localStorage.setItem("adbroll_checkout_value", value.toString());
-    localStorage.setItem("adbroll_checkout_plan", planName || "");
-    localStorage.setItem("adbroll_checkout_event_id", eventId);
-  }
-  
-  // Server-side with deduplication
-  sendServerEvent([{
-    event_name: "InitiateCheckout",
-    event_id: eventId,
-    custom_data: {
-      value: value,
-      currency: currency,
-      content_name: planName,
-    },
-  }]);
+/**
+ * Meta Pixel standard events (Lead, CompleteRegistration, Purchase, etc.)
+ * These map to the ads manager optimization goals, so we emit them
+ * explicitly — they're not automatic from `track()`.
+ */
+export const trackStandard = (
+  event:
+    | "Lead"
+    | "CompleteRegistration"
+    | "ViewContent"
+    | "InitiateCheckout"
+    | "Subscribe"
+    | "StartTrial"
+    | "Customize"
+    | "Purchase",
+  params?: PrimitiveProps,
+) => {
+  metaTrack(event, params, "track");
+  track(`meta.${event.toLowerCase()}`, params);
 };
 
-export const trackPurchase = (value: number, currency: string = "USD", transactionId?: string, email?: string, planName?: string) => {
-  const eventId = generateEventId();
-  
-  trackFBEvent("Purchase", {
-    value: value,
-    currency: currency,
-    content_name: planName,
-  }, eventId);
-  trackGAEvent("purchase", {
+/* =============================================================
+   Compatibility wrappers — legacy Lovable call sites import named
+   track* helpers. Keep these as thin shims over trackStandard +
+   custom track() so existing pages (Unlock, PaywallModal,
+   CheckoutSuccess, Register, VideoAnalysisModal, SimpleEmailCapture)
+   keep building without a refactor pass.
+   ============================================================= */
+export const trackLead = (source?: string, email?: string) => {
+  trackStandard("Lead", { source, email });
+  track("lead.captured", { source, email });
+};
+
+export const trackSignUp = (method?: string, email?: string) => {
+  trackStandard("CompleteRegistration", { method, email });
+  track("auth.signup", { method, email });
+};
+
+export const trackViewContent = (contentType?: string, contentId?: string) => {
+  trackStandard("ViewContent", { content_type: contentType, content_id: contentId });
+};
+
+export const trackInitiateCheckout = (
+  value?: number,
+  currency?: string,
+  plan?: string,
+) => {
+  trackStandard("InitiateCheckout", { value, currency, plan });
+};
+
+export const trackPurchase = (
+  value?: number,
+  currency?: string,
+  transactionId?: string,
+  email?: string,
+  plan?: string,
+) => {
+  trackStandard("Purchase", {
+    value,
+    currency,
     transaction_id: transactionId,
-    value: value,
-    currency: currency,
-    item_name: planName,
+    email,
+    plan,
   });
-  
-  // Server-side with deduplication (with optional email for better matching)
-  sendServerEvent([{
-    event_name: "Purchase",
-    event_id: eventId,
-    user_data: email ? { email } : undefined,
-    custom_data: {
-      value: value,
-      currency: currency,
-      content_name: planName,
-    },
-  }]);
-  
-  // Clear checkout data
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("adbroll_checkout_value");
-    localStorage.removeItem("adbroll_checkout_plan");
-    localStorage.removeItem("adbroll_checkout_event_id");
+};
+
+export const trackScriptAnalysis = (videoId?: string) => {
+  track("guion.analysis_requested", { video_id: videoId });
+};
+
+/* =============================================================
+   Timing helper — captures performance marks on the client so we
+   can compute time_to_*_ms props (e.g. guion.copied.time_to_copy_ms
+   from guion.modal_opened, or auth.login_succeeded → guion.copied
+   for the P50 activation metric in the brief §10).
+   ============================================================= */
+const marks = new Map<string, number>();
+export const mark = (key: string) => {
+  if (typeof performance === "undefined") return;
+  marks.set(key, performance.now());
+};
+export const measureSince = (key: string): number | undefined => {
+  if (typeof performance === "undefined") return undefined;
+  const t = marks.get(key);
+  return t !== undefined ? Math.round(performance.now() - t) : undefined;
+};
+export const clearMark = (key: string) => marks.delete(key);
+
+export const trackPageView = (path: string) => {
+  if (posthogReady) {
+    posthog.capture("$pageview", { $current_url: path });
   }
+  metaTrack("PageView");
 };
 
-export const trackLead = (source: string, email?: string) => {
-  const eventId = generateEventId();
-  
-  trackFBEvent("Lead", {
-    content_name: source,
-  }, eventId);
-  trackGAEvent("generate_lead", {
-    source: source,
-  });
-  
-  // Server-side with deduplication
-  sendServerEvent([{
-    event_name: "Lead",
-    event_id: eventId,
-    user_data: email ? { email } : undefined,
-    custom_data: {
-      content_name: source,
-    },
-  }]);
+export const identify = (
+  userId: string,
+  traits?: PrimitiveProps,
+) => {
+  if (posthogReady) {
+    posthog.identify(userId, traits);
+  }
+  Sentry.setUser({ id: userId, ...traits });
 };
 
-export const trackSignUp = (method: string = "email", email?: string) => {
-  const eventId = generateEventId();
-  
-  trackFBEvent("CompleteRegistration", {
-    content_name: method,
-  }, eventId);
-  trackGAEvent("sign_up", {
-    method: method,
-  });
-  
-  // Server-side with deduplication
-  sendServerEvent([{
-    event_name: "CompleteRegistration",
-    event_id: eventId,
-    user_data: email ? { email } : undefined,
-    custom_data: {
-      content_name: method,
-    },
-  }]);
+export const reset = () => {
+  if (posthogReady) {
+    posthog.reset();
+  }
+  Sentry.setUser(null);
 };
 
-export const trackAddToCart = (itemName: string, value: number) => {
-  trackFBEvent("AddToCart", {
-    content_name: itemName,
-    value: value,
-    currency: "USD",
-  });
-  trackGAEvent("add_to_cart", {
-    item_name: itemName,
-    value: value,
-  });
-  
-  // Server-side
-  sendServerEvent([{
-    event_name: "AddToCart",
-    custom_data: {
-      content_name: itemName,
-      value: value,
-      currency: "USD",
-    },
-  }]);
-};
+/* =============================================================
+   Event catalog — single source of truth for event names.
+   Add new events here so Phase 4b Opportunities and future
+   features keep naming consistent.
+   ============================================================= */
+export const Events = {
+  // Landing funnel
+  LandingViewed: "landing.viewed",
+  LandingCtaClicked: "landing.cta_clicked",
+  LandingVideoSelected: "landing.hero_video_selected",
+  LandingCalculatorUsed: "landing.calculator_used",
+  LandingFaqOpened: "landing.faq_opened",
+  LandingPricingViewed: "landing.pricing_viewed",
+  LandingFooterViewed: "landing.footer_viewed",
 
-// Video-specific events
-export const trackVideoView = (videoId: string, revenue?: number) => {
-  trackFBCustomEvent("VideoView", {
-    video_id: videoId,
-    revenue: revenue,
-  });
-  trackGAEvent("video_view", {
-    video_id: videoId,
-    revenue: revenue,
-  });
-};
+  // Auth
+  AuthRegisterSubmitted: "auth.register_submitted",
+  AuthRegisterSucceeded: "auth.register_succeeded",
+  AuthLoginSubmitted: "auth.login_submitted",
+  AuthLoginSucceeded: "auth.login_succeeded",
+  AuthLogout: "auth.logout",
 
-export const trackScriptAnalysis = (videoId: string) => {
-  trackFBCustomEvent("ScriptAnalysis", {
-    video_id: videoId,
-  });
-  trackGAEvent("script_analysis", {
-    video_id: videoId,
-  });
-};
+  // Trial / subscription (server → client re-hydrate or webhook)
+  TrialStarted: "trial.started",
+  SubscriptionActivated: "subscription.activated",
 
-// Campaign events
-export const trackCampaignView = (campaignId: string, brandName: string) => {
-  trackFBCustomEvent("CampaignView", {
-    campaign_id: campaignId,
-    brand_name: brandName,
-  });
-  trackGAEvent("campaign_view", {
-    campaign_id: campaignId,
-    brand_name: brandName,
-  });
-};
+  // Dashboard
+  DashboardViewed: "dashboard.viewed",
+  VideoCardOpened: "dashboard.video_opened",
+  ScriptModalOpened: "dashboard.script_opened",
 
-export const trackCampaignApply = (campaignId: string, proposedPrice: number) => {
-  trackFBCustomEvent("CampaignApply", {
-    campaign_id: campaignId,
-    proposed_price: proposedPrice,
-  });
-  trackGAEvent("campaign_apply", {
-    campaign_id: campaignId,
-    proposed_price: proposedPrice,
-  });
-};
+  // Top 20 + guion (activation loop)
+  Top20Loaded: "top20.loaded",
+  Top20RowClicked: "top20.row_clicked",
+  GuionModalOpened: "guion.modal_opened",
+  GuionVariantSelected: "guion.variant_selected",
+  GuionCopied: "guion.copied",
 
-// Subscribe event
-export const trackSubscribe = (planName: string, value: number, currency: string = "USD", email?: string) => {
-  const eventId = generateEventId();
-  
-  trackFBEvent("Subscribe", {
-    value: value,
-    currency: currency,
-    predicted_ltv: value * 12,
-    content_name: planName,
-  }, eventId);
-  trackGAEvent("subscribe", {
-    plan: planName,
-    value: value,
-    currency: currency,
-  });
-  
-  // Server-side with deduplication
-  sendServerEvent([{
-    event_name: "Subscribe",
-    event_id: eventId,
-    user_data: email ? { email } : undefined,
-    custom_data: {
-      content_name: planName,
-      value: value,
-      currency: currency,
-    },
-  }]);
-};
+  // Variant generator research survey (P7)
+  VariantResearchViewed: "variant_research.viewed",
+  VariantResearchEmailSubmitted: "variant_research.email_submitted",
+  VariantResearchDismissed: "variant_research.dismissed",
+
+  // Admin / ingestion
+  AdminUploadStarted: "admin.upload_started",
+  AdminUploadSucceeded: "admin.upload_succeeded",
+  AdminUploadFailed: "admin.upload_failed",
+
+  // Opportunities (Phase 4b — already reserved)
+  OpportunityViewed: "opportunity.viewed",
+  OpportunityExpanded: "opportunity.expanded",
+  OpportunityFormatViewed: "opportunity.format_viewed",
+  OpportunityToolClicked: "opportunity.tool_clicked",
+
+  // Creator Partner Program (Fase 7 — only partner_link_clicked is live in Phase 3)
+  PartnerLinkClicked: "partner_link_clicked",
+} as const;
+
+export type EventName = (typeof Events)[keyof typeof Events];

@@ -9,8 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { MarketProvider } from "@/contexts/MarketContext";
 import { BlurGateProvider } from "@/contexts/BlurGateContext";
-import { trackPageView } from "@/lib/analytics";
+import { Events, track, trackPageView } from "@/lib/analytics";
+import { captureAttribution } from "@/lib/attribution";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Unlock from "./pages/Unlock";
@@ -51,14 +53,38 @@ import RecruitGDL from "./pages/RecruitGDL";
 
 const queryClient = new QueryClient();
 
-// Page tracking component that uses useLocation inside BrowserRouter
+// Page tracking + first-touch attribution. On "/" we also fire
+// landing.viewed with the full UTM payload and partner_link_clicked
+// once per SPA session when a ref_code is present.
 const PageTracker = () => {
   const location = useLocation();
-  
+
   useEffect(() => {
-    trackPageView(location.pathname);
-  }, [location.pathname]);
-  
+    trackPageView(location.pathname + location.search);
+
+    if (location.pathname === "/") {
+      const { payload, isNewPartnerSession } = captureAttribution();
+
+      track(Events.LandingViewed, {
+        utm_source: payload.utm_source,
+        utm_medium: payload.utm_medium,
+        utm_campaign: payload.utm_campaign,
+        utm_content: payload.utm_content,
+        utm_term: payload.utm_term,
+        referrer: payload.referrer,
+        ref_code: payload.ref_code,
+      });
+
+      if (payload.ref_code && isNewPartnerSession) {
+        track(Events.PartnerLinkClicked, {
+          ref_code: payload.ref_code,
+          landing_path: payload.landing_path,
+          utm_source: payload.utm_source,
+        });
+      }
+    }
+  }, [location.pathname, location.search]);
+
   return null;
 };
 
@@ -104,15 +130,6 @@ const App = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Capture referral code from URL on initial load and save to localStorage
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const refCode = urlParams.get("ref");
-    if (refCode) {
-      localStorage.setItem("adbroll_ref_code", refCode.toUpperCase());
-    }
-  }, []);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -132,8 +149,8 @@ const App = () => {
                 <PageTracker />
                 <BlurGateProvider>
                 <Routes>
-                  {/* APP-FIRST: Redirect home to app */}
-                  <Route path="/" element={<Navigate to="/app" replace />} />
+                  {/* Public marketing landing (Variante E) */}
+                  <Route path="/" element={<Landing />} />
                   
                   {/* Auth routes */}
                   <Route path="/login" element={<Login />} />
