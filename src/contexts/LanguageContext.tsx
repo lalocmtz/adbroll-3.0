@@ -12,7 +12,6 @@ const translations = {
   es: {
     dashboard: "Dashboard",
     products: "Productos",
-    opportunities: "Oportunidades",
     favorites: "Favoritos",
     creators: "Creadores",
     affiliates: "Afiliados",
@@ -41,7 +40,6 @@ const translations = {
   en: {
     dashboard: "Dashboard",
     products: "Products",
-    opportunities: "Opportunities",
     favorites: "Favorites",
     creators: "Creators",
     affiliates: "Affiliates",

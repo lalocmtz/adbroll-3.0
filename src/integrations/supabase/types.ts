@@ -104,7 +104,9 @@ export type Database = {
       daily_feed: {
         Row: {
           ai_variants: Json | null
+          category: string | null
           coste_publicitario_mxn: number
+          country: string | null
           cpa_mxn: number
           creador: string
           created_at: string | null
@@ -120,11 +122,15 @@ export type Database = {
           last_import: string | null
           matched_by: string | null
           product_id: string | null
+          product_price: number | null
+          product_revenue: number | null
+          product_sales: number | null
           producto_nombre: string | null
           producto_url: string | null
           rango_fechas: string
           ratio_ads: number | null
           roas: number
+          source: string | null
           tiktok_url: string
           tiktok_video_id: string | null
           transcripcion_original: string | null
@@ -133,7 +139,9 @@ export type Database = {
         }
         Insert: {
           ai_variants?: Json | null
+          category?: string | null
           coste_publicitario_mxn: number
+          country?: string | null
           cpa_mxn: number
           creador: string
           created_at?: string | null
@@ -149,11 +157,15 @@ export type Database = {
           last_import?: string | null
           matched_by?: string | null
           product_id?: string | null
+          product_price?: number | null
+          product_revenue?: number | null
+          product_sales?: number | null
           producto_nombre?: string | null
           producto_url?: string | null
           rango_fechas: string
           ratio_ads?: number | null
           roas: number
+          source?: string | null
           tiktok_url: string
           tiktok_video_id?: string | null
           transcripcion_original?: string | null
@@ -162,7 +174,9 @@ export type Database = {
         }
         Update: {
           ai_variants?: Json | null
+          category?: string | null
           coste_publicitario_mxn?: number
+          country?: string | null
           cpa_mxn?: number
           creador?: string
           created_at?: string | null
@@ -178,11 +192,15 @@ export type Database = {
           last_import?: string | null
           matched_by?: string | null
           product_id?: string | null
+          product_price?: number | null
+          product_revenue?: number | null
+          product_sales?: number | null
           producto_nombre?: string | null
           producto_url?: string | null
           rango_fechas?: string
           ratio_ads?: number | null
           roas?: number
+          source?: string | null
           tiktok_url?: string
           tiktok_video_id?: string | null
           transcripcion_original?: string | null
@@ -198,30 +216,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      favorites: {
-        Row: {
-          created_at: string | null
-          id: string
-          item_id: string
-          item_type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          item_id: string
-          item_type: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          item_id?: string
-          item_type?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       favorites_products: {
         Row: {
@@ -584,89 +578,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      videos: {
-        Row: {
-          category: string | null
-          country: string | null
-          creator_handle: string | null
-          creator_name: string | null
-          id: string
-          imported_at: string | null
-          last_import: string | null
-          matched_by: string | null
-          product_id: string | null
-          product_name: string | null
-          product_price: number | null
-          product_revenue: number | null
-          product_sales: number | null
-          rank: number | null
-          revenue_mxn: number | null
-          roas: number | null
-          sales: number | null
-          source: string | null
-          tiktok_video_id: string | null
-          title: string | null
-          video_url: string
-          views: number | null
-        }
-        Insert: {
-          category?: string | null
-          country?: string | null
-          creator_handle?: string | null
-          creator_name?: string | null
-          id?: string
-          imported_at?: string | null
-          last_import?: string | null
-          matched_by?: string | null
-          product_id?: string | null
-          product_name?: string | null
-          product_price?: number | null
-          product_revenue?: number | null
-          product_sales?: number | null
-          rank?: number | null
-          revenue_mxn?: number | null
-          roas?: number | null
-          sales?: number | null
-          source?: string | null
-          tiktok_video_id?: string | null
-          title?: string | null
-          video_url: string
-          views?: number | null
-        }
-        Update: {
-          category?: string | null
-          country?: string | null
-          creator_handle?: string | null
-          creator_name?: string | null
-          id?: string
-          imported_at?: string | null
-          last_import?: string | null
-          matched_by?: string | null
-          product_id?: string | null
-          product_name?: string | null
-          product_price?: number | null
-          product_revenue?: number | null
-          product_sales?: number | null
-          rank?: number | null
-          revenue_mxn?: number | null
-          roas?: number | null
-          sales?: number | null
-          source?: string | null
-          tiktok_video_id?: string | null
-          title?: string | null
-          video_url?: string
-          views?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "videos_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {

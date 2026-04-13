@@ -13,7 +13,6 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
-import Opportunities from "./pages/Opportunities";
 import Favorites from "./pages/Favorites";
 import Creators from "./pages/Creators";
 import Affiliates from "./pages/Affiliates";
@@ -89,14 +88,6 @@ const App = () => {
               element={
                 <ProtectedRoute session={session}>
                   <Products />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/opportunities"
-              element={
-                <ProtectedRoute session={session}>
-                  <Opportunities />
                 </ProtectedRoute>
               }
             />

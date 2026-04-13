@@ -22,23 +22,27 @@ import {
 
 interface Video {
   id: string;
-  video_url: string;
-  title: string | null;
-  creator_name: string | null;
-  creator_handle: string | null;
-  product_name: string | null;
+  tiktok_url: string;
+  descripcion_video: string;
+  creador: string;
+  producto_nombre: string | null;
+  producto_url: string | null;
   product_id: string | null;
-  sales: number | null;
-  revenue_mxn: number | null;
-  views: number | null;
+  ventas: number;
+  ingresos_mxn: number;
+  visualizaciones: number;
   roas: number | null;
+  cpa_mxn: number;
+  duracion: string;
+  fecha_publicacion: string;
+  transcripcion_original: string | null;
+  guion_ia: string | null;
   category: string | null;
   country: string | null;
-  rank: number | null;
-  imported_at: string | null;
   product_price: number | null;
   product_sales: number | null;
   product_revenue: number | null;
+  created_at: string | null;
 }
 
 const Dashboard = () => {
@@ -76,7 +80,7 @@ const Dashboard = () => {
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
-        .from("videos")
+        .from("daily_feed")
         .select("category")
         .not("category", "is", null);
 
@@ -95,48 +99,37 @@ const Dashboard = () => {
   const fetchVideos = async (page: number) => {
     try {
       setLoading(true);
-      
+
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
-      // Determine sort order
-      let primarySort: "sales" | "revenue_mxn" = "revenue_mxn";
-      let secondarySort: "sales" | "revenue_mxn" = "sales";
-
-      if (sortOrder === "sales") {
-        primarySort = "sales";
-        secondarySort = "revenue_mxn";
-      }
+      const primarySort = sortOrder === "sales" ? "ventas" : "ingresos_mxn";
+      const secondarySort = sortOrder === "sales" ? "ingresos_mxn" : "ventas";
 
       let query = supabase
-        .from("videos")
+        .from("daily_feed")
         .select("*", { count: "exact" })
         .order(primarySort, { ascending: false })
         .order(secondarySort, { ascending: false })
         .range(from, to);
 
-      // Apply category filter
       if (selectedCategory !== "all") {
         query = query.eq("category", selectedCategory);
       }
 
-      // Apply date filter (simplified for now - would need actual date logic)
-      // TODO: Implement date filtering based on imported_at or created_at
-
-      // Apply existing filters
       if (productFilter) {
-        query = query.ilike("product_name", `%${productFilter}%`);
+        query = query.ilike("producto_nombre", `%${productFilter}%`);
       }
 
       if (creatorFilter) {
-        query = query.or(`creator_name.ilike.%${creatorFilter}%,creator_handle.ilike.%${creatorFilter}%`);
+        query = query.ilike("creador", `%${creatorFilter}%`);
       }
 
       const { data, error, count } = await query;
 
       if (error) throw error;
 
-      setVideos(data || []);
+      setVideos((data ?? []) as Video[]);
       setTotalCount(Math.min(count || 0, MAX_VIDEOS));
     } catch (error: any) {
       toast({
@@ -294,29 +287,10 @@ const Dashboard = () => {
             {/* Video Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
               {videos.map((video, index) => (
-                <VideoCard 
-                  key={video.id} 
-                  video={{
-                    id: video.id,
-                    tiktok_url: video.video_url,
-                    descripcion_video: video.title || "",
-                    creador: video.creator_name || video.creator_handle || "",
-                    ingresos_mxn: video.revenue_mxn || 0,
-                    ventas: video.sales || 0,
-                    visualizaciones: video.views || 0,
-                    producto_nombre: video.product_name,
-                    producto_url: null,
-                    cpa_mxn: video.revenue_mxn && video.sales ? video.revenue_mxn / video.sales : 0,
-                    duracion: "",
-                    fecha_publicacion: video.imported_at || "",
-                    transcripcion_original: null,
-                    guion_ia: null,
-                    product_id: video.product_id,
-                    product_price: video.product_price,
-                    product_sales: video.product_sales,
-                    product_revenue: video.product_revenue,
-                  }} 
-                  ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} 
+                <VideoCard
+                  key={video.id}
+                  video={video}
+                  ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
                 />
               ))}
             </div>

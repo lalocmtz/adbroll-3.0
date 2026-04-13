@@ -76,16 +76,16 @@ export function DataQualityPanel() {
         lastImport,
         importsHistory,
       ] = await Promise.all([
-        supabase.from("videos").select("*", { count: "exact", head: true }),
-        supabase.from("videos").select("*", { count: "exact", head: true }).not("product_id", "is", null),
-        supabase.from("videos").select("*", { count: "exact", head: true }).eq("matched_by", "product_url"),
-        supabase.from("videos").select("*", { count: "exact", head: true }).eq("matched_by", "stub"),
-        supabase.from("videos").select("*", { count: "exact", head: true }).or("matched_by.eq.none,matched_by.is.null"),
+        supabase.from("daily_feed").select("*", { count: "exact", head: true }),
+        supabase.from("daily_feed").select("*", { count: "exact", head: true }).not("product_id", "is", null),
+        supabase.from("daily_feed").select("*", { count: "exact", head: true }).eq("matched_by", "product_url"),
+        supabase.from("daily_feed").select("*", { count: "exact", head: true }).eq("matched_by", "stub"),
+        supabase.from("daily_feed").select("*", { count: "exact", head: true }).or("matched_by.eq.none,matched_by.is.null"),
         supabase.from("products").select("*", { count: "exact", head: true }),
         supabase.from("products").select("*", { count: "exact", head: true }).eq("from_video", true),
         supabase.from("products").select("*", { count: "exact", head: true }).gt("video_count", 0),
         supabase
-          .from("videos")
+          .from("daily_feed")
           .select("last_import")
           .not("last_import", "is", null)
           .order("last_import", { ascending: false })

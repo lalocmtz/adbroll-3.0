@@ -1,4 +1,4 @@
-// process-kalodata — Phase 1 rewrite.
+// process-kalodata — Phase 2 rewrite (single-table).
 //
 // This function replaces the old 651-line fuzzy matcher with a deterministic
 // pipeline:
@@ -12,7 +12,9 @@
 //        - by exact normalized product name
 //      If none exist, we create a product stub flagged `from_video=true`
 //      so the founder can enrich it later without losing the link.
-//   4. Bulk upsert the videos on their natural key (`tiktok_video_id`).
+//   4. Bulk upsert into `daily_feed` on its natural key (`tiktok_video_id`).
+//      Phase 2 consolidated the duplicate `videos` table away: `daily_feed`
+//      is now the sole video-intelligence table the app reads from.
 //   5. Write an `imports` log row with matched / stub / unmatched counts so
 //      the Admin data-quality panel can show what happened.
 //
@@ -167,13 +169,8 @@ serve(async (req) => {
     let stubCount = 0;
     let unmatchedCount = 0;
     let insertedCount = 0;
-    let updatedCount = 0;
 
     const now = new Date().toISOString();
-    const videoUpserts: Record<string, unknown>[] = [];
-
-    // Also dual-write into daily_feed so the current dashboard subcomponents
-    // keep working during Phase 2's schema consolidation.
     const dailyFeedUpserts: Record<string, unknown>[] = [];
 
     for (const row of rows) {
@@ -245,30 +242,8 @@ serve(async (req) => {
         unmatchedCount++;
       }
 
-      const videoRow = {
-        tiktok_video_id: tiktokVideoId,
-        video_url: videoUrl,
-        title,
-        creator_name: pickString(row, VIDEO_COLUMNS.creatorName) ??
-          pickString(row, VIDEO_COLUMNS.creatorHandle),
-        creator_handle: pickString(row, VIDEO_COLUMNS.creatorHandle),
-        sales: pickInt(row, VIDEO_COLUMNS.sales),
-        revenue_mxn: pickNumber(row, VIDEO_COLUMNS.revenue),
-        views: pickInt(row, VIDEO_COLUMNS.views),
-        roas: pickNumber(row, VIDEO_COLUMNS.roas),
-        category: pickString(row, VIDEO_COLUMNS.category),
-        country: pickString(row, VIDEO_COLUMNS.country),
-        product_id: matched?.id ?? null,
-        product_name: matched?.producto_nombre ?? productName,
-        product_price: matched?.price ?? null,
-        product_sales: matched?.total_ventas ?? null,
-        product_revenue: matched?.total_ingresos_mxn ?? null,
-        matched_by: matchedBy,
-        source: "kalodata",
-        last_import: now,
-        imported_at: now,
-      };
-      videoUpserts.push(videoRow);
+      const revenue = pickNumber(row, VIDEO_COLUMNS.revenue) ?? 0;
+      const sales = pickInt(row, VIDEO_COLUMNS.sales) ?? 0;
 
       dailyFeedUpserts.push({
         tiktok_video_id: tiktokVideoId,
@@ -278,61 +253,50 @@ serve(async (req) => {
         duracion: pickString(row, VIDEO_COLUMNS.duration) ?? "",
         creador: pickString(row, VIDEO_COLUMNS.creatorHandle) ?? "",
         fecha_publicacion: pickString(row, VIDEO_COLUMNS.publishedAt) ?? "",
-        ingresos_mxn: pickNumber(row, VIDEO_COLUMNS.revenue) ?? 0,
-        ventas: pickInt(row, VIDEO_COLUMNS.sales) ?? 0,
+        ingresos_mxn: revenue,
+        ventas: sales,
         visualizaciones: pickInt(row, VIDEO_COLUMNS.views) ?? 0,
         gpm_mxn: pickNumber(row, VIDEO_COLUMNS.gpm),
-        cpa_mxn: pickNumber(row, VIDEO_COLUMNS.cpa) ?? 0,
+        cpa_mxn: sales > 0 ? revenue / sales : (pickNumber(row, VIDEO_COLUMNS.cpa) ?? 0),
         ratio_ads: pickNumber(row, VIDEO_COLUMNS.adRatio),
         coste_publicitario_mxn: pickNumber(row, VIDEO_COLUMNS.adCost) ?? 0,
         roas: pickNumber(row, VIDEO_COLUMNS.roas) ?? 0,
+        category: pickString(row, VIDEO_COLUMNS.category),
+        country: pickString(row, VIDEO_COLUMNS.country),
         product_id: matched?.id ?? null,
         producto_nombre: matched?.producto_nombre ?? productName,
         producto_url: matched?.producto_url ?? productUrl,
+        product_price: matched?.price ?? null,
+        product_sales: matched?.total_ventas ?? null,
+        product_revenue: matched?.total_ingresos_mxn ?? null,
         matched_by: matchedBy,
+        source: "kalodata",
         last_import: now,
       });
     }
 
-    // Bulk upsert videos on natural key. onConflict requires the column to
-    // have a unique index (created in the Phase 1 migration).
-    if (videoUpserts.length > 0) {
-      // Split into rows that have a tiktok_video_id (use upsert) and those
-      // that don't (fall back to simple insert — shouldn't happen for real
-      // Kalodata rows, but keeps the function resilient).
-      const withId = videoUpserts.filter((r) => r.tiktok_video_id);
-      const withoutId = videoUpserts.filter((r) => !r.tiktok_video_id);
+    // Bulk upsert into daily_feed on natural key. onConflict requires the
+    // column to have a unique index (created in the Phase 1 migration).
+    if (dailyFeedUpserts.length > 0) {
+      const withId = dailyFeedUpserts.filter((r) => r.tiktok_video_id);
+      const withoutId = dailyFeedUpserts.filter((r) => !r.tiktok_video_id);
 
       if (withId.length > 0) {
         const { error: upsertError, count } = await service
-          .from("videos")
+          .from("daily_feed")
           .upsert(withId, { onConflict: "tiktok_video_id", count: "exact" });
         if (upsertError) {
-          console.error("[process-kalodata] videos upsert error:", upsertError);
+          console.error("[process-kalodata] daily_feed upsert error:", upsertError);
           throw upsertError;
         }
         insertedCount += count ?? withId.length;
       }
       if (withoutId.length > 0) {
-        const { error: insertError } = await service.from("videos").insert(withoutId);
+        const { error: insertError } = await service.from("daily_feed").insert(withoutId);
         if (insertError) {
-          console.error("[process-kalodata] videos insert error:", insertError);
+          console.error("[process-kalodata] daily_feed insert error:", insertError);
         } else {
           insertedCount += withoutId.length;
-        }
-      }
-    }
-
-    if (dailyFeedUpserts.length > 0) {
-      const withId = dailyFeedUpserts.filter((r) => r.tiktok_video_id);
-      if (withId.length > 0) {
-        const { error: dfError } = await service
-          .from("daily_feed")
-          .upsert(withId, { onConflict: "tiktok_video_id" });
-        if (dfError) {
-          console.error("[process-kalodata] daily_feed upsert error:", dfError);
-        } else {
-          updatedCount += withId.length;
         }
       }
     }
@@ -343,7 +307,7 @@ serve(async (req) => {
       kind: "videos",
       file_name: file.name,
       total_rows: rows.length,
-      videos_imported: videoUpserts.length,
+      videos_imported: dailyFeedUpserts.length,
       matched_count: matchedCount,
       stub_count: stubCount,
       unmatched_count: unmatchedCount,
@@ -356,23 +320,22 @@ serve(async (req) => {
 
     console.log(
       `[process-kalodata] done in ${durationMs}ms — ` +
-        `${videoUpserts.length} videos, ${matchedCount} matched, ${stubCount} stubs, ${unmatchedCount} unmatched`,
+        `${dailyFeedUpserts.length} videos, ${matchedCount} matched, ${stubCount} stubs, ${unmatchedCount} unmatched`,
     );
 
     return new Response(
       JSON.stringify({
         success: true,
         total: rows.length,
-        processed: videoUpserts.length,
+        processed: dailyFeedUpserts.length,
         inserted: insertedCount,
-        updated: updatedCount,
         matched: matchedCount,
         stubs_created: stubCount,
         unmatched: unmatchedCount,
         detected_format: detectedFormat,
         duration_ms: durationMs,
         message:
-          `Procesados ${videoUpserts.length} videos (${matchedCount} enlazados, ` +
+          `Procesados ${dailyFeedUpserts.length} videos (${matchedCount} enlazados, ` +
           `${stubCount} stubs creados, ${unmatchedCount} sin match) en ${durationMs}ms.`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
