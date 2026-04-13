@@ -6,7 +6,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { identify, reset as resetAnalytics, trackPageView } from "@/lib/analytics";
+import {
+  Events,
+  identify,
+  reset as resetAnalytics,
+  track,
+  trackPageView,
+} from "@/lib/analytics";
+import { captureAttribution } from "@/lib/attribution";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import Landing from "./pages/Landing";
@@ -27,6 +34,33 @@ const RouteTracker = () => {
   const location = useLocation();
   useEffect(() => {
     trackPageView(location.pathname + location.search);
+
+    // First-touch attribution + landing-specific events. We only fire
+    // landing.viewed on the public root so /app, /login, /register etc.
+    // keep their own dedicated events.
+    if (location.pathname === "/") {
+      const { payload, isNewPartnerSession } = captureAttribution();
+
+      track(Events.LandingViewed, {
+        utm_source: payload.utm_source,
+        utm_medium: payload.utm_medium,
+        utm_campaign: payload.utm_campaign,
+        utm_content: payload.utm_content,
+        utm_term: payload.utm_term,
+        referrer: payload.referrer,
+        ref_code: payload.ref_code,
+      });
+      // Meta PageView already fires via the pixel script in index.html;
+      // no need to re-emit here.
+
+      if (payload.ref_code && isNewPartnerSession) {
+        track(Events.PartnerLinkClicked, {
+          ref_code: payload.ref_code,
+          landing_path: payload.landing_path,
+          utm_source: payload.utm_source,
+        });
+      }
+    }
   }, [location.pathname, location.search]);
   return null;
 };
