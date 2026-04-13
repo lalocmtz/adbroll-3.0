@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Events, track, trackStandard } from "@/lib/analytics";
 
 const Register = () => {
   const [email, setEmail] = useState("");
@@ -18,6 +19,7 @@ const Register = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    track(Events.AuthRegisterSubmitted);
 
     try {
       const { error } = await supabase.auth.signUp({
@@ -32,6 +34,9 @@ const Register = () => {
       });
 
       if (error) throw error;
+
+      track(Events.AuthRegisterSucceeded);
+      trackStandard("CompleteRegistration", { method: "email" });
 
       toast({
         title: "¡Cuenta creada!",

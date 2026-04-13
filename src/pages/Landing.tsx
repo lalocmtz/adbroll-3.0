@@ -21,6 +21,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import GlobalHeader from "@/components/GlobalHeader";
+import { Events, track, trackStandard } from "@/lib/analytics";
 
 const formatMXN = (n: number) =>
   new Intl.NumberFormat("es-MX", {
@@ -77,6 +78,25 @@ const Landing = () => {
   const [selectedVideo, setSelectedVideo] = useState(0);
   const video = heroVideos[selectedVideo];
 
+  const goRegister = (location: string) => {
+    track(Events.LandingCtaClicked, { location, destination: "register" });
+    trackStandard("Lead", { location });
+    navigate("/register");
+  };
+
+  const goLogin = (location: string) => {
+    track(Events.LandingCtaClicked, { location, destination: "login" });
+    navigate("/login");
+  };
+
+  const selectHeroVideo = (index: number) => {
+    setSelectedVideo(index);
+    track(Events.LandingVideoSelected, {
+      index,
+      creator: heroVideos[index].creator,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <GlobalHeader showMenu={false} />
@@ -122,7 +142,7 @@ const Landing = () => {
               <Button
                 size="lg"
                 className="text-base px-7 py-6 h-auto glow-primary"
-                onClick={() => navigate("/register")}
+                onClick={() => goRegister("hero")}
               >
                 Crear cuenta gratis
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -131,7 +151,7 @@ const Landing = () => {
                 size="lg"
                 variant="outline"
                 className="text-base px-7 py-6 h-auto"
-                onClick={() => navigate("/login")}
+                onClick={() => goLogin("hero")}
               >
                 <Play className="h-4 w-4 mr-2" />
                 Ver demo en vivo
@@ -190,7 +210,7 @@ const Landing = () => {
                       return (
                         <button
                           key={v.creator}
-                          onClick={() => setSelectedVideo(i)}
+                          onClick={() => selectHeroVideo(i)}
                           className={`w-full flex items-center gap-3 px-5 py-3.5 text-left transition-colors ${
                             active
                               ? "bg-primary/5"
@@ -288,7 +308,7 @@ const Landing = () => {
                   <Button
                     size="sm"
                     className="w-full"
-                    onClick={() => navigate("/register")}
+                    onClick={() => goRegister("hero_mockup")}
                   >
                     Ver los 20 videos completos
                     <ArrowRight className="ml-2 h-3.5 w-3.5" />
@@ -527,7 +547,7 @@ const Landing = () => {
               size="lg"
               variant="secondary"
               className="text-base px-8 py-6 h-auto shadow-2xl"
-              onClick={() => navigate("/register")}
+              onClick={() => goRegister("final_cta")}
             >
               Crear cuenta gratis
               <ArrowRight className="ml-2 h-5 w-5" />

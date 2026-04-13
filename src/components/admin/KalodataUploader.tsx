@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Events, track } from "@/lib/analytics";
 import {
   Upload,
   FileSpreadsheet,
@@ -87,8 +88,10 @@ export const KalodataUploader = ({
 
   const upload = async () => {
     if (!file) return;
+    const startedAt = performance.now();
     setState("uploading");
     setErrorMessage(null);
+    track(Events.AdminUploadStarted, { kind, fileSize: file.size });
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -103,6 +106,13 @@ export const KalodataUploader = ({
         aiFailed: data?.ai_failed,
         message: data?.message,
       });
+      track(Events.AdminUploadSucceeded, {
+        kind,
+        processed: data?.processed ?? 0,
+        aiProcessed: data?.ai_processed ?? 0,
+        aiFailed: data?.ai_failed ?? 0,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
       toast({
         title: `¡${KIND_LABEL[kind]} procesados!`,
         description: `${data?.processed ?? 0} registros cargados correctamente.`,
@@ -112,6 +122,11 @@ export const KalodataUploader = ({
       const message = err instanceof Error ? err.message : String(err);
       setState("error");
       setErrorMessage(message);
+      track(Events.AdminUploadFailed, {
+        kind,
+        error: message,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
       toast({
         title: `Error al procesar ${KIND_LABEL[kind]}`,
         description: message,

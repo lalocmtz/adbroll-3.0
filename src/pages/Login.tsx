@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Events, track } from "@/lib/analytics";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,6 +18,7 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    track(Events.AuthLoginSubmitted);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -26,6 +28,7 @@ const Login = () => {
 
       if (error) throw error;
 
+      track(Events.AuthLoginSucceeded);
       toast({
         title: "¡Bienvenido de vuelta!",
       });

@@ -3,9 +3,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { identify, reset as resetAnalytics, trackPageView } from "@/lib/analytics";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import Landing from "./pages/Landing";
@@ -22,11 +23,19 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ 
-  children, 
-  session 
-}: { 
-  children: React.ReactNode; 
+const RouteTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    trackPageView(location.pathname + location.search);
+  }, [location.pathname, location.search]);
+  return null;
+};
+
+const ProtectedRoute = ({
+  children,
+  session
+}: {
+  children: React.ReactNode;
   session: Session | null;
 }) => {
   if (!session) return <Navigate to="/login" replace />;
@@ -44,13 +53,21 @@ const App = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.user) {
+        identify(session.user.id, { email: session.user.email });
+      }
       setLoading(false);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
+      if (session?.user) {
+        identify(session.user.id, { email: session.user.email });
+      } else if (event === "SIGNED_OUT") {
+        resetAnalytics();
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -71,6 +88,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <RouteTracker />
             <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
