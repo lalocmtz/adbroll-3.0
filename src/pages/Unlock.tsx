@@ -202,6 +202,107 @@ const Unlock = () => {
         </div>
       </section>
 
+      {/* Oportunidades preview — "Por qué está aquí / Tu oportunidad" */}
+      <section className="pb-12 md:pb-20">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center max-w-2xl mx-auto mb-8 md:mb-10"
+          >
+            <div className="inline-flex items-center gap-2 bg-[#FF6B6B]/10 text-[#FF6B6B] rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider mb-3">
+              <Sparkles className="h-3 w-3" />
+              Análisis IA exclusivo
+            </div>
+            <h2 className="text-2xl md:text-4xl font-bold mb-3 leading-tight">
+              Oportunidades que SOLO tú puedes capitalizar
+            </h2>
+            <p className="text-muted-foreground text-sm md:text-base">
+              Productos detectados por IA con alta demanda, poca competencia y margen real para creadores.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto">
+            {[
+              {
+                emoji: "💄",
+                product: "Labial matte 24h",
+                why: "Videos subieron 340% en 7 días. 0 creadores mexicanos grabando aún.",
+                opp: "Sé el primero en México. Ventana estimada: 14 días antes de saturación.",
+                io: 94,
+              },
+              {
+                emoji: "🧴",
+                product: "Serum de caracol orgánico",
+                why: "Margen de comisión 28%, tickets promedio de $320 MXN y búsquedas creciendo.",
+                opp: "Alta conversión con review honesto + antes/después. Demanda real en CDMX y MTY.",
+                io: 89,
+              },
+              {
+                emoji: "🎧",
+                product: "Audífonos inalámbricos gaming",
+                why: "Creadores USA facturan $12k USD/semana. México aún sin videos posicionados.",
+                opp: "Hueco claro en TikTok Shop MX. Primer lote con comisión 25%.",
+                io: 86,
+              },
+            ].map((card, i) => (
+              <motion.div
+                key={card.product}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.45, delay: 0.1 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <Card className="h-full p-5 border border-border/60 hover:border-[#FF6B6B]/40 hover:shadow-lg transition-all duration-300 bg-white">
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 rounded-xl bg-muted/60 flex items-center justify-center text-2xl">
+                        {card.emoji}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground leading-tight">
+                          {card.product}
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">Detectado por IA</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">IO Score</div>
+                      <div className="text-2xl font-bold text-[#FF6B6B] leading-none">{card.io}</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                        Por qué está aquí
+                      </p>
+                      <p className="text-foreground/80 leading-relaxed">{card.why}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#FF6B6B] mb-1">
+                        Tu oportunidad
+                      </p>
+                      <p className="text-foreground/80 leading-relaxed">{card.opp}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-border/60 flex items-center justify-between text-[11px]">
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <TrendingUp className="h-3 w-3" />
+                      Trending
+                    </span>
+                    <span className="text-primary font-semibold">Plan Pro →</span>
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing / Checkout Block */}
       {hasProspectEmail ? (
         <section id="pricing" className="py-10 md:py-16 landing-section-alt">

@@ -105,7 +105,7 @@ export default {
           "sans-serif",
         ],
         mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
-        display: ["Inter", "system-ui", "sans-serif"],
+        display: ["\"Space Grotesk\"", "Inter", "system-ui", "sans-serif"],
       },
       fontSize: {
         "display-xl": ["3rem", { lineHeight: "3.25rem", letterSpacing: "-0.03em", fontWeight: "800" }],
