@@ -20,9 +20,17 @@ import {
   LogIn,
   Lock,
   LogOut,
+  Megaphone,
+  Sparkles,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import MarketSwitcher from "@/components/MarketSwitcher";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import logoDark from "@/assets/logo-dark.png";
 
 interface DashboardSidebarProps {
@@ -37,6 +45,9 @@ interface NavItem {
   icon: any;
   lockedForVisitor: boolean;
   founderOnly?: boolean;
+  /** Optional Pro-plan tooltip shown when the item is locked. */
+  lockedTooltipEs?: string;
+  lockedTooltipEn?: string;
 }
 
 // Section labels
@@ -52,13 +63,47 @@ const exploreItems: NavItem[] = [
   { to: "/app", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle, lockedForVisitor: false },
   { to: "/products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: false },
   { to: "/ranking-creadores", labelEs: "Ranking Creadores", labelEn: "Creator Rankings", icon: TrendingUp, lockedForVisitor: false },
+  {
+    to: "/unlock",
+    labelEs: "Campañas y Creadores",
+    labelEn: "Campaigns & Creators",
+    icon: Megaphone,
+    lockedForVisitor: true,
+    lockedTooltipEs: "Desbloquea en plan Pro — Conecta con 500+ marcas verificadas y recibe campañas pagadas",
+    lockedTooltipEn: "Unlock on Pro plan — Connect with 500+ verified brands and receive paid campaigns",
+  },
+  {
+    to: "/unlock",
+    labelEs: "Oportunidades",
+    labelEn: "Opportunities",
+    icon: Sparkles,
+    lockedForVisitor: true,
+    lockedTooltipEs: "Desbloquea en plan Pro — Productos con alta demanda y poca competencia",
+    lockedTooltipEn: "Unlock on Pro plan — Products with high demand and low competition",
+  },
 ];
 
 // TU CENTRO - Work tools (Tools hidden for non-founders)
 const workspaceItems: NavItem[] = [
   { to: "/tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true, founderOnly: true },
-  { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
-  { to: "/affiliates", labelEs: "Afiliados", labelEn: "Affiliates", icon: Coins, lockedForVisitor: true },
+  {
+    to: "/favorites",
+    labelEs: "Favoritos",
+    labelEn: "Favorites",
+    icon: Heart,
+    lockedForVisitor: true,
+    lockedTooltipEs: "Guarda tus videos favoritos en plan Pro",
+    lockedTooltipEn: "Save your favorite videos on Pro plan",
+  },
+  {
+    to: "/affiliates",
+    labelEs: "Afiliados",
+    labelEn: "Affiliates",
+    icon: Coins,
+    lockedForVisitor: true,
+    lockedTooltipEs: "Panel de afiliados disponible en plan Pro",
+    lockedTooltipEn: "Affiliates panel available on Pro plan",
+  },
 ];
 
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
@@ -119,22 +164,37 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
     const isLocked = !isLoggedIn && item.lockedForVisitor;
 
     if (isLocked) {
-      return (
+      const tooltipText =
+        language === "es"
+          ? item.lockedTooltipEs ?? "Disponible en plan Pro"
+          : item.lockedTooltipEn ?? "Available on Pro plan";
+
+      const lockedButton = (
         <button
-          key={item.to}
           onClick={() => {
             navigate("/unlock");
             handleNavClick();
           }}
           className={cn(
             "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative w-full",
-            "text-muted-foreground/60 hover:text-muted-foreground"
+            "text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/40"
           )}
         >
           <item.icon className="h-4 w-4 text-muted-foreground/40" />
           <span className="flex-1 text-left">{language === "es" ? item.labelEs : item.labelEn}</span>
           <Lock className="h-3 w-3 text-muted-foreground/40" />
         </button>
+      );
+
+      return (
+        <TooltipProvider key={item.to} delayDuration={150}>
+          <Tooltip>
+            <TooltipTrigger asChild>{lockedButton}</TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[220px] text-xs leading-snug">
+              {tooltipText}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
 

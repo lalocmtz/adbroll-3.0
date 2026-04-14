@@ -57,19 +57,13 @@ interface Video {
 }
 const SORT_OPTIONS = [{
   value: "rank",
-  label: "Ranking actual"
+  label: "Ranking"
 }, {
   value: "revenue",
-  label: "Más ingresos"
-}, {
-  value: "sales",
-  label: "Más ventas"
-}, {
-  value: "views",
-  label: "Más vistas"
+  label: "Ingresos"
 }, {
   value: "earnings",
-  label: "Ganancias estimadas"
+  label: "Análisis IA"
 }];
 const Dashboard = () => {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -268,11 +262,14 @@ const Dashboard = () => {
         <div className="md:hidden">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold text-foreground leading-tight">
-              🔥 Lo que vende HOY
+              🤖 Lo que VENDE HOY en TikTok Shop {marketLabel}
             </h1>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {todayFormatted} · TikTok Shop {marketLabel}
+            Analizado en tiempo real por IA · {todayFormatted}
+          </p>
+          <p className="text-[11px] text-[#FF6B6B] font-semibold mt-0.5">
+            50,000+ videos analizados
           </p>
         </div>
 
@@ -281,11 +278,14 @@ const Dashboard = () => {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-foreground leading-tight">
-                🔥 Lo que vende HOY, {todayFormatted}
+                🤖 Lo que VENDE HOY en TikTok Shop {marketLabel}
               </h1>
             </div>
-            <p className="text-xs text-muted-foreground">
-              TikTok Shop {marketLabel} · Los guiones y productos que están vendiendo
+            <p className="text-sm text-muted-foreground">
+              Analizado en tiempo real por IA · {todayFormatted}
+            </p>
+            <p className="text-xs text-[#FF6B6B] font-semibold mt-1">
+              50,000+ videos analizados · Los guiones y productos que están vendiendo
             </p>
           </div>
           {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">

@@ -244,10 +244,13 @@ const Register = () => {
               onClick={() => navigate("/")}
             />
           </div>
-          <CardTitle>Crear cuenta</CardTitle>
-          <CardDescription>
-            Accede a los videos más rentables de TikTok Shop
+          <CardTitle className="text-center">Tu análisis IA personalizado te espera</CardTitle>
+          <CardDescription className="text-center">
+            Crea tu cuenta en 30 segundos
           </CardDescription>
+          <p className="text-center text-[11px] text-muted-foreground/70 mt-1">
+            Mismo email, diferente nivel
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Google OAuth Button */}

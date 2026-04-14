@@ -226,14 +226,22 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
         <div ref={containerRef} className="relative aspect-[4/5] md:aspect-[4/5] bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-3">
           {/* Top Icons Bar */}
           <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-20 flex items-center justify-between pointer-events-none">
-            {/* Ranking Badge - smaller on mobile */}
-            <span className={`pointer-events-auto text-[11px] md:text-[13px] font-bold px-2 md:px-2.5 py-0.5 md:py-1 rounded-full shadow-lg ${
-              isTop5 
-                ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white' 
-                : 'bg-white/95 text-[#0F172A] border border-[#E2E8F0]'
-            }`}>
-              #{ranking} {isTop5 && '🔥'}
-            </span>
+            {/* Ranking + AI Badge group */}
+            <div className="flex items-center gap-1 md:gap-1.5 pointer-events-auto">
+              <span className={`text-[11px] md:text-[13px] font-bold px-2 md:px-2.5 py-0.5 md:py-1 rounded-full shadow-lg ${
+                isTop5
+                  ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white'
+                  : 'bg-white/95 text-[#0F172A] border border-[#E2E8F0]'
+              }`}>
+                #{ranking} {isTop5 && '🔥'}
+              </span>
+              <span
+                className="text-[9px] md:text-[10px] font-semibold px-1.5 md:px-2 py-0.5 rounded-full shadow-md bg-[#FF6B6B] text-white flex items-center gap-0.5"
+                title="Detectado por IA"
+              >
+                🤖<span className="hidden md:inline">IA</span>
+              </span>
+            </div>
 
             {/* Right Icons - smaller on mobile */}
             <div className="flex items-center gap-1.5 md:gap-2 pointer-events-auto">

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, ArrowRight, Loader2, Rocket } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,23 +92,30 @@ export const SimpleEmailCaptureModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-0 bg-background">
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           className="p-6 sm:p-8"
         >
           {/* Logo */}
-          <div className="flex justify-center mb-5">
+          <div className="flex justify-center mb-4">
             <img src={logoDark} alt="Adbroll" className="h-8 sm:h-10" />
+          </div>
+
+          {/* Rocket icon accent */}
+          <div className="flex justify-center mb-3">
+            <div className="h-12 w-12 rounded-full bg-[#FF6B6B]/10 flex items-center justify-center">
+              <Rocket className="h-6 w-6 text-[#FF6B6B]" />
+            </div>
           </div>
 
           {/* Title */}
           <div className="text-center mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
-              Desbloquea Adbroll
+            <h2 className="text-lg sm:text-xl font-bold text-foreground mb-2 leading-snug">
+              Estás a punto de desbloquear tu siguiente nivel en TikTok Shop
             </h2>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Ingresa tu email para ver los planes
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Accede a análisis IA que otros creadores NO tienen. Descubre qué videos van a vender ANTES de grabarlos.
             </p>
           </div>
 
@@ -145,11 +152,16 @@ export const SimpleEmailCaptureModal = ({
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  Ver planes y precios
+                  Continuar
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
             </Button>
+
+            {/* Trust statement */}
+            <p className="text-center text-xs text-muted-foreground">
+              Sin costos ocultos. Cancela cuando quieras.
+            </p>
           </form>
 
           {/* Login link */}

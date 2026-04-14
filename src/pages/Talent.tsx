@@ -82,33 +82,62 @@ const Talent = () => {
     <div className="pb-24 md:pb-6">
       {/* ─── HERO SECTION ─── */}
       <section className="px-4 md:px-6 pt-8 md:pt-14 pb-10 md:pb-16 text-center max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-xs font-medium mb-5">
+        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-xs font-medium mb-3">
           <Sparkles className="h-3.5 w-3.5" />
-          {isEs ? "Programa de Talento adbroll" : "adbroll Talent Program"}
+          {isEs ? "Programa de Afiliados de Adbroll" : "Adbroll Affiliates Program"}
         </div>
 
-        <h1 className="text-2xl md:text-4xl font-bold text-foreground leading-tight mb-4">
+        {/* Pro-only badge */}
+        <div className="inline-flex items-center gap-1.5 bg-[#FF6B6B]/10 text-[#FF6B6B] rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider mb-5">
+          {isEs ? "Solo para Plan Pro" : "Pro Plan Only"}
+        </div>
+
+        <h1 className="text-2xl md:text-4xl font-bold text-foreground leading-tight mb-3">
           {isEs
-            ? "Gana dinero con campañas de TikTok Shop"
-            : "Earn money with TikTok Shop campaigns"}
+            ? "Las marcas vienen a TI (no al revés)"
+            : "Brands come to YOU (not the other way around)"}
         </h1>
 
         <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto mb-8">
           {isEs
-            ? "Conecta con marcas que buscan creadores y recibe campañas pagadas cada semana."
-            : "Connect with brands looking for creators and receive paid campaigns every week."}
+            ? "Recibe campañas pagadas de marcas verificadas cada semana, sin perseguir a nadie."
+            : "Receive paid campaigns from verified brands every week — no chasing required."}
         </p>
 
-        {/* Bullets */}
-        <div className="flex flex-wrap justify-center gap-4 md:gap-6 mb-8">
+        {/* Bullets — 4 benefits aligned with Pro positioning */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 mb-8 max-w-xl mx-auto text-left">
           {[
-            { icon: Banknote, label: isEs ? "Campañas pagadas" : "Paid campaigns" },
-            { icon: Gift, label: isEs ? "Productos gratis" : "Free products" },
-            { icon: BadgeCheck, label: isEs ? "Marcas verificadas" : "Verified brands" },
+            {
+              icon: BadgeCheck,
+              label: isEs
+                ? "Marcas verificadas que solo trabajan con top creadores"
+                : "Verified brands that only work with top creators",
+            },
+            {
+              icon: Banknote,
+              label: isEs
+                ? "Hasta 30% de comisión por cada venta (sin límite)"
+                : "Up to 30% commission on every sale (no cap)",
+            },
+            {
+              icon: Gift,
+              label: isEs
+                ? "Campañas pagadas + productos gratis antes del lanzamiento"
+                : "Paid campaigns + free products before launch",
+            },
+            {
+              icon: DollarSign,
+              label: isEs
+                ? "Dashboard exclusivo con métricas en tiempo real"
+                : "Exclusive dashboard with real-time metrics",
+            },
           ].map((item) => (
-            <div key={item.label} className="flex items-center gap-2 text-sm text-foreground">
-              <item.icon className="h-4 w-4 text-primary shrink-0" />
-              <span>{item.label}</span>
+            <div
+              key={item.label}
+              className="flex items-start gap-2.5 text-sm text-foreground rounded-xl border border-border/60 bg-card/60 px-3 py-2.5"
+            >
+              <item.icon className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <span className="leading-snug">{item.label}</span>
             </div>
           ))}
         </div>
