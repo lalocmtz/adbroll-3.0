@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
+import { PreviewGate } from "@/components/PreviewGate";
 import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -89,7 +90,8 @@ const Dashboard = () => {
     market
   } = useMarket();
   const {
-    isLoggedIn
+    isLoggedIn,
+    openPaywall
   } = useBlurGateContext();
   const [searchParams] = useSearchParams();
   const productFilter = searchParams.get("productName");
@@ -304,10 +306,7 @@ const Dashboard = () => {
               type="button"
               className="flex gap-1.5 opacity-60 flex-wrap text-left"
               aria-label="Desbloquear filtros"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onClick={() => openPaywall("dashboard_filters")}
             >
               {SORT_OPTIONS.map((option, i) => <span key={option.value} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[11px] md:text-xs font-medium h-7 md:h-8 flex items-center gap-1 whitespace-nowrap ${i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"}`}>
                   <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
@@ -320,10 +319,7 @@ const Dashboard = () => {
               type="button"
               className="h-7 md:h-8 px-2.5 md:px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1 text-[11px] md:text-xs text-muted-foreground opacity-60 whitespace-nowrap flex-shrink-0"
               aria-label="Desbloquear categorías"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onClick={() => openPaywall("dashboard_categories")}
             >
               <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
               Categorías
@@ -376,24 +372,13 @@ const Dashboard = () => {
           };
 
           if (isLocked) {
-            return <div key={video.id} className="relative cursor-pointer group" onClick={() => {
-              handleRowClick();
-              navigate("/unlock");
-              window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-              });
-            }}>
-                    <div className="blur-[2px] pointer-events-none">
-                      <VideoCardOriginal video={video} ranking={globalIndex + 1} />
-                    </div>
-                    <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-xl">
-                      <div className="text-center p-4">
-                        <Lock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm font-medium text-foreground">Desbloquear</p>
-                      </div>
-                    </div>
-                  </div>;
+            return (
+              <div key={video.id} onClickCapture={handleRowClick}>
+                <PreviewGate locked feature="top20_video" radiusClass="rounded-xl" blurAmount="sm">
+                  <VideoCardOriginal video={video} ranking={globalIndex + 1} />
+                </PreviewGate>
+              </div>
+            );
           }
           return <div key={video.id} onClickCapture={handleRowClick}>
             <VideoCardOriginal video={video} ranking={globalIndex + 1} isFreePreview={isFreePreview} />
@@ -418,10 +403,7 @@ const Dashboard = () => {
                   type="button"
                   className="flex items-center justify-center gap-2 opacity-60 w-full"
                   aria-label="Desbloquear más videos"
-                  onClick={() => {
-                    navigate("/unlock");
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                  onClick={() => openPaywall("top20_pagination")}
                 >
                   <Lock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Ver más videos</span>
@@ -431,13 +413,7 @@ const Dashboard = () => {
 
       {/* Sticky CTA for visitors - Mobile only */}
       {!isLoggedIn && <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
-          <Button className="w-full h-12 text-sm font-semibold shadow-lg" onClick={() => {
-        navigate("/unlock");
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth'
-        });
-      }}>
+          <Button className="w-full h-12 text-sm font-semibold shadow-lg" onClick={() => openPaywall("dashboard_sticky_cta")}>
             <Sparkles className="h-4 w-4 mr-2" />
             Desbloquear acceso completo 
           </Button>

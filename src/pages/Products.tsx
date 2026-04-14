@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FilterPills } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
+import { PreviewGate } from "@/components/PreviewGate";
 import { useMarket } from "@/contexts/MarketContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { format } from "date-fns";
@@ -49,7 +50,7 @@ const FREE_PREVIEW_LIMIT = 3;
 const Products = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isLoggedIn } = useBlurGateContext();
+  const { isLoggedIn, openPaywall } = useBlurGateContext();
   const { market, marketLabel } = useMarket();
   const { language, formatMoney } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
@@ -265,10 +266,7 @@ const Products = () => {
           {!isLoggedIn ? (
             <div 
               className="flex gap-1.5 flex-wrap"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onClick={() => openPaywall("products")}
             >
               {SORT_OPTIONS.map((option, i) => (
                 <span
@@ -294,10 +292,7 @@ const Products = () => {
           {!isLoggedIn ? (
             <div 
               className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onClick={() => openPaywall("products")}
             >
               <Lock className="h-3 w-3" />
               Categorías
@@ -350,16 +345,8 @@ const Products = () => {
               
               if (isLocked) {
                 return (
-                  <div 
-                    key={product.id}
-                    className="relative cursor-pointer group"
-                    onClick={() => {
-                      navigate("/unlock");
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                  >
-                    <div className="blur-[6px] pointer-events-none bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-border/50 dark:border-border p-3 md:p-5 shadow-sm">
-                      {/* Product Image - 1:1 aspect ratio */}
+                  <PreviewGate key={product.id} locked feature="product_card">
+                    <div className="bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-border/50 dark:border-border p-3 md:p-5 shadow-sm">
                       <div className="relative aspect-square bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-4">
                         <img
                           src={product.imagen_url || PLACEHOLDER_IMAGE}
@@ -370,14 +357,13 @@ const Products = () => {
                           }}
                         />
                         <span className={`absolute top-2 md:top-3 left-2 md:left-3 text-[11px] md:text-[13px] font-bold px-2 py-0.5 md:py-1 rounded-full shadow-lg ${
-                          isTop5 
-                            ? 'bg-gradient-to-r from-primary to-primary/80 text-white' 
+                          isTop5
+                            ? 'bg-gradient-to-r from-primary to-primary/80 text-white'
                             : 'bg-white/95 text-foreground border border-border'
                         }`}>
                           #{displayRank} {isTop5 && '🔥'}
                         </span>
                       </div>
-                      {/* Content */}
                       <div className="space-y-2 md:space-y-3">
                         <h3 className="text-[13px] md:text-[15px] font-semibold text-foreground truncate leading-tight">
                           {product.producto_nombre}
@@ -397,13 +383,7 @@ const Products = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-2xl md:rounded-[20px]">
-                      <div className="text-center p-3 md:p-4">
-                        <Lock className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-1.5 md:mb-2 text-muted-foreground" />
-                        <p className="text-xs md:text-sm font-medium text-foreground">Desbloquear</p>
-                      </div>
-                    </div>
-                  </div>
+                  </PreviewGate>
                 );
               }
 
@@ -439,8 +419,7 @@ const Products = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!isLoggedIn) {
-                                navigate("/unlock");
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                openPaywall("product_external");
                                 return;
                               }
                               window.open(product.producto_url!, '_blank');
@@ -455,8 +434,7 @@ const Products = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!isLoggedIn) {
-                              navigate("/unlock");
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                              openPaywall("product_favorite");
                               return;
                             }
                             toggleFavorite(product.id, e);
@@ -548,8 +526,7 @@ const Products = () => {
                       className="w-full h-8 md:h-10 text-xs md:text-sm"
                       onClick={() => {
                         if (!isLoggedIn) {
-                          navigate("/unlock");
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          openPaywall("product_videos");
                           return;
                         }
                         navigate(`/videos/product/${product.id}`);
@@ -567,12 +544,9 @@ const Products = () => {
           {totalPages > 1 && (
             <div className="mt-6">
               {!isLoggedIn ? (
-                <div 
+                <div
                   className="flex items-center justify-center gap-2 opacity-60 cursor-pointer"
-                  onClick={() => {
-                    navigate("/unlock");
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                  onClick={() => openPaywall("products_pagination")}
                 >
                   <Lock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Ver más productos</span>
@@ -592,15 +566,12 @@ const Products = () => {
       {/* Sticky CTA for visitors - Mobile only */}
       {!isLoggedIn && (
         <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
-          <Button 
-            className="w-full h-12 text-sm font-semibold shadow-lg" 
-            onClick={() => {
-              navigate("/unlock");
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+          <Button
+            className="w-full h-12 text-sm font-semibold shadow-lg"
+            onClick={() => openPaywall("products_sticky_cta")}
           >
             <Sparkles className="h-4 w-4 mr-2" />
-            Desbloquear acceso completo 
+            Desbloquear acceso completo
           </Button>
         </div>
       )}

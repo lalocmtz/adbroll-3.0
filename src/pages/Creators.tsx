@@ -63,7 +63,7 @@ const FREE_PREVIEW_LIMIT = 3;
 const Creators = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isLoggedIn } = useBlurGateContext();
+  const { isLoggedIn, openPaywall } = useBlurGateContext();
   const { market, marketLabel } = useMarket();
   const { language } = useLanguage();
   const [creators, setCreators] = useState<Creator[]>([]);
@@ -285,8 +285,7 @@ const Creators = () => {
 
   const handleRowClick = (creator: Creator, isLocked: boolean) => {
     if (isLocked || !isLoggedIn) {
-      navigate("/unlock");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      openPaywall("creator_row");
       return;
     }
     navigate(`/videos/creator/${creator.id}`);
@@ -331,12 +330,9 @@ const Creators = () => {
       <div className="mb-4 md:mb-6">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
           {!isLoggedIn ? (
-            <div 
+            <div
               className="flex gap-1.5 flex-wrap"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
+              onClick={() => openPaywall("creators_filters")}
             >
               {SORT_OPTIONS.map((option, i) => (
                 <span
@@ -460,7 +456,7 @@ const Creators = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isLocked || !isLoggedIn) {
-                                navigate("/unlock");
+                                openPaywall("creator_favorite");
                                 return;
                               }
                               toggleFavorite(creator.id, e);
@@ -704,12 +700,9 @@ const Creators = () => {
           {totalPages > 1 && (
             <div className="mt-6">
               {!isLoggedIn ? (
-                <div 
+                <div
                   className="flex items-center justify-center gap-2 opacity-60 cursor-pointer"
-                  onClick={() => {
-                    navigate("/unlock");
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+                  onClick={() => openPaywall("creators_pagination")}
                 >
                   <Lock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Ver más creadores</span>
@@ -729,15 +722,12 @@ const Creators = () => {
       {/* Sticky CTA for visitors - Mobile only */}
       {!isLoggedIn && (
         <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
-          <Button 
-            className="w-full h-12 text-sm font-semibold shadow-lg" 
-            onClick={() => {
-              navigate("/unlock");
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+          <Button
+            className="w-full h-12 text-sm font-semibold shadow-lg"
+            onClick={() => openPaywall("creators_sticky_cta")}
           >
             <Sparkles className="h-4 w-4 mr-2" />
-            Desbloquear acceso completo 
+            Desbloquear acceso completo
           </Button>
         </div>
       )}
