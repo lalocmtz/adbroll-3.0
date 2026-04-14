@@ -150,6 +150,22 @@ All colors MUST be HSL.
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
   }
+  @keyframes top20Pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 4px 12px -4px rgba(0,0,0,0.2); }
+    50% { transform: scale(1.03); box-shadow: 0 8px 20px -6px rgba(236,72,153,0.35); }
+  }
+  @keyframes top20Shimmer {
+    0% { transform: translateX(-100%); }
+    50%, 100% { transform: translateX(200%); }
+  }
+  @keyframes top20Bar {
+    0% { width: 0%; }
+  }
   .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
   .animate-marquee { animation: marquee-x 40s linear infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    [style*="top20Pulse"],
+    [style*="top20Shimmer"],
+    [style*="top20Bar"] { animation: none !important; }
+  }
 }

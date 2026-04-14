@@ -57,11 +57,61 @@ const spotlightCreators = [
 ];
 
 const top20Mock = [
-  { rank: 1, product: "Serum Vitamina C 30ml", creator: "@marianacrea", revenue: 482500, views: 2400000, roas: 4.8 },
-  { rank: 2, product: "Resistencia Pro Kit", creator: "@javi.fit", revenue: 311200, views: 1700000, roas: 3.6 },
-  { rank: 3, product: "Sartenes Antiadherentes x5", creator: "@casadelulu", revenue: 268900, views: 985000, roas: 5.1 },
-  { rank: 4, product: "Labial Matte 24h", creator: "@susanavibes", revenue: 214300, views: 742000, roas: 4.2 },
-  { rank: 5, product: "Proteína Whey 2kg", creator: "@keto.rodri", revenue: 198700, views: 612000, roas: 3.1 },
+  {
+    rank: 1,
+    product: "Serum Vitamina C 30ml",
+    creator: "@marianacrea",
+    revenue: 482500,
+    views: 2400000,
+    roas: 4.8,
+    ctr: 7.8,
+    gradient: "from-pink-400 via-fuchsia-500 to-rose-500",
+    hook: "Miren esto, llevo tres semanas usando este serum...",
+  },
+  {
+    rank: 2,
+    product: "Resistencia Pro Kit",
+    creator: "@javi.fit",
+    revenue: 311200,
+    views: 1700000,
+    roas: 3.6,
+    ctr: 6.4,
+    gradient: "from-cyan-400 via-sky-500 to-blue-600",
+    hook: "Spoiler: este kit cambió mi rutina completa...",
+  },
+  {
+    rank: 3,
+    product: "Sartenes Antiadherentes x5",
+    creator: "@casadelulu",
+    revenue: 268900,
+    views: 985000,
+    roas: 5.1,
+    ctr: 9.1,
+    gradient: "from-amber-400 via-orange-500 to-red-500",
+    hook: "No sabía que un sartén podía ahorrarme esto...",
+  },
+  {
+    rank: 4,
+    product: "Labial Matte 24h",
+    creator: "@susanavibes",
+    revenue: 214300,
+    views: 742000,
+    roas: 4.2,
+    ctr: 8.2,
+    gradient: "from-rose-400 via-pink-500 to-purple-500",
+    hook: "Probé 12 labiales este mes y este fue el único...",
+  },
+  {
+    rank: 5,
+    product: "Proteína Whey 2kg",
+    creator: "@keto.rodri",
+    revenue: 198700,
+    views: 612000,
+    roas: 3.1,
+    ctr: 5.7,
+    gradient: "from-lime-400 via-green-500 to-emerald-600",
+    hook: "30 días de esto y mi progreso es otro...",
+  },
 ];
 
 type GuionVariant = "transcrito" | "ia_optimizado" | "ia_agresivo";
@@ -379,29 +429,89 @@ const Landing = () => {
               </span>
             </div>
 
-            {/* rows */}
+            {/* rows — animated mini video previews */}
             <div className="divide-y divide-brand-ink/5">
-              {top20Mock.map((row) => (
+              {top20Mock.map((row, idx) => (
                 <div
                   key={row.rank}
-                  className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-brand-mist-100"
+                  className="group flex items-center gap-3 px-3 py-3 transition-colors hover:bg-brand-mist-100 md:gap-4 md:px-5 md:py-4"
                 >
-                  <div className="flex size-9 items-center justify-center rounded-button bg-brand-pink/10 font-mono text-sm font-bold text-brand-pink-text">
-                    #{row.rank}
+                  {/* animated mini thumbnail — vertical 9:16 video frame */}
+                  <div className="relative shrink-0">
+                    <div
+                      className={cn(
+                        "relative h-20 w-12 overflow-hidden rounded-lg bg-gradient-to-br shadow-card-tactile md:h-24 md:w-14",
+                        row.gradient,
+                      )}
+                      style={{ animation: `top20Pulse 2.4s ease-in-out ${idx * 0.3}s infinite` }}
+                    >
+                      {/* shimmer sweep */}
+                      <div
+                        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                        style={{ animation: `top20Shimmer 3s ease-in-out ${idx * 0.4}s infinite` }}
+                      />
+                      {/* play icon */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="rounded-full bg-white/90 p-1.5 shadow-lg backdrop-blur-sm md:p-2">
+                          <Play className="h-3 w-3 fill-brand-ink text-brand-ink md:h-4 md:w-4" />
+                        </div>
+                      </div>
+                      {/* rank badge */}
+                      <div className="absolute left-1 top-1 rounded bg-black/60 px-1 font-mono text-[9px] font-bold text-white">
+                        #{row.rank}
+                      </div>
+                      {/* live view counter strip */}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-1 py-0.5">
+                        <div className="flex items-center gap-0.5 text-[8px] font-semibold text-white">
+                          <span className="h-1 w-1 animate-pulse rounded-full bg-red-500" />
+                          {formatCompact(row.views)}
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{row.product}</p>
+                    <p className="truncate text-sm font-semibold text-brand-ink">
+                      {row.product}
+                    </p>
                     <p className="truncate text-xs text-brand-ink/50">
-                      {row.creator} · {formatCompact(row.views)} views
+                      {row.creator}
                     </p>
+                    {/* animated CTR bar */}
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <div className="h-1 max-w-[120px] flex-1 overflow-hidden rounded-full bg-brand-ink/10">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-brand-pink to-brand-cyan"
+                          style={{
+                            width: `${Math.min(row.ctr * 10, 95)}%`,
+                            animation: `top20Bar 1.8s ease-out ${idx * 0.15}s both`,
+                          }}
+                        />
+                      </div>
+                      <span className="font-mono text-[10px] tabular-nums text-brand-ink/60">
+                        {row.ctr.toFixed(1)}% CTR
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-mono tabular-nums text-sm font-bold">
-                      {formatMXN(row.revenue)}
-                    </p>
-                    <p className="text-[10px] font-semibold text-brand-money-text">
-                      ROAS {row.roas.toFixed(1)}x
-                    </p>
+
+                  <div className="flex flex-col items-end gap-1.5">
+                    <div className="text-right">
+                      <p className="font-mono tabular-nums text-sm font-bold text-brand-ink">
+                        {formatMXN(row.revenue)}
+                      </p>
+                      <p className="text-[10px] font-semibold text-brand-money-text">
+                        ROAS {row.roas.toFixed(1)}x
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => goRegister(`top20_row_${row.rank}_guion`)}
+                      className="hidden items-center gap-1 rounded-button border border-brand-ink/15 bg-white px-2 py-1 text-[10px] font-semibold text-brand-ink/70 shadow-sm transition-all hover:border-brand-pink hover:text-brand-pink-text group-hover:flex"
+                      aria-label={`Copiar guión del video ${row.rank}`}
+                    >
+                      <Copy className="h-2.5 w-2.5" />
+                      Guión
+                    </button>
                   </div>
                 </div>
               ))}
@@ -410,15 +520,14 @@ const Landing = () => {
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-4 px-5 py-4 blur-sm select-none"
+                  className="flex items-center gap-3 px-3 py-3 blur-sm select-none md:gap-4 md:px-5 md:py-4"
                   aria-hidden
                 >
-                  <div className="flex size-9 items-center justify-center rounded-button bg-brand-ink/5 font-mono text-sm font-bold text-brand-ink/30">
-                    #{i + 6}
-                  </div>
+                  <div className="h-20 w-12 rounded-lg bg-brand-ink/10 md:h-24 md:w-14" />
                   <div className="min-w-0 flex-1">
                     <div className="h-3 w-48 rounded bg-brand-ink/10" />
                     <div className="mt-2 h-2 w-32 rounded bg-brand-ink/10" />
+                    <div className="mt-2 h-1 w-24 rounded bg-brand-ink/10" />
                   </div>
                   <div className="h-3 w-16 rounded bg-brand-ink/10" />
                 </div>

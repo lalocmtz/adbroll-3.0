@@ -24,6 +24,7 @@ const Register = () => {
   const [grantData, setGrantData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showReferralField, setShowReferralField] = useState(!!searchParams.get("ref"));
   const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -235,11 +236,11 @@ const Register = () => {
           <X className="h-5 w-5 text-muted-foreground" />
         </button>
         <CardHeader>
-          <div className="text-center mb-4">
+          <div className="text-center mb-3">
             <img
               src={logoDark}
               alt="adbroll"
-              className="h-16 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+              className="h-10 md:h-12 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/")}
             />
           </div>
@@ -249,37 +250,6 @@ const Register = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Referral Code Input - Before OAuth for visibility */}
-          <div className="space-y-2">
-            <Label htmlFor="referralCode" className="flex items-center gap-2">
-              <Gift className="h-4 w-4 text-primary" />
-              Código de referido (opcional)
-            </Label>
-            <Input
-              id="referralCode"
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-              placeholder="ABC123"
-              className={`${
-                referralValid === true
-                  ? "border-green-500 focus-visible:ring-green-500"
-                  : referralValid === false
-                  ? "border-red-500 focus-visible:ring-red-500"
-                  : ""
-              }`}
-            />
-            {referralValid === true && (
-              <p className="text-sm text-green-600 flex items-center gap-1">
-                🎉 Código válido - ¡50% off en tu primer mes!
-              </p>
-            )}
-            {referralValid === false && (
-              <p className="text-sm text-red-500">
-                Código no válido
-              </p>
-            )}
-          </div>
-
           {/* Google OAuth Button */}
           <Button
             type="button"
@@ -377,6 +347,45 @@ const Register = () => {
                 Mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial
               </p>
             </div>
+
+            {/* Subtle collapsible referral code — hidden unless the user
+                has a code or ?ref= query param was present on load. */}
+            {showReferralField ? (
+              <div className="space-y-1.5">
+                <Label htmlFor="referralCode" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Gift className="h-3.5 w-3.5" />
+                  Código de referido
+                </Label>
+                <Input
+                  id="referralCode"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  placeholder="ABC123"
+                  className={`h-9 text-sm ${
+                    referralValid === true
+                      ? "border-green-500 focus-visible:ring-green-500"
+                      : referralValid === false
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : ""
+                  }`}
+                />
+                {referralValid === true && (
+                  <p className="text-xs text-green-600">🎉 Código válido · 50% off en tu primer mes</p>
+                )}
+                {referralValid === false && referralCode.length >= 4 && (
+                  <p className="text-xs text-red-500">Código no válido</p>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowReferralField(true)}
+                className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline flex items-center gap-1 mx-auto"
+              >
+                <Gift className="h-3 w-3" />
+                ¿Tienes un código de referido?
+              </button>
+            )}
 
             <Button type="submit" className="w-full bg-primary hover:bg-primary-hover" disabled={isLoading}>
               {isLoading ? "Creando cuenta..." : "Crear cuenta gratuita"}
