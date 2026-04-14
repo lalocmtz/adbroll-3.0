@@ -27,7 +27,13 @@ export const PreviewGate = ({
 
   if (!locked) return <>{children}</>;
 
-  const blurClass = blurAmount === "sm" ? "blur-[2px]" : "blur-[6px]";
+  // Responsive blur: lighter on mobile so locked content stays
+  // recognizable (it's small already), stronger on desktop where the
+  // card is bigger and a stronger blur reads as intentional gating.
+  const blurClass =
+    blurAmount === "sm"
+      ? "blur-[1px] md:blur-[2px]"
+      : "blur-[2px] md:blur-[6px]";
 
   return (
     <div

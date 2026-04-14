@@ -231,7 +231,7 @@ const Dashboard = () => {
     // Skeleton that mirrors the real grid shape so CLS is minimized and
     // perceived wait drops — avoids the generic "loading..." bounce on
     // slow mobile connections.
-    return <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
+    return <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6 max-w-7xl mx-auto w-full">
         <div className="mb-3 md:mb-4">
           <div className="h-6 md:h-7 w-48 rounded bg-muted/60 animate-pulse" />
           <div className="mt-2 h-3 w-64 rounded bg-muted/40 animate-pulse" />
@@ -262,7 +262,7 @@ const Dashboard = () => {
   const marketLabel = market === 'mx' ? 'México' : 'Estados Unidos';
   const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: es });
   
-  return <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
+  return <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6 max-w-7xl mx-auto w-full">
       {/* Compact Mobile Hero Section - Dynamic Date */}
       <div className="mb-3 md:mb-4 py-1 md:py-0">
         <div className="md:hidden">

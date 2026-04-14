@@ -237,7 +237,7 @@ const Products = () => {
   const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: language === 'es' ? es : enUS });
 
   return (
-    <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
+    <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6 max-w-7xl mx-auto w-full">
       {/* Mobile Hero Section - Dynamic Date */}
       <div className="mb-3 md:mb-4 py-1 md:py-0">
         <div className="md:hidden">
