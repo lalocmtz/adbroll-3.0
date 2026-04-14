@@ -30,7 +30,6 @@ const Settings = lazy(() => import("./pages/Settings"));
 const Support = lazy(() => import("./pages/Support"));
 const Admin = lazy(() => import("./pages/Admin"));
 const RelatedVideos = lazy(() => import("./pages/RelatedVideos"));
-const Opportunities = lazy(() => import("./pages/Opportunities"));
 const Affiliates = lazy(() => import("./pages/Affiliates"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -41,14 +40,6 @@ const Pricing = lazy(() => import("./pages/Pricing"));
 const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
 const CheckoutCancel = lazy(() => import("./pages/CheckoutCancel"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const Campaigns = lazy(() => import("./pages/Campaigns"));
-const CampaignDetail = lazy(() => import("./pages/CampaignDetail"));
-const MySubmissions = lazy(() => import("./pages/MySubmissions"));
-const BrandDashboard = lazy(() => import("./pages/brand/BrandDashboard"));
-const BrandCampaigns = lazy(() => import("./pages/brand/BrandCampaigns"));
-const BrandSubmissions = lazy(() => import("./pages/brand/BrandSubmissions"));
-const BrandUpgrade = lazy(() => import("./pages/brand/BrandUpgrade"));
-const BrandRegister = lazy(() => import("./pages/brand/BrandRegister"));
 const CreatorProgram = lazy(() => import("./pages/CreatorProgram"));
 const Redeem = lazy(() => import("./pages/Redeem"));
 const VideoAttribution = lazy(() => import("./pages/admin/VideoAttribution"));
@@ -276,14 +267,6 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/opportunities"
-                    element={
-                      <AppRoute session={session}>
-                        <Opportunities />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
                     path="/affiliates"
                     element={
                       <AppRoute session={session}>
@@ -306,78 +289,6 @@ const App = () => {
                         <RelatedVideos />
                       </AppRoute>
                     }
-                  />
-                  
-                  {/* Campaigns routes */}
-                  <Route
-                    path="/campaigns"
-                    element={
-                      <AppRoute session={session}>
-                        <Campaigns />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/campaigns/:id"
-                    element={
-                      <AppRoute session={session}>
-                        <CampaignDetail />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/my-submissions"
-                    element={
-                      <AppRoute session={session}>
-                        <MySubmissions />
-                      </AppRoute>
-                    }
-                  />
-                  
-                  {/* Brand routes - require auth */}
-                  <Route
-                    path="/brand/dashboard"
-                    element={
-                      <AppRoute session={session} requiresAuth>
-                        <BrandDashboard />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/brand/campaigns"
-                    element={
-                      <AppRoute session={session} requiresAuth>
-                        <BrandCampaigns />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/brand/campaigns/:id/submissions"
-                    element={
-                      <AppRoute session={session} requiresAuth>
-                        <BrandSubmissions />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/brand/upgrade"
-                    element={
-                      <AppRoute session={session} requiresAuth>
-                        <BrandUpgrade />
-                      </AppRoute>
-                    }
-                    />
-                  <Route
-                    path="/brand/register"
-                    element={
-                      <AppRoute session={session} requiresAuth>
-                        <BrandRegister />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/brand"
-                    element={<Navigate to="/brand/dashboard" replace />}
                   />
                   
                   {/* Admin routes - require auth */}

@@ -1,0 +1,15 @@
+{
+  "id": "session-1776053544923",
+  "startedAt": "2026-04-13T04:12:24.923Z",
+  "platform": "darwin",
+  "cwd": "/Users/eduardo/adbroll",
+  "context": {},
+  "metrics": {
+    "edits": 7,
+    "commands": 0,
+    "tasks": 0,
+    "errors": 0
+  },
+  "endedAt": "2026-04-13T04:53:24.088Z",
+  "duration": 2459171
+}

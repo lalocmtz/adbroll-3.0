@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
-import { useAccountType } from "@/hooks/useAccountType";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import {
   PlayCircle,
   Package,
-  Users,
   Heart,
   Settings,
   HelpCircle,
@@ -22,9 +20,6 @@ import {
   LogIn,
   Lock,
   LogOut,
-  FolderOpen,
-  Crown,
-  Sparkles,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import MarketSwitcher from "@/components/MarketSwitcher";
@@ -50,7 +45,6 @@ const sectionLabels = {
   earn: { es: "GANA DINERO", en: "EARN MONEY" },
   workspace: { es: "TU CENTRO", en: "YOUR HUB" },
   account: { es: "CUENTA", en: "ACCOUNT" },
-  brand: { es: "PANEL MARCA", en: "BRAND PANEL" },
 };
 
 // EXPLORA - TikTok Shop content
@@ -58,8 +52,6 @@ const exploreItems: NavItem[] = [
   { to: "/app", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle, lockedForVisitor: false },
   { to: "/products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: false },
   { to: "/ranking-creadores", labelEs: "Ranking Creadores", labelEn: "Creator Rankings", icon: TrendingUp, lockedForVisitor: false },
-  { to: "/talento", labelEs: "Campañas y Creadores", labelEn: "Campaigns & Creators", icon: Users, lockedForVisitor: false },
-  { to: "/opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
 ];
 
 // TU CENTRO - Work tools (Tools hidden for non-founders)
@@ -72,7 +64,6 @@ const workspaceItems: NavItem[] = [
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   const { language } = useLanguage();
   const { isLoggedIn, isFounder } = useBlurGateContext();
-  const { isBrand } = useAccountType();
   const navigate = useNavigate();
   const location = useLocation();
   const [userEmail, setUserEmail] = useState<string>("");
@@ -229,23 +220,6 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
           {renderSectionLabel("workspace")}
           <div className="space-y-0.5">
             {workspaceItems.map(renderNavItem)}
-          </div>
-          
-          {/* Círculo Interno CTA */}
-          <div className="mt-3 px-0">
-            <NavLink
-              to="/talento"
-              onClick={handleNavClick}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm w-full transition-all duration-200 bg-gradient-to-r from-primary/10 to-pink-500/10 text-primary hover:from-primary/20 hover:to-pink-500/20"
-            >
-              <Crown className="h-4 w-4" />
-              <div className="flex flex-col text-left">
-                <span className="font-medium">{language === "es" ? "Círculo Interno" : "Inner Circle"}</span>
-                <span className="text-[10px] font-normal opacity-80">
-                  {language === "es" ? "Aplica como creador" : "Apply as creator"}
-                </span>
-              </div>
-            </NavLink>
           </div>
         </nav>
 
