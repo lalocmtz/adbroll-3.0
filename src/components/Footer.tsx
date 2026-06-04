@@ -12,9 +12,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <img src={logoDark} alt="Adbroll" className="h-8" />
+            <img src={logoDark} alt="TokXray" className="h-8" />
             <p className="text-sm text-muted-foreground">
-              Descubre qué videos están vendiendo HOY en TikTok Shop México.
+              Rayos X a TikTok Shop. Datos reales, guión listo.
             </p>
             <div className="flex gap-4">
               <a
@@ -59,7 +59,7 @@ const Footer = () => {
             <ul className="space-y-2">
               <li>
                 <Link to="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  {t("aboutAdbroll")}
+                  {t("aboutTokXray")}
                 </Link>
               </li>
               <li>
@@ -101,33 +101,33 @@ const Footer = () => {
           <div className="space-y-4">
             <h3 className="font-semibold text-foreground">{t("contact")}</h3>
             <a
-              href="mailto:contacto@adbroll.com"
+              href="mailto:contacto@tokxray.com"
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Mail className="h-4 w-4" />
-              contacto@adbroll.com
+              contacto@tokxray.com
             </a>
           </div>
         </div>
 
         <div className="border-t border-border mt-8 pt-6 text-center space-y-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Adbroll. {t("allRightsReserved")}.
+            © {new Date().getFullYear()} TokXray. {t("allRightsReserved")}.
           </p>
-          
+
           {/* Company Legal Information */}
           <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border/50">
             <p>
-              Adbroll es un producto operado por <strong>Ecom Genius LLC</strong>, una compañía registrada en el estado de Delaware, Estados Unidos.
+              TokXray es un producto operado por <strong>Ecom Genius LLC</strong>, una compañía registrada en el estado de Delaware, Estados Unidos.
             </p>
             <p>
               <strong>Dirección legal:</strong> 16192 Coastal Highway, Lewes, Delaware 19958, United States.
             </p>
             <p>
-              <strong>Correo de soporte:</strong> contacto@adbroll.com &nbsp;|&nbsp; <strong>Horario de soporte:</strong> Lunes a viernes, 9:00 am – 6:00 pm CST.
+              <strong>Correo de soporte:</strong> contacto@tokxray.com &nbsp;|&nbsp; <strong>Horario de soporte:</strong> Lunes a viernes, 9:00 am – 6:00 pm CST.
             </p>
             <p>
-              Todos los cargos aparecerán en tu estado de cuenta como: <strong>ADBROLL.COM</strong>.
+              Todos los cargos aparecerán en tu estado de cuenta como: <strong>TOKXRAY.COM</strong>.
             </p>
           </div>
         </div>

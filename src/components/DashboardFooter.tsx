@@ -11,17 +11,17 @@ const DashboardFooter = () => {
         {/* Logo and Copyright */}
         <div className="flex items-center gap-4">
           <span className="text-sm font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            adbroll
+            TokXray
           </span>
           <span className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Adbroll
+            © {new Date().getFullYear()} TokXray
           </span>
         </div>
 
         {/* Links */}
         <div className="flex items-center gap-4 text-xs">
           <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
-            {t("aboutAdbroll")}
+            {t("aboutTokXray")}
           </Link>
           <Link to="/faq" className="text-muted-foreground hover:text-foreground transition-colors">
             {t("faq")}
@@ -37,11 +37,11 @@ const DashboardFooter = () => {
         {/* Social and Contact */}
         <div className="flex items-center gap-3">
           <a
-            href="mailto:contacto@adbroll.com"
+            href="mailto:contacto@tokxray.com"
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             <Mail className="h-3 w-3" />
-            contacto@adbroll.com
+            contacto@tokxray.com
           </a>
           <div className="flex gap-2">
             <a
