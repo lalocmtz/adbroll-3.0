@@ -217,7 +217,7 @@ const Settings = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg font-bold">Adbroll Pro</span>
+                    <span className="text-lg font-bold">TokXray Pro</span>
                   </div>
                   {subscription?.renew_at && (
                     <p className="text-sm text-muted-foreground">
@@ -273,7 +273,7 @@ const Settings = () => {
               <div className="p-4 rounded-xl border-2 border-primary/50 bg-primary/5">
                 <div className="flex items-center gap-2 mb-2">
                   <Zap className="h-5 w-5 text-primary" />
-                  <span className="font-semibold">Adbroll Pro</span>
+                  <span className="font-semibold">TokXray Pro</span>
                 </div>
                 <p className="text-2xl font-bold mb-2">$25<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
                 <p className="text-sm text-muted-foreground mb-4">

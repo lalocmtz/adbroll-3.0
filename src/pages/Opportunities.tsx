@@ -195,7 +195,7 @@ const Opportunities = () => {
               💎 {language === 'es' ? 'Oportunidades detectadas HOY' : 'Opportunities detected TODAY'}
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {todayFormatted} · {language === 'es' ? 'IA de AdBroll' : 'AdBroll AI'}
+              {todayFormatted} · {language === 'es' ? 'IA de TokXray' : 'TokXray AI'}
             </p>
           </div>
           

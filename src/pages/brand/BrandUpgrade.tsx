@@ -88,7 +88,7 @@ const BrandUpgrade = () => {
       return;
     }
     if (planId === "enterprise") {
-      window.open("mailto:marcas@adbroll.com?subject=Plan Enterprise", "_blank");
+      window.open("mailto:marcas@tokxray.com?subject=Plan Enterprise", "_blank");
       return;
     }
     // For Growth plan, would integrate with Stripe
@@ -115,7 +115,7 @@ const BrandUpgrade = () => {
         </Badge>
         <h1 className="text-3xl font-bold">Escala tu estrategia de UGC</h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
-          Conecta con los mejores creadores de TikTok Shop México y obtén contenido 
+          Conecta con los mejores creadores de TikTok Shop y obtén contenido
           auténtico que convierte.
         </p>
       </div>
@@ -186,7 +186,7 @@ const BrandUpgrade = () => {
       {/* Features Section */}
       <div className="pt-8">
         <h2 className="text-xl font-bold text-center mb-6">
-          ¿Por qué las marcas eligen Adbroll?
+          ¿Por qué las marcas eligen TokXray?
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>
@@ -196,7 +196,7 @@ const BrandUpgrade = () => {
               </div>
               <h3 className="font-semibold mb-2">Creadores Verificados</h3>
               <p className="text-sm text-muted-foreground">
-                Acceso a creadores con historial de ventas probado en TikTok Shop México.
+                Acceso a creadores con historial de ventas probado en TikTok Shop.
               </p>
             </CardContent>
           </Card>
@@ -231,7 +231,7 @@ const BrandUpgrade = () => {
       <div className="text-center pt-4">
         <p className="text-muted-foreground text-sm">
           ¿Tienes preguntas? {" "}
-          <a href="mailto:marcas@adbroll.com" className="text-primary hover:underline">
+          <a href="mailto:marcas@tokxray.com" className="text-primary hover:underline">
             Contacta con nuestro equipo
           </a>
         </p>

@@ -101,7 +101,7 @@ const CreatorCard = ({ creator }: CreatorCardProps) => {
         <div className="mb-3">
           <Badge className="bg-gradient-to-r from-primary/10 to-pink-500/10 text-primary border-primary/20 text-[10px]">
             <CheckCircle2 className="h-3 w-3 mr-1" />
-            {language === "es" ? "Creador Verificado adbroll" : "Verified adbroll Creator"}
+            {language === "es" ? "Creador Verificado TokXray" : "Verified TokXray Creator"}
           </Badge>
         </div>
       )}

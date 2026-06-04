@@ -108,7 +108,7 @@ const Unlock = () => {
             <span className="text-sm font-medium hidden md:inline">Volver al feed</span>
           </button>
           <button onClick={() => navigate("/app")} className="flex items-center absolute left-1/2 -translate-x-1/2">
-            <img src={logoDark} alt="Adbroll" className="h-7 md:h-10" />
+            <img src={logoDark} alt="TokXray" className="h-7 md:h-10" />
           </button>
           <div className="flex items-center gap-2 md:gap-3">
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={handleLogin}>
@@ -213,7 +213,7 @@ const Unlock = () => {
               className="text-center mb-8"
             >
               <h2 className="text-2xl md:text-4xl font-bold mb-2">
-                Desbloquea todo Adbroll
+                Desbloquea todo TokXray
               </h2>
               <p className="text-muted-foreground text-sm md:text-base max-w-xl mx-auto">
                 Un solo precio. Sin límites. Cancela cuando quieras.
@@ -235,7 +235,7 @@ const Unlock = () => {
                 </div>
                 <div className="text-center mb-6">
                   <Sparkles className="h-8 w-8 mx-auto mb-3 text-primary" />
-                  <h3 className="text-2xl font-bold">Adbroll Pro</h3>
+                  <h3 className="text-2xl font-bold">TokXray Pro</h3>
                   <p className="text-sm text-muted-foreground">Todo lo que necesitas para vender</p>
                 </div>
                 <div className="text-center mb-6">
@@ -296,7 +296,7 @@ const Unlock = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <img src={logoDark} alt="Adbroll" className="h-6" />
+              <img src={logoDark} alt="TokXray" className="h-6" />
               <span className="text-sm text-muted-foreground">© 2025</span>
             </div>
             <div className="flex items-center gap-4 md:gap-6 text-xs md:text-sm text-muted-foreground">

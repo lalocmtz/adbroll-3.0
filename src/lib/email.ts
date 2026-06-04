@@ -37,7 +37,7 @@ const emailWrapper = (content: string) => `
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AdBroll</title>
+  <title>TokXray</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: ${brandStyles.bgColor}; font-family: ${brandStyles.fontFamily};">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: ${brandStyles.bgColor};">
@@ -47,7 +47,7 @@ const emailWrapper = (content: string) => `
           <!-- Header with Logo -->
           <tr>
             <td align="center" style="padding: 40px 40px 24px;">
-              <img src="https://gcntnilurlulejwwtpaa.supabase.co/storage/v1/object/public/assets/logo-dark.png" alt="AdBroll" height="48" style="height: 48px;">
+              <img src="https://gcntnilurlulejwwtpaa.supabase.co/storage/v1/object/public/assets/logo-dark.png" alt="TokXray" height="48" style="height: 48px;">
             </td>
           </tr>
           <!-- Content -->
@@ -60,12 +60,12 @@ const emailWrapper = (content: string) => `
           <tr>
             <td style="padding: 24px 40px; border-top: 1px solid #E2E8F0;">
               <p style="margin: 0 0 8px; color: ${brandStyles.mutedColor}; font-size: 12px; text-align: center;">
-                © 2025 AdBroll — Ecom Genius LLC
+                © 2025 TokXray — Ecom Genius LLC
               </p>
               <p style="margin: 0; color: ${brandStyles.mutedColor}; font-size: 12px; text-align: center;">
-                <a href="https://adbroll.com/support" style="color: ${brandStyles.mutedColor}; text-decoration: underline;">Soporte</a> · 
-                <a href="https://adbroll.com/terms" style="color: ${brandStyles.mutedColor}; text-decoration: underline;">Términos</a> · 
-                <a href="https://adbroll.com/privacy" style="color: ${brandStyles.mutedColor}; text-decoration: underline;">Privacidad</a>
+                <a href="https://tokxray.com/support" style="color: ${brandStyles.mutedColor}; text-decoration: underline;">Soporte</a> · 
+                <a href="https://tokxray.com/terms" style="color: ${brandStyles.mutedColor}; text-decoration: underline;">Términos</a> · 
+                <a href="https://tokxray.com/privacy" style="color: ${brandStyles.mutedColor}; text-decoration: underline;">Privacidad</a>
               </p>
             </td>
           </tr>
@@ -90,13 +90,13 @@ const ctaButton = (text: string, url: string) => `
 export const emailTemplates = {
   // 1. Welcome email (after registration)
   welcome: (name: string) => ({
-    subject: "🎉 ¡Bienvenido a AdBroll!",
+    subject: "🎉 ¡Bienvenido a TokXray!",
     html: emailWrapper(`
       <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">
         ¡Hola${name ? ` ${name}` : ""}! 👋
       </h1>
       <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
-        Bienvenido a <strong>AdBroll</strong>, la plataforma de analítica para creadores de TikTok Shop.
+        Bienvenido a <strong>TokXray</strong>, la plataforma de analítica para creadores de TikTok Shop.
       </p>
       <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
         Con tu cuenta gratuita puedes explorar:
@@ -107,18 +107,18 @@ export const emailTemplates = {
         <li>👥 Los creadores top de TikTok Shop</li>
       </ul>
       <p style="color: ${brandStyles.mutedColor}; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
-        <strong>Tip:</strong> Suscríbete a AdBroll Pro para desbloquear guiones IA, análisis completo y herramientas de generación.
+        <strong>Tip:</strong> Suscríbete a TokXray Pro para desbloquear guiones IA, análisis completo y herramientas de generación.
       </p>
-      ${ctaButton("Explorar Dashboard", "https://adbroll.com/app")}
+      ${ctaButton("Explorar Dashboard", "https://tokxray.com/app")}
       <p style="color: ${brandStyles.mutedColor}; font-size: 14px; margin-top: 32px;">
-        — El equipo de AdBroll
+        — El equipo de TokXray
       </p>
     `),
   }),
 
   // 2. Subscription confirmed
   subscriptionConfirmed: (email: string, price: string = "$25 USD") => ({
-    subject: "✅ ¡Tu suscripción a AdBroll Pro está activa!",
+    subject: "✅ ¡Tu suscripción a TokXray Pro está activa!",
     html: emailWrapper(`
       <div style="text-align: center; margin-bottom: 24px;">
         <div style="display: inline-block; background: #DCFCE7; border-radius: 50%; padding: 16px; margin-bottom: 16px;">
@@ -129,7 +129,7 @@ export const emailTemplates = {
         ¡Pago confirmado!
       </h1>
       <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
-        Tu suscripción a <strong>AdBroll Pro</strong> (${price}/mes) está activa.
+        Tu suscripción a <strong>TokXray Pro</strong> (${price}/mes) está activa.
       </p>
       <div style="background: #F1F5F9; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
         <p style="margin: 0 0 8px; font-size: 14px; color: ${brandStyles.mutedColor};">Ahora tienes acceso a:</p>
@@ -143,24 +143,24 @@ export const emailTemplates = {
         </ul>
       </div>
       <div style="text-align: center;">
-        ${ctaButton("Ir al Dashboard", "https://adbroll.com/app")}
+        ${ctaButton("Ir al Dashboard", "https://tokxray.com/app")}
       </div>
       <p style="color: ${brandStyles.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
         Tu suscripción se renovará automáticamente cada mes.<br>
-        Puedes cancelar en cualquier momento desde <a href="https://adbroll.com/settings" style="color: ${brandStyles.primaryColor};">Configuración</a>.
+        Puedes cancelar en cualquier momento desde <a href="https://tokxray.com/settings" style="color: ${brandStyles.primaryColor};">Configuración</a>.
       </p>
     `),
   }),
 
   // 3. Subscription cancelled
   subscriptionCancelled: (email: string) => ({
-    subject: "Tu suscripción a AdBroll Pro ha sido cancelada",
+    subject: "Tu suscripción a TokXray Pro ha sido cancelada",
     html: emailWrapper(`
       <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">
         Suscripción cancelada
       </h1>
       <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
-        Tu suscripción a AdBroll Pro ha sido cancelada exitosamente.
+        Tu suscripción a TokXray Pro ha sido cancelada exitosamente.
       </p>
       <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
         Aún tendrás acceso a las funciones Pro hasta el final de tu período de facturación actual.
@@ -171,16 +171,16 @@ export const emailTemplates = {
           Puedes reactivar tu suscripción en cualquier momento desde tu cuenta.
         </p>
       </div>
-      ${ctaButton("Reactivar suscripción", "https://adbroll.com/pricing")}
+      ${ctaButton("Reactivar suscripción", "https://tokxray.com/pricing")}
       <p style="color: ${brandStyles.mutedColor}; font-size: 14px; margin-top: 32px;">
-        Gracias por haber sido parte de AdBroll Pro. Esperamos verte de nuevo pronto.
+        Gracias por haber sido parte de TokXray Pro. Esperamos verte de nuevo pronto.
       </p>
     `),
   }),
 
   // 4. Payment failed
   paymentFailed: (email: string) => ({
-    subject: "⚠️ Problema con tu pago de AdBroll",
+    subject: "⚠️ Problema con tu pago de TokXray",
     html: emailWrapper(`
       <div style="text-align: center; margin-bottom: 24px;">
         <div style="display: inline-block; background: #FEE2E2; border-radius: 50%; padding: 16px; margin-bottom: 16px;">
@@ -191,7 +191,7 @@ export const emailTemplates = {
         No pudimos procesar tu pago
       </h1>
       <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
-        Hubo un problema al procesar el pago de tu suscripción a AdBroll Pro.
+        Hubo un problema al procesar el pago de tu suscripción a TokXray Pro.
       </p>
       <div style="background: #FEF2F2; border-radius: 12px; padding: 20px; margin-bottom: 24px; border-left: 4px solid #EF4444;">
         <p style="margin: 0; font-size: 14px; color: #991B1B;">
@@ -200,23 +200,23 @@ export const emailTemplates = {
         </p>
       </div>
       <div style="text-align: center;">
-        ${ctaButton("Actualizar método de pago", "https://adbroll.com/settings")}
+        ${ctaButton("Actualizar método de pago", "https://tokxray.com/settings")}
       </div>
       <p style="color: ${brandStyles.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
-        Si tienes preguntas, contacta a <a href="mailto:contacto@adbroll.com" style="color: ${brandStyles.primaryColor};">contacto@adbroll.com</a>
+        Si tienes preguntas, contacta a <a href="mailto:contacto@tokxray.com" style="color: ${brandStyles.primaryColor};">contacto@tokxray.com</a>
       </p>
     `),
   }),
 
   // 5. Password reset
   passwordReset: (resetLink: string) => ({
-    subject: "🔐 Restablecer tu contraseña de AdBroll",
+    subject: "🔐 Restablecer tu contraseña de TokXray",
     html: emailWrapper(`
       <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">
         Restablecer contraseña
       </h1>
       <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">
-        Recibimos una solicitud para restablecer la contraseña de tu cuenta de AdBroll.
+        Recibimos una solicitud para restablecer la contraseña de tu cuenta de TokXray.
       </p>
       ${ctaButton("Restablecer Contraseña", resetLink)}
       <p style="color: ${brandStyles.mutedColor}; font-size: 14px; margin-top: 32px;">
@@ -230,7 +230,7 @@ export const emailTemplates = {
 
   // 6. Account setup after payment (for guest checkout)
   accountSetup: (email: string, setupLink: string) => ({
-    subject: "🎉 Configura tu cuenta de AdBroll Pro",
+    subject: "🎉 Configura tu cuenta de TokXray Pro",
     html: emailWrapper(`
       <div style="text-align: center; margin-bottom: 24px;">
         <div style="display: inline-block; background: #DCFCE7; border-radius: 50%; padding: 16px; margin-bottom: 16px;">
@@ -241,7 +241,7 @@ export const emailTemplates = {
         ¡Tu pago fue exitoso!
       </h1>
       <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 24px; text-align: center;">
-        Tu suscripción a AdBroll Pro está activa. Solo falta un paso: crear tu contraseña.
+        Tu suscripción a TokXray Pro está activa. Solo falta un paso: crear tu contraseña.
       </p>
       <div style="text-align: center;">
         ${ctaButton("Configurar mi cuenta", setupLink)}
@@ -275,7 +275,7 @@ export const emailTemplates = {
         Usuario referido: ${referredEmail.substring(0, 3)}***@***
       </p>
       <div style="text-align: center;">
-        ${ctaButton("Ver mis ganancias", "https://adbroll.com/affiliates")}
+        ${ctaButton("Ver mis ganancias", "https://tokxray.com/affiliates")}
       </div>
       <p style="color: ${brandStyles.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
         Los pagos se procesan automáticamente cada miércoles (mínimo $50 USD).
@@ -291,13 +291,13 @@ export const emailTemplates = {
         Recordatorio de renovación
       </h1>
       <p style="color: ${brandStyles.textColor}; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">
-        Tu suscripción a AdBroll Pro se renovará automáticamente el <strong>${renewDate}</strong>.
+        Tu suscripción a TokXray Pro se renovará automáticamente el <strong>${renewDate}</strong>.
       </p>
       <div style="background: #F1F5F9; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td style="font-size: 14px; color: ${brandStyles.mutedColor};">Plan</td>
-            <td style="font-size: 14px; color: ${brandStyles.textColor}; text-align: right; font-weight: 600;">AdBroll Pro</td>
+            <td style="font-size: 14px; color: ${brandStyles.textColor}; text-align: right; font-weight: 600;">TokXray Pro</td>
           </tr>
           <tr>
             <td style="font-size: 14px; color: ${brandStyles.mutedColor}; padding-top: 8px;">Monto</td>
@@ -310,7 +310,7 @@ export const emailTemplates = {
         </table>
       </div>
       <p style="color: ${brandStyles.mutedColor}; font-size: 14px; margin: 0;">
-        Si deseas cancelar o cambiar tu método de pago, puedes hacerlo desde <a href="https://adbroll.com/settings" style="color: ${brandStyles.primaryColor};">Configuración</a>.
+        Si deseas cancelar o cambiar tu método de pago, puedes hacerlo desde <a href="https://tokxray.com/settings" style="color: ${brandStyles.primaryColor};">Configuración</a>.
       </p>
     `),
   }),
@@ -347,7 +347,7 @@ export const emailTemplates = {
         </table>
       </div>
       <div style="text-align: center;">
-        ${ctaButton("Revisar video", "https://adbroll.com/brand/dashboard")}
+        ${ctaButton("Revisar video", "https://tokxray.com/brand/dashboard")}
       </div>
       <p style="color: ${brandStyles.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
         Revisa el video y apruébalo o solicita cambios desde tu panel de marca.
@@ -381,7 +381,7 @@ export const emailTemplates = {
         </p>
       </div>
       <div style="text-align: center;">
-        ${ctaButton("Enviar SparkCode", "https://adbroll.com/my-submissions")}
+        ${ctaButton("Enviar SparkCode", "https://tokxray.com/my-submissions")}
       </div>
     `),
   }),
@@ -405,7 +405,7 @@ export const emailTemplates = {
       <p style="color: ${brandStyles.mutedColor}; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
         No te desanimes. Puedes aplicar a otras campañas disponibles en la plataforma.
       </p>
-      ${ctaButton("Ver más campañas", "https://adbroll.com/campaigns")}
+      ${ctaButton("Ver más campañas", "https://tokxray.com/campaigns")}
     `),
   }),
 
@@ -436,7 +436,7 @@ export const emailTemplates = {
         </ol>
       </div>
       <div style="text-align: center;">
-        ${ctaButton("Enviar SparkCode", "https://adbroll.com/my-submissions")}
+        ${ctaButton("Enviar SparkCode", "https://tokxray.com/my-submissions")}
       </div>
       <p style="color: ${brandStyles.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
         Una vez enviado el SparkCode, recibirás tu pago.
@@ -467,7 +467,7 @@ export const emailTemplates = {
         ¡Gracias por tu excelente trabajo! Sigue creando contenido increíble.
       </p>
       <div style="text-align: center;">
-        ${ctaButton("Ver más campañas", "https://adbroll.com/campaigns")}
+        ${ctaButton("Ver más campañas", "https://tokxray.com/campaigns")}
       </div>
     `),
   }),
@@ -495,7 +495,7 @@ export const emailTemplates = {
         Realiza los cambios y vuelve a enviar tu video actualizado.
       </p>
       <div style="text-align: center;">
-        ${ctaButton("Ver detalles", "https://adbroll.com/my-submissions")}
+        ${ctaButton("Ver detalles", "https://tokxray.com/my-submissions")}
       </div>
     `),
   }),

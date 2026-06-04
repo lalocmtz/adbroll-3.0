@@ -194,7 +194,7 @@ const CheckoutSuccess = () => {
   const content = {
     es: {
       successTitle: "¡Pago exitoso!",
-      successSubtitle: "Tu suscripción a Adbroll Pro está activa",
+      successSubtitle: "Tu suscripción a TokXray Pro está activa",
       setPasswordTitle: "Configura tu cuenta",
       setPasswordSubtitle: "Elige cómo quieres acceder",
       emailLabel: "Email",
@@ -214,7 +214,7 @@ const CheckoutSuccess = () => {
     },
     en: {
       successTitle: "Payment successful!",
-      successSubtitle: "Your Adbroll Pro subscription is active",
+      successSubtitle: "Your TokXray Pro subscription is active",
       setPasswordTitle: "Set up your account",
       setPasswordSubtitle: "Choose how you want to access",
       emailLabel: "Email",

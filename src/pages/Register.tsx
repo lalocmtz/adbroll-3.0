@@ -229,7 +229,7 @@ const Register = () => {
           <div className="text-center mb-4">
             <img 
               src="/src/assets/logo-dark.png"
-              alt="adbroll"
+              alt="TokXray"
               className="h-16 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/")}
             />

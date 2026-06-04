@@ -11,20 +11,20 @@ const About = () => {
 
   const content = {
     es: {
-      title: "Sobre Adbroll",
+      title: "Sobre TokXray",
       backButton: "Volver al inicio",
-      intro: "Adbroll es una plataforma de análisis creativo diseñada para ayudar a creadores, vendedores y marcas a identificar oportunidades reales dentro de TikTok Shop. Nuestro sistema analiza datos públicos y contenido disponible para mostrar qué productos están vendiendo hoy, qué creadores están generando resultados y qué guiones funcionan mejor.",
-      company: "Adbroll forma parte de **Ecom Genius LLC**, una compañía registrada en Delaware, Estados Unidos.",
+      intro: "TokXray es una plataforma de análisis creativo diseñada para ayudar a creadores, vendedores y marcas a identificar oportunidades reales dentro de TikTok Shop. Nuestro sistema analiza datos públicos y contenido disponible para mostrar qué productos están vendiendo hoy, qué creadores están generando resultados y qué guiones funcionan mejor.",
+      company: "TokXray forma parte de **Ecom Genius LLC**, una compañía registrada en Delaware, Estados Unidos.",
       address: "**Dirección legal:** 16192 Coastal Highway, Lewes, Delaware 19958, United States.",
       mission: "Nuestra misión es ofrecer claridad, transparencia y datos reales para que cualquier persona pueda crear contenido que funcione sin necesidad de adivinar.",
       contact: "Si tienes preguntas o necesitas soporte, puedes escribirnos a:",
       cta: "Comenzar ahora"
     },
     en: {
-      title: "About Adbroll",
+      title: "About TokXray",
       backButton: "Back to home",
-      intro: "Adbroll is a creative analytics platform designed to help creators, sellers, and brands identify real opportunities within TikTok Shop. Our system analyzes public data and available content to show which products are selling today, which creators are generating results, and which scripts work best.",
-      company: "Adbroll is part of **Ecom Genius LLC**, a company registered in Delaware, United States.",
+      intro: "TokXray is a creative analytics platform designed to help creators, sellers, and brands identify real opportunities within TikTok Shop. Our system analyzes public data and available content to show which products are selling today, which creators are generating results, and which scripts work best.",
+      company: "TokXray is part of **Ecom Genius LLC**, a company registered in Delaware, United States.",
       address: "**Legal address:** 16192 Coastal Highway, Lewes, Delaware 19958, United States.",
       mission: "Our mission is to offer clarity, transparency, and real data so that anyone can create content that works without having to guess.",
       contact: "If you have questions or need support, you can write to us at:",
@@ -80,11 +80,11 @@ const About = () => {
           <div className="pt-4">
             <p className="text-muted-foreground mb-2">{data.contact}</p>
             <a 
-              href="mailto:contacto@adbroll.com" 
+              href="mailto:contacto@tokxray.com" 
               className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
             >
               <Mail className="h-4 w-4" />
-              contacto@adbroll.com
+              contacto@tokxray.com
             </a>
           </div>
         </div>

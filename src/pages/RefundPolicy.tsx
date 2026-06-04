@@ -24,10 +24,10 @@ const RefundPolicy = () => {
       noRefundCases: [
         "No utilizar el servicio.",
         "Cambio de opinión.",
-        "Resultados distintos a los esperados (Adbroll ofrece datos, no resultados garantizados)."
+        "Resultados distintos a los esperados (TokXray ofrece datos, no resultados garantizados)."
       ],
       howToTitle: "Cómo solicitar un reembolso elegible:",
-      howToText: "Escribe a contacto@adbroll.com dentro de los primeros 7 días posteriores al cobro.",
+      howToText: "Escribe a contacto@tokxray.com dentro de los primeros 7 días posteriores al cobro.",
       companyTitle: "Empresa responsable:",
       companyInfo: `Ecom Genius LLC
 16192 Coastal Highway
@@ -47,10 +47,10 @@ Lewes, Delaware 19958, United States`
       noRefundCases: [
         "Not using the service.",
         "Change of mind.",
-        "Results different from expected (Adbroll provides data, not guaranteed results)."
+        "Results different from expected (TokXray provides data, not guaranteed results)."
       ],
       howToTitle: "How to request an eligible refund:",
-      howToText: "Write to contacto@adbroll.com within the first 7 days after the charge.",
+      howToText: "Write to contacto@tokxray.com within the first 7 days after the charge.",
       companyTitle: "Responsible company:",
       companyInfo: `Ecom Genius LLC
 16192 Coastal Highway
@@ -130,7 +130,7 @@ Lewes, Delaware 19958, United States`
               : "Contact us before opening a dispute"}
           </p>
           <Button asChild>
-            <a href="mailto:contacto@adbroll.com">contacto@adbroll.com</a>
+            <a href="mailto:contacto@tokxray.com">contacto@tokxray.com</a>
           </Button>
         </Card>
       </main>

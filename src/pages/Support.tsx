@@ -37,7 +37,7 @@ const Support = () => {
         },
         {
           question: "¿Puedo obtener un reembolso?",
-          answer: "Ofrecemos reembolso completo dentro de las primeras 24 horas si no obtuviste valor del servicio. Después de 24 horas o uso sustancial, no hay reembolsos, pero puedes cancelar para evitar futuros cargos. Envía tu solicitud a contacto@adbroll.com.",
+          answer: "Ofrecemos reembolso completo dentro de las primeras 24 horas si no obtuviste valor del servicio. Después de 24 horas o uso sustancial, no hay reembolsos, pero puedes cancelar para evitar futuros cargos. Envía tu solicitud a contacto@tokxray.com.",
           icon: <RefreshCcw className="h-5 w-5" />
         },
         {
@@ -57,7 +57,7 @@ const Support = () => {
         },
         {
           question: "¿Por qué me cobraron si ya cancelé?",
-          answer: "Si cancelaste después de la fecha de renovación, el cargo ya estaba programado. Contáctanos inmediatamente a contacto@adbroll.com y lo revisamos juntos. NO abras disputa con tu banco, podemos ayudarte más rápido.",
+          answer: "Si cancelaste después de la fecha de renovación, el cargo ya estaba programado. Contáctanos inmediatamente a contacto@tokxray.com y lo revisamos juntos. NO abras disputa con tu banco, podemos ayudarte más rápido.",
           icon: <Database className="h-5 w-5" />
         }
       ] as FAQItem[]
@@ -83,7 +83,7 @@ const Support = () => {
         },
         {
           question: "Can I get a refund?",
-          answer: "We offer a full refund within the first 24 hours if you didn't get value from the service. After 24 hours or substantial use, no refunds, but you can cancel to avoid future charges. Send your request to contacto@adbroll.com.",
+          answer: "We offer a full refund within the first 24 hours if you didn't get value from the service. After 24 hours or substantial use, no refunds, but you can cancel to avoid future charges. Send your request to contacto@tokxray.com.",
           icon: <RefreshCcw className="h-5 w-5" />
         },
         {
@@ -103,7 +103,7 @@ const Support = () => {
         },
         {
           question: "Why was I charged if I already canceled?",
-          answer: "If you canceled after the renewal date, the charge was already scheduled. Contact us immediately at contacto@adbroll.com and we'll review it together. DON'T open a dispute with your bank, we can help you faster.",
+          answer: "If you canceled after the renewal date, the charge was already scheduled. Contact us immediately at contacto@tokxray.com and we'll review it together. DON'T open a dispute with your bank, we can help you faster.",
           icon: <Database className="h-5 w-5" />
         }
       ] as FAQItem[]
@@ -143,9 +143,9 @@ const Support = () => {
           <p className="text-muted-foreground mb-6">{data.contactText}</p>
           <div className="flex flex-col gap-3">
             <Button asChild size="lg">
-              <a href="mailto:contacto@adbroll.com">
+              <a href="mailto:contacto@tokxray.com">
                 <Mail className="h-4 w-4 mr-2" />
-                contacto@adbroll.com
+                contacto@tokxray.com
               </a>
             </Button>
             <Button 
@@ -154,7 +154,7 @@ const Support = () => {
               className="bg-[#25D366] hover:bg-[#20BD5A] text-white"
             >
               <a 
-                href="https://wa.me/522213267653?text=Hola!%20Tengo%20una%20pregunta%20sobre%20Adbroll" 
+                href="https://wa.me/522213267653?text=Hola!%20Tengo%20una%20pregunta%20sobre%20TokXray"
                 target="_blank" 
                 rel="noopener noreferrer"
               >

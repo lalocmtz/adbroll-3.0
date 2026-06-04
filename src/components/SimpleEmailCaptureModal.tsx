@@ -99,13 +99,13 @@ export const SimpleEmailCaptureModal = ({
         >
           {/* Logo */}
           <div className="flex justify-center mb-5">
-            <img src={logoDark} alt="Adbroll" className="h-8 sm:h-10" />
+            <img src={logoDark} alt="TokXray" className="h-8 sm:h-10" />
           </div>
 
           {/* Title */}
           <div className="text-center mb-6">
             <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
-              Desbloquea Adbroll
+              Desbloquea TokXray
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground">
               Ingresa tu email para ver los planes

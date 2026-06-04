@@ -179,7 +179,7 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
   const basePrice = plan === 'premium' ? premiumPrice : proPrice;
   const displayPrice = codeValid ? `$${(basePrice * 0.5).toFixed(2)}` : `$${basePrice.toFixed(2)}`;
   const originalPrice = codeValid ? `$${basePrice.toFixed(2)}` : null;
-  const planLabel = plan === 'premium' ? 'AdBroll Premium' : 'AdBroll Pro';
+  const planLabel = plan === 'premium' ? 'TokXray Premium' : 'TokXray Pro';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -13,8 +13,8 @@ import { Link } from "react-router-dom";
 const faqData = {
   es: [
     {
-      question: "¿Qué es Adbroll?",
-      answer: "Adbroll es una herramienta de análisis creativo que ayuda a identificar videos, productos y guiones que están funcionando en TikTok Shop."
+      question: "¿Qué es TokXray?",
+      answer: "TokXray es una herramienta de análisis creativo que ayuda a identificar videos, productos y guiones que están funcionando en TikTok Shop."
     },
     {
       question: "¿Cómo funciona la suscripción?",
@@ -22,25 +22,25 @@ const faqData = {
     },
     {
       question: "¿Cómo aparecerá el cargo en mi estado de cuenta?",
-      answer: 'Los cargos aparecerán como: "ADBROLL.COM".'
+      answer: 'Los cargos aparecerán como: "TOKXRAY.COM".'
     },
     {
       question: "¿Ofrecen reembolsos?",
       answer: "Consulta nuestra política de reembolsos en la página de Política de Reembolsos."
     },
     {
-      question: "¿Quién opera Adbroll?",
-      answer: "Adbroll es un producto de Ecom Genius LLC, Delaware, EE. UU."
+      question: "¿Quién opera TokXray?",
+      answer: "TokXray es un producto de Ecom Genius LLC, Delaware, EE. UU."
     },
     {
       question: "¿Dónde puedo contactar soporte?",
-      answer: "Correo de soporte: contacto@adbroll.com\nHorario: Lunes a viernes, 9:00 am – 6:00 pm CST."
+      answer: "Correo de soporte: contacto@tokxray.com\nHorario: Lunes a viernes, 9:00 am – 6:00 pm CST."
     }
   ],
   en: [
     {
-      question: "What is Adbroll?",
-      answer: "Adbroll is a creative analytics tool that helps identify videos, products, and scripts that are working on TikTok Shop."
+      question: "What is TokXray?",
+      answer: "TokXray is a creative analytics tool that helps identify videos, products, and scripts that are working on TikTok Shop."
     },
     {
       question: "How does the subscription work?",
@@ -48,19 +48,19 @@ const faqData = {
     },
     {
       question: "How will the charge appear on my statement?",
-      answer: 'Charges will appear as: "ADBROLL.COM".'
+      answer: 'Charges will appear as: "TOKXRAY.COM".'
     },
     {
       question: "Do you offer refunds?",
       answer: "Please see our refund policy on the Refund Policy page."
     },
     {
-      question: "Who operates Adbroll?",
-      answer: "Adbroll is a product of Ecom Genius LLC, Delaware, USA."
+      question: "Who operates TokXray?",
+      answer: "TokXray is a product of Ecom Genius LLC, Delaware, USA."
     },
     {
       question: "Where can I contact support?",
-      answer: "Support email: contacto@adbroll.com\nHours: Monday to Friday, 9:00 am – 6:00 pm CST."
+      answer: "Support email: contacto@tokxray.com\nHours: Monday to Friday, 9:00 am – 6:00 pm CST."
     }
   ]
 };
@@ -81,8 +81,8 @@ const FAQ = () => {
           <h1 className="text-3xl md:text-4xl font-bold mb-4">{t("faq")}</h1>
           <p className="text-lg text-muted-foreground">
             {language === "es" 
-              ? "Encuentra respuestas a las preguntas más comunes sobre Adbroll"
-              : "Find answers to the most common questions about Adbroll"
+              ? "Encuentra respuestas a las preguntas más comunes sobre TokXray"
+              : "Find answers to the most common questions about TokXray"
             }
           </p>
         </div>
@@ -121,7 +121,7 @@ const FAQ = () => {
             }
           </p>
           <a 
-            href="mailto:contacto@adbroll.com" 
+            href="mailto:contacto@tokxray.com" 
             className="text-primary hover:underline font-medium"
           >
             {language === "es" ? "Contáctanos" : "Contact us"} →

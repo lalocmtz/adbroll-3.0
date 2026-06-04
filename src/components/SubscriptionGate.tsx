@@ -42,7 +42,7 @@ export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
             </div>
             <CardTitle className="text-2xl">Suscripción Requerida</CardTitle>
             <CardDescription>
-              Necesitas una suscripción activa para acceder a adbroll Premium
+              Necesitas una suscripción activa para acceder a TokXray Premium
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

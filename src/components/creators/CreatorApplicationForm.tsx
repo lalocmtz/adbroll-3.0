@@ -219,8 +219,8 @@ const CreatorApplicationForm = () => {
         title: language === "es" ? "¡Aplicación enviada!" : "Application submitted!",
         description:
           language === "es"
-            ? "El equipo de adbroll revisará tu perfil pronto."
-            : "The adbroll team will review your profile soon.",
+            ? "El equipo de TokXray revisará tu perfil pronto."
+            : "The TokXray team will review your profile soon.",
       });
     } catch (error: any) {
       toast({
@@ -445,8 +445,8 @@ const CreatorApplicationForm = () => {
               ? "Actualiza tu información de creador. Email y usuario de TikTok no pueden cambiarse."
               : "Update your creator information. Email and TikTok username cannot be changed."
             : language === "es"
-              ? "Tu registro es gratuito. Completa el formulario para aparecer en el directorio de creadores de adbroll."
-              : "Registration is free. Complete the form to appear in the adbroll creator directory."}
+              ? "Tu registro es gratuito. Completa el formulario para aparecer en el directorio de creadores de TokXray."
+              : "Registration is free. Complete the form to appear in the TokXray creator directory."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -700,8 +700,8 @@ const CreatorApplicationForm = () => {
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-sm font-normal">
                         {language === "es"
-                          ? "Acepto que mi perfil sea visible para marcas en adbroll y acepto los términos del servicio"
-                          : "I agree to have my profile visible to brands on adbroll and accept the terms of service"}
+                          ? "Acepto que mi perfil sea visible para marcas en TokXray y acepto los términos del servicio"
+                          : "I agree to have my profile visible to brands on TokXray and accept the terms of service"}
                       </FormLabel>
                     </div>
                   </FormItem>

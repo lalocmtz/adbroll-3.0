@@ -13,7 +13,7 @@ const Privacy = () => {
       title: "Política de Privacidad",
       lastUpdated: "Última actualización: 2025",
       backButton: "Volver al inicio",
-      intro: "Adbroll, operado por **Ecom Genius LLC**, respeta tu privacidad y está comprometido con proteger tu información personal.",
+      intro: "TokXray, operado por **Ecom Genius LLC**, respeta tu privacidad y está comprometido con proteger tu información personal.",
       sections: [
         {
           title: "Información que recopilamos",
@@ -40,14 +40,14 @@ const Privacy = () => {
         },
         {
           title: "Tus derechos",
-          content: `Puedes solicitar eliminación de tu cuenta escribiendo a contacto@adbroll.com`
+          content: `Puedes solicitar eliminación de tu cuenta escribiendo a contacto@tokxray.com`
         },
         {
           title: "Información de la empresa",
           content: `Ecom Genius LLC
 16192 Coastal Highway
 Lewes, Delaware 19958, United States
-Correo: contacto@adbroll.com`
+Correo: contacto@tokxray.com`
         }
       ]
     },
@@ -55,7 +55,7 @@ Correo: contacto@adbroll.com`
       title: "Privacy Policy",
       lastUpdated: "Last updated: 2025",
       backButton: "Back to home",
-      intro: "Adbroll, operated by **Ecom Genius LLC**, respects your privacy and is committed to protecting your personal information.",
+      intro: "TokXray, operated by **Ecom Genius LLC**, respects your privacy and is committed to protecting your personal information.",
       sections: [
         {
           title: "Information we collect",
@@ -82,14 +82,14 @@ Correo: contacto@adbroll.com`
         },
         {
           title: "Your rights",
-          content: `You can request account deletion by writing to contacto@adbroll.com`
+          content: `You can request account deletion by writing to contacto@tokxray.com`
         },
         {
           title: "Company information",
           content: `Ecom Genius LLC
 16192 Coastal Highway
 Lewes, Delaware 19958, United States
-Email: contacto@adbroll.com`
+Email: contacto@tokxray.com`
         }
       ]
     }

@@ -208,7 +208,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             }}
             className="flex items-center"
           >
-            <img src={logoDark} alt="adbroll" className="h-9" />
+            <img src={logoDark} alt="TokXray" className="h-9" />
           </button>
         </div>
 

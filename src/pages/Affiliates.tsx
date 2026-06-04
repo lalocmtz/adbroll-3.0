@@ -63,7 +63,7 @@ const Affiliates = () => {
   }, []);
 
   // Production domain for referral links
-  const ADBROLL_DOMAIN = "https://adbroll.com";
+  const ADBROLL_DOMAIN = "https://tokxray.com";
 
   const handleCopyLink = async () => {
     if (affiliate?.ref_code) {
@@ -284,9 +284,9 @@ const Affiliates = () => {
               {language === "es" ? "Programa de Afiliados" : "Affiliate Program"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {language === "es" 
-                ? "💰 Gana dinero invitando creadores a Adbroll"
-                : "💰 Earn money by inviting creators to Adbroll"}
+              {language === "es"
+                ? "💰 Gana dinero invitando creadores a TokXray"
+                : "💰 Earn money by inviting creators to TokXray"}
             </p>
           </div>
         </div>
@@ -303,9 +303,9 @@ const Affiliates = () => {
               {language === "es" ? "💰 Gana 30% recurrente por cada referido" : "💰 Earn 30% recurring per referral"}
             </h2>
             <p className="text-sm text-muted-foreground mb-2">
-              {language === "es" 
-                ? "Cada vez que alguien se registre con tu código y se suscriba a Adbroll Pro, recibirás el 30% de su pago mensual."
-                : "Every time someone signs up with your code and subscribes to Adbroll Pro, you'll receive 30% of their monthly payment."}
+              {language === "es"
+                ? "Cada vez que alguien se registre con tu código y se suscriba a TokXray Pro, recibirás el 30% de su pago mensual."
+                : "Every time someone signs up with your code and subscribes to TokXray Pro, you'll receive 30% of their monthly payment."}
             </p>
             <p className="text-sm font-medium text-green-600 mb-4">
               {language === "es" 
@@ -666,7 +666,7 @@ const Affiliates = () => {
                     {language === "es" ? "Se suscriben" : "They subscribe"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {language === "es" ? "A Adbroll Pro" : "To Adbroll Pro"}
+                    {language === "es" ? "A TokXray Pro" : "To TokXray Pro"}
                   </p>
                 </div>
               </div>

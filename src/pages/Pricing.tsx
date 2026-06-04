@@ -161,7 +161,7 @@ const Pricing = () => {
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <Link to="/" className="text-2xl font-bold hover:text-primary transition-colors">
-              Adbroll
+              TokXray
             </Link>
           </div>
           <div className="flex items-center gap-3">
@@ -223,7 +223,7 @@ const Pricing = () => {
               <div className="inline-flex p-4 rounded-2xl mb-4 bg-primary/10 text-primary">
                 <Sparkles className="h-8 w-8" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">Adbroll Pro</h3>
+              <h3 className="text-2xl font-bold mb-2">TokXray Pro</h3>
               <p className="text-muted-foreground">
                 {language === "es" ? "Todas las herramientas para creadores de TikTok Shop" : "All tools for TikTok Shop creators"}
               </p>
@@ -313,7 +313,7 @@ const Pricing = () => {
       {/* Footer */}
       <footer className="border-t bg-muted/30 mt-16">
         <div className="container mx-auto px-4 py-8 text-center text-sm text-muted-foreground">
-          <p>© 2025 Adbroll. {language === "es" ? "Todos los derechos reservados." : "All rights reserved."}</p>
+          <p>© 2025 TokXray. {language === "es" ? "Todos los derechos reservados." : "All rights reserved."}</p>
           <div className="flex justify-center gap-4 mt-4">
             <Link to="/privacy" className="hover:text-foreground transition-colors">
               {language === "es" ? "Privacidad" : "Privacy"}
