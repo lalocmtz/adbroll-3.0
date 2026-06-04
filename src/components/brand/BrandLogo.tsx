@@ -9,10 +9,10 @@ interface BrandLogoProps {
 }
 
 /**
- * adbroll wordmark. The mark is a lowercase "a" rendered in the brand
- * pink; the rest of the wordmark follows the tone of the surface so the
- * same component works on the landing ink hero, the /app blue header,
- * and the white auth shell without overrides.
+ * TokXray wordmark. The mark glyph is a placeholder (rendered in the brand
+ * pink) and will be replaced by the final logo separately; the wordmark
+ * follows the tone of the surface so the same component works on the
+ * landing ink hero, the /app blue header, and the white auth shell.
  */
 export const BrandLogo = ({
   tone = "light",
@@ -26,7 +26,7 @@ export const BrandLogo = ({
         "inline-flex items-center gap-1.5 font-display font-extrabold tracking-tight",
         className,
       )}
-      aria-label="adbroll"
+      aria-label="TokXray"
     >
       <span
         aria-hidden
@@ -36,7 +36,7 @@ export const BrandLogo = ({
       </span>
       {!iconOnly && (
         <span className={cn("text-xl leading-none", wordTone)}>
-          adbroll
+          TokXray
         </span>
       )}
     </span>
