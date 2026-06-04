@@ -156,12 +156,12 @@ export const EmailLeadsList = () => {
       const { error } = await supabase.functions.invoke("send-email", {
         body: {
           to: lead.email,
-          subject: "¡No te pierdas Adbroll Pro! 🚀",
+          subject: "¡No te pierdas TokXray Pro! 🚀",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #F31260;">¡Hola!</h2>
-              <p>Notamos que te interesaste en Adbroll pero no completaste tu suscripción.</p>
-              <p>Como recordatorio, con Adbroll Pro obtienes:</p>
+              <p>Notamos que te interesaste en TokXray pero no completaste tu suscripción.</p>
+              <p>Como recordatorio, con TokXray Pro obtienes:</p>
               <ul>
                 <li>✅ Acceso a todos los videos virales de TikTok Shop</li>
                 <li>✅ Análisis de scripts con IA</li>
@@ -169,8 +169,8 @@ export const EmailLeadsList = () => {
                 <li>✅ Oportunidades de productos con alto margen</li>
               </ul>
               <p><strong>Por solo $25 USD/mes</strong></p>
-              <a href="https://adbroll.lovable.app/pricing" style="display: inline-block; background: #F31260; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">
-                Activar Adbroll Pro
+              <a href="https://tokxray.com/pricing" style="display: inline-block; background: #F31260; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">
+                Activar TokXray Pro
               </a>
               <p style="margin-top: 24px; color: #666; font-size: 12px;">
                 ¿Preguntas? Responde a este email.

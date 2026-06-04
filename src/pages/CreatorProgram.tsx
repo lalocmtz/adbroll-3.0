@@ -171,7 +171,7 @@ const CreatorProgram = () => {
   const benefits = [
     { icon: Gift, title: "1 mes gratis", description: "Acceso completo a todas las funciones" },
     { icon: DollarSign, title: "30% comisión", description: "De por vida por cada referido que pague" },
-    { icon: Video, title: "1-3 videos", description: "Crea contenido sobre Adbroll" },
+    { icon: Video, title: "1-3 videos", description: "Crea contenido sobre TokXray" },
     { icon: Users, title: "Comunidad", description: "Únete a creadores top de TikTok Shop" },
   ];
 
@@ -182,7 +182,7 @@ const CreatorProgram = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <img
             src={logoDark}
-            alt="adbroll"
+            alt="TokXray"
             className="h-10 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate("/")}
           />
@@ -202,7 +202,7 @@ const CreatorProgram = () => {
             Gana acceso gratis + 30% de comisión
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Únete al programa de creadores de Adbroll. Crea 1-3 videos sobre la plataforma
+            Únete al programa de creadores de TokXray. Crea 1-3 videos sobre la plataforma
             y recibe 1 mes de acceso completo + tu código de afiliado para ganar comisiones de por vida.
           </p>
         </div>

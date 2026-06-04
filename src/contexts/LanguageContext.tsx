@@ -126,7 +126,7 @@ const translations = {
     noCreatorsAvailable: "No hay creadores disponibles",
     
     // Page titles
-    top100Videos: "Top 100 Videos de TikTok Shop México",
+    top100Videos: "Top 100 videos de TikTok Shop",
     tiktokShopProducts: "Productos TikTok Shop",
     top50Creators: "Creadores Top 50 TikTok Shop",
     productsSubtitle: "Los productos más rentables para promocionar como creador",
@@ -135,7 +135,7 @@ const translations = {
     dataUpdated: "Datos actualizados · Últimos 30 días",
     
     // Footer
-    aboutAdbroll: "Sobre Adbroll",
+    aboutTokXray: "Sobre TokXray",
     faq: "Preguntas Frecuentes",
     privacyPolicy: "Políticas de Privacidad",
     termsConditions: "Términos y Condiciones",
@@ -263,7 +263,7 @@ const translations = {
     noCreatorsAvailable: "No creators available",
     
     // Page titles
-    top100Videos: "Top 100 TikTok Shop Mexico Videos",
+    top100Videos: "Top 100 TikTok Shop videos",
     tiktokShopProducts: "TikTok Shop Products",
     top50Creators: "Top 50 TikTok Shop Creators",
     productsSubtitle: "The most profitable products to promote as a creator",
@@ -272,7 +272,7 @@ const translations = {
     dataUpdated: "Data updated · Last 30 days",
     
     // Footer
-    aboutAdbroll: "About Adbroll",
+    aboutTokXray: "About TokXray",
     faq: "FAQ",
     privacyPolicy: "Privacy Policy",
     termsConditions: "Terms & Conditions",

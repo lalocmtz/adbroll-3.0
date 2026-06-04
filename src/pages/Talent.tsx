@@ -84,7 +84,7 @@ const Talent = () => {
       <section className="px-4 md:px-6 pt-8 md:pt-14 pb-10 md:pb-16 text-center max-w-3xl mx-auto">
         <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-xs font-medium mb-5">
           <Sparkles className="h-3.5 w-3.5" />
-          {isEs ? "Programa de Talento adbroll" : "adbroll Talent Program"}
+          {isEs ? "Programa de Talento TokXray" : "TokXray Talent Program"}
         </div>
 
         <h1 className="text-2xl md:text-4xl font-bold text-foreground leading-tight mb-4">
@@ -251,8 +251,8 @@ const Talent = () => {
         </h2>
         <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
           {isEs
-            ? "Únete al programa de talento de adbroll y recibe campañas pagadas de marcas verificadas."
-            : "Join the adbroll talent program and receive paid campaigns from verified brands."}
+            ? "Únete al programa de talento de TokXray y recibe campañas pagadas de marcas verificadas."
+            : "Join the TokXray talent program and receive paid campaigns from verified brands."}
         </p>
         <Button size="lg" onClick={scrollToForm} className="gap-2">
           <UserPlus className="h-4 w-4" />

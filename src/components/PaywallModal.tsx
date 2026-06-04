@@ -92,7 +92,7 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
             <Lock className="w-6 h-6 text-primary" />
           </motion.div>
           <DialogTitle className="text-center text-xl">
-            {feature ? `Desbloquea "${feature}"` : "Desbloquea Adbroll"}
+            {feature ? `Desbloquea "${feature}"` : "Desbloquea TokXray"}
           </DialogTitle>
         </DialogHeader>
 

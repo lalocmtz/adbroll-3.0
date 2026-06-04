@@ -104,8 +104,8 @@ const CampaignsTab = () => {
           </h3>
           <p className="text-muted-foreground text-sm mb-6">
             {language === "es" 
-              ? "Aquí aparecerán las campañas disponibles de marcas aliadas con adbroll. Los creadores podrán aplicar directamente."
-              : "Available campaigns from adbroll partner brands will appear here. Creators will be able to apply directly."}
+              ? "Aquí aparecerán las campañas disponibles de marcas aliadas con TokXray. Los creadores podrán aplicar directamente."
+              : "Available campaigns from TokXray partner brands will appear here. Creators will be able to apply directly."}
           </p>
           <div className="flex items-center justify-center gap-2 text-xs text-primary">
             <Sparkles className="h-4 w-4" />

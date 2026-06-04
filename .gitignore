@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Internal rebrand reference (not for PR)
+docs/TokXray_Auditoria-y-Copy.md

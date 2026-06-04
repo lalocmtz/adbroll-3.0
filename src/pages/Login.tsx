@@ -99,7 +99,7 @@ const Login = () => {
           <div className="text-center mb-4">
             <img 
               src={logoDark}
-              alt="adbroll"
+              alt="TokXray"
               className="h-16 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/")}
             />

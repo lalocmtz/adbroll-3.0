@@ -18,11 +18,11 @@ export interface ReferralDiscount {
   created_at: string;
 }
 
-// Single plan: Adbroll Pro $29/month
+// Single plan: TokXray Pro $29/month
 export const PLANS = {
   free: { name: "Free", price: 0 },
-  creator: { name: "Adbroll Pro", price: 29 },
-  studio: { name: "Adbroll Pro", price: 29 },
+  creator: { name: "TokXray Pro", price: 29 },
+  studio: { name: "TokXray Pro", price: 29 },
 } as const;
 
 export type PlanType = keyof typeof PLANS;
@@ -171,7 +171,7 @@ export const useReferralCode = () => {
         return { success: false, error: "No referral code applied" };
       }
 
-      // Always use $29 for Adbroll Pro
+      // Always use $29 for TokXray Pro
       const originalPrice = 29;
       const discountedPrice = originalPrice * 0.5;
 

@@ -31,11 +31,11 @@ const renderLanding = () =>
 describe("Landing page (smoke) — Variante E", () => {
   it("renders the narrative hero headline", () => {
     renderLanding();
-    // Headline is split across inline spans; match the distinctive phrase.
+    // Headline is split across inline spans; match the distinctive phrases.
     expect(
-      screen.getByText(/Ana se despertó a las 6 am/i),
+      screen.getByText(/Este creador ganó/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Susana ganó/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hoy puedes ver su guión/i)).toBeInTheDocument();
   });
 
   it("shows the urgency chip and live GMV counter", () => {
@@ -44,7 +44,7 @@ describe("Landing page (smoke) — Variante E", () => {
       screen.getByText(/50 % OFF · primeros 100 creadores/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Rastreado hoy en TikTok Shop México/i),
+      screen.getByText(/Rastreado hoy en TikTok Shop/i),
     ).toBeInTheDocument();
   });
 
@@ -93,7 +93,7 @@ describe("Landing page (smoke) — Variante E", () => {
   it("renders the pricing card with promo price and gated fine print", () => {
     renderLanding();
     expect(
-      screen.getByRole("button", { name: /Empezar por \$249 MXN/i }),
+      screen.getByRole("button", { name: /Empezar ahora/i }),
     ).toBeInTheDocument();
     expect(screen.getByText(/Antes \$499 MXN · \$25 USD/i)).toBeInTheDocument();
   });

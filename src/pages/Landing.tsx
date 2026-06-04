@@ -90,26 +90,30 @@ const guionVariants: Record<
 const trustStats = [
   { value: "$847K", label: "GMV rastreado hoy" },
   { value: "20 / día", label: "Videos actualizados" },
-  { value: "< 24 h", label: "Desde venta a tu dashboard" },
+  { value: "< 24 h", label: "De la venta a tu panel" },
   { value: "3.8x", label: "ROAS promedio top 20" },
 ];
 
 const faqs = [
   {
     q: "¿De dónde vienen los datos?",
-    a: "Exports oficiales de Kalodata, el proveedor de datos más confiable de TikTok Shop. Los datos son verificados directamente contra el sistema de TikTok, no estimados.",
+    a: "De exports oficiales de Kalodata, el proveedor de datos más confiable de TikTok Shop. Son datos verificados contra TikTok, no estimados.",
   },
   {
     q: "¿Cada cuánto se actualizan?",
-    a: "Cada mañana antes de las 8am CDMX. El top del día anterior se procesa durante la madrugada y ya está en tu dashboard cuando te despiertas.",
+    a: "Cada mañana. El top del día anterior se procesa de madrugada y ya está en tu panel cuando despiertas.",
+  },
+  {
+    q: "¿Por qué no uso Kalodata directamente?",
+    a: "Kalodata te da datos crudos pensados para vendedores, en inglés y más caro. TokXray te da los 20 que importan con el guión listo para grabar, en tu idioma y a un precio de creador.",
   },
   {
     q: "¿Los guiones son confiables?",
-    a: "Cada video se transcribe automáticamente, y luego se reescribe con IA en tres versiones: original, optimizada para tu producto, y agresiva para CTA. Todo adaptado a la forma de hablar de México.",
+    a: "Cada video se transcribe y se reescribe por IA en tres versiones: original, optimizada para tu producto y agresiva para CTA.",
   },
   {
     q: "¿Puedo cancelar cuando quiera?",
-    a: "Sí, en un click, sin letra chica. Pagas $499 MXN al mes y cancelas desde el dashboard. No tocamos tu tarjeta si cancelas antes del siguiente cobro.",
+    a: "Sí, en un clic, sin letra chica. No tocamos tu tarjeta si cancelas antes del siguiente cobro.",
   },
 ];
 
@@ -249,20 +253,20 @@ const Landing = () => {
 
           {/* narrative H1 */}
           <h1 className="text-center text-display-lg md:text-display-xl font-display font-extrabold tracking-tight text-balance max-w-4xl mx-auto">
-            Ana se despertó a las 6 am y vio que{" "}
-            <span className="text-brand-pink">Susana ganó</span>{" "}
+            Este creador ganó{" "}
             <MoneyNumber
               value={14320}
               size="xl"
               className="inline-block align-baseline text-brand-pink"
             />{" "}
-            ayer con este video.
+            ayer con un video de 27 segundos.{" "}
+            <span className="text-brand-pink">Hoy puedes ver su guión.</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-center text-lg md:text-xl leading-relaxed text-brand-mist/75">
-            Adbroll te entrega cada mañana los 20 videos con más ventas reales de
-            TikTok Shop México, con el guión transcrito y listo para adaptar a tu
-            producto. Sin adivinar. Sin scrollear ocho horas. Antes del café.
+            TokXray te entrega cada mañana los 20 videos que más venden en
+            TikTok Shop, con el guión transcrito y listo para adaptar a tu
+            producto. Sin adivinar. Sin scrollear horas. Antes del café.
           </p>
 
           {/* CTA row */}
@@ -290,7 +294,7 @@ const Landing = () => {
           {/* live GMV counter */}
           <div className="mt-10 flex flex-col items-center gap-2">
             <span className="text-micro uppercase tracking-[0.12em] text-brand-mist/55">
-              Rastreado hoy en TikTok Shop México
+              Rastreado hoy en TikTok Shop
             </span>
             <span className="font-mono tabular-nums text-money-xl text-brand-cyan">
               {counterFormatted}
@@ -301,7 +305,7 @@ const Landing = () => {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-brand-mist/60">
             <span className="inline-flex items-center gap-1.5">
               <Shield className="h-3.5 w-3.5 text-brand-cyan" />
-              Datos oficiales Kalodata
+              Datos oficiales de Kalodata
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-brand-cyan" />
@@ -363,7 +367,7 @@ const Landing = () => {
               Top 20 videos · hoy
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-brand-ink/60">
-              Ordenado por ingresos reales. Desbloqueas los 15 restantes cuando
+              Ordenado por ingresos reales. Desbloqueas los demás cuando
               creas tu cuenta.
             </p>
           </div>
@@ -375,7 +379,7 @@ const Landing = () => {
               <span className="h-2.5 w-2.5 rounded-full bg-brand-ink/20" />
               <span className="h-2.5 w-2.5 rounded-full bg-brand-ink/20" />
               <span className="mx-auto rounded-button bg-white px-3 py-1 font-mono text-[11px] text-brand-ink/60 shadow-sm">
-                adbroll.com/app/top20
+                tokxray.com/app/top20
               </span>
             </div>
 
@@ -567,7 +571,7 @@ const Landing = () => {
                 <ul className="mt-6 space-y-2 text-sm text-brand-mist/80">
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Top 20 videos de TikTok Shop México, cada mañana
+                    Top 20 videos de TikTok Shop, cada mañana
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
@@ -575,11 +579,11 @@ const Landing = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Métricas en MXN: ingresos, GPM, ROAS, ventas
+                    Métricas reales: ingresos, ventas, ROAS
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Cancelas en un click. Sin letra chica.
+                    Cancelas en un clic. Sin letra chica.
                   </li>
                 </ul>
               </div>
@@ -590,7 +594,7 @@ const Landing = () => {
                   onClick={() => goRegister("pricing")}
                   className="w-full"
                 >
-                  Empezar por $249 MXN
+                  Empezar ahora
                   <ArrowRight className="ml-1 h-5 w-5" />
                 </Button>
                 <p className="text-center text-xs text-brand-mist/40">
@@ -643,8 +647,8 @@ const Landing = () => {
                 competencia?
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-white/85">
-                Sin tarjeta para ver la demo. Los primeros 100 pagan $249 el primer
-                mes.
+                Sin tarjeta para ver la demo. Los primeros 100 pagan mitad de
+                precio el primer mes.
               </p>
               <div className="mt-8 flex justify-center">
                 <Button
@@ -671,7 +675,7 @@ const Landing = () => {
             <div className="flex flex-col items-center md:items-start gap-1">
               <BrandLogo tone="dark" />
               <p className="text-sm text-brand-ink/50">
-                Datos reales de TikTok Shop México.
+                Rayos X a TikTok Shop. Datos reales, guión listo.
               </p>
             </div>
             <div className="flex items-center gap-6 text-sm text-brand-ink/55">
@@ -681,12 +685,12 @@ const Landing = () => {
               <a href="/register" className="hover:text-brand-ink">
                 Registro
               </a>
-              <a href="mailto:hola@adbroll.com" className="hover:text-brand-ink">
+              <a href="mailto:hola@tokxray.com" className="hover:text-brand-ink">
                 Contacto
               </a>
             </div>
             <p className="text-xs text-brand-ink/40">
-              © {new Date().getFullYear()} adbroll. Todos los derechos reservados.
+              © {new Date().getFullYear()} TokXray. Todos los derechos reservados.
             </p>
           </div>
         </div>

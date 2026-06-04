@@ -36,7 +36,7 @@ export const PricingCard = ({
       </Badge>
 
       <div className="text-center mb-6">
-        <h3 className="text-xl font-bold mb-2">Adbroll Pro</h3>
+        <h3 className="text-xl font-bold mb-2">TokXray Pro</h3>
         <div className="flex items-center justify-center gap-2">
           {hasDiscount ? (
             <>

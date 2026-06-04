@@ -13,11 +13,11 @@ const Terms = () => {
       title: "Términos y Condiciones",
       lastUpdated: "Última actualización: 2025",
       backButton: "Volver al inicio",
-      intro: "Adbroll es un servicio de suscripción operado por Ecom Genius LLC. Al utilizar esta plataforma, aceptas los siguientes términos:",
+      intro: "TokXray es un servicio de suscripción operado por Ecom Genius LLC. Al utilizar esta plataforma, aceptas los siguientes términos:",
       sections: [
         {
           title: "1. Acceso y uso",
-          content: `El acceso a Adbroll requiere una suscripción activa. Su uso es personal y no transferible.`
+          content: `El acceso a TokXray requiere una suscripción activa. Su uso es personal y no transferible.`
         },
         {
           title: "2. Renovación automática",
@@ -25,15 +25,15 @@ const Terms = () => {
         },
         {
           title: "3. Pagos",
-          content: `Procesamos pagos exclusivamente a través de Stripe. Los cargos aparecerán como "ADBROLL.COM".`
+          content: `Procesamos pagos exclusivamente a través de Stripe. Los cargos aparecerán como "TOKXRAY.COM".`
         },
         {
           title: "4. Reembolsos",
-          content: `Consulta nuestra política de reembolsos en: https://adbroll.com/refund-policy`
+          content: `Consulta nuestra política de reembolsos en: https://tokxray.com/refund-policy`
         },
         {
           title: "5. Limitación de responsabilidad",
-          content: `Adbroll provee datos informativos, sin garantizar resultados comerciales.`
+          content: `TokXray provee datos informativos, sin garantizar resultados comerciales.`
         },
         {
           title: "6. Cancelación",
@@ -44,7 +44,7 @@ const Terms = () => {
           content: `Ecom Genius LLC
 16192 Coastal Highway
 Lewes, Delaware 19958, United States
-contacto@adbroll.com`
+contacto@tokxray.com`
         }
       ]
     },
@@ -52,11 +52,11 @@ contacto@adbroll.com`
       title: "Terms and Conditions",
       lastUpdated: "Last updated: 2025",
       backButton: "Back to home",
-      intro: "Adbroll is a subscription service operated by Ecom Genius LLC. By using this platform, you accept the following terms:",
+      intro: "TokXray is a subscription service operated by Ecom Genius LLC. By using this platform, you accept the following terms:",
       sections: [
         {
           title: "1. Access and use",
-          content: `Access to Adbroll requires an active subscription. Its use is personal and non-transferable.`
+          content: `Access to TokXray requires an active subscription. Its use is personal and non-transferable.`
         },
         {
           title: "2. Automatic renewal",
@@ -64,15 +64,15 @@ contacto@adbroll.com`
         },
         {
           title: "3. Payments",
-          content: `We process payments exclusively through Stripe. Charges will appear as "ADBROLL.COM".`
+          content: `We process payments exclusively through Stripe. Charges will appear as "TOKXRAY.COM".`
         },
         {
           title: "4. Refunds",
-          content: `Please see our refund policy at: https://adbroll.com/refund-policy`
+          content: `Please see our refund policy at: https://tokxray.com/refund-policy`
         },
         {
           title: "5. Limitation of liability",
-          content: `Adbroll provides informational data, without guaranteeing commercial results.`
+          content: `TokXray provides informational data, without guaranteeing commercial results.`
         },
         {
           title: "6. Cancellation",
@@ -83,7 +83,7 @@ contacto@adbroll.com`
           content: `Ecom Genius LLC
 16192 Coastal Highway
 Lewes, Delaware 19958, United States
-contacto@adbroll.com`
+contacto@tokxray.com`
         }
       ]
     }
