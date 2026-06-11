@@ -144,7 +144,7 @@ const Dashboard = () => {
           rank,
           imported_at,
           processing_status,
-          product:products (
+          product:products!product_id (
             id,
             producto_nombre,
             imagen_url,

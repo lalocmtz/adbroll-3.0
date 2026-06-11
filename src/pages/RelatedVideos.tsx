@@ -21,7 +21,7 @@ const VIDEO_CARD_COLUMNS = `
   creator_name, creator_handle, creator_id, product_name, product_id,
   sales, revenue_mxn, views, roas, category, country, rank,
   imported_at, processing_status,
-  product:products!videos_product_id_fkey (
+  product:products!product_id (
     id, producto_nombre, imagen_url, total_ingresos_mxn, commission, price, precio_mxn, revenue_30d, producto_url
   )
 `;
