@@ -29,9 +29,13 @@ interface Video {
   creator_handle?: string | null;
   product_name?: string | null;
   product_id?: string | null;
+  rank?: number | null;
   views?: number | null;
   sales?: number | null;
   revenue_mxn?: number | null;
+  // NOTE: premium columns (transcript / analysis_json / variants_json) are NO
+  // longer fetched into the video object from the card list — they are revoked
+  // at the DB level. The script is loaded on-demand via the get_video_script RPC.
   transcript?: string | null;
   analysis_json?: any;
   variants_json?: any;
@@ -77,6 +81,8 @@ const VideoAnalysisModalOriginal = ({
   const [transcript, setTranscript] = useState(video.transcript || '');
   const [analysis, setAnalysis] = useState<any>(video.analysis_json || null);
   const [variants, setVariants] = useState<any>(video.variants_json || null);
+  const [scriptLocked, setScriptLocked] = useState(false);
+  const [isLoadingScript, setIsLoadingScript] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isSavingVariant, setIsSavingVariant] = useState(false);
@@ -87,7 +93,8 @@ const VideoAnalysisModalOriginal = ({
   } = useToast();
   const navigate = useNavigate();
   const {
-    hasPaid
+    hasPaid,
+    openPaywall
   } = useBlurGateContext();
 
   // Variant generator controls
@@ -126,12 +133,44 @@ const VideoAnalysisModalOriginal = ({
     checkFavoriteStatus();
   }, [video.video_url]);
 
-  // Auto-process if no data
-  useEffect(() => {
-    if (isOpen && !transcript && video.video_mp4_url) {
-      processVideo();
+  // SECURITY: the script (transcript + variants) is no longer present on the
+  // video object — premium columns are revoked at the DB level. We fetch it via
+  // the gated `get_video_script` RPC, which enforces access server-side:
+  //   - paid user            -> transcript + variants
+  //   - free user, rank <= 5 -> transcript only (variants null)
+  //   - free user, rank > 5  -> locked = true
+  const loadScript = async () => {
+    if (!video.id) return;
+    setIsLoadingScript(true);
+    try {
+      const { data, error } = await supabase.rpc('get_video_script', {
+        _video_id: video.id,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row || row.locked) {
+        setScriptLocked(true);
+        setTranscript('');
+        setVariants(null);
+        return;
+      }
+      setScriptLocked(false);
+      setTranscript(row.transcript || '');
+      setVariants(row.variants_json ?? null);
+    } catch (error: any) {
+      console.error('Error loading script via RPC:', error);
+    } finally {
+      setIsLoadingScript(false);
     }
-  }, [isOpen]);
+  };
+
+  // Fetch the gated script whenever the modal opens.
+  useEffect(() => {
+    if (isOpen) {
+      loadScript();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, video.id]);
   const processVideo = async () => {
     setIsProcessing(true);
     try {
@@ -584,13 +623,44 @@ const VideoAnalysisModalOriginal = ({
                             </div>
                             <h3 className="font-semibold text-foreground text-sm">Transcripción Original</h3>
                           </div>
-                          {transcript && <CopyButton text={transcript} field="transcript" variant="outline" />}
+                          {transcript && !scriptLocked && <CopyButton text={transcript} field="transcript" variant="outline" />}
                         </div>
-                        {transcript ? (
-                          <div className="bg-muted/30 rounded-xl p-3 border border-border/50 min-h-0 flex-shrink-0">
-                            <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed font-mono break-words">
-                              {transcript}
+                        {scriptLocked ? (
+                          <div className="text-center py-8 flex flex-col items-center justify-center">
+                            <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                              <Lock className="h-5 w-5 text-muted-foreground/70" />
+                            </div>
+                            <p className="text-muted-foreground text-sm mb-4">
+                              Desbloquea el guion completo de este video
                             </p>
+                            <Button onClick={() => openPaywall('Guion del video')} className="rounded-xl" size="sm">
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Desbloquear guion
+                            </Button>
+                          </div>
+                        ) : transcript ? (
+                          <>
+                            <div className="bg-muted/30 rounded-xl p-3 border border-border/50 min-h-0 flex-shrink-0">
+                              <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed font-mono break-words">
+                                {transcript}
+                              </p>
+                            </div>
+                            {!hasPaid && !variants && (
+                              <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3 text-center">
+                                <p className="text-xs text-muted-foreground mb-2">
+                                  Desbloquea las versiones optimizadas con IA de este guion.
+                                </p>
+                                <Button onClick={() => openPaywall('Variantes IA')} size="sm" className="rounded-xl">
+                                  <Wand2 className="h-3.5 w-3.5 mr-2" />
+                                  Desbloquear variantes IA
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        ) : isLoadingScript ? (
+                          <div className="text-center py-8 flex flex-col items-center justify-center">
+                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mb-2" />
+                            <p className="text-muted-foreground text-sm">Cargando guion...</p>
                           </div>
                         ) : (
                           <div className="text-center py-8 flex flex-col items-center justify-center">
@@ -600,10 +670,12 @@ const VideoAnalysisModalOriginal = ({
                             <p className="text-muted-foreground text-sm mb-3">
                               No hay transcripción disponible
                             </p>
-                            <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl" size="sm">
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Generar transcripción
-                            </Button>
+                            {hasPaid && (
+                              <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl" size="sm">
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Generar transcripción
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1001,12 +1073,37 @@ const VideoAnalysisModalOriginal = ({
                               </div>
                               <h3 className="font-semibold text-foreground text-sm">Transcripción Original</h3>
                             </div>
-                            {transcript && <CopyButton text={transcript} field="transcript" variant="outline" />}
+                            {transcript && !scriptLocked && <CopyButton text={transcript} field="transcript" variant="outline" />}
                           </div>
-                          {transcript ? <div className="bg-muted/30 rounded-xl p-3 md:p-4 border border-border/50 flex-1 overflow-y-auto">
-                              <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed font-mono">
-                                {transcript}
+                          {scriptLocked ? <div className="text-center py-8 flex-1 flex flex-col items-center justify-center">
+                              <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                                <Lock className="h-5 w-5 text-muted-foreground/70" />
+                              </div>
+                              <p className="text-muted-foreground text-sm mb-4">
+                                Desbloquea el guion completo de este video
                               </p>
+                              <Button onClick={() => openPaywall('Guion del video')} className="rounded-xl" size="sm">
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Desbloquear guion
+                              </Button>
+                            </div> : transcript ? <div className="flex-1 overflow-y-auto flex flex-col gap-3">
+                              <div className="bg-muted/30 rounded-xl p-3 md:p-4 border border-border/50">
+                                <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed font-mono">
+                                  {transcript}
+                                </p>
+                              </div>
+                              {!hasPaid && !variants && <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center">
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    Desbloquea las versiones optimizadas con IA de este guion.
+                                  </p>
+                                  <Button onClick={() => openPaywall('Variantes IA')} size="sm" className="rounded-xl">
+                                    <Wand2 className="h-4 w-4 mr-2" />
+                                    Desbloquear variantes IA
+                                  </Button>
+                                </div>}
+                            </div> : isLoadingScript ? <div className="text-center py-8 flex-1 flex flex-col items-center justify-center">
+                              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mb-2" />
+                              <p className="text-muted-foreground text-sm">Cargando guion...</p>
                             </div> : <div className="text-center py-8 flex-1 flex flex-col items-center justify-center">
                               <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
                                 <FileText className="h-5 w-5 text-muted-foreground/50" />
@@ -1014,10 +1111,10 @@ const VideoAnalysisModalOriginal = ({
                               <p className="text-muted-foreground text-sm mb-3">
                                 No hay transcripción disponible
                               </p>
-                              <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl" size="sm">
+                              {hasPaid && <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl" size="sm">
                                 <Sparkles className="h-4 w-4 mr-2" />
                                 Generar transcripción
-                              </Button>
+                              </Button>}
                             </div>}
                         </div>
                       </TabsContent>

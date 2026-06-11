@@ -85,8 +85,12 @@ const Admin = () => {
   const loadStats = async () => {
     setIsRefreshing(true);
     try {
+      // `transcript` is REVOKED for `authenticated` at the DB level (premium
+      // lockdown), even for the founder via the anon key. The pipeline stats
+      // need it to count pending transcriptions, so read full rows through the
+      // founder-gated SECURITY DEFINER RPC. This panel only runs for founders.
       const [videosRes, productsRes, creatorsRes] = await Promise.all([
-        supabase.from("videos").select("id, product_id, video_mp4_url, transcript, processing_status, download_attempts"),
+        supabase.rpc("get_videos_admin"),
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("creators").select("id, avatar_url, avatar_storage_url"),
       ]);

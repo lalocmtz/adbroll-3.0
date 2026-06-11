@@ -1991,6 +1991,23 @@ export type Database = {
       generate_grant_code: { Args: never; Returns: string }
       generate_ref_code: { Args: never; Returns: string }
       get_creator_directory_id: { Args: { _email: string }; Returns: string }
+      get_videos_admin: {
+        Args: { _ids?: string[] }
+        Returns: Database["public"]["Tables"]["videos"]["Row"][]
+      }
+      get_daily_feed_admin: {
+        Args: { _ids?: string[] }
+        Returns: Database["public"]["Tables"]["daily_feed"]["Row"][]
+      }
+      get_video_script: {
+        Args: { _video_id: string }
+        Returns: {
+          locked: boolean
+          transcript: string | null
+          variants_json: Json | null
+        }[]
+      }
+      is_paid_user: { Args: { _uid: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -35,9 +35,6 @@ interface Video {
   country: string | null;
   rank: number | null;
   imported_at: string | null;
-  transcript: string | null;
-  analysis_json: any;
-  variants_json: any;
   processing_status: string | null;
   // Joined product data
   product?: {
@@ -123,8 +120,30 @@ const Dashboard = () => {
       // Use JOIN to get product data
       // ONLY show videos that are COMPLETE (downloaded AND have product assigned)
       // Filter by market/country (using lowercase: 'mx' or 'us')
+      // SECURITY: select EXPLICIT non-premium columns. The premium columns
+      // (transcript, variants_json, analysis_json) are REVOKEd at the DB level
+      // for anon/authenticated, so a `select("*")` would now fail. The script is
+      // fetched separately via the gated RPC `get_video_script`.
       let query = supabase.from("videos").select(`
-          *,
+          id,
+          video_url,
+          video_mp4_url,
+          thumbnail_url,
+          title,
+          creator_name,
+          creator_handle,
+          creator_id,
+          product_name,
+          product_id,
+          sales,
+          revenue_mxn,
+          views,
+          roas,
+          category,
+          country,
+          rank,
+          imported_at,
+          processing_status,
           product:products (
             id,
             producto_nombre,
