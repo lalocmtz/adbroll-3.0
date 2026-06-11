@@ -106,7 +106,7 @@ const Login = () => {
           </div>
           <CardTitle>Bienvenido de vuelta</CardTitle>
           <CardDescription>
-            Inicia sesión para ver los videos ganadores
+            Inicia sesión para ver lo que vende hoy
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -187,12 +187,12 @@ const Login = () => {
                 <p className="text-sm text-destructive">{errors.password}</p>
               )}
             </div>
-            <Button type="submit" className="w-full bg-primary hover:bg-primary-hover" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading}>
               {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
               ¿No tienes cuenta?{" "}
-              <Link to="/register" className="text-primary hover:underline">
+              <Link to="/register" className="text-primary font-medium hover:underline">
                 Regístrate gratis
               </Link>
             </p>

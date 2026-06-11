@@ -8,6 +8,57 @@ const corsHeaders = {
 
 const ASSEMBLYAI_API_KEY = Deno.env.get('ASSEMBLYAI_API_KEY');
 
+interface AaiWord {
+  text: string;
+  start: number; // ms
+  end: number;   // ms
+}
+
+interface Segment {
+  start_ms: number;
+  end_ms: number;
+  text: string;
+}
+
+// Agrupa las words de AssemblyAI en segmentos de ~4s o por fin de oracion.
+// Acumula palabras hasta que el rango supere ~4000ms o la palabra cierre una
+// oracion (termina en . ? !). Devuelve [] si no hay words (transcript viejo).
+function buildSegments(words: AaiWord[] | undefined | null): Segment[] {
+  if (!words || !Array.isArray(words) || words.length === 0) return [];
+
+  const SEGMENT_MS = 4000;
+  const segments: Segment[] = [];
+
+  let bucket: AaiWord[] = [];
+  let bucketStart: number | null = null;
+
+  const flush = () => {
+    if (bucket.length === 0) return;
+    const start_ms = bucketStart ?? bucket[0].start;
+    const end_ms = bucket[bucket.length - 1].end;
+    const text = bucket.map((w) => w.text).join(' ').replace(/\s+([.,!?])/g, '$1').trim();
+    if (text) segments.push({ start_ms, end_ms, text });
+    bucket = [];
+    bucketStart = null;
+  };
+
+  for (const w of words) {
+    if (typeof w?.start !== 'number' || typeof w?.end !== 'number') continue;
+    if (bucketStart === null) bucketStart = w.start;
+    bucket.push(w);
+
+    const spanMs = w.end - bucketStart;
+    const endsSentence = /[.?!]$/.test((w.text || '').trim());
+
+    if (spanMs >= SEGMENT_MS || endsSentence) {
+      flush();
+    }
+  }
+  flush();
+
+  return segments;
+}
+
 // Extract video ID from TikTok URL
 function extractVideoId(url: string): string | null {
   const match = url.match(/\/video\/(\d+)/);
@@ -167,10 +218,12 @@ serve(async (req) => {
 
       if (existing?.transcripcion_original) {
         console.log('Transcript already exists, returning cached version');
+        // En cache no guardamos words, asi que segments va como null (no rompe el front).
         return new Response(
-          JSON.stringify({ 
+          JSON.stringify({
             status: 'completed',
-            transcript: existing.transcripcion_original 
+            transcript: existing.transcripcion_original,
+            segments: null,
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -224,6 +277,7 @@ serve(async (req) => {
     const maxAttempts = 30;
     let attempts = 0;
     let transcript = null;
+    let segments: Segment[] = [];
 
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
@@ -245,6 +299,8 @@ serve(async (req) => {
 
       if (pollData.status === 'completed') {
         transcript = pollData.text;
+        // pollData.words: array de {text, start, end} en ms. Lo agrupamos en segmentos.
+        segments = buildSegments(pollData.words as AaiWord[] | undefined);
         break;
       } else if (pollData.status === 'error') {
         console.error('AssemblyAI transcription failed:', pollData.error);
@@ -277,11 +333,12 @@ serve(async (req) => {
       }
     }
 
-    console.log('Transcription completed successfully');
+    console.log('Transcription completed successfully', { segmentCount: segments.length });
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         status: 'completed',
-        transcript: transcript 
+        transcript: transcript,
+        segments: segments, // aditivo: array de {start_ms, end_ms, text} (puede ir vacio)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

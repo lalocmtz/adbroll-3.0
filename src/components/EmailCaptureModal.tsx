@@ -174,7 +174,7 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
     { icon: Zap, text: "Actualizaciones diarias" },
   ];
 
-  const basePrice = 24.99;
+  const basePrice = 25;
   const displayPrice = codeValid ? `$${(basePrice * 0.5).toFixed(2)}` : `$${basePrice.toFixed(2)}`;
   const originalPrice = codeValid ? `$${basePrice.toFixed(2)}` : null;
   const planLabel = 'TokXray Pro';

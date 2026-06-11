@@ -100,7 +100,7 @@ export const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
             </Badge>
 
             <div className="text-center mb-4 pt-2">
-              <div className="text-3xl font-bold mt-1">$24.99<span className="text-sm font-normal text-muted-foreground"> USD/mes</span></div>
+              <div className="text-3xl font-bold mt-1">$25<span className="text-sm font-normal text-muted-foreground"> USD/mes</span></div>
             </div>
 
             <ul className="space-y-2 mb-4">

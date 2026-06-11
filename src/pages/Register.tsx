@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Gift, Loader2, X } from "lucide-react";
+import { Gift, X } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
 import { trackSignUp } from "@/lib/analytics";
+import logoDark from "@/assets/logo-dark.png";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -227,16 +228,16 @@ const Register = () => {
         </button>
         <CardHeader>
           <div className="text-center mb-4">
-            <img 
-              src="/src/assets/logo-dark.png"
+            <img
+              src={logoDark}
               alt="TokXray"
               className="h-16 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => navigate("/")}
             />
           </div>
-          <CardTitle>Crear cuenta</CardTitle>
+          <CardTitle>Crea tu cuenta gratis</CardTitle>
           <CardDescription>
-            Accede a los videos más rentables de TikTok Shop
+            Ve lo que vende hoy en TikTok Shop y copia el guión
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -369,12 +370,12 @@ const Register = () => {
               </p>
             </div>
 
-            <Button type="submit" className="w-full bg-primary hover:bg-primary-hover" disabled={isLoading}>
-              {isLoading ? "Creando cuenta..." : "Crear cuenta gratuita"}
+            <Button type="submit" className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading}>
+              {isLoading ? "Creando cuenta..." : "Crear cuenta gratis"}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
               ¿Ya tienes cuenta?{" "}
-              <Link to="/login" className="text-primary hover:underline">
+              <Link to="/login" className="text-primary font-medium hover:underline">
                 Inicia sesión
               </Link>
             </p>
