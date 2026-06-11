@@ -50,9 +50,9 @@ const metaTrack = (
   type: "track" | "trackCustom" = "track",
 ) => {
   if (typeof window === "undefined") return;
-  // Read env inline so runtime stubs (and tests) pick up changes.
-  const pixelId = import.meta.env.VITE_META_PIXEL_ID as string | undefined;
-  if (!pixelId || !window.fbq) return;
+  // El pixel se inicializa en index.html (ID fijo de TokXray). Aquí solo
+  // verificamos que fbq exista; ya no dependemos de la env VITE_ de build.
+  if (!window.fbq) return;
   try {
     window.fbq(type, event, params ?? {});
   } catch {
