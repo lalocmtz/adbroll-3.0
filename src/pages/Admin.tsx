@@ -1,16 +1,14 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Video, Package, CheckCircle, Zap, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, PlayCircle, Pause, BarChart3, Upload, Megaphone, Camera, Rocket, UserPlus } from "lucide-react";
+import { ArrowLeft, Video, CheckCircle, FileSpreadsheet, RefreshCw, Link2, Clock, Sparkles, Globe, Pause, BarChart3, Upload, Megaphone, Camera, Rocket, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Progress } from "@/components/ui/progress";
 import { PendingLinks } from "@/components/PendingLinks";
 import { AssetUploader } from "@/components/AssetUploader";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
@@ -24,6 +22,8 @@ import CreatorDirectoryManager from "@/components/admin/CreatorDirectoryManager"
 import CampaignManager from "@/components/admin/CampaignManager";
 import { ParallelProgressPanel } from "@/components/admin/ParallelProgressPanel";
 import { MatchAuditPanel } from "@/components/admin/MatchAuditPanel";
+import KalodataImportPanel from "@/components/admin/KalodataImportPanel";
+import MatchReviewQueue from "@/components/admin/MatchReviewQueue";
 import { useParallelPipeline } from "@/hooks/useParallelPipeline";
 import CreatorLeadsDashboard from "@/components/admin/CreatorLeadsDashboard";
 
@@ -31,24 +31,16 @@ type Market = "mx" | "us";
 
 const Admin = () => {
   const navigate = useNavigate();
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [productFile, setProductFile] = useState<File | null>(null);
-  const [creatorFile, setCreatorFile] = useState<File | null>(null);
   const [selectedMarket, setSelectedMarket] = useState<Market>("mx");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processPhase, setProcessPhase] = useState("");
-  const [processProgress, setProcessProgress] = useState(0);
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [useAI, setUseAI] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [useParallelMode, setUseParallelMode] = useState(true);
   const [isResettingDownloads, setIsResettingDownloads] = useState(false);
   const [failedDownloadsCount, setFailedDownloadsCount] = useState(0);
   const { toast } = useToast();
-  const shouldStopRef = useRef(false);
-  
+
   // Parallel pipeline hook
   const { state: pipelineState, startParallelPipeline, stopPipeline, loadCurrentStats } = useParallelPipeline();
 
@@ -97,7 +89,11 @@ const Admin = () => {
 
       const videos = videosRes.data || [];
       const creators = creatorsRes.data || [];
-      const withProduct = videos.filter(v => v.product_id).length;
+      // Pendientes de vincular: sin producto y sin veredicto previo de
+      // match-videos ('review' espera confirmación, 'none' ya se descartó).
+      const pendingMatchCount = videos.filter(v =>
+        !v.product_id && !["review", "none"].includes((v as any).match_source ?? "")
+      ).length;
       const readyToShow = videos.filter(v => v.video_mp4_url && v.product_id).length;
       
       // Pending = has MP4, no transcript, NOT failed
@@ -137,7 +133,7 @@ const Admin = () => {
         pendingDownload,
         pendingTranscription,
         failedTranscription,
-        pendingMatch: videos.length - withProduct,
+        pendingMatch: pendingMatchCount,
         pendingAvatars,
       });
     } finally {
@@ -188,8 +184,6 @@ const Admin = () => {
     setLastSync(now);
   };
 
-  const MAX_CONSECUTIVE_ERRORS = 3;
-
   // MASTER BUTTON: Process all pending using parallel pipeline
   const handleProcessPending = async () => {
     const totalPending = stats.pendingDownload + stats.pendingTranscription + stats.pendingMatch + stats.pendingAvatars;
@@ -234,281 +228,6 @@ const Admin = () => {
       title: "Pausando proceso",
       description: "Esperando a que termine el batch actual...",
     });
-  };
-
-  // Process all from file upload - AUTOMATIC FULL PIPELINE
-  const handleProcessAll = async () => {
-    if (!videoFile && !productFile && !creatorFile) {
-      toast({
-        title: "Sin archivos",
-        description: "Selecciona al menos un archivo para procesar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    shouldStopRef.current = false;
-    setIsProcessing(true);
-    setProcessProgress(0);
-
-    let downloadStats = { successful: 0, failed: 0, skipped: false };
-    let transcriptionStats = { successful: 0, failed: 0, skipped: false };
-    let matchStats = { successful: 0, failed: 0, skipped: false };
-    let avatarStats = { successful: 0, failed: 0, skipped: false };
-
-    try {
-      // ========== PHASE 1: Import Creators ==========
-      if (creatorFile) {
-        setProcessPhase("1/8 Importando creadores...");
-        setProcessProgress(5);
-        
-        const formData = new FormData();
-        formData.append("file", creatorFile);
-        formData.append("market", selectedMarket);
-        
-        const { error } = await supabase.functions.invoke("process-kalodata-creators", {
-          body: formData,
-        });
-        if (error) throw new Error(`Error en creadores: ${error.message}`);
-        setCreatorFile(null);
-      }
-
-      if (shouldStopRef.current) throw new Error("Proceso pausado por el usuario");
-
-      // ========== PHASE 2: Import Products ==========
-      if (productFile) {
-        setProcessPhase("2/8 Importando productos...");
-        setProcessProgress(10);
-        
-        const formData = new FormData();
-        formData.append("file", productFile);
-        formData.append("market", selectedMarket);
-        
-        const { error } = await supabase.functions.invoke("process-kalodata-products", {
-          body: formData,
-        });
-        if (error) throw new Error(`Error en productos: ${error.message}`);
-        setProductFile(null);
-      }
-
-      if (shouldStopRef.current) throw new Error("Proceso pausado por el usuario");
-
-      // ========== PHASE 3: Import Videos ==========
-      if (videoFile) {
-        setProcessPhase("3/8 Importando videos...");
-        setProcessProgress(15);
-        
-        const formData = new FormData();
-        formData.append("file", videoFile);
-        formData.append("market", selectedMarket);
-        
-        const { error } = await supabase.functions.invoke("process-kalodata", {
-          body: formData,
-        });
-        if (error) throw new Error(`Error en videos: ${error.message}`);
-        setVideoFile(null);
-      }
-
-      // Reset file inputs
-      const inputs = document.querySelectorAll('input[type="file"]') as NodeListOf<HTMLInputElement>;
-      inputs.forEach(input => input.value = '');
-
-      // Reload stats after import
-      await loadStats();
-
-      if (shouldStopRef.current) throw new Error("Proceso pausado por el usuario");
-
-      // ========== PHASE 4: Download Videos ==========
-      if (stats.pendingDownload > 0 && !shouldStopRef.current) {
-        setProcessPhase(`4/8 Descargando ${stats.pendingDownload} videos...`);
-        setProcessProgress(20);
-
-        let consecutiveErrors = 0;
-        let noProgressCount = 0;
-        
-        while (!shouldStopRef.current) {
-          const { data, error } = await supabase.functions.invoke("download-videos-batch", {
-            body: { batchSize: 5 },
-          });
-
-          if (error) {
-            consecutiveErrors++;
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-              downloadStats.skipped = true;
-              break;
-            }
-            await new Promise(r => setTimeout(r, 2000));
-            continue;
-          }
-
-          consecutiveErrors = 0;
-          
-          if (!data || data.processed === 0 || data.remaining === 0) break;
-          
-          if (data.successful === 0 && data.failed > 0) {
-            noProgressCount++;
-            if (noProgressCount >= 3) {
-              downloadStats.skipped = true;
-              break;
-            }
-            await new Promise(r => setTimeout(r, 1000));
-            continue;
-          }
-          
-          noProgressCount = 0;
-          downloadStats.successful += data.successful || 0;
-          downloadStats.failed += data.permanentlyFailed || 0;
-          
-          setProcessPhase(`4/8 Descargando... (${downloadStats.successful} OK, ${data.remaining} pendientes)`);
-          setProcessProgress(20 + Math.min(15, (downloadStats.successful / Math.max(stats.pendingDownload, 1)) * 15));
-          await new Promise(r => setTimeout(r, 500));
-        }
-      }
-
-      await loadStats();
-
-      // ========== PHASE 5: Transcribe Videos ==========
-      if ((stats.pendingTranscription > 0 || downloadStats.successful > 0) && !shouldStopRef.current) {
-        setProcessPhase("5/8 Transcribiendo scripts...");
-        setProcessProgress(40);
-
-        let consecutiveErrors = 0;
-        
-        while (!shouldStopRef.current) {
-          const { data, error } = await supabase.functions.invoke("transcribe-videos-batch", {
-            body: { batchSize: 3 },
-          });
-
-          if (error) {
-            consecutiveErrors++;
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-              transcriptionStats.skipped = true;
-              break;
-            }
-            await new Promise(r => setTimeout(r, 2000));
-            continue;
-          }
-
-          consecutiveErrors = 0;
-
-          if (!data || data.processed === 0 || data.remaining === 0 || data.complete) break;
-          
-          transcriptionStats.successful += data.successful || 0;
-          setProcessPhase(`5/8 Transcribiendo... (${transcriptionStats.successful} completados, ${data.remaining} pendientes)`);
-          setProcessProgress(40 + Math.min(20, (transcriptionStats.successful / Math.max(stats.pendingTranscription, 1)) * 20));
-          await new Promise(r => setTimeout(r, 1000));
-        }
-      }
-
-      await loadStats();
-
-      // ========== PHASE 6: Match Products ==========
-      if (stats.pendingMatch > 0 && !shouldStopRef.current) {
-        setProcessPhase(`6/8 Vinculando productos${useAI ? " (con IA)" : ""}...`);
-        setProcessProgress(65);
-
-        let consecutiveErrors = 0;
-        let noProgressCount = 0;
-
-        while (!shouldStopRef.current) {
-          const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-            body: { batchSize: useAI ? 10 : 50, threshold: 0.75, useAI, market: selectedMarket },
-          });
-
-          if (error) {
-            consecutiveErrors++;
-            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-              matchStats.skipped = true;
-              break;
-            }
-            await new Promise(r => setTimeout(r, 2000));
-            continue;
-          }
-
-          consecutiveErrors = 0;
-          matchStats.successful += data.matchedInBatch || 0;
-
-          if (data.matchedInBatch === 0 && data.batchProcessed > 0) {
-            noProgressCount++;
-            if (noProgressCount >= 3) break;
-            await new Promise(r => setTimeout(r, 500));
-            continue;
-          }
-          
-          noProgressCount = 0;
-          if (data.complete) break;
-
-          setProcessPhase(`6/8 Vinculando... (${matchStats.successful} vinculados)`);
-          setProcessProgress(65 + Math.min(15, (matchStats.successful / Math.max(stats.pendingMatch, 1)) * 15));
-          
-          if (data.timedOut) await new Promise(r => setTimeout(r, 300));
-        }
-      }
-
-      await loadStats();
-
-      // ========== PHASE 7: Download Avatars ==========
-      if (stats.pendingAvatars > 0 && !shouldStopRef.current) {
-        setProcessPhase(`7/8 Descargando ${stats.pendingAvatars} fotos de creadores...`);
-        setProcessProgress(85);
-
-        try {
-          const { data, error } = await supabase.functions.invoke("download-creator-avatars");
-          
-          if (error) {
-            avatarStats.skipped = true;
-          } else if (data) {
-            avatarStats.successful = data.successCount || 0;
-            avatarStats.failed = data.errorCount || 0;
-          }
-        } catch (err) {
-          avatarStats.skipped = true;
-        }
-      }
-
-      // ========== PHASE 8: Finalize ==========
-      setProcessPhase("8/8 Actualizando rankings...");
-      setProcessProgress(95);
-      
-      await loadStats();
-
-      // Build summary
-      const summary = [];
-      if (downloadStats.successful > 0) summary.push(`${downloadStats.successful} videos descargados`);
-      if (transcriptionStats.successful > 0) summary.push(`${transcriptionStats.successful} scripts`);
-      if (matchStats.successful > 0) summary.push(`${matchStats.successful} vinculados`);
-      if (avatarStats.successful > 0) summary.push(`${avatarStats.successful} fotos`);
-      
-      const warnings = [];
-      if (downloadStats.skipped) warnings.push("descargas");
-      if (transcriptionStats.skipped) warnings.push("scripts");
-      if (matchStats.skipped) warnings.push("vinculación");
-      if (avatarStats.skipped) warnings.push("fotos");
-
-      setProcessProgress(100);
-      setProcessPhase("✅ Pipeline completado");
-      saveLastSync();
-
-      toast({
-        title: "✅ Importación y procesamiento completados",
-        description: summary.length > 0 
-          ? summary.join(", ") + (warnings.length > 0 ? ` (⚠️ saltados: ${warnings.join(", ")})` : "")
-          : "Datos importados correctamente. Rankings actualizados.",
-      });
-
-    } catch (error: any) {
-      const isPaused = error.message?.includes("pausado");
-      toast({
-        title: isPaused ? "⏸️ Proceso pausado" : "Error en el proceso",
-        description: isPaused ? "Puedes continuar con 'Procesar Pendientes'" : error.message,
-        variant: isPaused ? "default" : "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-      setProcessPhase("");
-      setProcessProgress(0);
-      await loadStats();
-    }
   };
 
   if (loading) {
@@ -727,7 +446,7 @@ const Admin = () => {
                   setIsResettingDownloads(false);
                 }
               }}
-              disabled={isResettingDownloads || pipelineState.isRunning || isProcessing}
+              disabled={isResettingDownloads || pipelineState.isRunning}
               className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isResettingDownloads ? 'animate-spin' : ''}`} />
@@ -739,19 +458,41 @@ const Admin = () => {
         {/* MASTER BUTTON: Procesar Pendientes (Parallel) */}
         <Card className="mb-6 border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5">
           <CardContent className="pt-6 pb-6 space-y-4">
+            {/* Market Selector - usado por Procesar Paralelo y Auditoría */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-background/80 border">
+              <Label className="flex items-center gap-2 text-sm font-medium">
+                <Globe className="h-4 w-4" />
+                Mercado:
+              </Label>
+              <RadioGroup
+                value={selectedMarket}
+                onValueChange={(value) => setSelectedMarket(value as Market)}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="mx" id="market-mx" />
+                  <Label htmlFor="market-mx" className="cursor-pointer font-medium">🇲🇽 MX</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="us" id="market-us" />
+                  <Label htmlFor="market-us" className="cursor-pointer font-medium">🇺🇸 US</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
             {/* AI Toggle - Inline */}
             <div className="flex items-center justify-between p-3 rounded-lg bg-background/80 border">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm font-medium">Usar IA en vinculación</p>
-                  <p className="text-xs text-muted-foreground">GPT-4 como fallback si fuzzy falla</p>
+                  <p className="text-xs text-muted-foreground">La capa IA de match-videos decide casos dudosos</p>
                 </div>
               </div>
               <Switch
                 checked={useAI}
                 onCheckedChange={setUseAI}
-                disabled={isProcessing || pipelineState.isRunning}
+                disabled={pipelineState.isRunning}
               />
             </div>
 
@@ -781,7 +522,7 @@ const Admin = () => {
             {/* Main Button */}
             <Button
               onClick={handleProcessPending}
-              disabled={pipelineState.isRunning || isProcessing || totalPending === 0}
+              disabled={pipelineState.isRunning || totalPending === 0}
               size="lg"
               className="w-full h-14 text-lg font-semibold"
             >
@@ -804,145 +545,11 @@ const Admin = () => {
           </CardContent>
         </Card>
 
-        {/* File Upload Section */}
-        <Card className="mb-6">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center text-lg">
-              <FileSpreadsheet className="h-5 w-5 mr-2" />
-              Archivos de Kalodata (.xlsx)
-            </CardTitle>
-            <CardDescription>
-              Sube nuevos archivos para agregar datos al sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Market Selector */}
-            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-              <Label className="flex items-center gap-2 text-sm font-semibold mb-3">
-                <Globe className="h-4 w-4" />
-                Mercado del archivo:
-              </Label>
-              <RadioGroup
-                value={selectedMarket}
-                onValueChange={(value) => setSelectedMarket(value as Market)}
-                className="flex gap-6"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="mx" id="market-mx" />
-                  <Label htmlFor="market-mx" className="cursor-pointer font-medium">
-                    🇲🇽 México
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="us" id="market-us" />
-                  <Label htmlFor="market-us" className="cursor-pointer font-medium">
-                    🇺🇸 Estados Unidos
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
+        {/* Importación: dropzone única con autodetección */}
+        <KalodataImportPanel onImported={loadStats} />
 
-            {/* File Inputs */}
-            <div className="grid gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">1</div>
-                <div className="flex-1">
-                  <Label htmlFor="creator-file" className="text-sm font-medium">Creadores</Label>
-                  <Input
-                    id="creator-file"
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={(e) => setCreatorFile(e.target.files?.[0] || null)}
-                    className="mt-1"
-                    disabled={isProcessing}
-                  />
-                </div>
-                {creatorFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">2</div>
-                <div className="flex-1">
-                  <Label htmlFor="product-file" className="text-sm font-medium">Productos</Label>
-                  <Input
-                    id="product-file"
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={(e) => setProductFile(e.target.files?.[0] || null)}
-                    className="mt-1"
-                    disabled={isProcessing}
-                  />
-                </div>
-                {productFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">3</div>
-                <div className="flex-1">
-                  <Label htmlFor="video-file" className="text-sm font-medium">Videos</Label>
-                  <Input
-                    id="video-file"
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                    className="mt-1"
-                    disabled={isProcessing}
-                  />
-                </div>
-                {videoFile && <CheckCircle className="h-5 w-5 text-green-500 mt-6" />}
-              </div>
-            </div>
-
-            {/* Import Button */}
-            {(videoFile || productFile || creatorFile) && (
-              <div className="pt-2">
-                {isProcessing && (
-                  <div className="space-y-2 mb-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium">{processPhase}</span>
-                      <span className="text-muted-foreground">{processProgress}%</span>
-                    </div>
-                    <Progress value={processProgress} className="h-2" />
-                  </div>
-                )}
-                
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleProcessAll}
-                    disabled={isProcessing || pipelineState.isRunning}
-                    className="flex-1"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Zap className="h-4 w-4 mr-2 animate-pulse" />
-                        {processPhase || "Procesando..."}
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="h-4 w-4 mr-2" />
-                        🚀 Importar y Procesar Todo
-                      </>
-                    )}
-                  </Button>
-                  
-                  {isProcessing && (
-                    <Button
-                      variant="outline"
-                      onClick={handlePauseProcess}
-                    >
-                      <Pause className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded space-y-1">
-              <p className="font-medium">🚀 Pipeline automático: Importar → Descargar MP4 → Transcribir → Vincular → Fotos</p>
-              <p>💡 Los datos existentes se actualizan, los nuevos se crean. Rankings se recalculan.</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Cola de confirmación 1-clic (matches sugeridos por IA) */}
+        <MatchReviewQueue onResolved={loadStats} />
 
         {/* Asset Uploader */}
         <AssetUploader />

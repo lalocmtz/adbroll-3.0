@@ -81,10 +81,15 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   const navigate = useNavigate();
   const { hasPaid, isLoggedIn, openPaywall, shouldBlur, shouldBlurPartial, isFounder } = useBlurGateContext();
   
-  const commissionRate = video.product?.commission || 6;
-  const commissionEstimated = (video.revenue_mxn || 0) * (commissionRate / 100);
+  // GLOSARIO: revenue_mxn es GMV del video ("Generó en ventas"). La ganancia
+  // del creador solo se estima si el producto tiene commission REAL (escala
+  // 0-100, igual que en process-kalodata-products). Sin commission no se
+  // muestra nada: no inventamos porcentajes.
+  const hasCommission = video.product?.commission != null && video.product.commission > 0;
+  const commissionRate = video.product?.commission || 0;
+  const commissionEstimated = hasCommission ? (video.revenue_mxn || 0) * (commissionRate / 100) : 0;
   const productPrice = video.product?.price || video.product?.precio_mxn || 0;
-  const earningsPerSale = productPrice * (commissionRate / 100);
+  const earningsPerSale = hasCommission ? productPrice * (commissionRate / 100) : 0;
   
   // Free preview videos show all data even for non-paid users
   const showFullData = hasPaid || isFreePreview;
@@ -356,7 +361,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#ECFDF5] dark:bg-success/10">
               <div className="flex items-center gap-1 mb-0.5 md:mb-1">
                 <DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5 text-[#475569]" />
-                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Ingresos</span>
+                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Generó en ventas</span>
               </div>
               <p className="text-xs md:text-sm font-bold text-[#0F172A] dark:text-foreground">
                 {showFullData ? formatCurrency(video.revenue_mxn) : "•••"}
@@ -373,15 +378,18 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
               </p>
             </div>
 
-            <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#FEF3C7] dark:bg-amber-950/30">
-              <div className="flex items-center gap-1 mb-0.5 md:mb-1">
-                <DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5 text-[#475569]" />
-                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Comisión</span>
+            {/* Solo si el producto tiene comisión real (no inventamos) */}
+            {hasCommission && (
+              <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#FEF3C7] dark:bg-amber-950/30">
+                <div className="flex items-center gap-1 mb-0.5 md:mb-1">
+                  <DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5 text-[#475569]" />
+                  <span className="text-[9px] md:text-[11px] text-[#94A3B8]">El creador ganó ≈</span>
+                </div>
+                <p className="text-xs md:text-sm font-bold text-[#0F172A] dark:text-foreground">
+                  {showFullData ? formatCurrency(commissionEstimated) : "•••"}
+                </p>
               </div>
-              <p className="text-xs md:text-sm font-bold text-[#0F172A] dark:text-foreground">
-                {showFullData ? formatCurrency(commissionEstimated) : "•••"}
-              </p>
-            </div>
+            )}
 
             <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
               <div className="flex items-center gap-1 mb-0.5 md:mb-1">

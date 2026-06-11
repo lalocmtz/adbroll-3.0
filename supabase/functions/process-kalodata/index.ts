@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
+import { extractTikTokVideoId } from "../_shared/kalodata.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -157,6 +158,8 @@ serve(async (req) => {
       return {
         video_url: normalizedUrl,
         original_url: videoUrl,
+        // Llave natural de TikTok (data backbone): extraída de la URL.
+        tiktok_video_id: extractTikTokVideoId(normalizedUrl),
         rank: idx + 1,
         title: videoDescription,
         product_name: extractedProductName, // New: extracted from description for matching
@@ -179,12 +182,14 @@ serve(async (req) => {
     // ========== PHASE 3: Deduplicate (keep highest revenue per URL) ==========
     const dedupeStart = Date.now();
     
-    // Group by normalized URL
+    // Group by natural key: tiktok_video_id si existe (dos URLs distintas
+    // pueden apuntar al mismo video), si no por URL normalizada.
     const urlMap = new Map<string, any>();
     for (const video of videosRaw) {
-      const existing = urlMap.get(video.video_url);
+      const dedupeKey = video.tiktok_video_id || video.video_url;
+      const existing = urlMap.get(dedupeKey);
       if (!existing || video.revenue_mxn > existing.revenue_mxn) {
-        urlMap.set(video.video_url, video);
+        urlMap.set(dedupeKey, video);
       }
     }
     
@@ -215,10 +220,11 @@ serve(async (req) => {
     const CHUNK_SIZE = 200;
     let totalInserted = 0;
     let totalUpdated = 0;
+    const upsertedRows: { id: string; video_url: string; rank: number | null; tiktok_video_id: string | null }[] = [];
 
     for (let i = 0; i < uniqueVideos.length; i += CHUNK_SIZE) {
       const chunk = uniqueVideos.slice(i, i + CHUNK_SIZE);
-      
+
       // Remove original_url (not a real column), prepare upsert payload
       const upsertPayload = chunk.map(v => {
         const { original_url, ...rest } = v;
@@ -227,11 +233,11 @@ serve(async (req) => {
 
       const { data, error } = await supabaseServiceClient
         .from("videos")
-        .upsert(upsertPayload, { 
+        .upsert(upsertPayload, {
           onConflict: 'video_url',
           ignoreDuplicates: false
         })
-        .select("id");
+        .select("id, video_url, rank, tiktok_video_id");
 
       if (error) {
         console.error(`Chunk ${i / CHUNK_SIZE + 1} upsert error:`, error.message);
@@ -239,11 +245,45 @@ serve(async (req) => {
       } else {
         const count = data?.length || 0;
         totalInserted += count;
+        if (data) upsertedRows.push(...data);
         console.log(`Chunk ${i / CHUNK_SIZE + 1}: upserted ${count} videos`);
       }
     }
 
     console.log(`[TIMING] Upsert: ${Date.now() - upsertStart}ms, total: ${totalInserted}`);
+
+    // ========== PHASE 5: daily_rankings (histórico del ranking del día) ==========
+    // videos.rank se resetea con cada import; daily_rankings preserva el
+    // ranking por (market, fecha, rank). Best-effort: nunca rompe el import.
+    try {
+      const rankingsStart = Date.now();
+      const today = new Date().toISOString().slice(0, 10);
+      const rankingRows = upsertedRows
+        .filter((r) => r.rank != null)
+        .map((r) => ({
+          market,
+          ranking_date: today,
+          rank: r.rank as number,
+          video_id: r.id,
+          tiktok_video_id: r.tiktok_video_id ?? extractTikTokVideoId(r.video_url),
+        }));
+
+      let rankingsUpserted = 0;
+      for (let i = 0; i < rankingRows.length; i += CHUNK_SIZE) {
+        const chunk = rankingRows.slice(i, i + CHUNK_SIZE);
+        const { error: rankError } = await supabaseServiceClient
+          .from("daily_rankings")
+          .upsert(chunk, { onConflict: "market,ranking_date,rank", ignoreDuplicates: false });
+        if (rankError) {
+          console.error(`daily_rankings chunk ${i / CHUNK_SIZE + 1} error:`, rankError.message);
+        } else {
+          rankingsUpserted += chunk.length;
+        }
+      }
+      console.log(`[TIMING] daily_rankings: ${Date.now() - rankingsStart}ms, upserted: ${rankingsUpserted}`);
+    } catch (rankingsError) {
+      console.error("daily_rankings insert failed (non-fatal):", rankingsError);
+    }
 
     const totalTime = Date.now() - startTime;
     console.log(`[TIMING] Total process time: ${totalTime}ms`);
