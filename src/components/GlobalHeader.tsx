@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { MarketSwitcher } from "./MarketSwitcher";
-import logoDark from "@/assets/logo-dark.png";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 interface GlobalHeaderProps {
   showMenu?: boolean;
@@ -50,7 +50,7 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
           className="flex items-center cursor-pointer"
           onClick={() => navigate(showMenu ? "/app" : "/")}
         >
-          <img src={logoDark} alt="TokXray" className="h-10" />
+          <BrandLogo tone="dark" size="md" />
         </div>
 
         {showMenu && userEmail && (

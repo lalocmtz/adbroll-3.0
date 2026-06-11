@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Children, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -378,12 +378,16 @@ const Landing = () => {
             </div>
           </div>
 
-          <HScroll ariaLabel="Videos que más venden">
+          <HScroll
+            ariaLabel="Videos que más venden"
+            animate={!videosLoading}
+            direction="left"
+          >
             {videosLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <VideoSkeleton key={i} />
                 ))
-              : (videos.length ? videos : []).map((v) => (
+              : (videos.length ? videos : FALLBACK_VIDEOS).map((v) => (
                   <VideoCard
                     key={v.id}
                     video={v}
@@ -391,15 +395,6 @@ const Landing = () => {
                     onClick={() => goApp("video_carousel")}
                   />
                 ))}
-            {!videosLoading && videos.length === 0 &&
-              FALLBACK_VIDEOS.map((v) => (
-                <VideoCard
-                  key={v.id}
-                  video={v}
-                  formatMoney={formatMoney}
-                  onClick={() => goApp("video_carousel")}
-                />
-              ))}
           </HScroll>
 
           <div className="mt-6 flex justify-center">
@@ -428,12 +423,17 @@ const Landing = () => {
             </p>
           </div>
 
-          <HScroll ariaLabel="Productos con oportunidad" tone="light">
+          <HScroll
+            ariaLabel="Productos con oportunidad"
+            tone="light"
+            animate={!oppsLoading}
+            direction="right"
+          >
             {oppsLoading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <OppSkeleton key={i} />
                 ))
-              : (opps.length ? opps : []).map((p) => (
+              : (opps.length ? opps : FALLBACK_OPPS).map((p) => (
                   <OppCard
                     key={p.id}
                     opp={p}
@@ -441,15 +441,6 @@ const Landing = () => {
                     onClick={() => goApp("opp_carousel")}
                   />
                 ))}
-            {!oppsLoading && opps.length === 0 &&
-              FALLBACK_OPPS.map((p) => (
-                <OppCard
-                  key={p.id}
-                  opp={p}
-                  formatMoney={formatMoney}
-                  onClick={() => goApp("opp_carousel")}
-                />
-              ))}
           </HScroll>
 
           <div className="mt-6 flex justify-center">
@@ -744,17 +735,62 @@ const Landing = () => {
 
 /* ============================== atoms ============================== */
 
-/** Horizontal scroll-snap rail with optional arrow controls (md+). */
+/** Reads the user's reduced-motion preference, reactively. */
+const usePrefersReducedMotion = () => {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(mq.matches);
+    update();
+    // Safari <14 uses addListener/removeListener.
+    if (mq.addEventListener) mq.addEventListener("change", update);
+    else mq.addListener(update);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", update);
+      else mq.removeListener(update);
+    };
+  }, []);
+  return reduced;
+};
+
+// Pixels per second — slow and elegant. Loop duration is derived from the
+// track width so speed stays constant no matter how many cards loaded.
+const MARQUEE_SPEED = 40;
+// Approx. card footprint (card width + gap). Cards are 200px wide, gap-3 = 12px.
+const CARD_STEP = 212;
+
+/**
+ * Horizontal rail.
+ *
+ * When `animate` is true and the user hasn't requested reduced motion (and we
+ * have ≥2 cards), the rail becomes a seamless marquee: the children are
+ * rendered twice and the track is translated by exactly -50%, so the loop
+ * point is pixel-identical and there's no visible jump. It pauses while the
+ * pointer hovers or while a finger is touching/dragging it, and resumes on
+ * release. Otherwise (loading, reduced motion, or <2 cards) it falls back to
+ * the manual scroll-snap rail with arrow controls.
+ */
 const HScroll = ({
   children,
   ariaLabel,
   tone = "dark",
+  animate = false,
+  direction = "left",
 }: {
   children: React.ReactNode;
   ariaLabel: string;
   tone?: "dark" | "light";
+  animate?: boolean;
+  direction?: "left" | "right";
 }) => {
   const ref = useRef<HTMLDivElement | null>(null);
+  const reducedMotion = usePrefersReducedMotion();
+  const [paused, setPaused] = useState(false);
+
+  const items = useMemo(() => Children.toArray(children), [children]);
+  const shouldMarquee = animate && !reducedMotion && items.length >= 2;
+
   const scrollBy = (dir: 1 | -1) => {
     ref.current?.scrollBy({ left: dir * 280, behavior: "smooth" });
   };
@@ -762,6 +798,64 @@ const HScroll = ({
     tone === "dark"
       ? "border-white/15 bg-white/5 text-brand-mist hover:bg-white/10"
       : "border-brand-ink/10 bg-white text-brand-ink hover:bg-brand-mist-100 shadow-card-tactile";
+
+  if (shouldMarquee) {
+    // One full loop scrolls the length of a single (un-duplicated) set.
+    const setWidth = items.length * CARD_STEP;
+    const durationSec = Math.max(20, setWidth / MARQUEE_SPEED);
+    const animationName =
+      direction === "left" ? "marquee-left" : "marquee-right";
+
+    return (
+      <div
+        className="relative overflow-hidden -mx-[var(--page-pad-x)] px-[var(--page-pad-x)]"
+        aria-label={ariaLabel}
+        role="group"
+      >
+        <div
+          className="flex w-max gap-3 pb-2"
+          style={{
+            animationName,
+            animationDuration: `${durationSec}s`,
+            animationTimingFunction: "linear",
+            animationIterationCount: "infinite",
+            animationPlayState: paused ? "paused" : "running",
+            willChange: "transform",
+          }}
+          // Desktop: pause on hover.
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          // Mobile / pointer drag: pause while the finger is down, resume on lift.
+          onPointerDown={() => setPaused(true)}
+          onPointerUp={() => setPaused(false)}
+          onPointerCancel={() => setPaused(false)}
+          onTouchStart={() => setPaused(true)}
+          onTouchEnd={() => setPaused(false)}
+        >
+          {/* set A */}
+          {items.map((child, i) => (
+            <div key={`a-${i}`} className="flex-shrink-0">
+              {child}
+            </div>
+          ))}
+          {/* set A duplicated — purely visual filler for the seamless loop.
+              Non-interactive so it doesn't create duplicate tab stops. */}
+          {items.map((child, i) => (
+            <div
+              key={`b-${i}`}
+              className="flex-shrink-0 [&_button]:pointer-events-none [&_button]:-z-0"
+              aria-hidden
+              tabIndex={-1}
+            >
+              {child}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback: manual scroll-snap rail (loading / reduced motion / <2 cards).
   return (
     <div className="relative">
       <div

@@ -174,6 +174,17 @@ export default {
           "0%, 100%": { boxShadow: "0 0 0 0 rgba(254, 44, 85, 0.5)" },
           "50%": { boxShadow: "0 0 0 12px rgba(254, 44, 85, 0)" },
         },
+        // Seamless marquee: track holds [items + items duplicated], so
+        // translating exactly -50% lands on the start of the second copy,
+        // which is pixel-identical to 0% — no visible jump on loop.
+        "marquee-left": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
+        "marquee-right": {
+          from: { transform: "translateX(-50%)" },
+          to: { transform: "translateX(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -182,6 +193,11 @@ export default {
         "fade-in-up": "fade-in-up 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)",
         "tap-bounce": "tap-bounce 0.18s ease-in-out",
         "pulse-glow-pink": "pulse-glow-pink 2s ease-in-out infinite",
+        // Slow, elegant continuous scroll. Duration is a sane default; the
+        // carousel overrides it inline based on item count so speed in
+        // px/sec stays constant regardless of how many cards loaded.
+        "marquee-left": "marquee-left 50s linear infinite",
+        "marquee-right": "marquee-right 50s linear infinite",
       },
     },
   },

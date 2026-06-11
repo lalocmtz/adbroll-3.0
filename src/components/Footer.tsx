@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Mail } from "lucide-react";
-import logoDark from "@/assets/logo-dark.png";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const Footer = () => {
   const { t } = useLanguage();
@@ -12,7 +12,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <img src={logoDark} alt="TokXray" className="h-8" />
+            <BrandLogo tone="dark" size="md" />
             <p className="text-sm text-muted-foreground">
               Rayos X a TikTok Shop. Datos reales, guión listo.
             </p>

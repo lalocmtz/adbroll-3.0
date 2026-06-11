@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { loginSchema } from "@/lib/validations";
-import logoDark from "@/assets/logo-dark.png";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -97,12 +97,13 @@ const Login = () => {
         </button>
         <CardHeader>
           <div className="text-center mb-4">
-            <img 
-              src={logoDark}
-              alt="TokXray"
-              className="h-16 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+            <button
+              type="button"
               onClick={() => navigate("/")}
-            />
+              className="mx-auto block cursor-pointer transition-opacity hover:opacity-80"
+            >
+              <BrandLogo tone="dark" size="lg" />
+            </button>
           </div>
           <CardTitle>Bienvenido de vuelta</CardTitle>
           <CardDescription>

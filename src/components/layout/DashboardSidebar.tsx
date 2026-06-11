@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import MarketSwitcher from "@/components/MarketSwitcher";
-import logoDark from "@/assets/logo-dark.png";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 interface DashboardSidebarProps {
   open: boolean;
@@ -203,7 +203,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             }}
             className="flex items-center"
           >
-            <img src={logoDark} alt="TokXray" className="h-9" />
+            <BrandLogo tone="dark" size="md" />
           </button>
         </div>
 

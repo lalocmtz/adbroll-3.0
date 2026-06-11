@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Gift, X } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
 import { trackSignUp } from "@/lib/analytics";
-import logoDark from "@/assets/logo-dark.png";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -228,12 +228,13 @@ const Register = () => {
         </button>
         <CardHeader>
           <div className="text-center mb-4">
-            <img
-              src={logoDark}
-              alt="TokXray"
-              className="h-16 mx-auto cursor-pointer hover:opacity-80 transition-opacity"
+            <button
+              type="button"
               onClick={() => navigate("/")}
-            />
+              className="mx-auto block cursor-pointer transition-opacity hover:opacity-80"
+            >
+              <BrandLogo tone="dark" size="lg" />
+            </button>
           </div>
           <CardTitle>Crea tu cuenta gratis</CardTitle>
           <CardDescription>

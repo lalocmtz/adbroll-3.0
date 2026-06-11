@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { trackLead } from "@/lib/analytics";
-import logoDark from "@/assets/logo-dark.png";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const emailSchema = z.string().email("Ingresa un email válido");
 
@@ -99,7 +99,7 @@ export const SimpleEmailCaptureModal = ({
         >
           {/* Logo */}
           <div className="flex justify-center mb-5">
-            <img src={logoDark} alt="TokXray" className="h-8 sm:h-10" />
+            <BrandLogo tone="dark" size="lg" />
           </div>
 
           {/* Title */}

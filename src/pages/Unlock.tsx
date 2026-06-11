@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SimpleEmailCaptureModal } from "@/components/SimpleEmailCaptureModal";
 import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
-import logoDark from "@/assets/logo-dark.png";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const Unlock = () => {
   const navigate = useNavigate();
@@ -109,7 +109,7 @@ const Unlock = () => {
             <span className="text-sm font-medium hidden md:inline">Volver al feed</span>
           </button>
           <button onClick={() => navigate("/app")} className="flex items-center absolute left-1/2 -translate-x-1/2">
-            <img src={logoDark} alt="TokXray" className="h-7 md:h-10" />
+            <BrandLogo tone="dark" size="md" />
           </button>
           <div className="flex items-center gap-2 md:gap-3">
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={handleLogin}>
@@ -297,7 +297,7 @@ const Unlock = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <img src={logoDark} alt="TokXray" className="h-6" />
+              <BrandLogo tone="dark" size="sm" />
               <span className="text-sm text-muted-foreground">© 2025</span>
             </div>
             <div className="flex items-center gap-4 md:gap-6 text-xs md:text-sm text-muted-foreground">

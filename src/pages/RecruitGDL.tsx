@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle2, Video, FileText, Calendar, Banknote } from "lucide-react";
 import { trackPageView } from "@/lib/analytics";
-import logoDark from "@/assets/logo-dark.png";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const CONTENT_OPTIONS = [
   "Belleza",
@@ -151,7 +151,7 @@ const RecruitGDL = () => {
     <div className="min-h-screen bg-background">
       {/* Minimal header */}
       <div className="py-6 px-4 flex justify-center">
-        <img src={logoDark} alt="TokXray" className="h-8" />
+        <BrandLogo tone="dark" size="md" />
       </div>
 
       <div className="max-w-lg mx-auto px-4 pb-16 space-y-12">
