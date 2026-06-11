@@ -2169,43 +2169,121 @@ export type Database = {
         Returns: boolean
       }
       confirm_video_match: {
-        Args: { _video_id: string; _product_id: string; _create_alias?: boolean }
+        Args: {
+          _create_alias?: boolean
+          _product_id: string
+          _video_id: string
+        }
         Returns: undefined
       }
       find_similar_products: {
-        Args: { _title: string; _market: string; _limit?: number }
+        Args: { _limit?: number; _market: string; _title: string }
         Returns: {
           id: string
           producto_nombre: string
           score: number
         }[]
       }
-      normalize_title: { Args: { _input: string }; Returns: string }
-      reject_video_match: {
-        Args: { _video_id: string }
-        Returns: undefined
-      }
       generate_affiliate_code: { Args: never; Returns: string }
       generate_grant_code: { Args: never; Returns: string }
       generate_ref_code: { Args: never; Returns: string }
       get_creator_directory_id: { Args: { _email: string }; Returns: string }
-      get_videos_admin: {
-        Args: { _ids?: string[] }
-        Returns: Database["public"]["Tables"]["videos"]["Row"][]
-      }
       get_daily_feed_admin: {
         Args: { _ids?: string[] }
-        Returns: Database["public"]["Tables"]["daily_feed"]["Row"][]
+        Returns: {
+          ai_variants: Json | null
+          coste_publicitario_mxn: number
+          cpa_mxn: number
+          creador: string
+          created_at: string | null
+          descripcion_video: string
+          duracion: string
+          featured_today: boolean | null
+          fecha_publicacion: string
+          generated_at: string | null
+          gpm_mxn: number | null
+          guion_ia: string | null
+          id: string
+          ingresos_mxn: number
+          product_id: string | null
+          producto_nombre: string | null
+          producto_url: string | null
+          rango_fechas: string
+          ratio_ads: number | null
+          roas: number
+          tiktok_url: string
+          transcripcion_original: string | null
+          ventas: number
+          visualizaciones: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "daily_feed"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_video_script: {
         Args: { _video_id: string }
         Returns: {
           locked: boolean
-          transcript: string | null
-          variants_json: Json | null
+          transcript: string
+          variants_json: Json
         }[]
       }
-      is_paid_user: { Args: { _uid: string }; Returns: boolean }
+      get_videos_admin: {
+        Args: { _ids?: string[] }
+        Returns: {
+          ai_match_attempted_at: string | null
+          ai_match_confidence: number | null
+          analysis_json: Json | null
+          category: string | null
+          country: string | null
+          creator_handle: string | null
+          creator_id: string | null
+          creator_name: string | null
+          download_attempts: number | null
+          duration: number | null
+          id: string
+          imported_at: string | null
+          manual_match: boolean | null
+          manual_matched_at: string | null
+          manual_matched_by: string | null
+          match_reason: string | null
+          match_source: string | null
+          processing_status: string | null
+          product_id: string | null
+          product_name: string | null
+          product_price: number | null
+          product_revenue: number | null
+          product_sales: number | null
+          rank: number | null
+          revenue_mxn: number | null
+          roas: number | null
+          sales: number | null
+          snapshot_at: string | null
+          snapshot_date_range: string | null
+          suggested_product_id: string | null
+          thumbnail_url: string | null
+          tiktok_video_id: string | null
+          title: string | null
+          transcript: string | null
+          variants_json: Json | null
+          video_mp4_url: string | null
+          video_url: string
+          views: number | null
+          visual_analyzed_at: string | null
+          visual_confidence: number | null
+          visual_keywords: string[] | null
+          visual_product_detected: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "videos"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2215,6 +2293,9 @@ export type Database = {
       }
       is_brand: { Args: { _user_id: string }; Returns: boolean }
       is_creator_in_directory: { Args: { _email: string }; Returns: boolean }
+      is_paid_user: { Args: { _uid: string }; Returns: boolean }
+      normalize_title: { Args: { _input: string }; Returns: string }
+      reject_video_match: { Args: { _video_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "user" | "founder" | "brand"
