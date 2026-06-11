@@ -89,7 +89,11 @@ export function useParallelPipeline() {
       v.video_mp4_url && !v.transcript && v.processing_status === 'transcription_failed'
     ).length;
 
-    const pendingMatch = videos.filter(v => !v.product_id).length;
+    // Pendientes de matching: sin producto y sin veredicto previo de match-videos
+    // ('review' espera confirmación manual, 'none' ya se descartó).
+    const pendingMatch = videos.filter(v =>
+      !v.product_id && !["review", "none"].includes((v as any).match_source ?? "")
+    ).length;
 
     const pendingAvatars = creators.filter(c =>
       c.avatar_url && !c.avatar_storage_url
@@ -187,15 +191,16 @@ export function useParallelPipeline() {
     return data.remaining > 0;
   }, [state.stats.transcriptions, updateStats]);
 
-  const runMatchingWorker = useCallback(async (useAI: boolean, market: string): Promise<boolean> => {
+  const runMatchingWorker = useCallback(async (_useAI: boolean, market: string): Promise<boolean> => {
     if (shouldStopRef.current) return false;
 
-    const { data, error } = await supabase.functions.invoke("auto-match-videos-products", {
-      body: { 
-        batchSize: WORKER_CONFIGS.matching.batchSize, 
-        threshold: 0.5, 
-        useAI,
+    // match-videos: matching de 4 capas (alias/exacto -> fuzzy -> IA -> review).
+    // Reemplaza a auto-match-videos-products / smart-match-products.
+    // Respuesta: { processed, exact, fuzzy, ai, review, none }
+    const { data, error } = await supabase.functions.invoke("match-videos", {
+      body: {
         market,
+        limit: WORKER_CONFIGS.matching.batchSize,
       },
     });
 
@@ -207,14 +212,15 @@ export function useParallelPipeline() {
       return true;
     }
 
-    if (data?.complete) {
+    const processed = data?.processed || 0;
+    const matched = (data?.exact || 0) + (data?.fuzzy || 0) + (data?.ai || 0);
+    const aiMatched = data?.ai || 0;
+
+    if (processed === 0) {
       return false;
     }
 
-    const matched = data?.matchedInBatch || 0;
-    const aiMatched = data?.aiMatched || 0;
-
-    // No-progress detection for matching
+    // No-progress detection: el lote solo produjo review/none
     if (matched === 0) {
       noProgressCountRef.current.matching++;
       if (noProgressCountRef.current.matching >= MAX_NO_PROGRESS_CYCLES) {
@@ -227,11 +233,12 @@ export function useParallelPipeline() {
 
     updateStats("matching", {
       processed: (state.stats.matching.processed || 0) + matched,
-      pending: data?.remainingUnmatched || 0,
+      pending: Math.max((state.stats.matching.pending || 0) - processed, 0),
       aiMatched: (state.stats.matching.aiMatched || 0) + aiMatched,
     });
 
-    return (data?.remainingUnmatched || 0) > 0;
+    // Si el batch vino lleno, probablemente quedan pendientes
+    return processed >= WORKER_CONFIGS.matching.batchSize;
   }, [state.stats.matching, updateStats]);
 
   const runAvatarWorker = useCallback(async (): Promise<boolean> => {

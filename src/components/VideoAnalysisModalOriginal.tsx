@@ -103,11 +103,15 @@ const VideoAnalysisModalOriginal = ({
   const [generatedVariants, setGeneratedVariants] = useState<GeneratedVariant[]>([]);
   const [generatorOpen, setGeneratorOpen] = useState(true);
 
-  // Calculate earnings - unified formula matching VideoCardOriginal
-  const commissionRate = video.product?.commission || 6;
-  const totalCreatorEarnings = (video.revenue_mxn || 0) * (commissionRate / 100);
+  // Calculate earnings - unified formula matching VideoCardOriginal.
+  // GLOSARIO: revenue_mxn es GMV ("Generó en ventas"). La ganancia del creador
+  // solo se estima si el producto tiene commission REAL (escala 0-100, igual
+  // que process-kalodata-products). Sin commission no se muestra nada.
+  const hasCommission = video.product?.commission != null && video.product.commission > 0;
+  const commissionRate = video.product?.commission || 0;
+  const totalCreatorEarnings = hasCommission ? (video.revenue_mxn || 0) * (commissionRate / 100) : 0;
   const productPrice = video.product?.price || 0;
-  const earningPerSale = productPrice * (commissionRate / 100);
+  const earningPerSale = hasCommission ? productPrice * (commissionRate / 100) : 0;
 
   // Handle locked tabs for visitors
   const handleTabChange = (value: string) => {
@@ -469,7 +473,7 @@ const VideoAnalysisModalOriginal = ({
                 className="grid grid-cols-4 gap-2"
               >
                 <div className="bg-[#ECFDF5] rounded-lg p-2 text-center">
-                  <div className="text-[10px] text-muted-foreground">Ingresos</div>
+                  <div className="text-[10px] text-muted-foreground">Generó en ventas</div>
                   <div className="text-sm font-bold text-foreground">{formatCurrency(video.revenue_mxn)}</div>
                 </div>
                 <div className="bg-muted rounded-lg p-2 text-center">
@@ -482,7 +486,9 @@ const VideoAnalysisModalOriginal = ({
                 </div>
                 <div className="bg-[#FEF3C7] rounded-lg p-2 text-center">
                   <div className="text-[10px] text-muted-foreground">$/venta</div>
-                  <div className="text-sm font-bold text-foreground">{formatCurrency(earningPerSale)}</div>
+                  <div className="text-sm font-bold text-foreground">
+                    {hasCommission ? formatCurrency(earningPerSale) : "—"}
+                  </div>
                 </div>
               </motion.div>
             </div>
@@ -500,14 +506,16 @@ const VideoAnalysisModalOriginal = ({
                     <p className="text-sm font-medium text-foreground line-clamp-1">
                       {video.product.producto_nombre || video.product_name}
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">
-                        Comisión: {commissionRate}%
-                      </span>
-                      <span className="text-xs font-semibold text-green-600">
-                        {formatCurrency(earningPerSale)}/venta
-                      </span>
-                    </div>
+                    {hasCommission && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-muted-foreground">
+                          Comisión: {commissionRate}%
+                        </span>
+                        <span className="text-xs font-semibold text-green-600">
+                          {formatCurrency(earningPerSale)}/venta
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {video.product.producto_url && <Button size="sm" variant="outline" className="h-8 text-xs flex-shrink-0" onClick={() => window.open(video.product?.producto_url || '', '_blank')}>
                       <ExternalLink className="h-3 w-3" />
@@ -523,16 +531,19 @@ const VideoAnalysisModalOriginal = ({
                   Guion extraído con IA
                 </div>
                 
-                {/* Sales highlight - all bold black */}
+                {/* Sales highlight (GMV) - all bold black */}
                 <p className="text-sm font-bold text-foreground leading-snug">
                   Este video generó {formatCurrency(video.revenue_mxn)} en ventas.
                 </p>
-                
-                {/* Creator earnings - GREEN emphasis */}
-                <p className="text-sm text-foreground mt-1">
-                  Y le hizo ganar al creador una comisión aproximada de{' '}
-                  <span className="text-lg font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
-                </p>
+
+                {/* Creator earnings - solo con comisión real del producto */}
+                {hasCommission && (
+                  <p className="text-sm text-foreground mt-1">
+                    El creador ganó ≈{' '}
+                    <span className="text-lg font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
+                    {' '}<span className="text-xs text-muted-foreground">(comisión {commissionRate}%)</span>
+                  </p>
+                )}
               </div>
             )}
 
@@ -925,12 +936,14 @@ const VideoAnalysisModalOriginal = ({
                       <span className="text-xs text-muted-foreground">Vistas</span>
                       <span className="text-xs font-bold tabular-nums">{formatNumber(video.views)}</span>
                     </div>
-                    <div className="flex items-center justify-between pt-1 border-t border-border/50">
-                      <span className="text-xs text-muted-foreground">Comisiones</span>
-                      <span className="text-xs font-bold text-success tabular-nums">
-                        {formatCurrency(totalCreatorEarnings)}
-                      </span>
-                    </div>
+                    {hasCommission && (
+                      <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                        <span className="text-xs text-muted-foreground">El creador ganó ≈</span>
+                        <span className="text-xs font-bold text-success tabular-nums">
+                          {formatCurrency(totalCreatorEarnings)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -944,16 +957,20 @@ const VideoAnalysisModalOriginal = ({
                   </div>
                   
                   {video.product ? <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Comisión</span>
-                        <span className="text-xs font-bold tabular-nums">{video.product.commission || 0}%</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">$/venta</span>
-                        <span className="text-xs font-bold text-success tabular-nums">
-                          {formatCurrency(earningPerSale)}
-                        </span>
-                      </div>
+                      {hasCommission && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Comisión</span>
+                          <span className="text-xs font-bold tabular-nums">{video.product.commission}%</span>
+                        </div>
+                      )}
+                      {hasCommission && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">$/venta</span>
+                          <span className="text-xs font-bold text-success tabular-nums">
+                            {formatCurrency(earningPerSale)}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between pt-1 border-t border-border/50">
                         <span className="text-xs text-muted-foreground">GMV 30d</span>
                         <span className="text-xs font-bold tabular-nums">{formatCurrency(video.product.revenue_30d)}</span>
@@ -989,10 +1006,13 @@ const VideoAnalysisModalOriginal = ({
                 <p className="text-sm font-bold text-foreground leading-snug">
                   Este video generó {formatCurrency(video.revenue_mxn)} en ventas.
                 </p>
-                <p className="text-sm text-foreground mt-1">
-                  Comisión estimada del creador:{' '}
-                  <span className="text-base font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
-                </p>
+                {hasCommission && (
+                  <p className="text-sm text-foreground mt-1">
+                    El creador ganó ≈{' '}
+                    <span className="text-base font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
+                    {' '}<span className="text-xs text-muted-foreground">(comisión {commissionRate}%)</span>
+                  </p>
+                )}
               </div>
 
               {/* Next Step Section - Desktop */}

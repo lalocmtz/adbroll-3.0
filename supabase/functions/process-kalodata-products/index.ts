@@ -229,7 +229,7 @@ serve(async (req) => {
         onConflict: "producto_nombre,market",
         ignoreDuplicates: false,
       })
-      .select("id");
+      .select("id, producto_nombre");
 
     if (upsertError) {
       console.error("Batch upsert error:", upsertError);
@@ -238,6 +238,51 @@ serve(async (req) => {
 
     const totalUpserted = upsertResult?.length || sortedProducts.length;
     console.log(`BATCH UPSERT completed: ${totalUpserted} products processed (market: ${market})`);
+
+    // ========== PRODUCT SNAPSHOTS (data backbone) ==========
+    // Foto de las métricas recién importadas para la UI de tendencias.
+    // Best-effort: un fallo aquí nunca rompe el import.
+    try {
+      const idByName = new Map<string, string>(
+        (upsertResult ?? []).map((r: { id: string; producto_nombre: string }) => [
+          String(r.producto_nombre).toLowerCase().trim(),
+          r.id,
+        ])
+      );
+
+      const snapshotRows = sortedProducts
+        .map((p) => {
+          const productId = idByName.get(String(p.producto_nombre).toLowerCase().trim());
+          if (!productId) return null;
+          return {
+            product_id: productId,
+            revenue_30d: p.revenue_30d ?? null,
+            gmv_30d_mxn: p.total_ingresos_mxn ?? null,
+            creators_count: p.creators_count != null ? Math.round(p.creators_count) : null,
+            total_ventas: p.total_ventas ?? null,
+            commission: p.commission ?? null,
+            rank: p.rank ?? null,
+          };
+        })
+        .filter(Boolean) as Record<string, unknown>[];
+
+      const SNAPSHOT_CHUNK = 200;
+      let snapshotsInserted = 0;
+      for (let i = 0; i < snapshotRows.length; i += SNAPSHOT_CHUNK) {
+        const chunk = snapshotRows.slice(i, i + SNAPSHOT_CHUNK);
+        const { error: snapError } = await supabaseServiceClient
+          .from("product_snapshots")
+          .insert(chunk);
+        if (snapError) {
+          console.error(`product_snapshots chunk ${i / SNAPSHOT_CHUNK + 1} error:`, snapError.message);
+        } else {
+          snapshotsInserted += chunk.length;
+        }
+      }
+      console.log(`product_snapshots: ${snapshotsInserted} rows inserted`);
+    } catch (snapshotError) {
+      console.error("product_snapshots insert failed (non-fatal):", snapshotError);
+    }
 
     // Trigger auto-matching after products import - PASS MARKET to prevent cross-market matching
     console.log(`Triggering auto-match videos to products for market: ${market}...`);

@@ -897,6 +897,44 @@ export type Database = {
           },
         ]
       }
+      daily_rankings: {
+        Row: {
+          created_at: string
+          id: string
+          market: string
+          rank: number
+          ranking_date: string
+          tiktok_video_id: string | null
+          video_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          market: string
+          rank: number
+          ranking_date?: string
+          tiktok_video_id?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          market?: string
+          rank?: number
+          ranking_date?: string
+          tiktok_video_id?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_rankings_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_captures: {
         Row: {
           converted_at: string | null
@@ -1130,28 +1168,43 @@ export type Database = {
         Row: {
           created_at: string | null
           creators_imported: number | null
+          failed_rows: number | null
           file_name: string | null
+          finished_at: string | null
           id: string
+          market: string | null
+          new_rows: number | null
           products_imported: number | null
           total_rows: number | null
+          updated_rows: number | null
           videos_imported: number | null
         }
         Insert: {
           created_at?: string | null
           creators_imported?: number | null
+          failed_rows?: number | null
           file_name?: string | null
+          finished_at?: string | null
           id?: string
+          market?: string | null
+          new_rows?: number | null
           products_imported?: number | null
           total_rows?: number | null
+          updated_rows?: number | null
           videos_imported?: number | null
         }
         Update: {
           created_at?: string | null
           creators_imported?: number | null
+          failed_rows?: number | null
           file_name?: string | null
+          finished_at?: string | null
           id?: string
+          market?: string | null
+          new_rows?: number | null
           products_imported?: number | null
           total_rows?: number | null
+          updated_rows?: number | null
           videos_imported?: number | null
         }
         Relationships: []
@@ -1355,6 +1408,99 @@ export type Database = {
         }
         Relationships: []
       }
+      product_aliases: {
+        Row: {
+          alias_normalized: string
+          created_at: string
+          id: string
+          market: string | null
+          product_id: string
+          source: string
+        }
+        Insert: {
+          alias_normalized: string
+          created_at?: string
+          id?: string
+          market?: string | null
+          product_id: string
+          source?: string
+        }
+        Update: {
+          alias_normalized?: string
+          created_at?: string
+          id?: string
+          market?: string | null
+          product_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_aliases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_aliases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_snapshots: {
+        Row: {
+          captured_at: string
+          commission: number | null
+          creators_count: number | null
+          gmv_30d_mxn: number | null
+          id: string
+          product_id: string | null
+          rank: number | null
+          revenue_30d: number | null
+          total_ventas: number | null
+        }
+        Insert: {
+          captured_at?: string
+          commission?: number | null
+          creators_count?: number | null
+          gmv_30d_mxn?: number | null
+          id?: string
+          product_id?: string | null
+          rank?: number | null
+          revenue_30d?: number | null
+          total_ventas?: number | null
+        }
+        Update: {
+          captured_at?: string
+          commission?: number | null
+          creators_count?: number | null
+          gmv_30d_mxn?: number | null
+          id?: string
+          product_id?: string | null
+          rank?: number | null
+          revenue_30d?: number | null
+          total_ventas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_snapshots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_snapshots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           categoria: string | null
@@ -1374,6 +1520,7 @@ export type Database = {
           last_import: string | null
           last_imported_from_kalodata_at: string | null
           market: string
+          nombre_normalizado: string | null
           precio_mxn: number | null
           price: number | null
           producto_nombre: string
@@ -1407,6 +1554,7 @@ export type Database = {
           last_import?: string | null
           last_imported_from_kalodata_at?: string | null
           market?: string
+          nombre_normalizado?: string | null
           precio_mxn?: number | null
           price?: number | null
           producto_nombre: string
@@ -1440,6 +1588,7 @@ export type Database = {
           last_import?: string | null
           last_imported_from_kalodata_at?: string | null
           market?: string
+          nombre_normalizado?: string | null
           precio_mxn?: number | null
           price?: number | null
           producto_nombre?: string
@@ -1767,6 +1916,8 @@ export type Database = {
           manual_match: boolean | null
           manual_matched_at: string | null
           manual_matched_by: string | null
+          match_reason: string | null
+          match_source: string | null
           processing_status: string | null
           product_id: string | null
           product_name: string | null
@@ -1779,7 +1930,9 @@ export type Database = {
           sales: number | null
           snapshot_at: string | null
           snapshot_date_range: string | null
+          suggested_product_id: string | null
           thumbnail_url: string | null
+          tiktok_video_id: string | null
           title: string | null
           transcript: string | null
           variants_json: Json | null
@@ -1807,6 +1960,8 @@ export type Database = {
           manual_match?: boolean | null
           manual_matched_at?: string | null
           manual_matched_by?: string | null
+          match_reason?: string | null
+          match_source?: string | null
           processing_status?: string | null
           product_id?: string | null
           product_name?: string | null
@@ -1819,7 +1974,9 @@ export type Database = {
           sales?: number | null
           snapshot_at?: string | null
           snapshot_date_range?: string | null
+          suggested_product_id?: string | null
           thumbnail_url?: string | null
+          tiktok_video_id?: string | null
           title?: string | null
           transcript?: string | null
           variants_json?: Json | null
@@ -1847,6 +2004,8 @@ export type Database = {
           manual_match?: boolean | null
           manual_matched_at?: string | null
           manual_matched_by?: string | null
+          match_reason?: string | null
+          match_source?: string | null
           processing_status?: string | null
           product_id?: string | null
           product_name?: string | null
@@ -1859,7 +2018,9 @@ export type Database = {
           sales?: number | null
           snapshot_at?: string | null
           snapshot_date_range?: string | null
+          suggested_product_id?: string | null
           thumbnail_url?: string | null
+          tiktok_video_id?: string | null
           title?: string | null
           transcript?: string | null
           variants_json?: Json | null
@@ -1889,6 +2050,20 @@ export type Database = {
           {
             foreignKeyName: "videos_product_id_fkey"
             columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_suggested_product_id_fkey"
+            columns: ["suggested_product_id"]
+            isOneToOne: false
+            referencedRelation: "product_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_suggested_product_id_fkey"
+            columns: ["suggested_product_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
@@ -1937,37 +2112,43 @@ export type Database = {
           categoria: string | null
           commission: number | null
           commission_amount: number | null
-          commission_percent_calc: number | null
-          commission_percentile: number | null
           created_at: string | null
           creators_active_30d: number | null
           creators_active_calc: number | null
           creators_count: number | null
-          creators_niche_avg: number | null
           currency: string | null
           descripcion: string | null
           earning_per_sale: number | null
           gmv_30d_calc: number | null
           gmv_30d_mxn: number | null
           gmv_7d_mxn: number | null
-          gmv30d_percentile: number | null
           id: string | null
           imagen_url: string | null
           io_score: number | null
+          is_brand_backed: boolean | null
           is_hidden: boolean | null
           is_hidden_gem: boolean | null
+          is_high_pay: boolean | null
           is_opportunity: boolean | null
+          is_rising: boolean | null
+          is_saturated: boolean | null
           last_import: string | null
           last_imported_from_kalodata_at: string | null
           market: string | null
+          momentum_growth: number | null
+          momentum_value: number | null
+          nombre_normalizado: string | null
           opportunity_index: number | null
-          opportunity_reason: Json | null
+          opportunity_reasons: Json | null
+          pct_brand: number | null
+          pct_demand: number | null
+          pct_momentum: number | null
+          pct_pay: number | null
+          pct_space: number | null
           precio_mxn: number | null
           price: number | null
           producto_nombre: string | null
           producto_url: string | null
-          profit_niche_avg: number | null
-          profit_percentile: number | null
           promedio_roas: number | null
           rank: number | null
           rating: number | null
@@ -1986,6 +2167,23 @@ export type Database = {
       apply_referral_code: {
         Args: { p_code: string; p_user_id: string }
         Returns: boolean
+      }
+      confirm_video_match: {
+        Args: { _video_id: string; _product_id: string; _create_alias?: boolean }
+        Returns: undefined
+      }
+      find_similar_products: {
+        Args: { _title: string; _market: string; _limit?: number }
+        Returns: {
+          id: string
+          producto_nombre: string
+          score: number
+        }[]
+      }
+      normalize_title: { Args: { _input: string }; Returns: string }
+      reject_video_match: {
+        Args: { _video_id: string }
+        Returns: undefined
       }
       generate_affiliate_code: { Args: never; Returns: string }
       generate_grant_code: { Args: never; Returns: string }
