@@ -196,3 +196,34 @@ begin
 end; $$;
 revoke all on function public.get_daily_feed_admin(uuid[]) from public, anon;
 grant execute on function public.get_daily_feed_admin(uuid[]) to authenticated;
+
+-- -----------------------------------------------------------------------------
+-- 6. FIX CRÍTICO (aplicado en producción el 2026-06-10): en Postgres los
+--    privilegios de COLUMNA son aditivos al privilegio de TABLA. El REVOKE de
+--    columnas de la sección 2 no surte efecto si anon/authenticated conservan
+--    SELECT a nivel tabla (default de Supabase). La solución correcta:
+--    quitar el SELECT de tabla y conceder SELECT columna por columna
+--    (dinámicamente, excluyendo las premium).
+-- -----------------------------------------------------------------------------
+revoke select on public.videos from anon, authenticated;
+revoke select on public.daily_feed from anon, authenticated;
+
+do $$
+declare col text;
+begin
+  for col in
+    select column_name from information_schema.columns
+    where table_schema='public' and table_name='videos'
+      and column_name not in ('transcript','variants_json','analysis_json')
+  loop
+    execute format('grant select (%I) on public.videos to anon, authenticated', col);
+  end loop;
+
+  for col in
+    select column_name from information_schema.columns
+    where table_schema='public' and table_name='daily_feed'
+      and column_name not in ('transcripcion_original','guion_ia','ai_variants')
+  loop
+    execute format('grant select (%I) on public.daily_feed to anon, authenticated', col);
+  end loop;
+end $$;
