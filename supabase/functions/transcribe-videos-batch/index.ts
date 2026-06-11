@@ -237,17 +237,15 @@ serve(async (req) => {
     let successCount = 0;
     let failCount = 0;
 
-    // Process videos sequentially (AssemblyAI has rate limits)
-    for (const video of pendingVideos) {
-      const success = await processVideo(supabase, video.id, video.video_mp4_url);
-      if (success) {
-        successCount++;
-      } else {
-        failCount++;
-      }
-      
-      // Small delay between videos
-      await new Promise(r => setTimeout(r, 1000));
+    // SPEED: transcribe in parallel chunks (stays within Whisper/AssemblyAI
+    // concurrency limits while being far faster than one-by-one).
+    const TCHUNK = 6;
+    for (let i = 0; i < pendingVideos.length; i += TCHUNK) {
+      const chunk = pendingVideos.slice(i, i + TCHUNK);
+      const outcomes = await Promise.all(chunk.map((video: any) =>
+        processVideo(supabase, video.id, video.video_mp4_url).catch(() => false)
+      ));
+      for (const ok of outcomes) ok ? successCount++ : failCount++;
     }
 
     // Count remaining (excluding failed unless retrying)

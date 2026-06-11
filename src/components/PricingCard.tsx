@@ -19,7 +19,7 @@ export const PricingCard = ({
   const { language } = useLanguage();
   const { referralCodeUsed, referralDiscount } = useReferralCode();
   
-  const price = 25;
+  const price = 24.99;
   const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied;
   const discountedPrice = hasDiscount ? price * 0.5 : price;
 

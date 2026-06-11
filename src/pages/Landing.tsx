@@ -566,7 +566,7 @@ const Landing = () => {
                   <span className="text-brand-mist/50">/mes</span>
                 </div>
                 <p className="text-sm text-brand-mist/55 line-through">
-                  Antes $499 MXN · $25 USD
+                  Antes $499 MXN · $24.99 USD
                 </p>
                 <ul className="mt-6 space-y-2 text-sm text-brand-mist/80">
                   <li className="flex items-start gap-2">

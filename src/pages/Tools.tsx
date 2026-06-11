@@ -1,1204 +1,618 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useMarket } from "@/contexts/MarketContext";
+import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  FileText, Copy, Loader2, Zap, PenTool, Check, AlertCircle, 
-  Link2, RotateCcw, Play, Heart, Download, Sparkles, ChevronRight,
-  Languages, Video
+import { Json } from "@/integrations/supabase/types";
+import {
+  Sparkles, Wand2, Copy, Check, Loader2, AlertCircle, Link2,
+  RotateCcw, FileText, Lightbulb, Lock, Play,
 } from "lucide-react";
-
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface Product {
-  id: string;
-  producto_nombre: string;
-  categoria: string | null;
-  precio_mxn: number | null;
-  commission: number | null;
-  imagen_url?: string | null;
-  gmv_30d_mxn?: number | null;
-}
+const DAILY_LIMIT = 5;
 
-interface FavoriteProduct {
-  product_id: string;
-  product_data: Product;
-}
-
+// Acepta los formatos comunes de TikTok (link normal, vm.tiktok, /t/).
 const isValidTikTokUrl = (url: string): boolean => {
-  const tiktokPatterns = [
-    /^https?:\/\/(www\.)?tiktok\.com\/@[\w.-]+\/video\/\d+/i,
-    /^https?:\/\/vm\.tiktok\.com\/[\w]+/i,
-    /^https?:\/\/(www\.)?tiktok\.com\/t\/[\w]+/i,
-  ];
-  return tiktokPatterns.some(pattern => pattern.test(url.trim()));
+  const trimmed = url.trim();
+  return /tiktok\.com/i.test(trimmed) || /vm\.tiktok/i.test(trimmed);
 };
 
-type ExtractorState = "idle" | "loading" | "success" | "error";
-type ExtractorError = "invalid_url" | "api_error" | "no_transcript" | null;
+type Step = "idle" | "download" | "transcribe" | "analyze" | "variants" | "done" | "error";
 
-// formatCurrency will be a function inside the component to access market context
+interface Insights {
+  funcionamiento?: string;
+  angulos?: string[];
+  ctaLocation?: string;
+  estructura?: string;
+  fortalezas?: string[];
+  debilidades?: string[];
+}
+
+interface Variant {
+  hook: string;
+  body: string;
+  cta: string;
+  strategy_note?: string;
+}
+
+const PROGRESS_LABELS: Record<string, { es: string; en: string }> = {
+  download: { es: "Obteniendo el video…", en: "Fetching the video…" },
+  transcribe: { es: "Transcribiendo el guión…", en: "Transcribing the script…" },
+  analyze: { es: "Analizando por qué funcionó…", en: "Analyzing why it worked…" },
+  variants: { es: "Generando 3 variantes…", en: "Generating 3 variants…" },
+};
 
 const Tools = () => {
   const { language } = useLanguage();
-  const { market } = useMarket();
+  const { hasPaid, isLoggedIn, openPaywall } = useBlurGateContext();
   const { toast } = useToast();
-  
-  const formatCurrency = (num: number | null | undefined): string => {
-    if (!num) return '$0';
-    return new Intl.NumberFormat(market === 'mx' ? 'es-MX' : 'en-US', {
-      style: 'currency',
-      currency: market === 'mx' ? 'MXN' : 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
-  };
-  
-  // Script Extractor State
+  const navigate = useNavigate();
+
   const [videoUrl, setVideoUrl] = useState("");
-  const [extractorState, setExtractorState] = useState<ExtractorState>("idle");
-  const [extractorError, setExtractorError] = useState<ExtractorError>(null);
+  const [step, setStep] = useState<Step>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
+
+  // Resultados
   const [transcript, setTranscript] = useState("");
-  const [structuredScript, setStructuredScript] = useState<any>(null);
-  const [analysisData, setAnalysisData] = useState<any>(null);
-  const [variants, setVariants] = useState<any>(null);
-  const [transcriptCopied, setTranscriptCopied] = useState(false);
-  const [activeExtractorTab, setActiveExtractorTab] = useState("script");
-  const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
-  const [videoThumbnail, setVideoThumbnail] = useState<string | null>(null);
-  const [videoTitle, setVideoTitle] = useState<string | null>(null);
-  const [variantCount, setVariantCount] = useState<number>(3);
-  
-  // Hook Generator State
-  const [hookProductDesc, setHookProductDesc] = useState("");
-  const [loadingHooks, setLoadingHooks] = useState(false);
-  const [generatedHooks, setGeneratedHooks] = useState<string[]>([]);
-  
-  // Script Generator State
-  const [popularProducts, setPopularProducts] = useState<Product[]>([]);
-  const [favoriteProducts, setFavoriteProducts] = useState<FavoriteProduct[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [additionalBenefits, setAdditionalBenefits] = useState("");
-  const [loadingScript, setLoadingScript] = useState(false);
-  const [generatedScript, setGeneratedScript] = useState<any>(null);
-  const [productTab, setProductTab] = useState<"popular" | "favorites">("popular");
-  
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [insights, setInsights] = useState<Insights | null>(null);
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("script");
 
-  // Translation State
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [translatedTranscript, setTranslatedTranscript] = useState<string | null>(null);
-  const [translationDirection, setTranslationDirection] = useState<'es-to-en' | 'en-to-es' | null>(null);
+  const t = (es: string, en: string) => (language === "es" ? es : en);
 
-  // Video Downloader State
-  const [downloadVideoUrl, setDownloadVideoUrl] = useState("");
-  const [isGettingDownloadUrl, setIsGettingDownloadUrl] = useState(false);
-  const [downloadLink, setDownloadLink] = useState<string | null>(null);
-  const [downloadVideoTitle, setDownloadVideoTitle] = useState<string>("tiktok-video");
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const isBusy = ["download", "transcribe", "analyze", "variants"].includes(step);
+  const hasResult = step === "done" && !!transcript;
 
-  const handleTranslate = async (direction: 'es-to-en' | 'en-to-es') => {
-    if (!transcript) return;
-    
-    setIsTranslating(true);
-    setTranslationDirection(direction);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke("translate-script", {
-        body: { 
-          text: transcript,
-          targetLanguage: direction === 'es-to-en' ? 'en' : 'es'
-        }
-      });
-      
-      if (error) throw error;
-      if (data?.translation) {
-        setTranslatedTranscript(data.translation);
-        toast({ title: language === "es" ? "✓ Traducido" : "✓ Translated" });
-      }
-    } catch (err: any) {
-      console.error("Translation error:", err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setIsTranslating(false);
+  const resetAll = () => {
+    setStep("idle");
+    setErrorMsg(null);
+    setLimitReached(false);
+    setTranscript("");
+    setInsights(null);
+    setVariants([]);
+    setThumbnail(null);
+    setActiveTab("script");
+  };
+
+  const copyText = async (text: string, key: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+    toast({ title: t("✓ Copiado", "✓ Copied") });
+  };
+
+  // Verifica el limite diario contando los analisis de hoy del usuario.
+  const checkDailyLimit = async (userId: string): Promise<boolean> => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const { count, error } = await supabase
+      .from("tool_analyses")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", startOfToday.toISOString());
+
+    if (error) {
+      console.error("No se pudo verificar el limite diario:", error);
+      return true; // No bloqueamos si falla la verificacion.
     }
+    return (count ?? 0) < DAILY_LIMIT;
   };
 
-  const handleResetTranslation = () => {
-    setTranslatedTranscript(null);
-    setTranslationDirection(null);
-  };
+  const handleAnalyze = async () => {
+    setErrorMsg(null);
+    setLimitReached(false);
 
-  // Video Downloader Handler
-  const handleGetDownloadUrl = async () => {
-    setDownloadError(null);
-    setDownloadLink(null);
-
-    if (!downloadVideoUrl.trim() || !isValidTikTokUrl(downloadVideoUrl)) {
-      setDownloadError(language === "es" ? "Ingresa un enlace válido de TikTok" : "Enter a valid TikTok link");
+    if (!isValidTikTokUrl(videoUrl)) {
+      setErrorMsg(t("Ingresa un enlace válido de TikTok.", "Enter a valid TikTok link."));
       return;
     }
 
-    setIsGettingDownloadUrl(true);
+    // Gating premium: si no paga, abrir paywall y no procesar.
+    if (!hasPaid) {
+      if (!isLoggedIn) {
+        navigate("/unlock");
+      } else {
+        openPaywall("analizar-video");
+      }
+      return;
+    }
+
+    // Identificar usuario y verificar limite diario.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      navigate("/unlock");
+      return;
+    }
+
+    const underLimit = await checkDailyLimit(user.id);
+    if (!underLimit) {
+      setLimitReached(true);
+      return;
+    }
+
+    // Reset de resultados previos.
+    setTranscript("");
+    setInsights(null);
+    setVariants([]);
+    setThumbnail(null);
+
+    const url = videoUrl.trim();
+
+    // Thumbnail no bloqueante via oEmbed.
+    fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data?.thumbnail_url && setThumbnail(data.thumbnail_url))
+      .catch(() => {});
 
     try {
-      // Use proxy download - the edge function will return the video bytes directly
-      const response = await fetch(
-        `https://gcntnilurlulejwwtpaa.supabase.co/functions/v1/get-tiktok-download-url`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            tiktokUrl: downloadVideoUrl.trim(),
-            proxyDownload: true 
-          })
-        }
+      // PASO 1 + 2: descargar/transcribir.
+      // transcribe-assemblyai acepta la URL cruda de TikTok: internamente extrae
+      // el MP4 (tikwm/savetik/etc.) y lo transcribe, sin requerir un registro en
+      // la tabla videos. Por eso no insertamos un video temporal.
+      setStep("download");
+      // Pequena pausa visual para que se vea el paso de descarga.
+      await new Promise((r) => setTimeout(r, 400));
+      setStep("transcribe");
+
+      const { data: trData, error: trError } = await supabase.functions.invoke(
+        "transcribe-assemblyai",
+        { body: { videoUrl: url } }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to download video');
-      }
+      if (trError) throw new Error(trError.message || "transcribe_failed");
 
-      // Check if we got video bytes or JSON
-      const contentType = response.headers.get('content-type');
-      
-      if (contentType?.includes('video/mp4')) {
-        // Got video bytes directly - create blob and download
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        
-        const disposition = response.headers.get('content-disposition');
-        const filenameMatch = disposition?.match(/filename="(.+)"/);
-        const filename = filenameMatch ? filenameMatch[1] : 'tiktok-video.mp4';
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Clean up the blob URL after a short delay
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        
-        setDownloadLink(url);
-        setDownloadVideoTitle(filename.replace('.mp4', ''));
-        toast({ title: language === "es" ? "✓ Video descargado" : "✓ Video downloaded" });
-      } else {
-        // Got JSON response with download URL
-        const data = await response.json();
-        if (data?.downloadUrl) {
-          setDownloadLink(data.downloadUrl);
-          setDownloadVideoTitle(data.title || "tiktok-video");
-          triggerDownload(data.downloadUrl, data.title || "tiktok-video");
-          toast({ title: language === "es" ? "✓ Video listo" : "✓ Video ready" });
-        } else {
-          throw new Error(language === "es" ? "No se pudo obtener el video" : "Could not get video");
+      if (trData?.error) {
+        if (trData.quotaExceeded) {
+          throw new Error(
+            t(
+              "La cuota del proveedor de transcripción se agotó. Intenta más tarde.",
+              "The transcription provider quota ran out. Try again later."
+            )
+          );
         }
+        throw new Error(trData.error);
       }
+
+      const tx: string = trData?.transcript?.trim() || "";
+      if (!tx) {
+        throw new Error(
+          t(
+            "No se pudo transcribir este video. Puede ser privado o no tener audio.",
+            "Could not transcribe this video. It may be private or have no audio."
+          )
+        );
+      }
+      setTranscript(tx);
+
+      // PASO 3: analizar por que funciono.
+      setStep("analyze");
+      const { data: inData } = await supabase.functions.invoke(
+        "analyze-script-insights",
+        { body: { script: tx, videoTitle: "Video de TikTok" } }
+      );
+      if (inData?.insights) setInsights(inData.insights as Insights);
+
+      // PASO 4: generar 3 variantes.
+      setStep("variants");
+      const { data: vData } = await supabase.functions.invoke(
+        "generate-script-variants",
+        { body: { transcript: tx, variantCount: 3, changeLevel: "medium" } }
+      );
+      const vList: Variant[] = vData?.variants || [];
+      setVariants(vList);
+
+      // Registrar el analisis (cuenta para el limite diario + historial).
+      await supabase.from("tool_analyses").insert({
+        user_id: user.id,
+        video_url: url,
+        result: {
+          transcript: tx,
+          insights: inData?.insights ?? null,
+          variants: vList,
+        } as unknown as Json,
+      });
+
+      setStep("done");
+      setActiveTab("script");
+      toast({ title: t("✓ Análisis listo", "✓ Analysis ready") });
     } catch (err: any) {
-      console.error("Download URL error:", err);
-      setDownloadError(err.message || (language === "es" ? "Error al procesar el video" : "Error processing video"));
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setIsGettingDownloadUrl(false);
+      console.error("Analyze error:", err);
+      setStep("error");
+      setErrorMsg(
+        err?.message ||
+          t(
+            "No fue posible analizar el video. Intenta con otro link.",
+            "Could not analyze the video. Try another link."
+          )
+      );
     }
   };
 
-  const triggerDownload = (url: string, title: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${title.replace(/[^a-zA-Z0-9]/g, '-')}.mp4`;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const resetVideoDownloader = () => {
-    setDownloadVideoUrl("");
-    setDownloadLink(null);
-    setDownloadError(null);
-    setDownloadVideoTitle("tiktok-video");
-  };
-
-  useEffect(() => {
-    fetchPopularProducts();
-    fetchFavoriteProducts();
-  }, [market]);
-
-  const fetchPopularProducts = async () => {
-    const { data } = await supabase
-      .from("products")
-      .select("id, producto_nombre, categoria, precio_mxn, commission, imagen_url, gmv_30d_mxn")
-      .eq("market", market)
-      .order("gmv_30d_mxn", { ascending: false, nullsFirst: false })
-      .limit(8);
-    if (data) setPopularProducts(data);
-  };
-
-  const fetchFavoriteProducts = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data } = await supabase
-      .from("favorites_products")
-      .select("product_id, product_data")
-      .eq("user_id", user.id)
-      .limit(8);
-    
-    if (data) {
-      const mapped = data.map(item => ({
-        product_id: item.product_id,
-        product_data: item.product_data as unknown as Product
-      }));
-      setFavoriteProducts(mapped);
-    }
-  };
-
-  const getErrorMessage = (error: ExtractorError): string => {
-    if (language === "es") {
-      switch (error) {
-        case "invalid_url": return "Ingresa un enlace válido de TikTok.";
-        case "api_error": return "No fue posible obtener el guión. Intenta con otro link.";
-        case "no_transcript": return "Este video no cuenta con transcripción disponible.";
-        default: return "";
-      }
-    } else {
-      switch (error) {
-        case "invalid_url": return "Enter a valid TikTok link.";
-        case "api_error": return "Could not extract the script. Try another link.";
-        case "no_transcript": return "This video does not have a transcript available.";
-        default: return "";
-      }
-    }
-  };
-
-  const handleExtract = async () => {
-    setExtractorError(null);
-    setTranscript("");
-    setStructuredScript(null);
-    setAnalysisData(null);
-    setVariants(null);
-    setTranslatedTranscript(null);
-    setTranslationDirection(null);
-
-    if (!videoUrl.trim() || !isValidTikTokUrl(videoUrl)) {
-      setExtractorError("invalid_url");
-      return;
-    }
-
-    setExtractorState("loading");
-
-    // Fetch thumbnail from TikTok oEmbed API (non-blocking)
-    fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(videoUrl.trim())}`)
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data) {
-          setVideoThumbnail(data.thumbnail_url || null);
-          setVideoTitle(data.title || null);
-        }
-      })
-      .catch(() => console.log("Could not fetch thumbnail"));
-
-    try {
-      const { data, error } = await supabase.functions.invoke("transcribe-assemblyai", {
-        body: { videoUrl }
-      });
-
-      if (error) throw error;
-
-      if (data?.transcript && data.transcript.trim().length > 0) {
-        setTranscript(data.transcript);
-        
-        // Analyze script structure
-        const { data: analysisResult } = await supabase.functions.invoke("analyze-script-sections", {
-          body: { script: data.transcript, videoTitle: "Video de TikTok" }
-        });
-
-        if (analysisResult?.sections) {
-          setStructuredScript(analysisResult.sections);
-          setAnalysisData(analysisResult);
-        }
-
-        setExtractorState("success");
-        toast({
-          title: language === "es" ? "✓ Guión extraído" : "✓ Script extracted",
-        });
-      } else {
-        setExtractorState("error");
-        setExtractorError("no_transcript");
-      }
-    } catch (err: any) {
-      console.error("Extract error:", err);
-      setExtractorState("error");
-      setExtractorError("api_error");
-    }
-  };
-
-  const handleGenerateVariants = async () => {
-    if (!transcript) return;
-    
-    setIsGeneratingVariants(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-script-variants", {
-        body: { 
-          transcript, 
-          analysis: analysisData,
-          variantCount: variantCount,
-          changeLevel: 'medium'
-        }
-      });
-
-      if (error) throw error;
-      if (data?.variants) {
-        setVariants(data.variants);
-        toast({ title: language === "es" ? "✓ Variantes generadas" : "✓ Variants generated" });
-      }
-    } catch (err: any) {
-      console.error("Variants error:", err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setIsGeneratingVariants(false);
-    }
-  };
-
-  const handleCopyTranscript = async () => {
-    await navigator.clipboard.writeText(transcript);
-    setTranscriptCopied(true);
-    setTimeout(() => setTranscriptCopied(false), 2000);
-    toast({ title: language === "es" ? "✓ Copiado al portapapeles" : "✓ Copied to clipboard" });
-  };
-
-  const handleDownloadScript = () => {
-    const blob = new Blob([transcript], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'guion-tiktok.txt';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const resetExtractor = () => {
-    setVideoUrl("");
-    setExtractorState("idle");
-    setExtractorError(null);
-    setTranscript("");
-    setStructuredScript(null);
-    setAnalysisData(null);
-    setVariants(null);
-    setActiveExtractorTab("script");
-    setVideoThumbnail(null);
-    setVideoTitle(null);
-    setTranslatedTranscript(null);
-    setTranslationDirection(null);
-  };
-
-  const handleGenerateHooks = async () => {
-    if (!hookProductDesc.trim()) {
-      toast({
-        title: "Error",
-        description: language === "es" ? "Describe tu producto" : "Describe your product",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoadingHooks(true);
-    setGeneratedHooks([]);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-hooks", {
-        body: { productDescription: hookProductDesc, language: market === 'mx' ? 'es' : 'en' }
-      });
-
-      if (error) throw error;
-
-      if (data?.hooks) {
-        setGeneratedHooks(data.hooks);
-        toast({ title: language === "es" ? "✓ Hooks generados" : "✓ Hooks generated" });
-      }
-    } catch (err: any) {
-      console.error("Hook generation error:", err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setLoadingHooks(false);
-    }
-  };
-
-  const handleGenerateScript = async () => {
-    if (!selectedProduct) {
-      toast({
-        title: "Error",
-        description: language === "es" ? "Selecciona un producto" : "Select a product",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoadingScript(true);
-    setGeneratedScript(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-full-script", {
-        body: { 
-          product: {
-            name: selectedProduct.producto_nombre,
-            category: selectedProduct.categoria,
-            price: selectedProduct.precio_mxn,
-            commission: selectedProduct.commission
-          },
-          additionalBenefits 
-        }
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        setGeneratedScript(data);
-        toast({ title: language === "es" ? "✓ Guión generado" : "✓ Script generated" });
-      }
-    } catch (err: any) {
-      console.error("Script generation error:", err);
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally {
-      setLoadingScript(false);
-    }
-  };
-
-  const handleCopy = async (text: string, index?: number) => {
-    await navigator.clipboard.writeText(text);
-    if (index !== undefined) {
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    }
-    toast({ title: language === "es" ? "✓ Copiado" : "✓ Copied" });
-  };
-
-  const getSectionEmoji = (type: string) => {
-    switch (type) {
-      case "hook": return "🎯";
-      case "problema": return "😰";
-      case "beneficio": return "✨";
-      case "demostracion": return "📱";
-      case "cta": return "🛒";
-      default: return "📝";
-    }
-  };
-
-  const ProductCard = ({ product, isSelected, onClick }: { product: Product; isSelected: boolean; onClick: () => void }) => (
-    <button
-      onClick={onClick}
-      className={`relative group p-3 rounded-xl border-2 transition-all duration-200 text-left ${
-        isSelected 
-          ? 'border-primary bg-primary/5 shadow-md' 
-          : 'border-border/60 hover:border-primary/40 hover:bg-muted/30'
-      }`}
-    >
-      <div className="flex gap-3">
-        <div className="w-14 h-14 rounded-lg bg-muted overflow-hidden shrink-0">
-          {product.imagen_url ? (
-            <img src={product.imagen_url} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-              <FileText className="h-5 w-5" />
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-foreground line-clamp-2 leading-tight">
-            {product.producto_nombre}
-          </p>
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-xs font-semibold text-primary">
-              {formatCurrency(product.precio_mxn)}
-            </span>
-            {product.commission && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
-                {product.commission}%
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-      {isSelected && (
-        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-          <Check className="h-3 w-3 text-white" />
-        </div>
-      )}
-    </button>
-  );
+  const currentLabel = isBusy ? PROGRESS_LABELS[step] : null;
+  const progressPct =
+    step === "download" ? 15 :
+    step === "transcribe" ? 40 :
+    step === "analyze" ? 65 :
+    step === "variants" ? 90 : 0;
 
   return (
-    <div className="pt-5 pb-6 px-4 md:px-6 max-w-5xl space-y-5">
+    <div className="pt-6 pb-10 px-4 md:px-6 max-w-3xl mx-auto space-y-6">
+      {/* Encabezado */}
+      <div className="text-center space-y-2">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-1">
+          <Wand2 className="h-6 w-6 text-primary" />
+        </div>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+          {t("Analizar video", "Analyze video")}
+        </h1>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          {t(
+            "Pega cualquier TikTok y descubre por qué vende: guión, análisis y 3 variantes listas para grabar.",
+            "Paste any TikTok and discover why it sells: script, breakdown and 3 ready-to-shoot variants."
+          )}
+        </p>
+      </div>
 
-      {/* 1. Script Extractor Tool */}
-      <Card className="overflow-hidden border-border/50 shadow-sm">
-        {/* Idle State */}
-        {extractorState === "idle" && (
-          <div className="p-5 md:p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-foreground">
-                  {language === "es" ? "Extractor de Guiones" : "Script Extractor"}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {language === "es" ? "Pega un link de TikTok y extrae el guión" : "Paste a TikTok link and extract the script"}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-                <Input
-                  placeholder={language === "es" ? "https://tiktok.com/@usuario/video/..." : "https://tiktok.com/@user/video/..."}
-                  value={videoUrl}
-                  onChange={(e) => {
-                    setVideoUrl(e.target.value);
-                    setExtractorError(null);
-                  }}
-                  className="h-11 pl-10 rounded-xl border-border/60"
-                />
-              </div>
-              <Button 
-                onClick={handleExtract} 
-                className="h-11 px-5 rounded-xl bg-primary hover:bg-primary/90 shadow-sm"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                {language === "es" ? "Extraer" : "Extract"}
-              </Button>
-            </div>
-            
-            {extractorError === "invalid_url" && (
-              <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                <span>{getErrorMessage("invalid_url")}</span>
-              </div>
+      {/* Input + boton */}
+      <Card className="p-4 md:p-5 border-border/50 shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <div className="relative flex-1">
+            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+            <Input
+              placeholder={t(
+                "https://tiktok.com/@usuario/video/...",
+                "https://tiktok.com/@user/video/..."
+              )}
+              value={videoUrl}
+              onChange={(e) => {
+                setVideoUrl(e.target.value);
+                setErrorMsg(null);
+                setLimitReached(false);
+              }}
+              onKeyDown={(e) => e.key === "Enter" && !isBusy && handleAnalyze()}
+              disabled={isBusy}
+              className="h-12 pl-10 rounded-xl border-border/60"
+            />
+          </div>
+          <Button
+            onClick={handleAnalyze}
+            disabled={isBusy}
+            className="h-12 px-6 rounded-xl bg-primary hover:bg-primary/90 shadow-sm min-w-[44px]"
+          >
+            {isBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                {t("Analizar", "Analyze")}
+              </>
             )}
+          </Button>
+        </div>
+
+        {/* URL invalida */}
+        {errorMsg && step !== "error" && (
+          <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <span>{errorMsg}</span>
           </div>
         )}
 
-        {/* Loading State */}
-        {extractorState === "loading" && (
-          <div className="p-8 text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/5 mb-4">
-              <Loader2 className="h-7 w-7 text-primary animate-spin" />
-            </div>
+        {/* Limite diario */}
+        {limitReached && (
+          <div className="flex items-start gap-2 mt-3 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+            <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span>
+              {t(
+                `Llegaste a tu límite diario de ${DAILY_LIMIT} análisis. Vuelve mañana para seguir analizando videos.`,
+                `You reached your daily limit of ${DAILY_LIMIT} analyses. Come back tomorrow to keep analyzing videos.`
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Aviso premium para no pagadores (informativo) */}
+        {!hasPaid && step === "idle" && !errorMsg && (
+          <p className="mt-3 text-[11px] text-muted-foreground flex items-center gap-1.5">
+            <Lock className="h-3 w-3" />
+            {t(
+              "Función premium · Desbloquea para analizar videos.",
+              "Premium feature · Unlock to analyze videos."
+            )}
+          </p>
+        )}
+      </Card>
+
+      {/* Progreso por paso */}
+      {isBusy && (
+        <Card className="p-6 border-border/50 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
             <p className="text-sm font-medium text-foreground">
-              {language === "es" ? "Extrayendo guión..." : "Extracting script..."}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {language === "es" ? "Esto puede tomar unos segundos" : "This may take a few seconds"}
+              {currentLabel ? t(currentLabel.es, currentLabel.en) : ""}
             </p>
           </div>
-        )}
-
-        {/* Error State */}
-        {extractorState === "error" && extractorError && (
-          <div className="p-8 text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10 mb-4">
-              <AlertCircle className="h-7 w-7 text-destructive" />
-            </div>
-            <p className="text-sm font-medium text-destructive mb-1">
-              {language === "es" ? "Error al extraer" : "Extraction error"}
-            </p>
-            <p className="text-xs text-muted-foreground mb-4">{getErrorMessage(extractorError)}</p>
-            <Button onClick={resetExtractor} variant="outline" size="sm" className="rounded-xl">
-              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-              {language === "es" ? "Intentar de nuevo" : "Try again"}
-            </Button>
+          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-500"
+              style={{ width: `${progressPct}%` }}
+            />
           </div>
-        )}
+          <div className="grid grid-cols-4 gap-1 mt-3 text-[10px] text-muted-foreground">
+            {(["download", "transcribe", "analyze", "variants"] as const).map((s) => (
+              <span
+                key={s}
+                className={
+                  progressPct >=
+                  (s === "download" ? 15 : s === "transcribe" ? 40 : s === "analyze" ? 65 : 90)
+                    ? "text-primary font-medium"
+                    : ""
+                }
+              >
+                {t(PROGRESS_LABELS[s].es, PROGRESS_LABELS[s].en).replace("…", "")}
+              </span>
+            ))}
+          </div>
+        </Card>
+      )}
 
-        {/* Success State - Modal-like View with Tabs */}
-        {extractorState === "success" && transcript && (
-          <div className="flex flex-col">
-            {/* Fixed URL Bar */}
-            <div className="px-4 py-3 bg-muted/30 border-b border-border/50">
-              <div className="flex items-center gap-2">
-                <Link2 className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-                <Input
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder={language === "es" ? "https://tiktok.com/@usuario/video/..." : "https://tiktok.com/@user/video/..."}
-                  className="h-9 text-xs bg-background flex-1"
-                />
-                <Button 
-                  onClick={handleExtract}
-                  disabled={!videoUrl.trim() || !isValidTikTokUrl(videoUrl)}
-                  size="sm"
-                  className="shrink-0 rounded-lg h-9"
-                >
-                  <FileText className="h-3.5 w-3.5 mr-1.5" />
-                  {language === "es" ? "Extraer" : "Extract"}
-                </Button>
-              </div>
-            </div>
+      {/* Error de procesamiento */}
+      {step === "error" && (
+        <Card className="p-8 text-center border-border/50 shadow-sm">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10 mb-4">
+            <AlertCircle className="h-7 w-7 text-destructive" />
+          </div>
+          <p className="text-sm font-medium text-destructive mb-1">
+            {t("No se pudo analizar", "Could not analyze")}
+          </p>
+          <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">{errorMsg}</p>
+          <Button onClick={resetAll} variant="outline" size="sm" className="rounded-xl">
+            <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+            {t("Intentar de nuevo", "Try again")}
+          </Button>
+        </Card>
+      )}
 
+      {/* Resultados */}
+      {hasResult && (
+        <div className="space-y-4">
+          {/* Vista previa + tabs */}
+          <Card className="overflow-hidden border-border/50 shadow-sm">
             <div className="flex flex-col lg:flex-row">
-              {/* Left: Video Preview */}
-              <div className="lg:w-72 bg-muted/30 p-4 border-r border-border/50 shrink-0">
-                <div className="aspect-[9/16] max-h-[320px] bg-black rounded-xl overflow-hidden flex items-center justify-center mx-auto">
-                  {videoThumbnail ? (
-                    <img 
-                      src={videoThumbnail} 
-                      alt={videoTitle || "Video preview"} 
-                      className="w-full h-full object-cover"
-                    />
+              {/* Thumbnail */}
+              <div className="lg:w-60 bg-muted/30 p-4 border-b lg:border-b-0 lg:border-r border-border/50 shrink-0">
+                <div className="aspect-[9/16] max-h-[260px] bg-black rounded-xl overflow-hidden flex items-center justify-center mx-auto">
+                  {thumbnail ? (
+                    <img src={thumbnail} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="text-center p-4">
-                      <Play className="h-10 w-10 text-white/40 mx-auto mb-2" />
-                      <p className="text-xs text-white/60">
-                        {language === "es" ? "Vista previa no disponible" : "Preview not available"}
-                      </p>
-                    </div>
+                    <Play className="h-10 w-10 text-white/40" />
                   )}
                 </div>
               </div>
 
-            {/* Right: Tabs Content */}
-            <div className="flex-1 min-w-0">
-              <Tabs value={activeExtractorTab} onValueChange={setActiveExtractorTab} className="h-full flex flex-col">
-                <div className="px-4 pt-3 border-b border-border/50">
-                  <TabsList className="h-9 bg-muted/50 p-1 rounded-lg">
-                    <TabsTrigger value="script" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
-                      Script
-                    </TabsTrigger>
-                    <TabsTrigger value="analysis" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
-                      {language === "es" ? "Análisis" : "Analysis"}
-                    </TabsTrigger>
-                    <TabsTrigger value="variants" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
-                      Variantes IA
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
+              {/* Tabs */}
+              <div className="flex-1 min-w-0">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
+                  <div className="px-4 pt-3 border-b border-border/50">
+                    <TabsList className="h-9 bg-muted/50 p-1 rounded-lg">
+                      <TabsTrigger value="script" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
+                        <FileText className="h-3.5 w-3.5 mr-1.5" />
+                        {t("Guión", "Script")}
+                      </TabsTrigger>
+                      <TabsTrigger value="why" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
+                        <Lightbulb className="h-3.5 w-3.5 mr-1.5" />
+                        {t("Por qué funcionó", "Why it worked")}
+                      </TabsTrigger>
+                      <TabsTrigger value="variants" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
+                        <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                        {t("Variantes", "Variants")}
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
 
-                <div className="flex-1 overflow-hidden">
-                  {/* Script Tab */}
-                  <TabsContent value="script" className="h-full m-0 p-4">
+                  {/* Guion transcrito */}
+                  <TabsContent value="script" className="m-0 p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium">
-                        {translatedTranscript 
-                          ? (translationDirection === 'es-to-en' 
-                              ? (language === "es" ? "Traducción (Inglés)" : "Translation (English)")
-                              : (language === "es" ? "Traducción (Español)" : "Translation (Spanish)"))
-                          : (language === "es" ? "Transcripción" : "Transcript")}
-                      </h4>
-                      <div className="flex items-center gap-1.5">
-                        {/* Translation Buttons */}
-                        {!translatedTranscript ? (
-                          <>
-                            <Button 
-                              onClick={() => handleTranslate('es-to-en')} 
-                              disabled={isTranslating}
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 px-2.5 text-xs"
-                              title={language === "es" ? "Traducir a Inglés" : "Translate to English"}
-                            >
-                              {isTranslating && translationDirection === 'es-to-en' ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <>🇪🇸→🇬🇧</>
-                              )}
-                            </Button>
-                            <Button 
-                              onClick={() => handleTranslate('en-to-es')} 
-                              disabled={isTranslating}
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 px-2.5 text-xs"
-                              title={language === "es" ? "Traducir a Español" : "Translate to Spanish"}
-                            >
-                              {isTranslating && translationDirection === 'en-to-es' ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <>🇬🇧→🇪🇸</>
-                              )}
-                            </Button>
-                          </>
+                      <h4 className="text-sm font-medium">{t("Guión transcrito", "Transcribed script")}</h4>
+                      <Button
+                        onClick={() => copyText(transcript, "script")}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2.5 text-xs"
+                      >
+                        {copied === "script" ? (
+                          <Check className="h-3.5 w-3.5 mr-1 text-emerald-500" />
                         ) : (
-                          <Button 
-                            onClick={handleResetTranslation} 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 px-2.5 text-xs"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                            {language === "es" ? "Original" : "Original"}
-                          </Button>
+                          <Copy className="h-3.5 w-3.5 mr-1" />
                         )}
-                        <Button onClick={handleDownloadScript} variant="ghost" size="sm" className="h-8 px-2.5 text-xs">
-                          <Download className="h-3.5 w-3.5 mr-1" />
-                          {language === "es" ? "Descargar" : "Download"}
-                        </Button>
-                        <Button onClick={handleCopyTranscript} variant="ghost" size="sm" className="h-8 px-2.5 text-xs">
-                          {transcriptCopied ? <Check className="h-3.5 w-3.5 mr-1 text-emerald-500" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
-                          {transcriptCopied ? (language === "es" ? "Copiado" : "Copied") : (language === "es" ? "Copiar" : "Copy")}
-                        </Button>
-                      </div>
+                        {copied === "script" ? t("Copiado", "Copied") : t("Copiar", "Copy")}
+                      </Button>
                     </div>
                     <ScrollArea className="h-[280px] rounded-xl bg-muted/30 border border-border/50">
-                      <div className="p-4">
-                        <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                          {translatedTranscript || transcript}
-                        </p>
-                      </div>
+                      <p className="p-4 text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                        {transcript}
+                      </p>
                     </ScrollArea>
                   </TabsContent>
 
-                  {/* Analysis Tab */}
-                  <TabsContent value="analysis" className="h-full m-0 p-4">
-                    <h4 className="text-sm font-medium mb-3">{language === "es" ? "Estructura del guión" : "Script structure"}</h4>
-                    <ScrollArea className="h-[280px]">
-                      {structuredScript && structuredScript.length > 0 ? (
-                        <div className="space-y-2.5 pr-2">
-                          {structuredScript.map((section: any, idx: number) => (
-                            <div key={idx} className="p-3 rounded-xl bg-muted/30 border border-border/50 group">
-                              <div className="flex items-center justify-between mb-1.5">
-                                <span className="text-xs font-semibold text-primary">
-                                  {getSectionEmoji(section.type)} {section.label}
-                                </span>
-                                <Button 
-                                  onClick={() => handleCopy(section.content)} 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </div>
-                              <p className="text-xs text-muted-foreground leading-relaxed">{section.content}</p>
+                  {/* Por que funciono */}
+                  <TabsContent value="why" className="m-0 p-4">
+                    <ScrollArea className="h-[316px] pr-2">
+                      {insights ? (
+                        <div className="space-y-4">
+                          {insights.funcionamiento && (
+                            <div className="p-3 rounded-xl bg-primary/5 border border-primary/15">
+                              <p className="text-xs font-semibold text-primary mb-1">
+                                {t("Por qué funcionó", "Why it worked")}
+                              </p>
+                              <p className="text-sm text-foreground/90 leading-relaxed">
+                                {insights.funcionamiento}
+                              </p>
                             </div>
-                          ))}
+                          )}
+
+                          <div className="grid grid-cols-2 gap-2">
+                            {insights.estructura && (
+                              <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                                  {t("Estructura", "Structure")}
+                                </p>
+                                <p className="text-xs text-foreground/90">{insights.estructura}</p>
+                              </div>
+                            )}
+                            {insights.ctaLocation && (
+                              <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                                  {t("CTA", "CTA")}
+                                </p>
+                                <p className="text-xs text-foreground/90">{insights.ctaLocation}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {insights.angulos && insights.angulos.length > 0 && (
+                            <BulletBlock
+                              title={t("Ángulos / ganchos", "Angles / hooks")}
+                              items={insights.angulos}
+                              tone="default"
+                            />
+                          )}
+                          {insights.fortalezas && insights.fortalezas.length > 0 && (
+                            <BulletBlock
+                              title={t("Fortalezas", "Strengths")}
+                              items={insights.fortalezas}
+                              tone="positive"
+                            />
+                          )}
+                          {insights.debilidades && insights.debilidades.length > 0 && (
+                            <BulletBlock
+                              title={t("Qué mejorar", "What to improve")}
+                              items={insights.debilidades}
+                              tone="warning"
+                            />
+                          )}
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground text-center py-8">
-                          {language === "es" ? "No se pudo analizar la estructura" : "Could not analyze structure"}
+                          {t("No se pudo generar el análisis.", "Could not generate the analysis.")}
                         </p>
                       )}
                     </ScrollArea>
                   </TabsContent>
 
-                  {/* Variants Tab */}
-                  <TabsContent value="variants" className="h-full m-0 p-4">
-                    {!variants ? (
-                      <div className="text-center py-8">
-                        <Sparkles className="h-10 w-10 text-primary/30 mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground mb-4">
-                          {language === "es" ? "Genera variantes del guión con IA" : "Generate script variants with AI"}
-                        </p>
-                        
-                        {/* Variant Count Selector */}
-                        <div className="flex items-center justify-center gap-3 mb-4">
-                          <span className="text-xs text-muted-foreground">
-                            {language === "es" ? "Cantidad:" : "Count:"}
-                          </span>
-                          <div className="flex gap-1">
-                            {[1, 2, 3].map((num) => (
-                              <Button
-                                key={num}
-                                variant={variantCount === num ? "default" : "outline"}
-                                size="sm"
-                                className="w-8 h-8 p-0 text-xs rounded-lg"
-                                onClick={() => setVariantCount(num)}
-                              >
-                                {num}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <Button 
-                          onClick={handleGenerateVariants} 
-                          disabled={isGeneratingVariants}
-                          className="rounded-xl"
-                        >
-                          {isGeneratingVariants ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <Sparkles className="h-4 w-4 mr-2" />
-                          )}
-                          {language === "es" 
-                            ? `Generar ${variantCount} Variante${variantCount > 1 ? 's' : ''} IA` 
-                            : `Generate ${variantCount} AI Variant${variantCount > 1 ? 's' : ''}`}
-                        </Button>
-                      </div>
-                    ) : (
-                      <ScrollArea className="h-[280px]">
-                        <div className="space-y-3 pr-2">
-                          {variants.map((variant: any, idx: number) => (
-                            <div key={idx} className="p-3 rounded-xl bg-muted/30 border border-border/50">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-semibold text-primary">
-                                  Variante {idx + 1}
-                                </span>
-                                <Button 
-                                  onClick={() => handleCopy(`${variant.hook}\n\n${variant.body}\n\n${variant.cta}`)} 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-7 px-2 text-xs"
+                  {/* Variantes */}
+                  <TabsContent value="variants" className="m-0 p-4">
+                    {variants.length > 0 ? (
+                      <Tabs defaultValue="v0" className="flex flex-col">
+                        <TabsList className="h-8 bg-muted/50 p-1 rounded-lg mb-3 w-fit">
+                          {variants.map((_, i) => (
+                            <TabsTrigger
+                              key={i}
+                              value={`v${i}`}
+                              className="text-xs rounded-md px-3 data-[state=active]:bg-background"
+                            >
+                              {t("Variante", "Variant")} {i + 1}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                        {variants.map((v, i) => (
+                          <TabsContent key={i} value={`v${i}`} className="m-0">
+                            <ScrollArea className="h-[260px] pr-2">
+                              <div className="space-y-3">
+                                <VariantField label="Hook" text={v.hook} />
+                                <VariantField label={t("Cuerpo", "Body")} text={v.body} />
+                                <VariantField label="CTA" text={v.cta} />
+                                {v.strategy_note && (
+                                  <p className="text-[11px] text-muted-foreground italic px-1">
+                                    💡 {v.strategy_note}
+                                  </p>
+                                )}
+                                <Button
+                                  onClick={() =>
+                                    copyText(`${v.hook}\n\n${v.body}\n\n${v.cta}`, `v${i}`)
+                                  }
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full rounded-xl"
                                 >
-                                  <Copy className="h-3 w-3 mr-1" />
-                                  {language === "es" ? "Copiar" : "Copy"}
+                                  {copied === `v${i}` ? (
+                                    <Check className="h-3.5 w-3.5 mr-1.5 text-emerald-500" />
+                                  ) : (
+                                    <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                  )}
+                                  {t("Copiar variante", "Copy variant")}
                                 </Button>
                               </div>
-                              <div className="space-y-2 text-xs">
-                                <div>
-                                  <span className="font-medium text-foreground">Hook:</span>
-                                  <p className="text-muted-foreground mt-0.5">{variant.hook}</p>
-                                </div>
-                                <div>
-                                  <span className="font-medium text-foreground">Cuerpo:</span>
-                                  <p className="text-muted-foreground mt-0.5 line-clamp-3">{variant.body}</p>
-                                </div>
-                                <div>
-                                  <span className="font-medium text-foreground">CTA:</span>
-                                  <p className="text-muted-foreground mt-0.5">{variant.cta}</p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
+                            </ScrollArea>
+                          </TabsContent>
+                        ))}
+                      </Tabs>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        {t("No se pudieron generar variantes.", "Could not generate variants.")}
+                      </p>
                     )}
                   </TabsContent>
-                </div>
-              </Tabs>
+                </Tabs>
+              </div>
             </div>
-          </div>
-          </div>
-        )}
-      </Card>
+          </Card>
 
-      {/* 2. Video Downloader HD */}
-      <Card className="overflow-hidden border-border/50 shadow-sm">
-        <div className="p-5 md:p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-cyan-500/10">
-              <Video className="h-5 w-5 text-cyan-500" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-foreground">
-                {language === "es" ? "Descargador de Video HD" : "HD Video Downloader"}
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                {language === "es" ? "Descarga videos de TikTok sin marca de agua" : "Download TikTok videos without watermark"}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-              <Input
-                placeholder={language === "es" ? "https://tiktok.com/@usuario/video/..." : "https://tiktok.com/@user/video/..."}
-                value={downloadVideoUrl}
-                onChange={(e) => {
-                  setDownloadVideoUrl(e.target.value);
-                  setDownloadError(null);
-                  setDownloadLink(null);
-                }}
-                className="h-11 pl-10 rounded-xl border-border/60"
-              />
-            </div>
-            <Button 
-              onClick={handleGetDownloadUrl}
-              disabled={isGettingDownloadUrl}
-              className="h-11 px-5 rounded-xl bg-cyan-500 hover:bg-cyan-600 shadow-sm"
-            >
-              {isGettingDownloadUrl ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2" />
-                  {language === "es" ? "Descargar" : "Download"}
-                </>
-              )}
+          <div className="flex justify-center">
+            <Button onClick={resetAll} variant="ghost" size="sm" className="rounded-xl text-muted-foreground">
+              <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+              {t("Analizar otro video", "Analyze another video")}
             </Button>
           </div>
-          
-          {/* Error State */}
-          {downloadError && (
-            <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              <span>{downloadError}</span>
-              <Button 
-                onClick={resetVideoDownloader} 
-                variant="ghost" 
-                size="sm" 
-                className="ml-auto h-6 text-xs"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                {language === "es" ? "Reintentar" : "Retry"}
-              </Button>
-            </div>
-          )}
-          
-          {/* Success State */}
-          {downloadLink && !downloadError && (
-            <div className="flex items-center gap-3 mt-3 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700">
-              <Check className="h-4 w-4 shrink-0" />
-              <span className="text-xs font-medium flex-1">
-                {language === "es" ? "¡Video listo para descargar!" : "Video ready to download!"}
-              </span>
-              <Button 
-                onClick={() => triggerDownload(downloadLink, downloadVideoTitle)}
-                size="sm"
-                className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
-              >
-                <Download className="h-3.5 w-3.5 mr-1.5" />
-                {language === "es" ? "Descargar MP4" : "Download MP4"}
-              </Button>
-            </div>
-          )}
         </div>
-      </Card>
-
-      {/* 3. Hook Generator - Compact */}
-      <Card className="p-5 border-border/50 shadow-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-amber-500/10">
-            <Zap className="h-5 w-5 text-amber-500" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-foreground">
-              {language === "es" ? "Generador de Hooks IA" : "AI Hook Generator"}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {language === "es" ? "Genera 5 hooks stop-scroller" : "Generate 5 stop-scroller hooks"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          <Textarea
-            placeholder={language === "es" 
-              ? "Describe tu producto y el beneficio principal... Ej: Serum vitamina C que elimina manchas"
-              : "Describe your product and main benefit..."}
-            value={hookProductDesc}
-            onChange={(e) => setHookProductDesc(e.target.value)}
-            className="min-h-[56px] text-sm flex-1 resize-none rounded-xl"
-          />
-          <Button 
-            onClick={handleGenerateHooks} 
-            disabled={loadingHooks} 
-            className="h-auto px-5 rounded-xl bg-amber-500 hover:bg-amber-600 shrink-0"
-          >
-            {loadingHooks ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <Zap className="h-4 w-4 mr-1.5" />
-                {language === "es" ? "Generar Hooks" : "Generate Hooks"}
-              </>
-            )}
-          </Button>
-        </div>
-
-        {generatedHooks.length > 0 && (
-          <div className="mt-4 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-medium text-muted-foreground">
-                {language === "es" ? `${generatedHooks.length} hooks generados` : `${generatedHooks.length} hooks generated`}
-              </span>
-              <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedHooks.join("\n\n"))} className="h-7 text-xs">
-                <Copy className="h-3 w-3 mr-1.5" />
-                {language === "es" ? "Copiar todos" : "Copy all"}
-              </Button>
-            </div>
-            <div className="grid gap-2">
-              {generatedHooks.map((hook, idx) => (
-                <div key={idx} className="p-3 rounded-xl bg-amber-50/50 border border-amber-200/50 flex justify-between items-start gap-3 group">
-                  <p className="text-sm flex-1">{hook}</p>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => handleCopy(hook, idx)} 
-                    className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 shrink-0"
-                  >
-                    {copiedIndex === idx ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* 4. Script Generator - Visual Product Cards */}
-      <Card className="p-5 border-border/50 shadow-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-purple-500/10">
-            <PenTool className="h-5 w-5 text-purple-500" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-foreground">
-              {language === "es" ? "Generador de Guiones Potentes" : "Powerful Script Generator"}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {language === "es" ? "Selecciona un producto y genera un guión completo" : "Select a product and generate a full script"}
-            </p>
-          </div>
-        </div>
-
-        {/* Product Selection Tabs */}
-        <div className="mb-4">
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={() => setProductTab("popular")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                productTab === "popular" 
-                  ? 'bg-primary text-white' 
-                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              {language === "es" ? "Productos Populares" : "Popular Products"}
-            </button>
-            <button
-              onClick={() => setProductTab("favorites")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                productTab === "favorites" 
-                  ? 'bg-primary text-white' 
-                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              <Heart className="h-3 w-3" />
-              {language === "es" ? "Mis Favoritos" : "My Favorites"}
-            </button>
-          </div>
-
-          {/* Products Grid */}
-          {productTab === "popular" && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-              {popularProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  isSelected={selectedProduct?.id === product.id}
-                  onClick={() => setSelectedProduct(product)}
-                />
-              ))}
-            </div>
-          )}
-
-          {productTab === "favorites" && (
-            <>
-              {favoriteProducts.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                  {favoriteProducts.map((fav) => (
-                    <ProductCard
-                      key={fav.product_id}
-                      product={fav.product_data}
-                      isSelected={selectedProduct?.id === fav.product_id}
-                      onClick={() => setSelectedProduct(fav.product_data)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-8 text-center bg-muted/20 rounded-xl border border-dashed border-border">
-                  <Heart className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    {language === "es" 
-                      ? "Agrega productos a favoritos para generar guiones personalizados" 
-                      : "Add products to favorites to generate personalized scripts"}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Benefits Input + Generate Button */}
-        <div className="flex gap-2">
-          <Input
-            placeholder={language === "es" 
-              ? "Beneficios adicionales (opcional)..."
-              : "Additional benefits (optional)..."}
-            value={additionalBenefits}
-            onChange={(e) => setAdditionalBenefits(e.target.value)}
-            className="h-11 rounded-xl flex-1"
-          />
-          <Button 
-            onClick={handleGenerateScript} 
-            disabled={loadingScript || !selectedProduct} 
-            className="h-11 px-5 rounded-xl bg-purple-600 hover:bg-purple-700 shrink-0"
-          >
-            {loadingScript ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <>
-                <PenTool className="h-4 w-4 mr-1.5" />
-                {language === "es" ? "Generar Guión Personalizado" : "Generate Custom Script"}
-              </>
-            )}
-          </Button>
-        </div>
-
-        {/* Generated Script Results */}
-        {generatedScript && (
-          <div className="mt-4 space-y-3">
-            {/* Hook */}
-            <div className="p-3 rounded-xl bg-red-50/50 border border-red-200/50">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-red-700">🎯 Hook Principal</span>
-                <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedScript.hook)} className="h-6 w-6 p-0">
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-              <p className="text-sm text-foreground">{generatedScript.hook}</p>
-            </div>
-
-            {/* Full Script */}
-            <div className="p-3 rounded-xl bg-purple-50/50 border border-purple-200/50">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-purple-700">📝 Guión Completo</span>
-                <Button variant="ghost" size="sm" onClick={() => handleCopy(generatedScript.fullScript)} className="h-6 w-6 p-0">
-                  <Copy className="h-3 w-3" />
-                </Button>
-              </div>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{generatedScript.fullScript}</p>
-            </div>
-
-            {/* Alternative Hooks */}
-            {generatedScript.alternativeHooks?.length > 0 && (
-              <div className="space-y-2">
-                <span className="text-xs font-medium text-muted-foreground">
-                  {language === "es" ? "Hooks alternativos" : "Alternative hooks"}
-                </span>
-                {generatedScript.alternativeHooks.map((hook: string, idx: number) => (
-                  <div key={idx} className="p-2.5 rounded-xl bg-muted/30 border border-border/50 flex justify-between items-start gap-2 group">
-                    <p className="text-xs text-foreground/80">{hook}</p>
-                    <Button variant="ghost" size="sm" onClick={() => handleCopy(hook)} className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0">
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </Card>
-
+      )}
     </div>
   );
 };
+
+const BulletBlock = ({
+  title,
+  items,
+  tone,
+}: {
+  title: string;
+  items: string[];
+  tone: "default" | "positive" | "warning";
+}) => {
+  const dot =
+    tone === "positive" ? "bg-emerald-500" : tone === "warning" ? "bg-amber-500" : "bg-primary";
+  return (
+    <div>
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+        {title}
+      </p>
+      <ul className="space-y-1.5">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2 text-sm text-foreground/90">
+            <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${dot}`} />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+const VariantField = ({ label, text }: { label: string; text: string }) => (
+  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
+    <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">{label}</p>
+    <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{text}</p>
+  </div>
+);
 
 export default Tools;

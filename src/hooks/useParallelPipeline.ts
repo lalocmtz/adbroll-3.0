@@ -23,10 +23,13 @@ interface WorkerConfig {
 }
 
 const WORKER_CONFIGS: Record<keyof WorkerStats, WorkerConfig> = {
-  downloads: { maxConcurrent: 5, batchSize: 5, delayMs: 500 },
-  transcriptions: { maxConcurrent: 3, batchSize: 3, delayMs: 1000 },
-  matching: { maxConcurrent: 1, batchSize: 100, delayMs: 300 },
-  avatars: { maxConcurrent: 1, batchSize: 50, delayMs: 500 },
+  // SPEED: las edge functions ahora procesan en paralelo internamente
+  // (chunks de 10 descargas / 6 transcripciones), así que pedimos lotes
+  // grandes y pausas mínimas entre vueltas.
+  downloads: { maxConcurrent: 1, batchSize: 40, delayMs: 150 },
+  transcriptions: { maxConcurrent: 1, batchSize: 24, delayMs: 200 },
+  matching: { maxConcurrent: 1, batchSize: 200, delayMs: 150 },
+  avatars: { maxConcurrent: 1, batchSize: 100, delayMs: 300 },
 };
 
 const MAX_NO_PROGRESS_CYCLES = 5;

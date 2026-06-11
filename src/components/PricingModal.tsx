@@ -95,7 +95,7 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
     setLoadingPlan(null);
   };
 
-  const proPrice = 25;
+  const proPrice = 24.99;
   const discountedProPrice = referralValid ? proPrice * 0.5 : proPrice;
 
   return (

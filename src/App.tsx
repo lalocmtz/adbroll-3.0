@@ -25,6 +25,7 @@ import Support from "./pages/Support";
 import Admin from "./pages/Admin";
 import RelatedVideos from "./pages/RelatedVideos";
 import Opportunities from "./pages/Opportunities";
+import Tools from "./pages/Tools";
 import Affiliates from "./pages/Affiliates";
 import FAQ from "./pages/FAQ";
 import Privacy from "./pages/Privacy";
@@ -214,6 +215,14 @@ const App = () => {
                     element={
                       <AppRoute session={session}>
                         <Opportunities />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/tools"
+                    element={
+                      <AppRoute session={session}>
+                        <Tools />
                       </AppRoute>
                     }
                   />

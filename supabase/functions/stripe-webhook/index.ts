@@ -303,17 +303,30 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     });
   }
 
-  // Calculate affiliate commission
+  // Calculate affiliate commission.
+  // billing_reason: 'subscription_create' = primer pago, 'subscription_cycle' = renovación.
+  // Marcamos el type para distinguir comisión inicial vs recurrente. La idempotencia
+  // por stripe_invoice_id evita que un invoice reintentado pague dos veces.
   if (profile.referral_code_used) {
-    await calculateAffiliateCommission(profile.id, profile.referral_code_used, priceAmount, profile.email);
+    const commissionType = invoice.billing_reason === "subscription_cycle" ? "recurring" : "initial";
+    await calculateAffiliateCommission(
+      profile.id,
+      profile.referral_code_used,
+      priceAmount,
+      profile.email,
+      invoice.id,
+      commissionType
+    );
   }
 }
 
 async function calculateAffiliateCommission(
-  referredUserId: string, 
-  referralCode: string, 
+  referredUserId: string,
+  referralCode: string,
   amountPaid: number,
-  referredEmail?: string
+  referredEmail?: string,
+  stripeInvoiceId?: string,
+  commissionType: "initial" | "recurring" = "recurring"
 ) {
   const { data: affiliateCode } = await supabaseAdmin
     .from("affiliate_codes")
@@ -330,7 +343,10 @@ async function calculateAffiliateCommission(
   const commissionAmount = amountPaid * commissionRate;
   const currentMonth = new Date().toISOString().slice(0, 7);
 
-  await supabaseAdmin
+  // IDEMPOTENCIA: el índice único parcial sobre stripe_invoice_id hace que un
+  // insert duplicado (mismo invoice) falle con código 23505. Lo detectamos y
+  // abortamos sin sumar comisión de nuevo.
+  const { error: insertError } = await supabaseAdmin
     .from("affiliate_payouts")
     .insert({
       affiliate_code: referralCode.toUpperCase(),
@@ -338,7 +354,20 @@ async function calculateAffiliateCommission(
       amount_paid: amountPaid,
       commission_affiliate: commissionAmount,
       month: currentMonth,
+      type: commissionType,
+      stripe_invoice_id: stripeInvoiceId ?? null,
+      status: "pending",
     });
+
+  if (insertError) {
+    // 23505 = unique_violation -> ya se procesó este invoice. No duplicar.
+    if (insertError.code === "23505") {
+      console.log(`Commission already recorded for invoice ${stripeInvoiceId}, skipping.`);
+      return;
+    }
+    console.error("Error inserting affiliate_payout:", insertError);
+    return;
+  }
 
   const { data: affiliate } = await supabaseAdmin
     .from("affiliates")
@@ -369,7 +398,7 @@ async function calculateAffiliateCommission(
       });
     }
 
-    console.log(`Affiliate commission: $${commissionAmount.toFixed(2)} for code ${referralCode}`);
+    console.log(`Affiliate commission (${commissionType}): $${commissionAmount.toFixed(2)} for code ${referralCode}`);
   }
 }
 

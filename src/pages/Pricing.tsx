@@ -144,7 +144,7 @@ const Pricing = () => {
     }
   };
 
-  const price = 25;
+  const price = 24.99;
   const discountedPrice = referralValid ? price * 0.5 : price;
 
   return (

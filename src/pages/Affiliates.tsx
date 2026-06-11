@@ -19,7 +19,7 @@ const MINIMUM_PAYOUT = 50;
 const Affiliates = () => {
   const { toast } = useToast();
   const { language } = useLanguage();
-  const { affiliate, referrals, loading, refetch } = useAffiliate();
+  const { affiliate, referrals, dashboard, loading, refetch } = useAffiliate();
   const [copied, setCopied] = useState(false);
   const [creating, setCreating] = useState(false);
   const [isEditingCode, setIsEditingCode] = useState(false);
@@ -65,9 +65,12 @@ const Affiliates = () => {
   // Production domain for referral links
   const ADBROLL_DOMAIN = "https://tokxray.com";
 
+  // Prefer the server-computed code from the dashboard RPC, fall back to the row.
+  const activeCode = dashboard?.code ?? affiliate?.ref_code;
+
   const handleCopyLink = async () => {
-    if (affiliate?.ref_code) {
-      const link = `${ADBROLL_DOMAIN}?ref=${affiliate.ref_code}`;
+    if (activeCode) {
+      const link = `${ADBROLL_DOMAIN}?ref=${activeCode}`;
       await navigator.clipboard.writeText(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -76,8 +79,8 @@ const Affiliates = () => {
   };
 
   const handleCopyCode = async () => {
-    if (affiliate?.ref_code) {
-      await navigator.clipboard.writeText(affiliate.ref_code);
+    if (activeCode) {
+      await navigator.clipboard.writeText(activeCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast({ title: language === "es" ? "✓ Código copiado" : "✓ Code copied" });
@@ -159,7 +162,7 @@ const Affiliates = () => {
   };
 
   const handleStartEditCode = () => {
-    setEditedCode(affiliate?.ref_code || "");
+    setEditedCode(dashboard?.code ?? affiliate?.ref_code ?? "");
     setIsEditingCode(true);
   };
 
@@ -168,16 +171,21 @@ const Affiliates = () => {
     
     setSavingCode(true);
     try {
-      const { data, error } = await supabase.functions.invoke("affiliate-update-code", {
-        body: { new_code: editedCode.trim() },
+      // Use the SECURITY DEFINER RPC: validates uniqueness, format and the
+      // one-time customization rule (code_customized) atomically server-side.
+      const { data, error } = await supabase.rpc("update_affiliate_code", {
+        _new_code: editedCode.trim(),
       });
 
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      const result = data as { success?: boolean; code?: string; error?: string } | null;
+      if (!result?.success) {
+        throw new Error(result?.error || (language === "es" ? "No se pudo actualizar" : "Could not update"));
+      }
 
       toast({
         title: language === "es" ? "¡Código actualizado!" : "Code updated!",
-        description: `${language === "es" ? "Tu nuevo código:" : "Your new code:"} ${data.code}`,
+        description: `${language === "es" ? "Tu nuevo código:" : "Your new code:"} ${result.code}`,
       });
 
       setIsEditingCode(false);
@@ -308,9 +316,9 @@ const Affiliates = () => {
                 : "Every time someone signs up with your code and subscribes to TokXray Pro, you'll receive 30% of their monthly payment."}
             </p>
             <p className="text-sm font-medium text-green-600 mb-4">
-              {language === "es" 
-                ? "≈ $4.50 USD al mes por cada usuario activo"
-                : "≈ $4.50 USD per month for each active user"}
+              {language === "es"
+                ? "≈ $7.50 USD al mes por cada usuario activo"
+                : "≈ $7.50 USD per month for each active user"}
             </p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="gap-1">
@@ -337,7 +345,7 @@ const Affiliates = () => {
             <Card className="p-4 text-center">
               <Users className="h-5 w-5 mx-auto mb-2 text-blue-500" />
               <p className="text-2xl font-bold text-blue-600">
-                {affiliate.active_referrals_count}
+                {dashboard?.active_referrals ?? affiliate.active_referrals_count}
               </p>
               <p className="text-xs text-muted-foreground">
                 {language === "es" ? "Activos" : "Active"}
@@ -347,7 +355,7 @@ const Affiliates = () => {
             <Card className="p-4 text-center bg-green-50/50 dark:bg-green-950/20">
               <DollarSign className="h-5 w-5 mx-auto mb-2 text-green-500" />
               <p className="text-2xl font-bold text-green-600">
-                {formatCurrency(affiliate.usd_earned)}
+                {formatCurrency(dashboard?.usd_earned ?? affiliate.usd_earned)}
               </p>
               <p className="text-xs text-muted-foreground">
                 {language === "es" ? "Total ganado" : "Total earned"}
@@ -357,7 +365,7 @@ const Affiliates = () => {
             <Card className="p-4 text-center bg-emerald-50/50 dark:bg-emerald-950/20">
               <TrendingUp className="h-5 w-5 mx-auto mb-2 text-emerald-500" />
               <p className="text-2xl font-bold text-emerald-600">
-                {formatCurrency(affiliate.usd_available)}
+                {formatCurrency(dashboard?.usd_available ?? affiliate.usd_available)}
               </p>
               <p className="text-xs text-muted-foreground">
                 {language === "es" ? "Disponible" : "Available"}
@@ -367,7 +375,7 @@ const Affiliates = () => {
             <Card className="p-4 text-center">
               <Gift className="h-5 w-5 mx-auto mb-2 text-purple-500" />
               <p className="text-2xl font-bold text-purple-600">
-                {formatCurrency(affiliate.usd_withdrawn)}
+                {formatCurrency(dashboard?.usd_withdrawn ?? affiliate.usd_withdrawn)}
               </p>
               <p className="text-xs text-muted-foreground">
                 {language === "es" ? "Retirado" : "Withdrawn"}
@@ -418,12 +426,20 @@ const Affiliates = () => {
                     </>
                   ) : (
                     <>
-                      <Input 
-                        value={affiliate.ref_code} 
-                        readOnly 
+                      <Input
+                        value={dashboard?.code ?? affiliate.ref_code}
+                        readOnly
                         className="font-mono font-bold tracking-wider text-lg"
                       />
-                      <Button variant="outline" onClick={handleStartEditCode} className="shrink-0">
+                      <Button
+                        variant="outline"
+                        onClick={handleStartEditCode}
+                        disabled={dashboard?.code_customized}
+                        title={dashboard?.code_customized
+                          ? (language === "es" ? "Ya personalizaste tu código" : "Code already customized")
+                          : undefined}
+                        className="shrink-0"
+                      >
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" onClick={handleCopyCode} className="shrink-0">
@@ -433,9 +449,13 @@ const Affiliates = () => {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1.5">
-                  {language === "es" 
-                    ? "4-12 caracteres alfanuméricos. Haz clic en el lápiz para personalizar."
-                    : "4-12 alphanumeric characters. Click the pencil to customize."}
+                  {dashboard?.code_customized
+                    ? (language === "es"
+                        ? "Ya personalizaste tu código (solo se puede cambiar una vez)."
+                        : "You already customized your code (it can only be changed once).")
+                    : (language === "es"
+                        ? "4-12 caracteres alfanuméricos. Haz clic en el lápiz para personalizar (una sola vez)."
+                        : "4-12 alphanumeric characters. Click the pencil to customize (one time only).")}
                 </p>
               </div>
 
@@ -445,9 +465,9 @@ const Affiliates = () => {
                   {language === "es" ? "Tu enlace de referido" : "Your referral link"}
                 </label>
                 <div className="flex gap-2">
-                  <Input 
-                    value={`${ADBROLL_DOMAIN}?ref=${affiliate.ref_code}`} 
-                    readOnly 
+                  <Input
+                    value={`${ADBROLL_DOMAIN}?ref=${activeCode}`}
+                    readOnly
                     className="text-sm"
                   />
                   <Button onClick={handleCopyLink} className="shrink-0 gap-2">
@@ -679,7 +699,7 @@ const Affiliates = () => {
                     {language === "es" ? "¡Ganas 30%!" : "You earn 30%!"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {language === "es" ? "≈$8.70/mes" : "≈$8.70/mo"}
+                    {language === "es" ? "≈$7.50/mes" : "≈$7.50/mo"}
                   </p>
                 </div>
               </div>

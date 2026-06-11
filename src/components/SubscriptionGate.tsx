@@ -47,7 +47,7 @@ export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-muted rounded-lg p-6 text-center">
-              <p className="text-3xl font-bold mb-2">$25 USD</p>
+              <p className="text-3xl font-bold mb-2">$24.99 USD</p>
               <p className="text-sm text-muted-foreground">por mes</p>
             </div>
             

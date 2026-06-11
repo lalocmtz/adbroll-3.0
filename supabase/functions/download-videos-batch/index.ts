@@ -251,40 +251,37 @@ serve(async (req) => {
 
     console.log(`[batch] Processing ${pendingVideos.length} videos`);
 
-    const results = [];
+    const results: any[] = [];
     let permanentlyFailedCount = 0;
     let quotaHit = false;
-    
-    for (const video of pendingVideos) {
-      // If quota was hit, mark remaining videos as blocked without calling API
+
+    // SPEED: process videos in parallel chunks instead of one-by-one.
+    // Each chunk fires CHUNK concurrent downloads; we stop launching new
+    // chunks as soon as the provider reports a quota hit.
+    const CHUNK = 10;
+    for (let i = 0; i < pendingVideos.length; i += CHUNK) {
       if (quotaHit) {
-        await supabase.from('videos').update({ 
-          processing_status: 'download_blocked_quota'
-        }).eq('id', video.id);
-        results.push({ id: video.id, success: false, error: 'Quota exceeded', quotaExceeded: true });
-        continue;
+        // Mark the rest as quota-blocked without calling the API.
+        const rest = pendingVideos.slice(i);
+        await Promise.all(rest.map((v: any) =>
+          supabase.from('videos').update({ processing_status: 'download_blocked_quota' }).eq('id', v.id)
+        ));
+        rest.forEach((v: any) => results.push({ id: v.id, success: false, error: 'Quota exceeded', quotaExceeded: true }));
+        break;
       }
 
-      const result = await downloadSingleVideo(
-        video.id,
-        video.video_url,
-        rapidApiKey,
-        supabase,
-        video.download_attempts || 0
-      );
-      results.push({ id: video.id, ...result });
-      
-      if (result.quotaExceeded) {
-        quotaHit = true;
-        console.log(`[batch] ⚠️ Quota exceeded — skipping remaining videos in batch`);
-        continue;
+      const chunk = pendingVideos.slice(i, i + CHUNK);
+      const chunkResults = await Promise.all(chunk.map((video: any) =>
+        downloadSingleVideo(video.id, video.video_url, rapidApiKey, supabase, video.download_attempts || 0)
+          .then((r: any) => ({ id: video.id, ...r }))
+          .catch((e: any) => ({ id: video.id, success: false, error: String(e) }))
+      ));
+
+      for (const result of chunkResults) {
+        results.push(result);
+        if (result.quotaExceeded) quotaHit = true;
+        if (result.permanentlyFailed) permanentlyFailedCount++;
       }
-      
-      if (result.permanentlyFailed) {
-        permanentlyFailedCount++;
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     const successCount = results.filter(r => r.success).length;
