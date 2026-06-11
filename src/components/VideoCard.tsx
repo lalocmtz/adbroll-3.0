@@ -159,9 +159,14 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
         setIsFavorite(false);
         toast({ title: "✓ Eliminado de favoritos" });
       } else {
+        // SECURITY: explicit non-premium columns only. The premium columns of
+        // daily_feed (transcripcion_original, guion_ia, ai_variants) are revoked
+        // at the DB level, so select("*") would fail here for non-service_role.
         const { data: videoData, error: fetchError } = await supabase
           .from("daily_feed")
-          .select("*")
+          .select(
+            "id, tiktok_url, creador, descripcion_video, duracion, fecha_publicacion, featured_today, coste_publicitario_mxn, cpa_mxn, gpm_mxn, ingresos_mxn, ventas, visualizaciones, roas, ratio_ads, rango_fechas, producto_nombre, producto_url, product_id, created_at, generated_at"
+          )
           .eq("tiktok_url", video.tiktok_url)
           .single();
 

@@ -107,9 +107,11 @@ const VideoAttribution = () => {
   const loadVideos = async () => {
     setVideosLoading(true);
     try {
+      // Premium columns (transcript) are REVOKED for `authenticated` at the DB
+      // level — even for the founder via the anon key. Read full rows through
+      // the founder-gated SECURITY DEFINER RPC, then filter client-side.
       let query = supabase
-        .from("videos")
-        .select("id, title, video_url, thumbnail_url, creator_handle, product_name, product_id, sales, revenue_mxn, views, country, transcript")
+        .rpc("get_videos_admin")
         .eq("country", market)
         .order("revenue_mxn", { ascending: false, nullsFirst: false })
         .limit(200);
@@ -121,7 +123,7 @@ const VideoAttribution = () => {
       }
 
       const { data } = await query;
-      setVideos(data || []);
+      setVideos((data as VideoItem[] | null) || []);
       setCurrentVideoIndex(0);
     } finally {
       setVideosLoading(false);

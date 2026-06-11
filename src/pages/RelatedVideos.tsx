@@ -13,6 +13,19 @@ import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { openTikTokLink } from "@/lib/tiktokDeepLink";
 
+// SECURITY: explicit non-premium columns. transcript / variants_json /
+// analysis_json are REVOKEd at the DB level for anon/authenticated, so
+// select("*") would now fail. Scripts are fetched via the get_video_script RPC.
+const VIDEO_CARD_COLUMNS = `
+  id, video_url, video_mp4_url, thumbnail_url, title,
+  creator_name, creator_handle, creator_id, product_name, product_id,
+  sales, revenue_mxn, views, roas, category, country, rank,
+  imported_at, processing_status,
+  product:products!videos_product_id_fkey (
+    id, producto_nombre, imagen_url, total_ingresos_mxn, commission, price, precio_mxn, revenue_30d, producto_url
+  )
+`;
+
 interface Video {
   id: string;
   video_url: string;
@@ -29,9 +42,6 @@ interface Video {
   roas: number | null;
   category: string | null;
   rank: number | null;
-  transcript: string | null;
-  analysis_json: any;
-  variants_json: any;
   processing_status: string | null;
   product?: {
     id: string;
@@ -163,12 +173,7 @@ const RelatedVideos = () => {
 
         const { data: videosData, error: videosError } = await supabase
           .from("videos")
-          .select(`
-            *,
-            product:products!videos_product_id_fkey (
-              id, producto_nombre, imagen_url, total_ingresos_mxn, commission, price, precio_mxn, revenue_30d, producto_url
-            )
-          `)
+          .select(VIDEO_CARD_COLUMNS)
           .eq("product_id", productId)
           .order("revenue_mxn", { ascending: false });
 
@@ -193,12 +198,7 @@ const RelatedVideos = () => {
         const creatorHandle = creator.creator_handle || creator.usuario_creador;
         const { data: videosData, error: videosError } = await supabase
           .from("videos")
-          .select(`
-            *,
-            product:products!videos_product_id_fkey (
-              id, producto_nombre, imagen_url, total_ingresos_mxn, commission, price, precio_mxn, revenue_30d, producto_url
-            )
-          `)
+          .select(VIDEO_CARD_COLUMNS)
           .or(`creator_id.eq.${creatorId},creator_handle.ilike.%${creatorHandle}%`)
           .order("revenue_mxn", { ascending: false });
 

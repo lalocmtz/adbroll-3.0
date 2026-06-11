@@ -124,9 +124,14 @@ const FavoriteButton = ({
       } else {
         // Add to favorites
         if (itemType === "video" && videoUrl) {
+          // SECURITY: explicit non-premium columns only. transcript /
+          // variants_json / analysis_json are revoked at the DB level, so
+          // select("*") would fail here for anon/authenticated users.
           const { data: videoData } = await supabase
             .from("videos")
-            .select("*")
+            .select(
+              "id, video_url, video_mp4_url, thumbnail_url, title, creator_name, creator_handle, creator_id, product_name, product_id, sales, revenue_mxn, views, roas, category, country, rank, imported_at, processing_status"
+            )
             .eq("video_url", videoUrl)
             .maybeSingle();
 

@@ -4,12 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Lock, Sparkles, Video, Loader2, Star, X, Wand2 } from "lucide-react";
+import { Check, Lock, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useBlurGate } from "@/hooks/useBlurGate";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { trackInitiateCheckout } from "@/lib/analytics";
 
 interface PaywallModalProps {
@@ -19,31 +18,22 @@ interface PaywallModalProps {
 }
 
 const PRO_FEATURES = [
-  { icon: Sparkles, text: "Scripts reales extraídos" },
-  { icon: Sparkles, text: "Variantes IA ilimitadas" },
-  { icon: Sparkles, text: "Oportunidades de productos" },
-  { icon: Sparkles, text: "Panel de afiliados (30%)" },
+  { text: "Los 20 videos que más venden hoy" },
+  { text: "Guión en 3 versiones, listo para copiar" },
+  { text: "Métricas reales: ingresos, ventas, ROAS" },
+  { text: "Cancela en 1 clic" },
 ];
 
-const PREMIUM_FEATURES = [
-  { icon: Video, text: "5 videos IA/mes" },
-  { icon: Wand2, text: "Lip-sync automático" },
-  { icon: Video, text: "Sin salir a cámara" },
-];
-
-export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
+export const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { language } = useLanguage();
   const { isLoggedIn, session } = useBlurGate();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  const handleSelectPlan = async (plan: "pro" | "premium") => {
+  const handleSelectPlan = async (plan: "pro") => {
     // Track InitiateCheckout event for Meta Pixel
-    const value = plan === "premium" ? 29.99 : 25;
-    const planName = plan === "premium" ? "Adbroll Premium" : "Adbroll Pro";
-    trackInitiateCheckout(value, "USD", planName);
-    
+    trackInitiateCheckout(25, "USD", "Adbroll Pro");
+
     if (!isLoggedIn) {
       navigate(`/register?plan=${plan}`);
       onClose();
@@ -81,9 +71,9 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <motion.div 
+          <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
@@ -92,89 +82,54 @@ export const PaywallModal = ({ open, onClose, feature }: PaywallModalProps) => {
             <Lock className="w-6 h-6 text-primary" />
           </motion.div>
           <DialogTitle className="text-center text-xl">
-            {feature ? `Desbloquea "${feature}"` : "Desbloquea TokXray"}
+            Desbloquea el Top 20 completo
           </DialogTitle>
+          <p className="text-center text-sm text-muted-foreground">
+            Estás viendo solo 5. Los otros 15 —con su guión listo para copiar— están a un clic.
+          </p>
         </DialogHeader>
 
         <div className="py-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Pro Plan */}
-            <Card className="p-4 border-2 border-border hover:border-primary/50 transition-colors">
-              <div className="text-center mb-4">
-                <h3 className="text-lg font-bold">Pro</h3>
-                <div className="text-2xl font-bold mt-1">$25<span className="text-sm font-normal text-muted-foreground">/mes</span></div>
-                <p className="text-xs text-muted-foreground mt-1">Para creadores que graban</p>
-              </div>
+          <p className="text-center text-xs text-muted-foreground mb-4">
+            Cada día sin verlos es otro día grabando a ciegas.
+          </p>
 
-              <ul className="space-y-2 mb-4">
-                {PRO_FEATURES.map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-xs">
-                    <Check className="w-3 h-3 text-green-500" />
-                    <span>{f.text}</span>
-                  </li>
-                ))}
-              </ul>
+          <Card className="p-5 border-2 border-primary relative">
+            <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] whitespace-nowrap">
+              50% OFF el primer mes · primeros 100
+            </Badge>
 
-              <div className="text-xs text-muted-foreground flex items-center gap-1 mb-3">
-                <X className="w-3 h-3" />
-                <span>Sin videos IA</span>
-              </div>
+            <div className="text-center mb-4 pt-2">
+              <div className="text-3xl font-bold mt-1">$25<span className="text-sm font-normal text-muted-foreground"> USD/mes</span></div>
+            </div>
 
-              <Button 
-                variant="outline"
-                onClick={() => handleSelectPlan("pro")} 
-                className="w-full" 
-                size="sm"
-                disabled={loadingPlan === "pro"}
-              >
-                {loadingPlan === "pro" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : isLoggedIn ? "Activar Pro" : "Empezar con Pro"}
-              </Button>
-            </Card>
-
-            {/* Premium Plan */}
-            <Card className="p-4 border-2 border-primary relative">
-              <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px]">
-                <Star className="w-2 h-2 mr-1" />
-                POPULAR
-              </Badge>
-
-              <div className="text-center mb-4">
-                <h3 className="text-lg font-bold">Premium</h3>
-                <div className="text-2xl font-bold mt-1 text-primary">$29.99<span className="text-sm font-normal text-muted-foreground">/mes</span></div>
-                <p className="text-xs text-muted-foreground mt-1">Sin salir a cámara</p>
-              </div>
-
-              <ul className="space-y-2 mb-4">
-                <li className="flex items-center gap-2 text-xs font-medium">
-                  <Check className="w-3 h-3 text-green-500" />
-                  <span>Todo lo de Pro</span>
+            <ul className="space-y-2 mb-4">
+              {PRO_FEATURES.map((f, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <span>{f.text}</span>
                 </li>
-                {PREMIUM_FEATURES.map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-xs">
-                    <Check className="w-3 h-3 text-green-500" />
-                    <span>{f.text}</span>
-                  </li>
-                ))}
-              </ul>
+              ))}
+            </ul>
 
-              <Button 
-                onClick={() => handleSelectPlan("premium")} 
-                className="w-full" 
-                size="sm"
-                disabled={loadingPlan === "premium"}
-              >
-                {loadingPlan === "premium" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : isLoggedIn ? "Activar Premium" : "Empezar con Premium"}
-              </Button>
-            </Card>
-          </div>
+            <Button
+              onClick={() => handleSelectPlan("pro")}
+              className="w-full"
+              disabled={loadingPlan === "pro"}
+            >
+              {loadingPlan === "pro" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : "Desbloquear ahora"}
+            </Button>
+          </Card>
 
           <Button variant="ghost" onClick={onClose} className="w-full mt-4 text-muted-foreground">
             Seguir explorando
           </Button>
+
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            Sin permanencia. Cancelas cuando quieras.
+          </p>
 
           <p className="text-xs text-muted-foreground text-center mt-3">
             Al continuar, aceptas nuestros{" "}

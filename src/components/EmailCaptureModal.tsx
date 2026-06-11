@@ -15,7 +15,7 @@ interface EmailCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   referralCode?: string | null;
-  plan?: 'pro' | 'premium';
+  plan?: 'pro';
 }
 
 export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialReferralCode, plan = 'pro' }: EmailCaptureModalProps) => {
@@ -174,12 +174,10 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
     { icon: Zap, text: "Actualizaciones diarias" },
   ];
 
-  const proPrice = 25;
-  const premiumPrice = 29.99;
-  const basePrice = plan === 'premium' ? premiumPrice : proPrice;
+  const basePrice = 25;
   const displayPrice = codeValid ? `$${(basePrice * 0.5).toFixed(2)}` : `$${basePrice.toFixed(2)}`;
   const originalPrice = codeValid ? `$${basePrice.toFixed(2)}` : null;
-  const planLabel = plan === 'premium' ? 'TokXray Premium' : 'TokXray Pro';
+  const planLabel = 'TokXray Pro';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -63,8 +63,11 @@ export function useParallelPipeline() {
   }, []);
 
   const loadCurrentStats = useCallback(async () => {
+    // `transcript` is REVOKED for `authenticated` at the DB level (premium
+    // lockdown). The pipeline needs it to count pending transcriptions, so read
+    // full rows via the founder-gated SECURITY DEFINER RPC. Runs only for founders.
     const [videosRes, creatorsRes] = await Promise.all([
-      supabase.from("videos").select("id, product_id, video_mp4_url, transcript, processing_status, download_attempts"),
+      supabase.rpc("get_videos_admin"),
       supabase.from("creators").select("id, avatar_url, avatar_storage_url"),
     ]);
 

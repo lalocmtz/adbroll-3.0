@@ -75,9 +75,7 @@ const Pricing = () => {
         "Hooks generados por IA",
         "Oportunidades de productos con alto potencial",
         "Panel de afiliados (30% comisión recurrente)",
-        "Acceso a campañas de marcas",
         "Ranking de creadores top",
-        "Biblioteca personal de assets",
         "Soporte prioritario",
       ]
     : [
@@ -87,9 +85,7 @@ const Pricing = () => {
         "AI-generated hooks",
         "High-potential product opportunities",
         "Affiliate panel (30% recurring commission)",
-        "Access to brand campaigns",
         "Top creator rankings",
-        "Personal asset library",
         "Priority support",
       ];
 
@@ -97,8 +93,8 @@ const Pricing = () => {
     {
       question: language === "es" ? "¿Qué incluye la suscripción?" : "What's included in the subscription?",
       answer: language === "es"
-        ? "Acceso completo a todas las herramientas: videos virales, extracción de scripts, variantes IA, oportunidades de productos, campañas de marcas, y el panel de afiliados para ganar comisiones."
-        : "Full access to all tools: viral videos, script extraction, AI variants, product opportunities, brand campaigns, and the affiliate panel to earn commissions.",
+        ? "Acceso completo a todas las herramientas: videos virales, extracción de scripts, variantes IA, oportunidades de productos, y el panel de afiliados para ganar comisiones."
+        : "Full access to all tools: viral videos, script extraction, AI variants, product opportunities, and the affiliate panel to earn commissions.",
     },
     {
       question: language === "es" ? "¿Puedo cancelar en cualquier momento?" : "Can I cancel anytime?",
@@ -241,7 +237,7 @@ const Pricing = () => {
                 )}
                 <span className="text-muted-foreground text-lg">/{language === "es" ? "mes" : "month"}</span>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">~$500 MXN/{language === "es" ? "mes" : "month"}</p>
+              <p className="text-sm text-muted-foreground mt-2">~$499 MXN/{language === "es" ? "mes" : "month"}</p>
               {referralValid && (
                 <p className="text-sm text-green-600 mt-2 font-medium">
                   🎉 50% off {language === "es" ? "primer mes" : "first month"}

@@ -44,18 +44,18 @@ export const useTranscriptionPolling = (): UseTranscriptionPollingResult => {
 
   const pollForTranscript = useCallback(async (videoId: string): Promise<string | null> => {
     try {
+      // `transcripcion_original` is a REVOKED premium column on daily_feed at
+      // the DB level. Read it through the founder-gated SECURITY DEFINER RPC
+      // (this admin polling hook only runs in the founder pipeline context).
       const { data, error } = await supabase
-        .from("daily_feed")
-        .select("transcripcion_original")
-        .eq("id", videoId)
-        .maybeSingle();
+        .rpc("get_daily_feed_admin", { _ids: [videoId] });
 
       if (error) {
         console.error("Polling error:", error);
         return null;
       }
 
-      return data?.transcripcion_original || null;
+      return data?.[0]?.transcripcion_original || null;
     } catch (err) {
       console.error("Polling fetch error:", err);
       return null;

@@ -19,10 +19,7 @@ import Unlock from "./pages/Unlock";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Creators from "./pages/Creators";
-import Talent from "./pages/Talent";
 import Favorites from "./pages/Favorites";
-import Library from "./pages/Library";
-import Tools from "./pages/Tools";
 import Settings from "./pages/Settings";
 import Support from "./pages/Support";
 import Admin from "./pages/Admin";
@@ -38,18 +35,9 @@ import Pricing from "./pages/Pricing";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import CheckoutCancel from "./pages/CheckoutCancel";
 import NotFound from "./pages/NotFound";
-import Campaigns from "./pages/Campaigns";
-import CampaignDetail from "./pages/CampaignDetail";
-import MySubmissions from "./pages/MySubmissions";
-import BrandDashboard from "./pages/brand/BrandDashboard";
-import BrandCampaigns from "./pages/brand/BrandCampaigns";
-import BrandSubmissions from "./pages/brand/BrandSubmissions";
-import BrandUpgrade from "./pages/brand/BrandUpgrade";
-import BrandRegister from "./pages/brand/BrandRegister";
 import CreatorProgram from "./pages/CreatorProgram";
 import Redeem from "./pages/Redeem";
 import VideoAttribution from "./pages/admin/VideoAttribution";
-import RecruitGDL from "./pages/RecruitGDL";
 
 const queryClient = new QueryClient();
 
@@ -170,7 +158,6 @@ const App = () => {
                   <Route path="/checkout/cancel" element={<CheckoutCancel />} />
                   <Route path="/programa-creadores" element={<CreatorProgram />} />
                   <Route path="/canjear" element={<Redeem />} />
-                  <Route path="/reclutamiento-gdl" element={<RecruitGDL />} />
                   
                   {/* APP-FIRST: Main app routes (viewable by all, gated by blur) */}
                   <Route
@@ -198,36 +185,11 @@ const App = () => {
                     }
                   />
                   <Route path="/creadores" element={<Navigate to="/ranking-creadores" replace />} />
-                  <Route path="/contrata-creadores" element={<Navigate to="/talento" replace />} />
-                  <Route
-                    path="/talento"
-                    element={
-                      <AppRoute session={session}>
-                        <Talent />
-                      </AppRoute>
-                    }
-                  />
                   <Route
                     path="/favorites"
                     element={
                       <AppRoute session={session}>
                         <Favorites />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/library"
-                    element={
-                      <AppRoute session={session}>
-                        <Library />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/tools"
-                    element={
-                      <AppRoute session={session}>
-                        <Tools />
                       </AppRoute>
                     }
                   />
@@ -279,79 +241,7 @@ const App = () => {
                       </AppRoute>
                     }
                   />
-                  
-                  {/* Campaigns routes */}
-                  <Route
-                    path="/campaigns"
-                    element={
-                      <AppRoute session={session}>
-                        <Campaigns />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/campaigns/:id"
-                    element={
-                      <AppRoute session={session}>
-                        <CampaignDetail />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/my-submissions"
-                    element={
-                      <AppRoute session={session}>
-                        <MySubmissions />
-                      </AppRoute>
-                    }
-                  />
-                  
-                  {/* Brand routes - require auth */}
-                  <Route
-                    path="/brand/dashboard"
-                    element={
-                      <AppRoute session={session} requiresAuth>
-                        <BrandDashboard />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/brand/campaigns"
-                    element={
-                      <AppRoute session={session} requiresAuth>
-                        <BrandCampaigns />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/brand/campaigns/:id/submissions"
-                    element={
-                      <AppRoute session={session} requiresAuth>
-                        <BrandSubmissions />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/brand/upgrade"
-                    element={
-                      <AppRoute session={session} requiresAuth>
-                        <BrandUpgrade />
-                      </AppRoute>
-                    }
-                    />
-                  <Route
-                    path="/brand/register"
-                    element={
-                      <AppRoute session={session} requiresAuth>
-                        <BrandRegister />
-                      </AppRoute>
-                    }
-                  />
-                  <Route
-                    path="/brand"
-                    element={<Navigate to="/brand/dashboard" replace />}
-                  />
-                  
+
                   {/* Admin routes - require auth */}
                   <Route
                     path="/admin/import"
