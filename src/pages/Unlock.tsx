@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SimpleEmailCaptureModal } from "@/components/SimpleEmailCaptureModal";
-import { trackInitiateCheckout } from "@/lib/analytics";
+import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
 import logoDark from "@/assets/logo-dark.png";
 
 const Unlock = () => {
@@ -58,7 +58,8 @@ const Unlock = () => {
 
   const processCheckout = async (email: string) => {
     setIsLoading(true);
-    trackInitiateCheckout(25, "USD", "Adbroll Pro");
+    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
+    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout-guest", {
         body: {
@@ -133,7 +134,7 @@ const Unlock = () => {
               <span className="text-primary">HOY</span> en TikTok Shop
             </h1>
             <p className="text-muted-foreground text-sm md:text-lg mb-6 md:mb-8">
-              Scripts virales, análisis IA y oportunidades de productos. Todo por $25/mes.
+              Scripts virales, análisis IA y oportunidades de productos. Todo por $24.99/mes.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mb-6 md:mb-8 text-sm text-muted-foreground">
@@ -161,7 +162,7 @@ const Unlock = () => {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  Empezar ahora — $25/mes
+                  Empezar ahora — $24.99/mes
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
@@ -239,7 +240,7 @@ const Unlock = () => {
                   <p className="text-sm text-muted-foreground">Todo lo que necesitas para vender</p>
                 </div>
                 <div className="text-center mb-6">
-                  <span className="text-5xl font-bold text-primary">$25</span>
+                  <span className="text-5xl font-bold text-primary">$24.99</span>
                   <span className="text-muted-foreground text-lg">/mes</span>
                   <p className="text-sm text-muted-foreground mt-1">~$500 MXN/mes</p>
                 </div>

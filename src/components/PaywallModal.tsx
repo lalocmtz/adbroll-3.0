@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useBlurGate } from "@/hooks/useBlurGate";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { trackInitiateCheckout } from "@/lib/analytics";
+import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
 
 interface PaywallModalProps {
   open: boolean;
@@ -31,8 +31,9 @@ export const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   const handleSelectPlan = async (plan: "pro") => {
-    // Track InitiateCheckout event for Meta Pixel
-    trackInitiateCheckout(25, "USD", "Adbroll Pro");
+    // Reached checkout + real payment intent — give Meta both signals.
+    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
+    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
 
     if (!isLoggedIn) {
       navigate(`/register?plan=${plan}`);
@@ -100,7 +101,7 @@ export const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
             </Badge>
 
             <div className="text-center mb-4 pt-2">
-              <div className="text-3xl font-bold mt-1">$25<span className="text-sm font-normal text-muted-foreground"> USD/mes</span></div>
+              <div className="text-3xl font-bold mt-1">$24.99<span className="text-sm font-normal text-muted-foreground"> USD/mes</span></div>
             </div>
 
             <ul className="space-y-2 mb-4">

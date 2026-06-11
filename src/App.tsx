@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -47,9 +47,23 @@ const queryClient = new QueryClient();
 // once per SPA session when a ref_code is present.
 const PageTracker = () => {
   const location = useLocation();
+  // index.html already fires the Meta Pixel PageView on initial load, so
+  // skip the very first effect run to avoid double-counting; fire on every
+  // subsequent SPA navigation instead.
+  const firstPixelView = useRef(true);
 
   useEffect(() => {
     trackPageView(location.pathname + location.search);
+
+    // SPA route changes don't reload index.html, so the Meta Pixel
+    // PageView that fires on initial load never re-fires on navigation.
+    // Fire it explicitly on each route change (guarded — no-op if the
+    // pixel never loaded because VITE_META_PIXEL_ID was unset at build).
+    if (firstPixelView.current) {
+      firstPixelView.current = false;
+    } else {
+      window.fbq?.("track", "PageView");
+    }
 
     if (location.pathname === "/") {
       const { payload, isNewPartnerSession } = captureAttribution();

@@ -168,7 +168,7 @@ export const EmailLeadsList = () => {
                 <li>✅ Generación de variantes de hooks</li>
                 <li>✅ Oportunidades de productos con alto margen</li>
               </ul>
-              <p><strong>Por solo $25 USD/mes</strong></p>
+              <p><strong>Por solo $24.99 USD/mes</strong></p>
               <a href="https://tokxray.com/pricing" style="display: inline-block; background: #F31260; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin-top: 16px;">
                 Activar TokXray Pro
               </a>

@@ -15,6 +15,7 @@ import {
   measureSince,
   track,
   trackStandard,
+  trackViewContent,
 } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +61,8 @@ export const GuionModal = ({
       creator_handle: creatorHandle,
       default_variant: defaultVariant,
     });
+    // Meta Pixel: opening a premium script is high-intent content viewing.
+    trackViewContent("guion", videoId);
     setActive(defaultVariant);
     return () => {
       clearMark(MARK_KEY);

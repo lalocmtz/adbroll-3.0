@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -70,6 +71,10 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
       ];
 
   const handleSelectPlan = async (plan: "pro") => {
+    // Reached checkout + real payment intent — give Meta both signals.
+    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
+    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
+
     setLoadingPlan(plan);
     onOpenChange(false);
     const refParam = referralCode ? `&ref=${referralCode}` : "";
@@ -95,7 +100,7 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
     setLoadingPlan(null);
   };
 
-  const proPrice = 25;
+  const proPrice = 24.99;
   const discountedProPrice = referralValid ? proPrice * 0.5 : proPrice;
 
   return (

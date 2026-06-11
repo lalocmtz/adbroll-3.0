@@ -91,6 +91,7 @@ export const trackStandard = (
     | "CompleteRegistration"
     | "ViewContent"
     | "InitiateCheckout"
+    | "AddPaymentInfo"
     | "Subscribe"
     | "StartTrial"
     | "Customize"
@@ -128,6 +129,19 @@ export const trackInitiateCheckout = (
   plan?: string,
 ) => {
   trackStandard("InitiateCheckout", { value, currency, plan });
+};
+
+/**
+ * AddPaymentInfo — fired when the user shows real payment intent (clicks
+ * the button that creates the Stripe Checkout session). Stronger signal
+ * to Meta than InitiateCheckout alone; we fire both on that same click.
+ */
+export const trackAddPaymentInfo = (
+  value?: number,
+  currency = "USD",
+  plan?: string,
+) => {
+  trackStandard("AddPaymentInfo", { value, currency, plan });
 };
 
 export const trackPurchase = (
@@ -168,11 +182,60 @@ export const measureSince = (key: string): number | undefined => {
 };
 export const clearMark = (key: string) => marks.delete(key);
 
+/**
+ * Stable per-browser session id so the admin funnel / TrafficAnalytics can
+ * count unique visitors. Persisted in localStorage; regenerated only when
+ * storage is cleared. Never throws.
+ */
+const SESSION_KEY = "tokxray_session_id";
+const getSessionId = (): string | undefined => {
+  if (typeof window === "undefined") return undefined;
+  try {
+    let id = localStorage.getItem(SESSION_KEY);
+    if (!id) {
+      id =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `s_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    return undefined;
+  }
+};
+
 export const trackPageView = (path: string) => {
   if (posthogReady) {
     posthog.capture("$pageview", { $current_url: path });
   }
-  metaTrack("PageView");
+
+  // Persist the view to our own `page_views` table (via the service-role
+  // track-page-view edge function — RLS blocks direct client inserts) so the
+  // admin conversion funnel and TrafficAnalytics have real first-party data.
+  // Fire-and-forget; analytics must never break navigation.
+  try {
+    import("@/integrations/supabase/client")
+      .then(({ supabase }) =>
+        supabase.functions.invoke("track-page-view", {
+          body: {
+            page_path: path,
+            session_id: getSessionId(),
+            referrer:
+              typeof document !== "undefined" ? document.referrer || null : null,
+          },
+        }),
+      )
+      .catch(() => {
+        /* swallow — never break the app for analytics */
+      });
+  } catch {
+    /* swallow */
+  }
+
+  // NOTE: the Meta Pixel PageView on SPA navigation is fired by the
+  // PageTracker in App.tsx (window.fbq('track','PageView')) to keep a
+  // single, well-guarded source of truth and avoid double-counting.
 };
 
 export const identify = (

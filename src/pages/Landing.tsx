@@ -29,6 +29,7 @@ import {
   mark,
   measureSince,
   track,
+  trackViewContent,
 } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
@@ -135,6 +136,11 @@ const Landing = () => {
   const footerRef = useRef<HTMLElement | null>(null);
   const pricingFired = useRef(false);
   const footerFired = useRef(false);
+
+  /* ---- Meta Pixel ViewContent: landing is the product page ---- */
+  useEffect(() => {
+    trackViewContent("landing", "tokxray_pro");
+  }, []);
 
   /* ---- live videos carousel (non-premium columns only) ---- */
   useEffect(() => {

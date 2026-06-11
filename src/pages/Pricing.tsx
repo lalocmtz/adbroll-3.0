@@ -19,6 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
 
 const Pricing = () => {
   const navigate = useNavigate();
@@ -111,6 +112,10 @@ const Pricing = () => {
   ];
 
   const handleSelectPlan = async () => {
+    // Reached checkout + real payment intent — give Meta both signals.
+    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
+    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
+
     if (!session) {
       const refParam = referralCode ? `&ref=${referralCode}` : "";
       navigate(`/register?redirect=/pricing${refParam}&plan=pro`);
@@ -144,7 +149,7 @@ const Pricing = () => {
     }
   };
 
-  const price = 25;
+  const price = 24.99;
   const discountedPrice = referralValid ? price * 0.5 : price;
 
   return (

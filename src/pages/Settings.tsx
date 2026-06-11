@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
 import {
   Select,
   SelectContent,
@@ -87,6 +88,10 @@ const Settings = () => {
   };
 
   const handleSubscribe = async () => {
+    // Reached checkout + real payment intent — give Meta both signals.
+    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
+    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
+
     setCheckoutLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
@@ -275,7 +280,7 @@ const Settings = () => {
                   <Zap className="h-5 w-5 text-primary" />
                   <span className="font-semibold">TokXray Pro</span>
                 </div>
-                <p className="text-2xl font-bold mb-2">$25<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+                <p className="text-2xl font-bold mb-2">$24.99<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
                 <p className="text-sm text-muted-foreground mb-4">
                   {language === "es" 
                     ? "Acceso completo a todas las herramientas" 

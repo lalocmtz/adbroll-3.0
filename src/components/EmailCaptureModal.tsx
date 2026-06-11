@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Tag, Check, X, TrendingUp, FileText, Wand2, ShoppingBag, Zap } from "lucide-react";
+import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
 import { z } from "zod";
 
 const emailSchema = z.string().email({ message: "Ingresa un email válido" });
@@ -121,6 +122,10 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
 
     setLoading(true);
 
+    // Reached checkout + real payment intent — give Meta both signals.
+    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
+    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
+
     try {
       // Save email to database for abandoned cart tracking
       const { error: captureError } = await supabase
@@ -174,7 +179,7 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
     { icon: Zap, text: "Actualizaciones diarias" },
   ];
 
-  const basePrice = 25;
+  const basePrice = 24.99;
   const displayPrice = codeValid ? `$${(basePrice * 0.5).toFixed(2)}` : `$${basePrice.toFixed(2)}`;
   const originalPrice = codeValid ? `$${basePrice.toFixed(2)}` : null;
   const planLabel = 'TokXray Pro';
