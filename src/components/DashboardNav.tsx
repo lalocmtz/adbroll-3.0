@@ -1,5 +1,5 @@
 import { NavLink } from "./NavLink";
-import { Video, Package, TrendingUp, UserPlus, Heart } from "lucide-react";
+import { Video, Package, TrendingUp, Heart } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const DashboardNav = () => {
@@ -9,7 +9,6 @@ const DashboardNav = () => {
     { to: "/app", label: t("videos"), icon: Video },
     { to: "/products", label: t("products"), icon: Package },
     { to: "/ranking-creadores", label: language === "es" ? "Ranking Creadores" : "Creator Rankings", icon: TrendingUp },
-    { to: "/talento", label: language === "es" ? "Talento" : "Talent", icon: UserPlus },
     { to: "/favorites", label: t("favorites"), icon: Heart },
   ];
 

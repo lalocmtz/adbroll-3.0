@@ -42,12 +42,12 @@ export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
             </div>
             <CardTitle className="text-2xl">Suscripción Requerida</CardTitle>
             <CardDescription>
-              Necesitas una suscripción activa para acceder a TokXray Premium
+              Necesitas una suscripción activa para acceder a TokXray Pro
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-muted rounded-lg p-6 text-center">
-              <p className="text-3xl font-bold mb-2">$49 USD</p>
+              <p className="text-3xl font-bold mb-2">$25 USD</p>
               <p className="text-sm text-muted-foreground">por mes</p>
             </div>
             

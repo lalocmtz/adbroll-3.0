@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -13,10 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Check,
-  Sparkles,
   Gift,
-  Star,
-  Video,
   Zap,
 } from "lucide-react";
 
@@ -73,23 +69,7 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
         "Affiliate panel (30%)",
       ];
 
-  const premiumFeatures = language === "es"
-    ? [
-        "Todo lo de Pro incluido",
-        "5 videos IA con lip-sync/mes",
-        "Genera sin salir a cámara",
-        "Voces ElevenLabs premium",
-        "Soporte prioritario",
-      ]
-    : [
-        "Everything in Pro included",
-        "5 AI videos with lip-sync/month",
-        "Generate without filming",
-        "Premium ElevenLabs voices",
-        "Priority support",
-      ];
-
-  const handleSelectPlan = async (plan: "pro" | "premium") => {
+  const handleSelectPlan = async (plan: "pro") => {
     setLoadingPlan(plan);
     onOpenChange(false);
     const refParam = referralCode ? `&ref=${referralCode}` : "";
@@ -116,16 +96,14 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
   };
 
   const proPrice = 25;
-  const premiumPrice = 29.99;
   const discountedProPrice = referralValid ? proPrice * 0.5 : proPrice;
-  const discountedPremiumPrice = referralValid ? premiumPrice * 0.5 : premiumPrice;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl text-center">
-            {language === "es" ? "Elige tu plan" : "Choose your plan"}
+            {language === "es" ? "Un solo plan, todo incluido" : "One plan, everything included"}
           </DialogTitle>
         </DialogHeader>
 
@@ -140,16 +118,16 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid gap-4">
           {/* Pro Plan */}
-          <Card className="relative p-5 border-2 border-border hover:border-primary/50 transition-colors">
+          <Card className="relative p-5 border-2 border-primary">
             <div className="text-center mb-4">
               <div className="inline-flex p-2 rounded-lg mb-2 bg-primary/10 text-primary">
                 <Zap className="h-5 w-5" />
               </div>
-              <h3 className="font-bold text-lg">Pro</h3>
+              <h3 className="font-bold text-lg">TokXray Pro</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                {language === "es" ? "Para creadores que graban" : "For creators who film"}
+                {language === "es" ? "Todas las herramientas para creadores de TikTok Shop" : "All tools for TikTok Shop creators"}
               </p>
 
               <div className="flex items-baseline justify-center gap-1 mt-3">
@@ -181,66 +159,11 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
             </ul>
 
             <Button
-              variant="outline"
               className="w-full"
               onClick={() => handleSelectPlan("pro")}
               disabled={loadingPlan !== null}
             >
-              {loadingPlan === "pro" ? "..." : language === "es" ? "Elegir Pro" : "Choose Pro"}
-            </Button>
-          </Card>
-
-          {/* Premium Plan */}
-          <Card className="relative p-5 border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10">
-            <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 text-xs bg-primary text-primary-foreground">
-              <Star className="h-3 w-3 mr-1" />
-              {language === "es" ? "Popular" : "Popular"}
-            </Badge>
-
-            <div className="text-center mb-4 pt-2">
-              <div className="inline-flex p-2 rounded-lg mb-2 bg-primary text-primary-foreground">
-                <Video className="h-5 w-5" />
-              </div>
-              <h3 className="font-bold text-lg">Premium</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                {language === "es" ? "Para creadores que no graban" : "For creators who don't film"}
-              </p>
-
-              <div className="flex items-baseline justify-center gap-1 mt-3">
-                {referralValid ? (
-                  <>
-                    <span className="text-sm text-muted-foreground line-through">
-                      ${premiumPrice}
-                    </span>
-                    <span className="text-2xl font-bold text-primary">
-                      ${discountedPremiumPrice.toFixed(2)}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-2xl font-bold">${premiumPrice}</span>
-                )}
-                <span className="text-muted-foreground text-sm">
-                  /{language === "es" ? "mes" : "month"}
-                </span>
-              </div>
-            </div>
-
-            <ul className="space-y-2 mb-4 text-sm">
-              {premiumFeatures.map((feature, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                  <span className="text-foreground">{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <Button
-              className="w-full"
-              onClick={() => handleSelectPlan("premium")}
-              disabled={loadingPlan !== null}
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              {loadingPlan === "premium" ? "..." : language === "es" ? "Elegir Premium" : "Choose Premium"}
+              {loadingPlan === "pro" ? "..." : language === "es" ? "Empezar ahora" : "Start now"}
             </Button>
           </Card>
         </div>

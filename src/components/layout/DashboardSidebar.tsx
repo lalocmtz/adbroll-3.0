@@ -11,20 +11,15 @@ import { Separator } from "@/components/ui/separator";
 import {
   PlayCircle,
   Package,
-  Users,
   Heart,
   Settings,
   HelpCircle,
   X,
   TrendingUp,
   Coins,
-  Wrench,
   LogIn,
   Lock,
   LogOut,
-  FolderOpen,
-  Crown,
-  Sparkles,
 } from "lucide-react";
 import PricingModal from "@/components/PricingModal";
 import MarketSwitcher from "@/components/MarketSwitcher";
@@ -58,13 +53,11 @@ const exploreItems: NavItem[] = [
   { to: "/app", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle, lockedForVisitor: false },
   { to: "/products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: false },
   { to: "/ranking-creadores", labelEs: "Ranking Creadores", labelEn: "Creator Rankings", icon: TrendingUp, lockedForVisitor: false },
-  { to: "/talento", labelEs: "Campañas y Creadores", labelEn: "Campaigns & Creators", icon: Users, lockedForVisitor: false },
   { to: "/opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
 ];
 
-// TU CENTRO - Work tools (Tools hidden for non-founders)
+// TU CENTRO - Work tools
 const workspaceItems: NavItem[] = [
-  { to: "/tools", labelEs: "Herramientas", labelEn: "Tools", icon: Wrench, lockedForVisitor: true, founderOnly: true },
   { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
   { to: "/affiliates", labelEs: "Afiliados", labelEn: "Affiliates", icon: Coins, lockedForVisitor: true },
 ];
@@ -229,23 +222,6 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
           {renderSectionLabel("workspace")}
           <div className="space-y-0.5">
             {workspaceItems.map(renderNavItem)}
-          </div>
-          
-          {/* Círculo Interno CTA */}
-          <div className="mt-3 px-0">
-            <NavLink
-              to="/talento"
-              onClick={handleNavClick}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm w-full transition-all duration-200 bg-gradient-to-r from-primary/10 to-pink-500/10 text-primary hover:from-primary/20 hover:to-pink-500/20"
-            >
-              <Crown className="h-4 w-4" />
-              <div className="flex flex-col text-left">
-                <span className="font-medium">{language === "es" ? "Círculo Interno" : "Inner Circle"}</span>
-                <span className="text-[10px] font-normal opacity-80">
-                  {language === "es" ? "Aplica como creador" : "Apply as creator"}
-                </span>
-              </div>
-            </NavLink>
           </div>
         </nav>
 

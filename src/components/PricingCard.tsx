@@ -55,7 +55,7 @@ export const PricingCard = ({
           </span>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          ~$500 MXN/{language === "es" ? "mes" : "mo"}
+          ~$499 MXN/{language === "es" ? "mes" : "mo"}
         </p>
         {hasDiscount && (
           <p className="text-sm text-green-600 mt-2 font-medium">
