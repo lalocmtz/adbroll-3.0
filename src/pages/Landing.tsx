@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 interface LiveVideo {
   id: string;
   thumbnail_url: string | null;
+  video_mp4_url: string | null;
   title: string | null;
   creator_name: string | null;
   creator_handle: string | null;
@@ -151,16 +152,16 @@ const Landing = () => {
         const { data, error } = await supabase
           .from("videos")
           .select(
-            `id, thumbnail_url, title, creator_name, creator_handle,
+            `id, thumbnail_url, video_mp4_url, title, creator_name, creator_handle,
              revenue_mxn, sales, views, product_name, product_id,
              product:products!product_id ( commission )`,
           )
           .eq("country", market)
           .not("rank", "is", null)
           .not("product_id", "is", null)
-          .not("thumbnail_url", "is", null)
+          .not("video_mp4_url", "is", null)
           .order("rank", { ascending: true })
-          .limit(12);
+          .limit(10);
         if (error) throw error;
         if (!cancelled) setVideos((data as LiveVideo[]) || []);
       } catch {
@@ -393,7 +394,6 @@ const Landing = () => {
                     key={v.id}
                     video={v}
                     formatMoney={formatMoney}
-                    onClick={() => goApp("video_carousel")}
                   />
                 ))}
           </HScroll>
@@ -897,11 +897,9 @@ const HScroll = ({
 const VideoCard = ({
   video,
   formatMoney,
-  onClick,
 }: {
   video: LiveVideo;
   formatMoney: (n: number | null | undefined) => string;
-  onClick: () => void;
 }) => {
   const handle =
     video.creator_handle ||
@@ -914,26 +912,35 @@ const VideoCard = ({
       : null;
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group relative w-[200px] flex-shrink-0 snap-start overflow-hidden rounded-card border border-white/10 bg-white/[0.03] text-left transition-colors hover:bg-white/[0.06]"
+    <div
+      className="group relative w-[200px] flex-shrink-0 snap-start overflow-hidden rounded-card border border-white/10 bg-white/[0.03] text-left"
     >
       <div className="relative aspect-[9/13] w-full overflow-hidden bg-brand-ink-800">
-        {video.thumbnail_url ? (
+        {video.video_mp4_url ? (
+          // El video real se reproduce solo (muted/loop). pointer-events-none:
+          // tocarlo NO abre nada; el gesto pasa al carrusel que se frena al tocar.
+          <video
+            src={video.video_mp4_url}
+            poster={video.thumbnail_url || undefined}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="pointer-events-none h-full w-full object-cover"
+          />
+        ) : video.thumbnail_url ? (
           <img
             src={video.thumbnail_url}
             alt={video.title || "Video"}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="pointer-events-none h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <PlayCircle className="h-10 w-10 text-white/20" />
-          </div>
+          <div className="h-full w-full bg-brand-ink-800" />
         )}
-        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-3">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 to-transparent" />
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 p-3">
           <p className="truncate text-xs font-semibold text-white">{handle}</p>
           {video.product_name && (
             <p className="truncate text-[11px] text-white/60">{video.product_name}</p>
@@ -964,7 +971,7 @@ const VideoCard = ({
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 };
 
@@ -1135,6 +1142,7 @@ const FALLBACK_VIDEOS: LiveVideo[] = [
   {
     id: "fb-1",
     thumbnail_url: null,
+    video_mp4_url: null,
     title: "Serum Vitamina C",
     creator_name: "Mariana",
     creator_handle: "@marianacrea",
@@ -1148,6 +1156,7 @@ const FALLBACK_VIDEOS: LiveVideo[] = [
   {
     id: "fb-2",
     thumbnail_url: null,
+    video_mp4_url: null,
     title: "Resistencia Pro",
     creator_name: "Javi",
     creator_handle: "@javi.fit",
@@ -1161,6 +1170,7 @@ const FALLBACK_VIDEOS: LiveVideo[] = [
   {
     id: "fb-3",
     thumbnail_url: null,
+    video_mp4_url: null,
     title: "Set Antiadherentes",
     creator_name: "Lulu",
     creator_handle: "@casadelulu",
@@ -1174,6 +1184,7 @@ const FALLBACK_VIDEOS: LiveVideo[] = [
   {
     id: "fb-4",
     thumbnail_url: null,
+    video_mp4_url: null,
     title: "Labial Matte 24h",
     creator_name: "Susana",
     creator_handle: "@susanavibes",
