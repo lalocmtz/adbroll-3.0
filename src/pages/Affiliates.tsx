@@ -19,7 +19,7 @@ const MINIMUM_PAYOUT = 50;
 const Affiliates = () => {
   const { toast } = useToast();
   const { language } = useLanguage();
-  const { affiliate, referrals, dashboard, loading, refetch } = useAffiliate();
+  const { affiliate, dashboard, loading, refetch } = useAffiliate();
   const [copied, setCopied] = useState(false);
   const [creating, setCreating] = useState(false);
   const [isEditingCode, setIsEditingCode] = useState(false);
@@ -67,6 +67,20 @@ const Affiliates = () => {
 
   // Prefer the server-computed code from the dashboard RPC, fall back to the row.
   const activeCode = dashboard?.code ?? affiliate?.ref_code;
+
+  // Stripe Connect state — prefer server-computed flags from the dashboard RPC,
+  // fall back to the raw affiliate row if the RPC is unavailable.
+  const hasConnect =
+    dashboard?.has_connect ?? Boolean((affiliate as any)?.stripe_connect_id);
+  const connectReady =
+    dashboard?.connect_ready ?? Boolean((affiliate as any)?.stripe_onboarding_complete);
+
+  // Available balance from the RPC (fallback to the row).
+  const usdAvailable = dashboard?.usd_available ?? affiliate?.usd_available ?? 0;
+
+  // Referrals + commissions come from the RPC (masked, server-computed).
+  const dashReferrals = dashboard?.referrals ?? [];
+  const commissionsHistory = dashboard?.commissions_history ?? [];
 
   const handleCopyLink = async () => {
     if (activeCode) {
@@ -338,8 +352,158 @@ const Affiliates = () => {
         </div>
       </Card>
 
+      {/* How it works — 3 simple steps, up top */}
+      <Card className="p-5 mb-6">
+        <h3 className="font-semibold mb-4">
+          {language === "es" ? "Cómo funciona" : "How it works"}
+        </h3>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+              1
+            </div>
+            <div>
+              <p className="font-medium text-sm">
+                {language === "es" ? "Comparte tu link" : "Share your link"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {language === "es"
+                  ? "Mándalo a otros creadores"
+                  : "Send it to other creators"}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+              2
+            </div>
+            <div>
+              <p className="font-medium text-sm">
+                {language === "es" ? "Alguien se suscribe" : "Someone subscribes"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {language === "es" ? "Con tu link, a TokXray" : "With your link, to TokXray"}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 font-bold text-sm">
+              3
+            </div>
+            <div>
+              <p className="font-medium text-sm text-green-600">
+                {language === "es" ? "Ganas $7.50/mes" : "You earn $7.50/mo"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {language === "es"
+                  ? "Mientras siga pagando"
+                  : "For as long as they keep paying"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {affiliate ? (
         <div className="space-y-6">
+          {/* Share Section — first, so the link is the hero action */}
+          <Card className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Share2 className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">
+                {language === "es" ? "Tu link de afiliado" : "Your affiliate link"}
+              </h3>
+            </div>
+
+            <div className="space-y-4">
+              {/* One-click copy link — the primary action */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">
+                  {language === "es" ? "Tu link de referido" : "Your referral link"}
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    value={`${ADBROLL_DOMAIN}?ref=${activeCode}`}
+                    readOnly
+                    className="text-sm"
+                  />
+                  <Button onClick={handleCopyLink} className="shrink-0 gap-2">
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {copied
+                      ? (language === "es" ? "¡Copiado!" : "Copied!")
+                      : (language === "es" ? "Copiar mi link" : "Copy my link")}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Editable code (one-time) */}
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">
+                  {language === "es" ? "Tu código" : "Your code"}
+                </label>
+                <div className="flex gap-2">
+                  {isEditingCode ? (
+                    <>
+                      <Input
+                        value={editedCode}
+                        onChange={(e) => setEditedCode(e.target.value.toUpperCase())}
+                        className="font-mono font-bold tracking-wider text-lg uppercase"
+                        placeholder="TUCODIGO"
+                        maxLength={12}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={handleSaveCode}
+                        disabled={savingCode}
+                        className="shrink-0"
+                      >
+                        {savingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setIsEditingCode(false)}
+                        className="shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Input
+                        value={activeCode}
+                        readOnly
+                        className="font-mono font-bold tracking-wider text-lg"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={handleStartEditCode}
+                        disabled={dashboard?.code_customized}
+                        title={dashboard?.code_customized
+                          ? (language === "es" ? "Ya personalizaste tu código" : "Code already customized")
+                          : undefined}
+                        className="shrink-0"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" onClick={handleCopyCode} className="shrink-0">
+                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  {dashboard?.code_customized
+                    ? (language === "es"
+                        ? "Ya personalizaste tu código (solo se puede cambiar una vez)."
+                        : "You already customized your code (it can only be changed once).")
+                    : (language === "es"
+                        ? "Puedes personalizarlo una sola vez (4-12 letras o números). Toca el lápiz."
+                        : "You can customize it one time only (4-12 letters or numbers). Tap the pencil.")}
+                </p>
+              </div>
+            </div>
+          </Card>
+
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card className="p-4 text-center">
@@ -383,102 +547,6 @@ const Affiliates = () => {
             </Card>
           </div>
 
-          {/* Share Section */}
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Share2 className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">
-                {language === "es" ? "Tu código de afiliado" : "Your affiliate code"}
-              </h3>
-            </div>
-
-            <div className="space-y-4">
-              {/* Editable Affiliate Code */}
-              <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">
-                  {language === "es" ? "Código (editable)" : "Code (editable)"}
-                </label>
-                <div className="flex gap-2">
-                  {isEditingCode ? (
-                    <>
-                      <Input 
-                        value={editedCode}
-                        onChange={(e) => setEditedCode(e.target.value.toUpperCase())}
-                        className="font-mono font-bold tracking-wider text-lg uppercase"
-                        placeholder="TUCODIGO"
-                        maxLength={12}
-                      />
-                      <Button 
-                        variant="outline" 
-                        onClick={handleSaveCode} 
-                        disabled={savingCode}
-                        className="shrink-0"
-                      >
-                        {savingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        onClick={() => setIsEditingCode(false)}
-                        className="shrink-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Input
-                        value={dashboard?.code ?? affiliate.ref_code}
-                        readOnly
-                        className="font-mono font-bold tracking-wider text-lg"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={handleStartEditCode}
-                        disabled={dashboard?.code_customized}
-                        title={dashboard?.code_customized
-                          ? (language === "es" ? "Ya personalizaste tu código" : "Code already customized")
-                          : undefined}
-                        className="shrink-0"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" onClick={handleCopyCode} className="shrink-0">
-                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                      </Button>
-                    </>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  {dashboard?.code_customized
-                    ? (language === "es"
-                        ? "Ya personalizaste tu código (solo se puede cambiar una vez)."
-                        : "You already customized your code (it can only be changed once).")
-                    : (language === "es"
-                        ? "4-12 caracteres alfanuméricos. Haz clic en el lápiz para personalizar (una sola vez)."
-                        : "4-12 alphanumeric characters. Click the pencil to customize (one time only).")}
-                </p>
-              </div>
-
-              {/* Full Link */}
-              <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">
-                  {language === "es" ? "Tu enlace de referido" : "Your referral link"}
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    value={`${ADBROLL_DOMAIN}?ref=${activeCode}`}
-                    readOnly
-                    className="text-sm"
-                  />
-                  <Button onClick={handleCopyLink} className="shrink-0 gap-2">
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {language === "es" ? "Copiar" : "Copy"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
-
           {/* Stripe Connect Section */}
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -488,11 +556,11 @@ const Affiliates = () => {
               </h3>
             </div>
 
-            {!(affiliate as any).stripe_connect_id ? (
+            {!hasConnect ? (
               <div className="text-center py-4">
                 <AlertCircle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground mb-4">
-                  {language === "es" 
+                  {language === "es"
                     ? "Conecta tu cuenta bancaria para recibir tus pagos automáticamente cada miércoles."
                     : "Connect your bank account to receive payments automatically every Wednesday."}
                 </p>
@@ -505,11 +573,11 @@ const Affiliates = () => {
                   {language === "es" ? "Conectar cuenta bancaria" : "Connect bank account"}
                 </Button>
               </div>
-            ) : !(affiliate as any).stripe_onboarding_complete ? (
+            ) : !connectReady ? (
               <div className="text-center py-4">
                 <Clock className="h-10 w-10 text-amber-500 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground mb-4">
-                  {language === "es" 
+                  {language === "es"
                     ? "Tu cuenta está pendiente de verificación. Completa el proceso para recibir pagos."
                     : "Your account is pending verification. Complete the process to receive payments."}
                 </p>
@@ -527,7 +595,7 @@ const Affiliates = () => {
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30">
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
                   <span className="text-sm font-medium text-green-700 dark:text-green-400">
-                    {language === "es" ? "Cuenta verificada y lista para pagos" : "Account verified and ready for payouts"}
+                    {language === "es" ? "✅ Cuenta conectada · Pagos cada miércoles" : "✅ Account connected · Paid every Wednesday"}
                   </span>
                 </div>
 
@@ -546,20 +614,20 @@ const Affiliates = () => {
                   </div>
                 </div>
 
-                {affiliate.usd_available >= MINIMUM_PAYOUT ? (
+                {usdAvailable >= MINIMUM_PAYOUT ? (
                   <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30">
                     <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                      ✨ {language === "es" 
-                        ? `¡Tienes ${formatCurrency(affiliate.usd_available)} listos para el próximo pago!`
-                        : `You have ${formatCurrency(affiliate.usd_available)} ready for the next payout!`}
+                      ✨ {language === "es"
+                        ? `¡Tienes ${formatCurrency(usdAvailable)} listos para el próximo pago!`
+                        : `You have ${formatCurrency(usdAvailable)} ready for the next payout!`}
                     </p>
                   </div>
                 ) : (
                   <div className="p-4 rounded-lg bg-muted/50">
                     <p className="text-sm text-muted-foreground">
-                      {language === "es" 
-                        ? `Te faltan ${formatCurrency(MINIMUM_PAYOUT - affiliate.usd_available)} para el mínimo de retiro.`
-                        : `You need ${formatCurrency(MINIMUM_PAYOUT - affiliate.usd_available)} more to reach the minimum payout.`}
+                      {language === "es"
+                        ? `Te faltan ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} para el mínimo de retiro.`
+                        : `You need ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} more to reach the minimum payout.`}
                     </p>
                   </div>
                 )}
@@ -615,42 +683,47 @@ const Affiliates = () => {
             </Card>
           )}
 
-          {/* Referrals History */}
+          {/* Referrals */}
           <Card className="p-5">
             <h3 className="font-semibold mb-4">
-              {language === "es" ? "Historial de referidos" : "Referral history"}
+              {language === "es" ? "Tus referidos" : "Your referrals"}
             </h3>
-            {referrals.length === 0 ? (
+            {dashReferrals.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">
-                  {language === "es" 
-                    ? "Aún no tienes referidos. ¡Comparte tu código!"
-                    : "No referrals yet. Share your code!"}
+                  {language === "es"
+                    ? "Aún no tienes referidos. ¡Comparte tu link y empieza a ganar!"
+                    : "No referrals yet. Share your link and start earning!"}
                 </p>
               </div>
             ) : (
               <div className="space-y-2">
-                {referrals.map((referral) => (
+                {dashReferrals.map((referral, i) => (
                   <div
-                    key={referral.id}
+                    key={`${referral.email_masked}-${i}`}
                     className="p-3 rounded-lg bg-muted/50 flex items-center justify-between"
                   >
                     <div>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(referral.date || referral.created_at).toLocaleDateString(language === "es" ? "es-MX" : "en-US")}
-                      </p>
-                      <Badge
-                        variant={referral.status === "active" ? "default" : "secondary"}
-                        className="mt-1 text-xs"
-                      >
-                        {referral.status === "active" 
-                          ? (language === "es" ? "Activo" : "Active") 
-                          : (language === "es" ? "Pendiente" : "Pending")}
-                      </Badge>
+                      <p className="text-sm font-medium">{referral.email_masked}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge
+                          variant={referral.status === "active" ? "default" : "secondary"}
+                          className="text-xs"
+                        >
+                          {referral.status === "active"
+                            ? (language === "es" ? "Activo" : "Active")
+                            : (language === "es" ? "Pendiente" : "Pending")}
+                        </Badge>
+                        {referral.since && (
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(referral.since).toLocaleDateString(language === "es" ? "es-MX" : "en-US")}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-lg font-bold text-green-600">
-                      +{formatCurrency(referral.earned_usd)}
+                    <p className="text-base font-bold text-green-600">
+                      +{formatCurrency(referral.monthly_commission)}<span className="text-xs font-normal text-muted-foreground">/mes</span>
                     </p>
                   </div>
                 ))}
@@ -658,66 +731,41 @@ const Affiliates = () => {
             )}
           </Card>
 
-          {/* How it works */}
-          <Card className="p-5">
-            <h3 className="font-semibold mb-4">
-              {language === "es" ? "¿Cómo funciona?" : "How does it work?"}
-            </h3>
-            <div className="grid md:grid-cols-4 gap-4">
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                  1
-                </div>
-                <div>
-                  <p className="font-medium text-sm">
-                    {language === "es" ? "Comparte" : "Share"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "es" ? "Tu enlace único" : "Your unique link"}
-                  </p>
-                </div>
+          {/* Commissions History */}
+          {commissionsHistory.length > 0 && (
+            <Card className="p-5">
+              <h3 className="font-semibold mb-4">
+                {language === "es" ? "Historial de comisiones" : "Commission history"}
+              </h3>
+              <div className="space-y-2">
+                {commissionsHistory.map((commission, i) => (
+                  <div
+                    key={`${commission.month}-${i}`}
+                    className="p-3 rounded-lg bg-muted/50 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {commission.date
+                          ? new Date(commission.date).toLocaleDateString(language === "es" ? "es-MX" : "en-US")
+                          : commission.month}
+                      </p>
+                      <Badge
+                        variant={commission.status === "paid" ? "default" : "secondary"}
+                        className="mt-1 text-xs"
+                      >
+                        {commission.status === "paid"
+                          ? (language === "es" ? "Pagado" : "Paid")
+                          : (language === "es" ? "Pendiente" : "Pending")}
+                      </Badge>
+                    </div>
+                    <p className="text-base font-bold text-green-600">
+                      +{formatCurrency(commission.amount)}
+                    </p>
+                  </div>
+                ))}
               </div>
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                  2
-                </div>
-                <div>
-                  <p className="font-medium text-sm">
-                    {language === "es" ? "Se suscriben" : "They subscribe"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "es" ? "A TokXray Pro" : "To TokXray Pro"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 font-bold text-sm">
-                  3
-                </div>
-                <div>
-                  <p className="font-medium text-sm text-green-600">
-                    {language === "es" ? "¡Ganas 30%!" : "You earn 30%!"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "es" ? "≈$7.50/mes" : "≈$7.50/mo"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 font-bold text-sm">
-                  4
-                </div>
-                <div>
-                  <p className="font-medium text-sm text-emerald-600">
-                    {language === "es" ? "Cobras" : "Get paid"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {language === "es" ? "Cada miércoles" : "Every Wednesday"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          )}
         </div>
       ) : (
         <Card className="p-8 text-center">

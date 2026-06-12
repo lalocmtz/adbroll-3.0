@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Users, X, Lock, Crown } from "lucide-react";
 import { FilterPills } from "@/components/FilterPills";
 import CreatorCard from "./CreatorCard";
+import { useStartCheckout } from "@/lib/checkout";
 
 interface DirectoryCreator {
   id: string;
@@ -28,6 +29,7 @@ const CreatorDirectory = () => {
   const { language } = useLanguage();
   const { toast } = useToast();
   const { hasPaid, isLoggedIn, openPaywall } = useBlurGateContext();
+  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
   const [creators, setCreators] = useState<DirectoryCreator[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -146,10 +148,11 @@ const CreatorDirectory = () => {
               : "Subscribe to see full profiles of verified creators, contact them directly, and collaborate on campaigns."}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="gap-2"
-              onClick={() => openPaywall("creator_directory")}
+              onClick={startCheckout}
+              disabled={checkoutLoading}
             >
               <Crown className="h-4 w-4" />
               {language === "es" ? "Desbloquear por $24.99/mes" : "Unlock for $24.99/mo"}

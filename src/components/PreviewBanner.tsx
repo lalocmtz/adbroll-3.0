@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Lock, Sparkles } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useBlurGate } from "@/hooks/useBlurGate";
+import { useStartCheckout } from "@/lib/checkout";
 
 export const PreviewBanner = () => {
-  const navigate = useNavigate();
   const { isLoggedIn, hasPaid, loading } = useBlurGate();
+  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
 
   if (loading || hasPaid) return null;
 
@@ -31,11 +31,12 @@ export const PreviewBanner = () => {
         </div>
         <Button
           size="sm"
-          variant={isLoggedIn ? "default" : "outline"}
-          onClick={() => navigate(isLoggedIn ? "/pricing" : "/register")}
+          variant="default"
+          onClick={startCheckout}
+          disabled={checkoutLoading}
           className="text-xs h-7 px-3"
         >
-          {isLoggedIn ? "Activar $24.99/mes" : "Crear cuenta gratis"}
+          {isLoggedIn ? "Activar $24.99/mes" : "Desbloquear $24.99/mes"}
         </Button>
       </div>
     </div>

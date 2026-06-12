@@ -15,6 +15,7 @@ import { Lock, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { StreakBadge } from "@/components/brand/StreakBadge";
+import { useStartCheckout } from "@/lib/checkout";
 
 interface Video {
   id: string;
@@ -87,6 +88,7 @@ const Dashboard = () => {
   const {
     isLoggedIn
   } = useBlurGateContext();
+  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
   const [searchParams] = useSearchParams();
   const productFilter = searchParams.get("productName");
   const creatorFilter = searchParams.get("creator");
@@ -376,15 +378,9 @@ const Dashboard = () => {
 
       {/* Sticky CTA for visitors - Mobile only */}
       {!isLoggedIn && <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
-          <Button className="w-full h-12 text-sm font-semibold shadow-lg" onClick={() => {
-        navigate("/unlock");
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth'
-        });
-      }}>
+          <Button className="w-full h-12 text-sm font-semibold shadow-lg" onClick={startCheckout} disabled={checkoutLoading}>
             <Sparkles className="h-4 w-4 mr-2" />
-            Desbloquear acceso completo 
+            Desbloquear acceso completo
           </Button>
         </div>}
     </div>;

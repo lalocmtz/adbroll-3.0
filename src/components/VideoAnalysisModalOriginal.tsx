@@ -13,6 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useNavigate } from 'react-router-dom';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
+import { useStartCheckout } from '@/lib/checkout';
 interface GeneratedVariant {
   hook: string;
   body: string;
@@ -96,6 +97,7 @@ const VideoAnalysisModalOriginal = ({
     hasPaid,
     openPaywall
   } = useBlurGateContext();
+  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
 
   // Variant generator controls
   const [variantCount, setVariantCount] = useState<number>(2);
@@ -1328,9 +1330,9 @@ const VideoAnalysisModalOriginal = ({
         {/* Mobile Fixed CTA for non-paid users - Always visible */}
         {!hasPaid && (
           <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-lg border-t border-border safe-area-bottom z-50">
-            <Button className="w-full h-11 text-sm font-semibold rounded-xl shadow-lg" onClick={() => navigate('/unlock')}>
+            <Button className="w-full h-11 text-sm font-semibold rounded-xl shadow-lg" onClick={startCheckout} disabled={checkoutLoading}>
               <Sparkles className="h-4 w-4 mr-2" />
-              Desbloquear acceso completo 
+              Desbloquear acceso completo
             </Button>
           </div>
         )}

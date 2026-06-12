@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
+import { useStartCheckout } from "@/lib/checkout";
 
 interface OpportunityProduct {
   id: string;
@@ -51,6 +52,7 @@ const Opportunities = () => {
   const { market } = useMarket();
   const navigate = useNavigate();
   const { isLoggedIn } = useBlurGateContext();
+  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
   const [opportunities, setOpportunities] = useState<OpportunityProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [badgeFilter, setBadgeFilter] = useState<BadgeFilter>("all");
@@ -312,10 +314,8 @@ const Opportunities = () => {
           <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
             <Button
               className="w-full h-12 text-sm font-semibold shadow-lg"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
+              onClick={startCheckout}
+              disabled={checkoutLoading}
             >
               <Sparkles className="h-4 w-4 mr-2" />
               {language === "es" ? "Desbloquear acceso completo" : "Unlock full access"}

@@ -12,6 +12,7 @@ import { useMarket } from "@/contexts/MarketContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
+import { useStartCheckout } from "@/lib/checkout";
 
 interface Product {
   id: string;
@@ -50,6 +51,7 @@ const Products = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isLoggedIn } = useBlurGateContext();
+  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
   const { market, marketLabel } = useMarket();
   const { language, formatMoney } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
@@ -592,15 +594,13 @@ const Products = () => {
       {/* Sticky CTA for visitors - Mobile only */}
       {!isLoggedIn && (
         <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
-          <Button 
-            className="w-full h-12 text-sm font-semibold shadow-lg" 
-            onClick={() => {
-              navigate("/unlock");
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+          <Button
+            className="w-full h-12 text-sm font-semibold shadow-lg"
+            onClick={startCheckout}
+            disabled={checkoutLoading}
           >
             <Sparkles className="h-4 w-4 mr-2" />
-            Desbloquear acceso completo 
+            Desbloquear acceso completo
           </Button>
         </div>
       )}

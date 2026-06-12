@@ -1,92 +1,39 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Check, Loader2, Sparkles } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { z } from "zod";
-import { trackLead } from "@/lib/analytics";
+import { useStartCheckout } from "@/lib/checkout";
 import { BrandLogo } from "@/components/brand/BrandLogo";
-
-const emailSchema = z.string().email("Ingresa un email válido");
 
 interface SimpleEmailCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   feature?: string;
-  onSuccess?: () => void; // Optional callback when email is captured
-  redirectOnSuccess?: boolean; // Whether to redirect to /unlock#pricing (default: true)
+  // Kept for backwards compat with existing call sites (Unlock.tsx, etc.).
+  // The modal no longer captures email — it is a one-screen mini-offer that
+  // sends the user straight to Stripe — so these are effectively no-ops.
+  onSuccess?: () => void;
+  redirectOnSuccess?: boolean;
 }
 
+const BULLETS = [
+  "Videos que más venden en TikTok Shop, actualizados a diario",
+  "Guiones reales extraídos por IA + variantes ilimitadas",
+  "Oportunidades de productos y panel de afiliados (30%)",
+];
+
+/**
+ * Mini-offer modal. A single screen — no email step — that sends the visitor
+ * directly to Stripe Checkout (Stripe collects email + card). Used by
+ * `openPaywall` from anywhere in the app.
+ */
 export const SimpleEmailCaptureModal = ({
   open,
   onOpenChange,
-  feature,
-  onSuccess,
-  redirectOnSuccess = true,
 }: SimpleEmailCaptureModalProps) => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    // Validate email
-    const result = emailSchema.safeParse(email.trim());
-    if (!result.success) {
-      setError(result.error.errors[0].message);
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // Get referral code from localStorage
-      const referralCode = localStorage.getItem("adbroll_ref_code") || null;
-
-      // Save email to database
-      const { error: dbError } = await supabase.from("email_captures").insert({
-        email: email.trim().toLowerCase(),
-        referral_code: referralCode,
-        source: feature ? `blur_gate_${feature}` : "blur_gate",
-      });
-
-      if (dbError && !dbError.message.includes("duplicate")) {
-        console.error("Error saving email:", dbError);
-      }
-
-      // Save email to localStorage for checkout pre-fill
-      localStorage.setItem("adbroll_prospect_email", email.trim().toLowerCase());
-      
-      // Track Lead event for Meta Pixel
-      trackLead(feature ? `blur_gate_${feature}` : "blur_gate", email.trim().toLowerCase());
-
-      // If there's a success callback, close modal first then call it
-      if (onSuccess) {
-        onOpenChange(false);
-        onSuccess();
-        return;
-      }
-
-      // Default behavior: close modal and navigate to unlock with pricing anchor
-      if (redirectOnSuccess) {
-        onOpenChange(false);
-        navigate("/unlock#pricing");
-        toast.success("¡Listo! Elige tu plan para continuar");
-      }
-    } catch (err) {
-      console.error("Error:", err);
-      toast.error("Algo salió mal. Intenta de nuevo.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { start: startCheckout, loading } = useStartCheckout();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,54 +50,50 @@ export const SimpleEmailCaptureModal = ({
           </div>
 
           {/* Title */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-5">
             <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
               Desbloquea TokXray
             </h2>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Ingresa tu email para ver los planes
+            <p className="text-sm text-muted-foreground">
+              Todo lo que necesitas para vender en TikTok Shop
             </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setError(null);
-                }}
-                className={`pl-10 h-12 text-base ${
-                  error ? "border-destructive" : ""
-                }`}
-                disabled={loading}
-                autoFocus
-              />
-            </div>
+          {/* Bullets */}
+          <ul className="space-y-3 mb-5 text-sm">
+            {BULLETS.map((b, i) => (
+              <li key={i} className="flex items-start gap-2.5">
+                <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span className="text-foreground/90">{b}</span>
+              </li>
+            ))}
+          </ul>
 
-            {error && (
-              <p className="text-sm text-destructive">{error}</p>
+          {/* Price */}
+          <div className="text-center mb-5">
+            <span className="text-4xl font-bold text-primary">$24.99</span>
+            <span className="text-muted-foreground text-base">/mes</span>
+            <p className="text-xs text-muted-foreground mt-1">
+              Cancela cuando quieras · Pago seguro con Stripe
+            </p>
+          </div>
+
+          {/* CTA → Stripe */}
+          <Button
+            className="w-full h-12 text-base font-semibold"
+            onClick={startCheckout}
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Empezar ahora → Stripe
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </>
             )}
-
-            <Button
-              type="submit"
-              className="w-full h-12 text-base font-semibold"
-              disabled={loading || !email.trim()}
-            >
-              {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  Ver planes y precios
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </>
-              )}
-            </Button>
-          </form>
+          </Button>
 
           {/* Login link */}
           <div className="text-center mt-5">
@@ -168,18 +111,6 @@ export const SimpleEmailCaptureModal = ({
               </span>
             </button>
           </div>
-
-          {/* Footer */}
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            Al continuar, aceptas nuestros{" "}
-            <a href="/terms" className="underline hover:text-foreground">
-              términos
-            </a>{" "}
-            y{" "}
-            <a href="/privacy" className="underline hover:text-foreground">
-              privacidad
-            </a>
-          </p>
         </motion.div>
       </DialogContent>
     </Dialog>

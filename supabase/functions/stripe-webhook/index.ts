@@ -163,9 +163,12 @@ serve(async (req) => {
 async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
-  const priceUsd = 25; // Single price
-  
-  const guestEmail = session.metadata?.guest_email;
+  const priceUsd = 24.99; // Single price (TokXray Pro)
+
+  // Para checkouts fríos (1 clic directo a Stripe) NO mandamos guest_email en
+  // metadata; Stripe recolecta el email en su página. Lo tomamos de
+  // customer_details.email como respaldo para poder crear la cuenta igual.
+  const guestEmail = session.metadata?.guest_email || session.customer_details?.email || undefined;
   const createAccountOnSuccess = session.metadata?.create_account_on_success === "true";
   const referralCode = session.metadata?.referral_code;
   

@@ -16,11 +16,12 @@ serve(async (req) => {
   try {
     const { email, referral_code, plan = 'pro' } = await req.json();
 
-    if (!email) {
-      throw new Error("Email is required");
-    }
+    const normalizedEmail =
+      typeof email === "string" && email.trim() ? email.trim().toLowerCase() : null;
 
-    console.log(`Creating checkout for guest email: ${email}, plan: ${plan}`);
+    console.log(
+      `Creating checkout for guest${normalizedEmail ? ` email: ${normalizedEmail}` : " (no email)"}, plan: ${plan}`
+    );
 
     // Use service role for database operations
     const supabaseAdmin = createClient(
@@ -33,33 +34,36 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
 
-    // Check if a customer with this email already exists in Stripe
-    const existingCustomers = await stripe.customers.list({
-      email: email.toLowerCase(),
-      limit: 1,
-    });
+    // Resolve / create a Stripe customer only when we already know the email.
+    // Without an email we let Stripe Checkout collect it and create the
+    // customer for us (customer_creation: "always").
+    let customerId: string | null = null;
 
-    let customerId: string;
-
-    if (existingCustomers.data.length > 0) {
-      customerId = existingCustomers.data[0].id;
-      console.log(`Found existing Stripe customer: ${customerId}`);
-    } else {
-      // Create new Stripe customer
-      const customer = await stripe.customers.create({
-        email: email.toLowerCase(),
-        metadata: {
-          source: "guest_checkout",
-          referral_code: referral_code || "",
-          plan: plan,
-        },
+    if (normalizedEmail) {
+      const existingCustomers = await stripe.customers.list({
+        email: normalizedEmail,
+        limit: 1,
       });
-      customerId = customer.id;
-      console.log(`Created new Stripe customer: ${customerId}`);
+
+      if (existingCustomers.data.length > 0) {
+        customerId = existingCustomers.data[0].id;
+        console.log(`Found existing Stripe customer: ${customerId}`);
+      } else {
+        const customer = await stripe.customers.create({
+          email: normalizedEmail,
+          metadata: {
+            source: "guest_checkout",
+            referral_code: referral_code || "",
+            plan: plan,
+          },
+        });
+        customerId = customer.id;
+        console.log(`Created new Stripe customer: ${customerId}`);
+      }
     }
 
     // Determine which price ID to use based on plan
-    const priceId = plan === 'premium' 
+    const priceId = plan === 'premium'
       ? Deno.env.get("STRIPE_PRICE_ID_PREMIUM")
       : Deno.env.get("STRIPE_PRICE_ID_PRO");
 
@@ -69,7 +73,6 @@ serve(async (req) => {
 
     // Build checkout session params
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      customer: customerId,
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [
@@ -81,15 +84,25 @@ serve(async (req) => {
       success_url: `${req.headers.get("origin")}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/checkout/cancel`,
       metadata: {
-        guest_email: email.toLowerCase(),
         referral_code: referral_code || "",
         create_account_on_success: "true",
         plan: plan,
       },
-      customer_update: {
-        address: "auto",
-      },
     };
+
+    if (customerId) {
+      // Known customer: reuse it and let Stripe auto-fill the address.
+      sessionParams.customer = customerId;
+      sessionParams.customer_update = { address: "auto" };
+      if (normalizedEmail) {
+        sessionParams.metadata!.guest_email = normalizedEmail;
+      }
+    } else {
+      // Cold visitor: Stripe collects the email + card and creates the
+      // customer. customer_update requires an existing customer, so it is
+      // intentionally omitted here.
+      sessionParams.customer_creation = "always";
+    }
 
     // Apply referral coupon if valid code provided
     if (referral_code) {
@@ -111,7 +124,7 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    console.log(`Guest checkout session created: ${session.id} for email: ${email}, plan: ${plan}`);
+    console.log(`Guest checkout session created: ${session.id} for ${normalizedEmail ?? "anonymous"}, plan: ${plan}`);
 
     return new Response(
       JSON.stringify({ url: session.url }),

@@ -4,22 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Sparkles, Check, X, LogIn, Loader2, TrendingUp, FileText, Gem } from "lucide-react";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { SimpleEmailCaptureModal } from "@/components/SimpleEmailCaptureModal";
-import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
+import { useEffect } from "react";
+import { useStartCheckout } from "@/lib/checkout";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const Unlock = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlRefCode = searchParams.get("ref");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [hasProspectEmail, setHasProspectEmail] = useState(false);
-
-  const refCode = urlRefCode || localStorage.getItem("adbroll_ref_code");
+  const { start: handleSubscribe, loading: isLoading } = useStartCheckout();
 
   useEffect(() => {
     if (urlRefCode) {
@@ -28,16 +21,7 @@ const Unlock = () => {
   }, [urlRefCode]);
 
   useEffect(() => {
-    const prospectEmail = localStorage.getItem("adbroll_prospect_email");
-    if (prospectEmail) {
-      setHasProspectEmail(true);
-    } else {
-      setShowEmailModal(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (hasProspectEmail && window.location.hash === "#pricing") {
+    if (window.location.hash === "#pricing") {
       setTimeout(() => {
         const pricingSection = document.getElementById("pricing");
         if (pricingSection) {
@@ -45,51 +29,7 @@ const Unlock = () => {
         }
       }, 100);
     }
-  }, [hasProspectEmail]);
-
-  const handleSubscribe = async () => {
-    const prospectEmail = localStorage.getItem("adbroll_prospect_email");
-    if (!prospectEmail) {
-      setShowEmailModal(true);
-      return;
-    }
-    await processCheckout(prospectEmail);
-  };
-
-  const processCheckout = async (email: string) => {
-    setIsLoading(true);
-    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
-    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
-    try {
-      const { data, error } = await supabase.functions.invoke("create-checkout-guest", {
-        body: {
-          email: email,
-          referral_code: refCode,
-          plan: "pro",
-        },
-      });
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error("Checkout error:", error);
-      toast.error("Error al procesar. Intenta de nuevo.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEmailCaptured = () => {
-    setShowEmailModal(false);
-    setHasProspectEmail(true);
-    setTimeout(() => {
-      const pricingSection = document.getElementById("pricing");
-      if (pricingSection) {
-        pricingSection.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 100);
-  };
+  }, []);
 
   const handleLogin = () => {
     navigate("/login");
@@ -204,8 +144,7 @@ const Unlock = () => {
       </section>
 
       {/* Pricing / Checkout Block */}
-      {hasProspectEmail ? (
-        <section id="pricing" className="py-10 md:py-16 landing-section-alt">
+      <section id="pricing" className="py-10 md:py-16 landing-section-alt">
           <div className="container mx-auto px-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -283,14 +222,6 @@ const Unlock = () => {
             </p>
           </div>
         </section>
-      ) : (
-        <section className="py-10 md:py-16 landing-section-alt min-h-[40vh] flex items-center justify-center">
-          <div className="text-center text-muted-foreground">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p className="text-sm">Cargando...</p>
-          </div>
-        </section>
-      )}
 
       {/* Footer */}
       <footer className="py-8 border-t border-border bg-white">
@@ -317,14 +248,6 @@ const Unlock = () => {
           </div>
         </div>
       </footer>
-
-      {/* Email Capture Modal */}
-      <SimpleEmailCaptureModal
-        open={showEmailModal}
-        onOpenChange={setShowEmailModal}
-        onSuccess={handleEmailCaptured}
-        redirectOnSuccess={false}
-      />
     </div>
   );
 };
