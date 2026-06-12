@@ -158,6 +158,7 @@ const Landing = () => {
           .eq("country", market)
           .not("rank", "is", null)
           .not("product_id", "is", null)
+          .not("thumbnail_url", "is", null)
           .order("rank", { ascending: true })
           .limit(12);
         if (error) throw error;
