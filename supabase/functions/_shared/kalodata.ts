@@ -82,9 +82,15 @@ export function extractTikTokVideoId(url: string | null | undefined): string | n
  */
 export function extractTikTokProductId(url: string | null | undefined): string | null {
   if (!url) return null;
-  const match = /\/product\/(\d{6,})/.exec(url);
-  return match ? match[1] : null;
+  // TikTok Shop: /view/product/<id>
+  const direct = /\/product\/(\d{6,})/.exec(url);
+  if (direct) return direct[1];
+  // Kalodata: /product/detail?id=<id>&...  (el id es el product_id de TikTok Shop)
+  const query = /[?&]id=(\d{6,})/.exec(url);
+  if (query) return query[1];
+  return null;
 }
+
 
 /**
  * Normalize a product or video title for case-insensitive exact matching.
@@ -124,10 +130,20 @@ export const VIDEO_COLUMNS = {
   roas: ["ROAS - Retorno de la inversión publicitaria", "ROAS"],
   videoUrl: ["Enlace de TikTok", "TikTok Link", "Video URL"],
   // New in v2 (17 columns)
-  productName: ["Nombre del producto", "Product Name"],
-  productUrl: ["URL del producto", "Product URL", "Enlace del producto"],
+  productName: ["Nombre del producto", "Título del producto", "Titulo del producto", "Product Name", "Product Title"],
+  productUrl: [
+    "URL del producto",
+    "Product URL",
+    "Enlace del producto",
+    // Export v3 de Kalodata: el enlace al detalle del producto viene en
+    // "Ver en Kalodata" (https://www.kalodata.com/product/detail?id=<tiktok_product_id>).
+    "Ver en Kalodata",
+    "View on Kalodata",
+  ],
   productImage: ["Imagen del producto", "Product Image", "Imagen URL"],
   productId: ["ID del producto", "Product ID", "TikTok Product ID"],
+
+
   category: ["Categoría", "Category"],
   country: ["País", "Country"],
 } as const;
