@@ -1761,6 +1761,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_analyses: {
+        Row: {
+          created_at: string
+          id: string
+          result: Json | null
+          user_id: string | null
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          result?: Json | null
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          result?: Json | null
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       transcription_queue: {
         Row: {
           attempts: number | null
