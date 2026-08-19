@@ -1236,6 +1236,108 @@ export type Database = {
         }
         Relationships: []
       }
+      kalodata_staging_creators: {
+        Row: {
+          country: string | null
+          creator_handle: string | null
+          gmv_live_mxn: number | null
+          nombre_completo: string | null
+          promedio_visualizaciones: number | null
+          revenue_live: number | null
+          revenue_videos: number | null
+          seguidores: number | null
+          tiktok_url: string | null
+          total_ingresos_mxn: number | null
+          total_live_count: number | null
+          total_videos: number | null
+          usuario_creador: string | null
+        }
+        Insert: {
+          country?: string | null
+          creator_handle?: string | null
+          gmv_live_mxn?: number | null
+          nombre_completo?: string | null
+          promedio_visualizaciones?: number | null
+          revenue_live?: number | null
+          revenue_videos?: number | null
+          seguidores?: number | null
+          tiktok_url?: string | null
+          total_ingresos_mxn?: number | null
+          total_live_count?: number | null
+          total_videos?: number | null
+          usuario_creador?: string | null
+        }
+        Update: {
+          country?: string | null
+          creator_handle?: string | null
+          gmv_live_mxn?: number | null
+          nombre_completo?: string | null
+          promedio_visualizaciones?: number | null
+          revenue_live?: number | null
+          revenue_videos?: number | null
+          seguidores?: number | null
+          tiktok_url?: string | null
+          total_ingresos_mxn?: number | null
+          total_live_count?: number | null
+          total_videos?: number | null
+          usuario_creador?: string | null
+        }
+        Relationships: []
+      }
+      kalodata_staging_videos: {
+        Row: {
+          country: string | null
+          creator_handle: string | null
+          creator_name: string | null
+          product_name: string | null
+          rank: number | null
+          revenue_mxn: number | null
+          roas: number | null
+          sales: number | null
+          snapshot_date_range: string | null
+          source_product_url: string | null
+          tiktok_product_id: string | null
+          tiktok_video_id: string | null
+          title: string | null
+          video_url: string | null
+          views: number | null
+        }
+        Insert: {
+          country?: string | null
+          creator_handle?: string | null
+          creator_name?: string | null
+          product_name?: string | null
+          rank?: number | null
+          revenue_mxn?: number | null
+          roas?: number | null
+          sales?: number | null
+          snapshot_date_range?: string | null
+          source_product_url?: string | null
+          tiktok_product_id?: string | null
+          tiktok_video_id?: string | null
+          title?: string | null
+          video_url?: string | null
+          views?: number | null
+        }
+        Update: {
+          country?: string | null
+          creator_handle?: string | null
+          creator_name?: string | null
+          product_name?: string | null
+          rank?: number | null
+          revenue_mxn?: number | null
+          roas?: number | null
+          sales?: number | null
+          snapshot_date_range?: string | null
+          source_product_url?: string | null
+          tiktok_product_id?: string | null
+          tiktok_video_id?: string | null
+          title?: string | null
+          video_url?: string | null
+          views?: number | null
+        }
+        Relationships: []
+      }
       library_files: {
         Row: {
           created_at: string | null
