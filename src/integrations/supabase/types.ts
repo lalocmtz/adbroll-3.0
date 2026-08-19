@@ -919,6 +919,7 @@ export type Database = {
           market: string
           rank: number
           ranking_date: string
+          snapshot_date_range: string | null
           tiktok_video_id: string | null
           video_id: string | null
         }
@@ -928,6 +929,7 @@ export type Database = {
           market: string
           rank: number
           ranking_date?: string
+          snapshot_date_range?: string | null
           tiktok_video_id?: string | null
           video_id?: string | null
         }
@@ -937,6 +939,7 @@ export type Database = {
           market?: string
           rank?: number
           ranking_date?: string
+          snapshot_date_range?: string | null
           tiktok_video_id?: string | null
           video_id?: string | null
         }
@@ -1183,13 +1186,16 @@ export type Database = {
         Row: {
           created_at: string | null
           creators_imported: number | null
+          date_range: string | null
           failed_rows: number | null
           file_name: string | null
           finished_at: string | null
           id: string
+          kind: string | null
           market: string | null
           new_rows: number | null
           products_imported: number | null
+          published_at: string | null
           total_rows: number | null
           updated_rows: number | null
           videos_imported: number | null
@@ -1197,13 +1203,16 @@ export type Database = {
         Insert: {
           created_at?: string | null
           creators_imported?: number | null
+          date_range?: string | null
           failed_rows?: number | null
           file_name?: string | null
           finished_at?: string | null
           id?: string
+          kind?: string | null
           market?: string | null
           new_rows?: number | null
           products_imported?: number | null
+          published_at?: string | null
           total_rows?: number | null
           updated_rows?: number | null
           videos_imported?: number | null
@@ -1211,13 +1220,16 @@ export type Database = {
         Update: {
           created_at?: string | null
           creators_imported?: number | null
+          date_range?: string | null
           failed_rows?: number | null
           file_name?: string | null
           finished_at?: string | null
           id?: string
+          kind?: string | null
           market?: string | null
           new_rows?: number | null
           products_imported?: number | null
+          published_at?: string | null
           total_rows?: number | null
           updated_rows?: number | null
           videos_imported?: number | null
@@ -1914,6 +1926,73 @@ export type Database = {
         }
         Relationships: []
       }
+      video_match_audit: {
+        Row: {
+          created_at: string
+          id: string
+          market: string | null
+          match_algorithm_version: string | null
+          match_confidence: number | null
+          match_method: string
+          match_status: string
+          product_id: string | null
+          reason: string | null
+          source_product_url: string | null
+          tiktok_product_id: string | null
+          video_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          market?: string | null
+          match_algorithm_version?: string | null
+          match_confidence?: number | null
+          match_method: string
+          match_status: string
+          product_id?: string | null
+          reason?: string | null
+          source_product_url?: string | null
+          tiktok_product_id?: string | null
+          video_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          market?: string | null
+          match_algorithm_version?: string | null
+          match_confidence?: number | null
+          match_method?: string
+          match_status?: string
+          product_id?: string | null
+          reason?: string | null
+          source_product_url?: string | null
+          tiktok_product_id?: string | null
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_match_audit_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_match_audit_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_match_audit_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       videos: {
         Row: {
           ai_match_attempted_at: string | null
@@ -1931,8 +2010,12 @@ export type Database = {
           manual_match: boolean | null
           manual_matched_at: string | null
           manual_matched_by: string | null
+          match_algorithm_version: string | null
+          match_confidence: number | null
+          match_method: string | null
           match_reason: string | null
           match_source: string | null
+          match_status: string | null
           processing_status: string | null
           product_id: string | null
           product_name: string | null
@@ -1945,8 +2028,10 @@ export type Database = {
           sales: number | null
           snapshot_at: string | null
           snapshot_date_range: string | null
+          source_product_url: string | null
           suggested_product_id: string | null
           thumbnail_url: string | null
+          tiktok_product_id: string | null
           tiktok_video_id: string | null
           title: string | null
           transcript: string | null
@@ -1975,8 +2060,12 @@ export type Database = {
           manual_match?: boolean | null
           manual_matched_at?: string | null
           manual_matched_by?: string | null
+          match_algorithm_version?: string | null
+          match_confidence?: number | null
+          match_method?: string | null
           match_reason?: string | null
           match_source?: string | null
+          match_status?: string | null
           processing_status?: string | null
           product_id?: string | null
           product_name?: string | null
@@ -1989,8 +2078,10 @@ export type Database = {
           sales?: number | null
           snapshot_at?: string | null
           snapshot_date_range?: string | null
+          source_product_url?: string | null
           suggested_product_id?: string | null
           thumbnail_url?: string | null
+          tiktok_product_id?: string | null
           tiktok_video_id?: string | null
           title?: string | null
           transcript?: string | null
@@ -2019,8 +2110,12 @@ export type Database = {
           manual_match?: boolean | null
           manual_matched_at?: string | null
           manual_matched_by?: string | null
+          match_algorithm_version?: string | null
+          match_confidence?: number | null
+          match_method?: string | null
           match_reason?: string | null
           match_source?: string | null
+          match_status?: string | null
           processing_status?: string | null
           product_id?: string | null
           product_name?: string | null
@@ -2033,8 +2128,10 @@ export type Database = {
           sales?: number | null
           snapshot_at?: string | null
           snapshot_date_range?: string | null
+          source_product_url?: string | null
           suggested_product_id?: string | null
           thumbnail_url?: string | null
+          tiktok_product_id?: string | null
           tiktok_video_id?: string | null
           title?: string | null
           transcript?: string | null
@@ -2265,8 +2362,12 @@ export type Database = {
           manual_match: boolean | null
           manual_matched_at: string | null
           manual_matched_by: string | null
+          match_algorithm_version: string | null
+          match_confidence: number | null
+          match_method: string | null
           match_reason: string | null
           match_source: string | null
+          match_status: string | null
           processing_status: string | null
           product_id: string | null
           product_name: string | null
@@ -2279,8 +2380,10 @@ export type Database = {
           sales: number | null
           snapshot_at: string | null
           snapshot_date_range: string | null
+          source_product_url: string | null
           suggested_product_id: string | null
           thumbnail_url: string | null
+          tiktok_product_id: string | null
           tiktok_video_id: string | null
           title: string | null
           transcript: string | null
