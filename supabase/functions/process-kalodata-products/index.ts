@@ -195,6 +195,7 @@ serve(async (req) => {
       producto_nombre: p.name,
       imagen_url: p.image_url,
       producto_url: p.product_url,
+      tiktok_product_id: p.tiktok_product_id,
       categoria: p.category,
       precio_mxn: p.price,
       price: p.price,
