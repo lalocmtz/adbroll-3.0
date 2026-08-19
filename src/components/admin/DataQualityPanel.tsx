@@ -56,6 +56,11 @@ const INITIAL: Metrics = {
   lastVideoImport: null,
 };
 
+// Cliente sin tipar para columnas legacy que no existen en los tipos
+// generados (matched_by, from_video, video_count, last_import).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 export function DataQualityPanel() {
   const [metrics, setMetrics] = useState<Metrics>(INITIAL);
   const [imports, setImports] = useState<ImportRow[]>([]);
