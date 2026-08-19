@@ -1725,6 +1725,54 @@ export type Database = {
           },
         ]
       }
+      stg_products_mx: {
+        Row: {
+          categoria: string | null
+          commission: number | null
+          commission_amount: number | null
+          creators_count: number | null
+          imagen_url: string | null
+          price: number | null
+          producto_nombre: string | null
+          producto_url: string | null
+          rank: number | null
+          rating: number | null
+          revenue_30d: number | null
+          tiktok_product_id: string | null
+          total_ventas: number | null
+        }
+        Insert: {
+          categoria?: string | null
+          commission?: number | null
+          commission_amount?: number | null
+          creators_count?: number | null
+          imagen_url?: string | null
+          price?: number | null
+          producto_nombre?: string | null
+          producto_url?: string | null
+          rank?: number | null
+          rating?: number | null
+          revenue_30d?: number | null
+          tiktok_product_id?: string | null
+          total_ventas?: number | null
+        }
+        Update: {
+          categoria?: string | null
+          commission?: number | null
+          commission_amount?: number | null
+          creators_count?: number | null
+          imagen_url?: string | null
+          price?: number | null
+          producto_nombre?: string | null
+          producto_url?: string | null
+          rank?: number | null
+          rating?: number | null
+          revenue_30d?: number | null
+          tiktok_product_id?: string | null
+          total_ventas?: number | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string | null
