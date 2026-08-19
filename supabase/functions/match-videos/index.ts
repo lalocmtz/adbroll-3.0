@@ -200,21 +200,22 @@ serve(async (req) => {
     console.log(`match-videos: market=${market} limit=${limit}`);
 
     // -----------------------------------------------------------------------
-    // Videos pendientes: sin producto, no descartados ('none'), con nombre.
+    // Videos pendientes: sin producto, no descartados ('none'), con nombre o
+    // con tiktok_product_id. Nunca se toca un match manual.
     // -----------------------------------------------------------------------
     const { data: videos, error: videosError } = await supabase
       .from("videos")
-      .select("id, title, product_name, country")
+      .select("id, title, product_name, country, tiktok_product_id, source_product_url, manual_match")
       .eq("country", market)
       .is("product_id", null)
-      .not("product_name", "is", null)
+      .or("manual_match.is.null,manual_match.eq.false")
       .or("match_source.is.null,match_source.neq.none")
       .order("rank", { ascending: true, nullsFirst: false })
       .limit(limit);
 
     if (videosError) throw new Error(`videos query: ${videosError.message}`);
 
-    const summary = { processed: 0, exact: 0, fuzzy: 0, ai: 0, review: 0, none: 0 };
+    const summary = { processed: 0, by_id: 0, outside_catalog: 0, exact: 0, fuzzy: 0, ai: 0, review: 0, none: 0 };
 
     if (!videos?.length) {
       return new Response(
@@ -224,7 +225,41 @@ serve(async (req) => {
     }
 
     // -----------------------------------------------------------------------
-    // Precarga para capa 0: aliases del mercado + catálogo normalizado.
+    // Helper: escribe el resultado en videos + audita el intento.
+    // -----------------------------------------------------------------------
+    const applyMatch = async (
+      video: { id: string; tiktok_product_id: string | null; source_product_url: string | null },
+      fields: Record<string, unknown>,
+      audit: { product_id?: string | null; match_status: string; match_method: string; confidence?: number | null; reason?: string | null },
+    ) => {
+      await supabase
+        .from("videos")
+        .update({
+          ...fields,
+          match_status: audit.match_status,
+          match_method: audit.match_method,
+          match_confidence: audit.confidence ?? null,
+          match_algorithm_version: ALGO_VERSION,
+        })
+        .eq("id", video.id);
+
+      const { error: auditError } = await supabase.from("video_match_audit").insert({
+        video_id: video.id,
+        product_id: audit.product_id ?? null,
+        market,
+        match_status: audit.match_status,
+        match_method: audit.match_method,
+        match_confidence: audit.confidence ?? null,
+        match_algorithm_version: ALGO_VERSION,
+        tiktok_product_id: video.tiktok_product_id ?? null,
+        source_product_url: video.source_product_url ?? null,
+        reason: audit.reason ?? null,
+      });
+      if (auditError) console.error("video_match_audit insert:", auditError.message);
+    };
+
+    // -----------------------------------------------------------------------
+    // Precarga para capa 0: aliases del mercado + catálogo normalizado + IDs.
     // -----------------------------------------------------------------------
     const { data: aliases } = await supabase
       .from("product_aliases")
@@ -241,11 +276,15 @@ serve(async (req) => {
 
     const { data: products } = await supabase
       .from("products")
-      .select("id, producto_nombre, nombre_normalizado")
+      .select("id, producto_nombre, nombre_normalizado, tiktok_product_id")
       .eq("market", market);
 
     const byNormalized = new Map<string, string[]>();
+    const byTikTokProductId = new Map<string, string>();
     for (const p of products ?? []) {
+      if (p.tiktok_product_id && !byTikTokProductId.has(p.tiktok_product_id)) {
+        byTikTokProductId.set(p.tiktok_product_id, p.id);
+      }
       if (!p.nombre_normalizado) continue;
       const list = byNormalized.get(p.nombre_normalizado) ?? [];
       list.push(p.id);
