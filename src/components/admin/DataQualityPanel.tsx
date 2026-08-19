@@ -78,13 +78,16 @@ export function DataQualityPanel() {
       ] = await Promise.all([
         supabase.from("daily_feed").select("*", { count: "exact", head: true }),
         supabase.from("daily_feed").select("*", { count: "exact", head: true }).not("product_id", "is", null),
-        supabase.from("daily_feed").select("*", { count: "exact", head: true }).eq("matched_by", "product_url"),
-        supabase.from("daily_feed").select("*", { count: "exact", head: true }).eq("matched_by", "stub"),
-        supabase.from("daily_feed").select("*", { count: "exact", head: true }).or("matched_by.eq.none,matched_by.is.null"),
+        // Estas columnas son legacy/opcionales y no están en los tipos
+        // generados; se consultan con un cliente sin tipar para no romper
+        // el typecheck cuando no existen en el esquema actual.
+        db.from("daily_feed").select("*", { count: "exact", head: true }).eq("matched_by", "product_url"),
+        db.from("daily_feed").select("*", { count: "exact", head: true }).eq("matched_by", "stub"),
+        db.from("daily_feed").select("*", { count: "exact", head: true }).or("matched_by.eq.none,matched_by.is.null"),
         supabase.from("products").select("*", { count: "exact", head: true }),
-        supabase.from("products").select("*", { count: "exact", head: true }).eq("from_video", true),
-        supabase.from("products").select("*", { count: "exact", head: true }).gt("video_count", 0),
-        supabase
+        db.from("products").select("*", { count: "exact", head: true }).eq("from_video", true),
+        db.from("products").select("*", { count: "exact", head: true }).gt("video_count", 0),
+        db
           .from("daily_feed")
           .select("last_import")
           .not("last_import", "is", null)
@@ -109,7 +112,7 @@ export function DataQualityPanel() {
         productsWithVideos: productsWithVideos.count ?? 0,
         lastVideoImport: (lastImport.data?.last_import as string | null) ?? null,
       });
-      setImports((importsHistory.data ?? []) as ImportRow[]);
+      setImports((importsHistory.data ?? []) as unknown as ImportRow[]);
     } catch (error) {
       console.error("[DataQualityPanel] load error:", error);
     } finally {
