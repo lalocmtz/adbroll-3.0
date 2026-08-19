@@ -82,9 +82,15 @@ export function extractTikTokVideoId(url: string | null | undefined): string | n
  */
 export function extractTikTokProductId(url: string | null | undefined): string | null {
   if (!url) return null;
-  const match = /\/product\/(\d{6,})/.exec(url);
-  return match ? match[1] : null;
+  // TikTok Shop: /view/product/<id>
+  const direct = /\/product\/(\d{6,})/.exec(url);
+  if (direct) return direct[1];
+  // Kalodata: /product/detail?id=<id>&...  (el id es el product_id de TikTok Shop)
+  const query = /[?&]id=(\d{6,})/.exec(url);
+  if (query) return query[1];
+  return null;
 }
+
 
 /**
  * Normalize a product or video title for case-insensitive exact matching.
