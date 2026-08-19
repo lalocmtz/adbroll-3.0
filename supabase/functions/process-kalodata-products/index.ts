@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
+import { extractTikTokProductId } from "../_shared/kalodata.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,6 +156,8 @@ serve(async (req) => {
         name: name ? String(name).trim() : null,
         image_url: imageUrl || null,
         product_url: productUrl || null,
+        // Llave natural determinista del producto en TikTok Shop.
+        tiktok_product_id: extractTikTokProductId(productUrl ? String(productUrl) : null),
         category: categoryShort,
         price,
         commission_rate: commissionRate,
@@ -192,6 +195,7 @@ serve(async (req) => {
       producto_nombre: p.name,
       imagen_url: p.image_url,
       producto_url: p.product_url,
+      tiktok_product_id: p.tiktok_product_id,
       categoria: p.category,
       precio_mxn: p.price,
       price: p.price,

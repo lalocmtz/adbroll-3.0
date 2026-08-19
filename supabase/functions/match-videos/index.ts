@@ -22,6 +22,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Versión del algoritmo de matching. Se persiste en cada decisión para poder
+// auditar/reprocesar cuando cambie la jerarquía de capas.
+const ALGO_VERSION = "v5-id-first";
+
 // ---------------------------------------------------------------------------
 // Réplica EXACTA de public.normalize_title() de la migración
 // 20260611100000_data_backbone.sql. Si cambias una, cambia la otra.
@@ -200,21 +204,22 @@ serve(async (req) => {
     console.log(`match-videos: market=${market} limit=${limit}`);
 
     // -----------------------------------------------------------------------
-    // Videos pendientes: sin producto, no descartados ('none'), con nombre.
+    // Videos pendientes: sin producto, no descartados ('none'), con nombre o
+    // con tiktok_product_id. Nunca se toca un match manual.
     // -----------------------------------------------------------------------
     const { data: videos, error: videosError } = await supabase
       .from("videos")
-      .select("id, title, product_name, country")
+      .select("id, title, product_name, country, tiktok_product_id, source_product_url, manual_match")
       .eq("country", market)
       .is("product_id", null)
-      .not("product_name", "is", null)
+      .or("manual_match.is.null,manual_match.eq.false")
       .or("match_source.is.null,match_source.neq.none")
       .order("rank", { ascending: true, nullsFirst: false })
       .limit(limit);
 
     if (videosError) throw new Error(`videos query: ${videosError.message}`);
 
-    const summary = { processed: 0, exact: 0, fuzzy: 0, ai: 0, review: 0, none: 0 };
+    const summary = { processed: 0, by_id: 0, outside_catalog: 0, exact: 0, fuzzy: 0, ai: 0, review: 0, none: 0 };
 
     if (!videos?.length) {
       return new Response(
@@ -224,7 +229,41 @@ serve(async (req) => {
     }
 
     // -----------------------------------------------------------------------
-    // Precarga para capa 0: aliases del mercado + catálogo normalizado.
+    // Helper: escribe el resultado en videos + audita el intento.
+    // -----------------------------------------------------------------------
+    const applyMatch = async (
+      video: { id: string; tiktok_product_id: string | null; source_product_url: string | null },
+      fields: Record<string, unknown>,
+      audit: { product_id?: string | null; match_status: string; match_method: string; confidence?: number | null; reason?: string | null },
+    ) => {
+      await supabase
+        .from("videos")
+        .update({
+          ...fields,
+          match_status: audit.match_status,
+          match_method: audit.match_method,
+          match_confidence: audit.confidence ?? null,
+          match_algorithm_version: ALGO_VERSION,
+        })
+        .eq("id", video.id);
+
+      const { error: auditError } = await supabase.from("video_match_audit").insert({
+        video_id: video.id,
+        product_id: audit.product_id ?? null,
+        market,
+        match_status: audit.match_status,
+        match_method: audit.match_method,
+        match_confidence: audit.confidence ?? null,
+        match_algorithm_version: ALGO_VERSION,
+        tiktok_product_id: video.tiktok_product_id ?? null,
+        source_product_url: video.source_product_url ?? null,
+        reason: audit.reason ?? null,
+      });
+      if (auditError) console.error("video_match_audit insert:", auditError.message);
+    };
+
+    // -----------------------------------------------------------------------
+    // Precarga para capa 0: aliases del mercado + catálogo normalizado + IDs.
     // -----------------------------------------------------------------------
     const { data: aliases } = await supabase
       .from("product_aliases")
@@ -241,11 +280,15 @@ serve(async (req) => {
 
     const { data: products } = await supabase
       .from("products")
-      .select("id, producto_nombre, nombre_normalizado")
+      .select("id, producto_nombre, nombre_normalizado, tiktok_product_id")
       .eq("market", market);
 
     const byNormalized = new Map<string, string[]>();
+    const byTikTokProductId = new Map<string, string>();
     for (const p of products ?? []) {
+      if (p.tiktok_product_id && !byTikTokProductId.has(p.tiktok_product_id)) {
+        byTikTokProductId.set(p.tiktok_product_id, p.id);
+      }
       if (!p.nombre_normalizado) continue;
       const list = byNormalized.get(p.nombre_normalizado) ?? [];
       list.push(p.id);
@@ -257,14 +300,62 @@ serve(async (req) => {
     // -----------------------------------------------------------------------
     for (const video of videos) {
       summary.processed++;
+
+      // ---- Capa -1: tiktok_product_id (determinista, manda sobre todo) ----
+      if (video.tiktok_product_id) {
+        const catalogId = byTikTokProductId.get(video.tiktok_product_id) ?? null;
+
+        if (catalogId) {
+          await applyMatch(
+            video,
+            {
+              product_id: catalogId,
+              match_source: "exact",
+              ai_match_confidence: 1.0,
+              suggested_product_id: null,
+              match_reason: null,
+            },
+            {
+              product_id: catalogId,
+              match_status: "matched",
+              match_method: "tiktok_product_id",
+              confidence: 1.0,
+              reason: `tiktok_product_id=${video.tiktok_product_id}`,
+            },
+          );
+          summary.by_id++;
+        } else {
+          // Producto identificado con certeza pero fuera del catálogo:
+          // NO se asigna ningún otro producto.
+          await applyMatch(
+            video,
+            {
+              product_id: null,
+              match_source: "none",
+              suggested_product_id: null,
+              match_reason: `producto ${video.tiktok_product_id} no está en el catálogo`,
+            },
+            {
+              match_status: "identified_outside_catalog",
+              match_method: "tiktok_product_id",
+              confidence: 1.0,
+              reason: `tiktok_product_id=${video.tiktok_product_id} sin producto en catálogo (${market})`,
+            },
+          );
+          summary.outside_catalog++;
+        }
+        continue;
+      }
+
       const normalized = normalizeTitle(video.product_name);
 
       // Sin texto útil -> none.
       if (!normalized) {
-        await supabase
-          .from("videos")
-          .update({ match_source: "none", suggested_product_id: null, match_reason: "titulo vacio tras normalizar" })
-          .eq("id", video.id);
+        await applyMatch(
+          video,
+          { match_source: "none", suggested_product_id: null, match_reason: "titulo vacio tras normalizar" },
+          { match_status: "unmatched", match_method: "none", reason: "titulo vacio tras normalizar" },
+        );
         summary.none++;
         continue;
       }
@@ -281,16 +372,17 @@ serve(async (req) => {
       }
 
       if (exactProductId) {
-        await supabase
-          .from("videos")
-          .update({
+        await applyMatch(
+          video,
+          {
             product_id: exactProductId,
             match_source: "exact",
             ai_match_confidence: null,
             suggested_product_id: null,
             match_reason: null,
-          })
-          .eq("id", video.id);
+          },
+          { product_id: exactProductId, match_status: "matched", match_method: "exact_name", confidence: 1.0 },
+        );
         summary.exact++;
         continue;
       }
@@ -311,26 +403,28 @@ serve(async (req) => {
       const top = cands[0];
 
       if (top && top.score >= 0.85) {
-        await supabase
-          .from("videos")
-          .update({
+        await applyMatch(
+          video,
+          {
             product_id: top.id,
             match_source: "fuzzy",
             ai_match_confidence: top.score,
             suggested_product_id: null,
             match_reason: null,
-          })
-          .eq("id", video.id);
+          },
+          { product_id: top.id, match_status: "matched", match_method: "trigram", confidence: top.score },
+        );
         summary.fuzzy++;
         continue;
       }
 
       // ---- Capa 2: IA con los candidatos trigram ----
       if (!cands.length) {
-        await supabase
-          .from("videos")
-          .update({ match_source: "none", suggested_product_id: null, match_reason: "sin candidatos trigram" })
-          .eq("id", video.id);
+        await applyMatch(
+          video,
+          { match_source: "none", suggested_product_id: null, match_reason: "sin candidatos trigram" },
+          { match_status: "unmatched", match_method: "trigram", reason: "sin candidatos trigram" },
+        );
         summary.none++;
         continue;
       }
@@ -343,65 +437,93 @@ serve(async (req) => {
       if (!verdict) {
         // Sin IA disponible: deja en revisión si el trigram al menos sugiere algo.
         if (top && top.score >= 0.6) {
-          await supabase
-            .from("videos")
-            .update({
+          await applyMatch(
+            video,
+            {
               match_source: "review",
               suggested_product_id: top.id,
               match_reason: `fallback trigram score=${top.score.toFixed(2)} (IA no disponible)`,
               ai_match_attempted_at: new Date().toISOString(),
-            })
-            .eq("id", video.id);
+            },
+            {
+              product_id: top.id,
+              match_status: "review",
+              match_method: "trigram",
+              confidence: top.score,
+              reason: "IA no disponible",
+            },
+          );
           summary.review++;
         } else {
-          await supabase
-            .from("videos")
-            .update({
+          await applyMatch(
+            video,
+            {
               match_source: "none",
               suggested_product_id: null,
               match_reason: null,
               ai_match_attempted_at: new Date().toISOString(),
-            })
-            .eq("id", video.id);
+            },
+            { match_status: "unmatched", match_method: "trigram", confidence: top?.score ?? null },
+          );
           summary.none++;
         }
         continue;
       }
 
       if (verdict.product_id && verdict.confidence >= 0.9) {
-        await supabase
-          .from("videos")
-          .update({
+        await applyMatch(
+          video,
+          {
             product_id: verdict.product_id,
             match_source: "ai",
             ai_match_confidence: verdict.confidence,
             suggested_product_id: null,
             match_reason: verdict.reason || null,
             ai_match_attempted_at: new Date().toISOString(),
-          })
-          .eq("id", video.id);
+          },
+          {
+            product_id: verdict.product_id,
+            match_status: "matched",
+            match_method: "ai",
+            confidence: verdict.confidence,
+            reason: verdict.reason || null,
+          },
+        );
         summary.ai++;
       } else if (verdict.product_id && verdict.confidence >= 0.6) {
-        await supabase
-          .from("videos")
-          .update({
+        await applyMatch(
+          video,
+          {
             match_source: "review",
             suggested_product_id: verdict.product_id,
             match_reason: verdict.reason || `confianza IA ${verdict.confidence.toFixed(2)}`,
             ai_match_attempted_at: new Date().toISOString(),
-          })
-          .eq("id", video.id);
+          },
+          {
+            product_id: verdict.product_id,
+            match_status: "review",
+            match_method: "ai",
+            confidence: verdict.confidence,
+            reason: verdict.reason || null,
+          },
+        );
         summary.review++;
       } else {
-        await supabase
-          .from("videos")
-          .update({
+        await applyMatch(
+          video,
+          {
             match_source: "none",
             suggested_product_id: null,
             match_reason: verdict.reason || null,
             ai_match_attempted_at: new Date().toISOString(),
-          })
-          .eq("id", video.id);
+          },
+          {
+            match_status: "unmatched",
+            match_method: "ai",
+            confidence: verdict.confidence,
+            reason: verdict.reason || null,
+          },
+        );
         summary.none++;
       }
     }

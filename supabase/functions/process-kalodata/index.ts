@@ -1,7 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
-import { extractTikTokVideoId } from "../_shared/kalodata.ts";
+import {
+  extractTikTokVideoId,
+  extractTikTokProductId,
+  pickString,
+  VIDEO_COLUMNS,
+} from "../_shared/kalodata.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,14 +160,28 @@ serve(async (req) => {
       // Extract product name from description/hashtags for better matching
       const extractedProductName = extractProductNameFromDescription(videoDescription);
 
+      // Backbone determinista: si el export trae el producto, guardamos su
+      // URL original y el tiktok_product_id derivado. El ID manda sobre el
+      // texto en la fase de matching.
+      const anyRow = row as unknown as Record<string, unknown>;
+      const sourceProductUrl = pickString(anyRow, [...VIDEO_COLUMNS.productUrl]);
+      const explicitProductId = pickString(anyRow, [...VIDEO_COLUMNS.productId]);
+      const tiktokProductId =
+        (explicitProductId && /^\d{6,}$/.test(explicitProductId) ? explicitProductId : null) ??
+        extractTikTokProductId(sourceProductUrl);
+      const exportProductName = pickString(anyRow, [...VIDEO_COLUMNS.productName]);
+
       return {
         video_url: normalizedUrl,
         original_url: videoUrl,
         // Llave natural de TikTok (data backbone): extraída de la URL.
         tiktok_video_id: extractTikTokVideoId(normalizedUrl),
+        tiktok_product_id: tiktokProductId,
+        source_product_url: sourceProductUrl,
         rank: idx + 1,
         title: videoDescription,
-        product_name: extractedProductName, // New: extracted from description for matching
+        // Nombre real del producto si el export lo trae; si no, el extraído.
+        product_name: exportProductName ?? extractedProductName,
         creator_name: creatorHandle,
         creator_handle: creatorHandle,
         sales: row["Ventas"] || 0,
@@ -255,6 +274,9 @@ serve(async (req) => {
     // ========== PHASE 5: daily_rankings (histórico del ranking del día) ==========
     // videos.rank se resetea con cada import; daily_rankings preserva el
     // ranking por (market, fecha, rank). Best-effort: nunca rompe el import.
+    // Rango de fechas del snapshot (el mismo para todo el export).
+    const snapshotDateRange = uniqueVideos.find((v) => v.snapshot_date_range)?.snapshot_date_range ?? null;
+
     try {
       const rankingsStart = Date.now();
       const today = new Date().toISOString().slice(0, 10);
@@ -266,6 +288,7 @@ serve(async (req) => {
           rank: r.rank as number,
           video_id: r.id,
           tiktok_video_id: r.tiktok_video_id ?? extractTikTokVideoId(r.video_url),
+          snapshot_date_range: snapshotDateRange,
         }));
 
       let rankingsUpserted = 0;
@@ -283,6 +306,22 @@ serve(async (req) => {
       console.log(`[TIMING] daily_rankings: ${Date.now() - rankingsStart}ms, upserted: ${rankingsUpserted}`);
     } catch (rankingsError) {
       console.error("daily_rankings insert failed (non-fatal):", rankingsError);
+    }
+
+    // ========== PHASE 6: registro del import (histórico publicado) ==========
+    try {
+      await supabaseServiceClient.from("imports").insert({
+        file_name: file.name,
+        market,
+        kind: "videos",
+        date_range: snapshotDateRange,
+        total_rows: rows.length,
+        videos_imported: totalInserted,
+        published_at: new Date().toISOString(),
+        finished_at: new Date().toISOString(),
+      });
+    } catch (importLogError) {
+      console.error("imports log failed (non-fatal):", importLogError);
     }
 
     const totalTime = Date.now() - startTime;
