@@ -160,14 +160,28 @@ serve(async (req) => {
       // Extract product name from description/hashtags for better matching
       const extractedProductName = extractProductNameFromDescription(videoDescription);
 
+      // Backbone determinista: si el export trae el producto, guardamos su
+      // URL original y el tiktok_product_id derivado. El ID manda sobre el
+      // texto en la fase de matching.
+      const anyRow = row as unknown as Record<string, unknown>;
+      const sourceProductUrl = pickString(anyRow, [...VIDEO_COLUMNS.productUrl]);
+      const explicitProductId = pickString(anyRow, [...VIDEO_COLUMNS.productId]);
+      const tiktokProductId =
+        (explicitProductId && /^\d{6,}$/.test(explicitProductId) ? explicitProductId : null) ??
+        extractTikTokProductId(sourceProductUrl);
+      const exportProductName = pickString(anyRow, [...VIDEO_COLUMNS.productName]);
+
       return {
         video_url: normalizedUrl,
         original_url: videoUrl,
         // Llave natural de TikTok (data backbone): extraída de la URL.
         tiktok_video_id: extractTikTokVideoId(normalizedUrl),
+        tiktok_product_id: tiktokProductId,
+        source_product_url: sourceProductUrl,
         rank: idx + 1,
         title: videoDescription,
-        product_name: extractedProductName, // New: extracted from description for matching
+        // Nombre real del producto si el export lo trae; si no, el extraído.
+        product_name: exportProductName ?? extractedProductName,
         creator_name: creatorHandle,
         creator_handle: creatorHandle,
         sales: row["Ventas"] || 0,
