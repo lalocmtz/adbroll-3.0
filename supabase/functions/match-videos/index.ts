@@ -22,6 +22,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Versión del algoritmo de matching. Se persiste en cada decisión para poder
+// auditar/reprocesar cuando cambie la jerarquía de capas.
+const ALGO_VERSION = "v5-id-first";
+
 // ---------------------------------------------------------------------------
 // Réplica EXACTA de public.normalize_title() de la migración
 // 20260611100000_data_backbone.sql. Si cambias una, cambia la otra.
