@@ -124,10 +124,18 @@ export const VIDEO_COLUMNS = {
   roas: ["ROAS - Retorno de la inversión publicitaria", "ROAS"],
   videoUrl: ["Enlace de TikTok", "TikTok Link", "Video URL"],
   // New in v2 (17 columns)
-  productName: ["Nombre del producto", "Product Name"],
-  productUrl: ["URL del producto", "Product URL", "Enlace del producto"],
-  productImage: ["Imagen del producto", "Product Image", "Imagen URL"],
+  productName: ["Nombre del producto", "Título del producto", "Titulo del producto", "Product Name", "Product Title"],
+  productUrl: [
+    "URL del producto",
+    "Product URL",
+    "Enlace del producto",
+    // Export v3 de Kalodata: el enlace al detalle del producto viene en
+    // "Ver en Kalodata" (https://www.kalodata.com/product/detail?id=<tiktok_product_id>).
+    "Ver en Kalodata",
+    "View on Kalodata",
+  ],
   productId: ["ID del producto", "Product ID", "TikTok Product ID"],
+
   category: ["Categoría", "Category"],
   country: ["País", "Country"],
 } as const;
