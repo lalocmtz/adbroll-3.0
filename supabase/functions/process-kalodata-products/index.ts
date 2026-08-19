@@ -156,6 +156,8 @@ serve(async (req) => {
         name: name ? String(name).trim() : null,
         image_url: imageUrl || null,
         product_url: productUrl || null,
+        // Llave natural determinista del producto en TikTok Shop.
+        tiktok_product_id: extractTikTokProductId(productUrl ? String(productUrl) : null),
         category: categoryShort,
         price,
         commission_rate: commissionRate,
