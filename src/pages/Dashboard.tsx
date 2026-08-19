@@ -119,13 +119,15 @@ const Dashboard = () => {
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
-      // Use JOIN to get product data
-      // ONLY show videos that are COMPLETE (downloaded AND have product assigned)
-      // Filter by market/country (using lowercase: 'mx' or 'us')
+      // Paginación REAL en Supabase: filtramos y ordenamos en la consulta y
+      // pedimos solo la página con .range() + count exacto. Nunca traemos el
+      // dataset completo al cliente.
       // SECURITY: select EXPLICIT non-premium columns. The premium columns
       // (transcript, variants_json, analysis_json) are REVOKEd at the DB level
-      // for anon/authenticated, so a `select("*")` would now fail. The script is
-      // fetched separately via the gated RPC `get_video_script`.
+      // for anon/authenticated. El guion se pide aparte vía el RPC gated
+      // `get_video_script`.
+      const isCategoryFiltered = !!selectedCategory && selectedCategory !== "all";
+
       let query = supabase.from("videos").select(`
           id,
           video_url,
@@ -146,7 +148,7 @@ const Dashboard = () => {
           rank,
           imported_at,
           processing_status,
-          product:products!product_id (
+          product:products!product_id${isCategoryFiltered ? "!inner" : ""} (
             id,
             producto_nombre,
             imagen_url,
@@ -164,9 +166,14 @@ const Dashboard = () => {
       .not("product_id", "is", null) // Must have product assigned
       .eq("country", market); // Filter by market (lowercase 'mx' or 'us')
 
-      // Apply sorting first (before category filter which happens client-side)
+      // Filtro de categoría EN LA CONSULTA (sobre el recurso embebido).
+      if (isCategoryFiltered) {
+        query = query.eq("products.categoria", selectedCategory);
+      }
+
       if (sortOrder === "rank") {
-        // Only show videos with current rank (from latest Kalodata import)
+        // Solo videos del último import publicado (los que conservan rank).
+        // El histórico completo vive en daily_rankings.
         query = query.not("rank", "is", null).order("rank", {
           ascending: true
         });
@@ -193,27 +200,16 @@ const Dashboard = () => {
       if (creatorFilter) {
         query = query.or(`creator_name.ilike.%${creatorFilter}%,creator_handle.ilike.%${creatorFilter}%`);
       }
+
       const {
         data,
         error,
         count
-      } = await query;
+      } = await query.range(from, to);
       if (error) throw error;
 
-      // Filter by category client-side (since category is in the joined product)
-      let filteredData = data || [];
-      if (selectedCategory && selectedCategory !== "all") {
-        filteredData = filteredData.filter(v => v.product?.categoria === selectedCategory);
-      }
-
-      // Apply pagination after filtering
-      const paginatedData = filteredData.slice(from, to + 1);
-      setVideos(paginatedData);
-      // Use the real count (backend count for non-category filter, or filtered length)
-      const realCount = selectedCategory && selectedCategory !== "all" 
-        ? filteredData.length 
-        : (count || filteredData.length);
-      setTotalCount(realCount);
+      setVideos((data || []) as unknown as Video[]);
+      setTotalCount(count ?? 0);
     } catch (error: any) {
       toast({
         title: "Error al cargar videos",
