@@ -134,7 +134,9 @@ export const VIDEO_COLUMNS = {
     "Ver en Kalodata",
     "View on Kalodata",
   ],
+  productImage: ["Imagen del producto", "Product Image", "Imagen URL"],
   productId: ["ID del producto", "Product ID", "TikTok Product ID"],
+
 
   category: ["Categoría", "Category"],
   country: ["País", "Country"],
