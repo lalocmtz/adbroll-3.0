@@ -274,6 +274,9 @@ serve(async (req) => {
     // ========== PHASE 5: daily_rankings (histórico del ranking del día) ==========
     // videos.rank se resetea con cada import; daily_rankings preserva el
     // ranking por (market, fecha, rank). Best-effort: nunca rompe el import.
+    // Rango de fechas del snapshot (el mismo para todo el export).
+    const snapshotDateRange = uniqueVideos.find((v) => v.snapshot_date_range)?.snapshot_date_range ?? null;
+
     try {
       const rankingsStart = Date.now();
       const today = new Date().toISOString().slice(0, 10);
@@ -285,6 +288,7 @@ serve(async (req) => {
           rank: r.rank as number,
           video_id: r.id,
           tiktok_video_id: r.tiktok_video_id ?? extractTikTokVideoId(r.video_url),
+          snapshot_date_range: snapshotDateRange,
         }));
 
       let rankingsUpserted = 0;
@@ -302,6 +306,22 @@ serve(async (req) => {
       console.log(`[TIMING] daily_rankings: ${Date.now() - rankingsStart}ms, upserted: ${rankingsUpserted}`);
     } catch (rankingsError) {
       console.error("daily_rankings insert failed (non-fatal):", rankingsError);
+    }
+
+    // ========== PHASE 6: registro del import (histórico publicado) ==========
+    try {
+      await supabaseServiceClient.from("imports").insert({
+        file_name: file.name,
+        market,
+        kind: "videos",
+        date_range: snapshotDateRange,
+        total_rows: rows.length,
+        videos_imported: totalInserted,
+        published_at: new Date().toISOString(),
+        finished_at: new Date().toISOString(),
+      });
+    } catch (importLogError) {
+      console.error("imports log failed (non-fatal):", importLogError);
     }
 
     const totalTime = Date.now() - startTime;
