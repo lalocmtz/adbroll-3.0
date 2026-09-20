@@ -1,9 +1,9 @@
-outputs
-docs
-supabase
-scripts
-tests
-.git
+/outputs/
+/docs/
+/supabase/
+/scripts/
+/tests/
+/.git/
 .env.local
 .env.*.local
-__pycache__
+__pycache__/
