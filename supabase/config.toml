@@ -149,3 +149,6 @@ verify_jwt = false
 
 [functions.reset-failed-downloads]
 verify_jwt = true
+
+[functions.checkout-status]
+verify_jwt = false

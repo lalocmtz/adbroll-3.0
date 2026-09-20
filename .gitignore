@@ -25,3 +25,10 @@ dist-ssr
 
 # Internal rebrand reference (not for PR)
 docs/TokXray_Auditoria-y-Copy.md
+
+# Local data exports and creator contact lists
+/outputs/
+
+# Python local bytecode
+__pycache__/
+*.pyc

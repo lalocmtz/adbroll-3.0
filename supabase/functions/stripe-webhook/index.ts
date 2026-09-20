@@ -1,3 +1,4 @@
+import { commissionBaseCents, stripeSubscriptionStatus } from "../_shared/billing.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -116,6 +117,25 @@ serve(async (req) => {
           console.log("✓ customer.subscription.updated processed");
           break;
         }
+        case "charge.refunded": {
+          await handleChargeRefunded(event.data.object as Stripe.Charge);
+          break;
+        }
+        case "charge.dispute.created": {
+          // Disputes require manual reconciliation before any further payouts.
+          const dispute = event.data.object as Stripe.Dispute;
+          const customerCharge = await stripe.charges.retrieve(typeof dispute.charge === "string" ? dispute.charge : dispute.charge.id);
+          const customerId = typeof customerCharge.customer === "string" ? customerCharge.customer : customerCharge.customer?.id;
+          if (customerId) {
+            const { data: referred, error: lookupError } = await supabaseAdmin.from("profiles").select("referral_code_used").eq("stripe_customer_id", customerId).maybeSingle();
+            if (lookupError) throw lookupError;
+            if (referred?.referral_code_used) {
+              const { error } = await supabaseAdmin.from("affiliates").update({ payout_hold: true }).eq("ref_code", referred.referral_code_used);
+              if (error) throw error;
+            }
+          }
+          break;
+        }
         case "account.updated": {
           console.log("Processing account.updated...");
           const account = event.data.object as Stripe.Account;
@@ -161,9 +181,11 @@ serve(async (req) => {
 });
 
 async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
+  if (session.mode !== "subscription" || session.payment_status !== "paid") return;
+  if (session.metadata?.plan !== "pro" && session.metadata?.plan_type !== "pro") return;
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
-  const priceUsd = 24.99; // Single price (TokXray Pro)
+  const priceUsd = 30; // Single price (TokXray Pro)
 
   // Para checkouts fríos (1 clic directo a Stripe) NO mandamos guest_email en
   // metadata; Stripe recolecta el email en su página. Lo tomamos de
@@ -184,7 +206,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: guestEmail,
       password: tempPassword,
-      email_confirm: true,
+      email_confirm: false,
       user_metadata: { source: "paid_checkout" },
     });
 
@@ -212,24 +234,41 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       // Send account setup email
       await sendEmail(guestEmail, "account_setup", {
         email: guestEmail,
-        setupLink: "https://adbroll.com/checkout/success",
+        setupLink: "https://tokxray.com/checkout/success",
       });
     }
   }
 
   if (!userId) {
-    console.error("No user ID found for checkout session");
-    return;
+    throw new Error("No user ID found for checkout session; retry required");
   }
 
+  if (referralCode) {
+    const { data: code } = await supabaseAdmin.from("affiliate_codes").select("user_id,code").eq("code", referralCode).maybeSingle();
+    if (code && code.user_id !== userId) {
+      const { error: referralError } = await supabaseAdmin.from("profiles").update({ referral_code_used: code.code }).eq("id", userId).is("referral_code_used", null);
+      if (referralError) throw referralError;
+    }
+  }
+
+  // Read current state so a delayed checkout event cannot reactivate a cancelled subscription.
+  const currentCheckoutSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const { data: existingSubscription, error: existingError } = await supabaseAdmin.from("subscriptions")
+    .select("stripe_subscription_id").eq("user_id", userId).maybeSingle();
+  if (existingError) throw existingError;
+  if (existingSubscription?.stripe_subscription_id && existingSubscription.stripe_subscription_id !== subscriptionId) {
+    const existingStripeSubscription = await stripe.subscriptions.retrieve(existingSubscription.stripe_subscription_id);
+    if (existingStripeSubscription.created > currentCheckoutSubscription.created) return;
+  }
   // Update profile with stripe customer ID
-  await supabaseAdmin
+  const { error: profileUpdateError } = await supabaseAdmin
     .from("profiles")
     .update({ 
       stripe_customer_id: customerId,
-      plan_tier: "pro",
+      plan_tier: currentCheckoutSubscription.status === "active" ? "pro" : null,
     })
     .eq("id", userId);
+  if (profileUpdateError) throw profileUpdateError;
 
   // Create or update subscription record
   const { error } = await supabaseAdmin
@@ -238,13 +277,13 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       user_id: userId,
       stripe_subscription_id: subscriptionId,
       stripe_customer_id: customerId,
-      status: "active",
-      price_usd: priceUsd,
-      created_at: new Date().toISOString(),
+      status: stripeSubscriptionStatus(currentCheckoutSubscription.status),
+      price_usd: currentCheckoutSubscription.items.data[0]?.price.unit_amount ? currentCheckoutSubscription.items.data[0].price.unit_amount / 100 : priceUsd,
+      renew_at: new Date(currentCheckoutSubscription.current_period_end * 1000).toISOString(),
     }, { onConflict: "user_id" });
 
   if (error) {
-    console.error("Error creating subscription:", error);
+    throw error;
   } else {
     console.log(`Subscription created for user: ${userId}`);
 
@@ -263,14 +302,15 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     
     if (profile?.email && !isNewAccount) {
       await sendEmail(profile.email, "subscription_confirmed", { 
-        price: "25",
-        plan: "Adbroll Pro",
+        price: "30",
+        plan: "TokXray Pro",
       });
     }
   }
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
+  if (!invoice.subscription) return;
   const customerId = invoice.customer as string;
   const subscriptionId = invoice.subscription as string;
 
@@ -281,19 +321,24 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     .single();
 
   if (!profile) {
-    console.error("No profile found for customer:", customerId);
-    return;
+    throw new Error(`Profile not ready for customer ${customerId}; retry required`);
   }
 
-  const priceAmount = 25;
-
-  await supabaseAdmin
-    .from("subscriptions")
-    .update({ 
-      status: "active",
-      renew_at: new Date(invoice.period_end * 1000).toISOString(),
-    })
+  const priceAmount = commissionBaseCents(invoice) / 100;
+  const currentSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+  if (!profile.referral_code_used && currentSubscription.metadata?.referral_code) {
+    const { data: code, error: codeError } = await supabaseAdmin.from("affiliate_codes").select("code,user_id").eq("code", currentSubscription.metadata.referral_code).maybeSingle();
+    if (codeError) throw codeError;
+    if (code && code.user_id !== profile.id) {
+      const { error: attributionError } = await supabaseAdmin.from("profiles").update({ referral_code_used: code.code }).eq("id",profile.id).is("referral_code_used",null);
+      if (attributionError) throw attributionError;
+      profile.referral_code_used = code.code;
+    }
+  }
+  const { error: subscriptionError } = await supabaseAdmin.from("subscriptions")
+    .update({ status: stripeSubscriptionStatus(currentSubscription.status), renew_at: new Date(currentSubscription.current_period_end * 1000).toISOString() })
     .eq("stripe_subscription_id", subscriptionId);
+  if (subscriptionError) throw subscriptionError;
 
   console.log(`Subscription activated for user: ${profile.id}`);
 
@@ -301,8 +346,8 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const isRenewal = invoice.billing_reason === "subscription_cycle";
   if (isRenewal && profile.email) {
     await sendEmail(profile.email, "subscription_confirmed", { 
-      price: "25",
-      plan: "Adbroll Pro",
+      price: "30",
+      plan: "TokXray Pro",
     });
   }
 
@@ -344,49 +389,17 @@ async function calculateAffiliateCommission(
 
   const commissionRate = 0.30;
   const commissionAmount = amountPaid * commissionRate;
-  const currentMonth = new Date().toISOString().slice(0, 7);
 
-  // IDEMPOTENCIA: el índice único parcial sobre stripe_invoice_id hace que un
-  // insert duplicado (mismo invoice) falle con código 23505. Lo detectamos y
-  // abortamos sin sumar comisión de nuevo.
-  const { error: insertError } = await supabaseAdmin
-    .from("affiliate_payouts")
-    .insert({
-      affiliate_code: referralCode.toUpperCase(),
-      user_id_referred: referredUserId,
-      amount_paid: amountPaid,
-      commission_affiliate: commissionAmount,
-      month: currentMonth,
-      type: commissionType,
-      stripe_invoice_id: stripeInvoiceId ?? null,
-      status: "pending",
-    });
-
-  if (insertError) {
-    // 23505 = unique_violation -> ya se procesó este invoice. No duplicar.
-    if (insertError.code === "23505") {
-      console.log(`Commission already recorded for invoice ${stripeInvoiceId}, skipping.`);
-      return;
-    }
-    console.error("Error inserting affiliate_payout:", insertError);
-    return;
-  }
-
-  const { data: affiliate } = await supabaseAdmin
-    .from("affiliates")
-    .select("id, user_id, usd_earned, usd_available, active_referrals_count")
-    .eq("user_id", affiliateCode.user_id)
-    .single();
-
+  // Insert the invoice and increment balances in ONE database transaction.
+  const { data: recorded, error: commissionError } = await supabaseAdmin.rpc("record_affiliate_commission", {
+    p_referred_user_id: referredUserId, p_code: referralCode,
+    p_invoice_id: stripeInvoiceId, p_amount_paid_cents: Math.round(amountPaid * 100), p_type: commissionType,
+  });
+  if (commissionError) throw commissionError;
+  if (!recorded) return;
+  const { data: affiliate } = await supabaseAdmin.from("affiliates")
+    .select("user_id").eq("user_id", affiliateCode.user_id).single();
   if (affiliate) {
-    await supabaseAdmin
-      .from("affiliates")
-      .update({
-        usd_earned: (affiliate.usd_earned || 0) + commissionAmount,
-        usd_available: (affiliate.usd_available || 0) + commissionAmount,
-      })
-      .eq("id", affiliate.id);
-
     // Send commission email to affiliate
     const { data: affiliateProfile } = await supabaseAdmin
       .from("profiles")
@@ -406,6 +419,7 @@ async function calculateAffiliateCommission(
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
+  if (!invoice.subscription) return;
   const customerId = invoice.customer as string;
 
   const { data: profile } = await supabaseAdmin
@@ -422,13 +436,13 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   // Update subscription status
   await supabaseAdmin
     .from("subscriptions")
-    .update({ status: "past_due" })
-    .eq("user_id", profile.id);
+    .update({ status: stripeSubscriptionStatus((await stripe.subscriptions.retrieve(invoice.subscription as string)).status) })
+    .eq("stripe_subscription_id", invoice.subscription as string);
 
   // Send payment failed email
   if (profile.email) {
     await sendEmail(profile.email, "payment_failed", {
-      retryLink: "https://adbroll.com/settings",
+      retryLink: "https://tokxray.com/settings",
     });
   }
 
@@ -453,7 +467,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   await supabaseAdmin
     .from("subscriptions")
     .update({ status: "cancelled" })
-    .eq("user_id", profile.id);
+    .eq("stripe_subscription_id", subscription.id);
 
   // Update profile plan
   await supabaseAdmin
@@ -471,6 +485,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
+  subscription = await stripe.subscriptions.retrieve(subscription.id);
   const status = subscription.status;
 
   const { data: profile } = await supabaseAdmin
@@ -485,14 +500,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   }
 
   // Map Stripe status to our status
-  let ourStatus = "active";
-  if (status === "canceled" || status === "unpaid") {
-    ourStatus = "cancelled";
-  } else if (status === "past_due") {
-    ourStatus = "past_due";
-  } else if (status === "trialing") {
-    ourStatus = "trialing";
-  }
+  const ourStatus = stripeSubscriptionStatus(status);
 
   await supabaseAdmin
     .from("subscriptions")
@@ -502,7 +510,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
         ? new Date(subscription.current_period_end * 1000).toISOString() 
         : null,
     })
-    .eq("user_id", profile.id);
+    .eq("stripe_subscription_id", subscription.id);
 
   console.log(`Subscription updated for user: ${profile.id}, status: ${ourStatus}`);
 }
@@ -521,6 +529,21 @@ async function handleAccountUpdated(account: Stripe.Account) {
     .from("affiliates")
     .update({
       stripe_onboarding_complete: detailsSubmitted && payoutsEnabled,
+      payouts_enabled: payoutsEnabled,
     })
     .eq("stripe_connect_id", connectAccountId);
+}
+
+async function handleChargeRefunded(eventCharge: Stripe.Charge) {
+  const charge = await stripe.charges.retrieve(eventCharge.id);
+  if (!charge.invoice || charge.currency !== "usd") return;
+  const invoiceId = typeof charge.invoice === "string" ? charge.invoice : charge.invoice.id;
+  const invoice = await stripe.invoices.retrieve(invoiceId);
+  if (!invoice.subscription) return;
+  // Handle delivery before invoice.paid by idempotently recording the original commission first.
+  await handleInvoicePaid(invoice);
+  const { error } = await supabaseAdmin.rpc("reconcile_affiliate_refund", {
+    p_invoice_id: invoiceId, p_refunded_cents: charge.amount_refunded, p_charged_cents: charge.amount,
+  });
+  if (error) throw error;
 }

@@ -96,11 +96,11 @@ const guionVariants: Record<
 const faqs = [
   {
     q: "¿Qué es TokXray?",
-    a: "TokXray analiza por ti qué está vendiendo HOY en TikTok Shop. Cada mañana ves los videos que más venden, cuánto generaron y exactamente qué se dijo en ellos, con el guión listo para copiar y adaptar a tu producto.",
+    a: "TokXray analiza por ti qué está vendiendo en TikTok Shop. En cada actualización ves los videos que más venden, cuánto generaron y exactamente qué se dijo en ellos, con el guión listo para copiar y adaptar a tu producto.",
   },
   {
     q: "¿Cada cuánto se actualiza?",
-    a: "Cada mañana. Lo que más vendió se procesa de madrugada y ya está en tu panel cuando despiertas. Siempre ves lo que está funcionando ahora, no lo de hace meses.",
+    a: "Los rankings se actualizan al importar un nuevo reporte de Kalodata. Cada reporte corresponde a un período de ventas; no son ventas en tiempo real.",
   },
   {
     q: "¿Puedo copiar los guiones?",
@@ -116,7 +116,7 @@ const faqs = [
   },
 ];
 
-const PRICE_USD = 24.99;
+const PRICE_USD = 30.00;
 
 /* ============================== page ============================== */
 
@@ -160,6 +160,7 @@ const Landing = () => {
           .not("rank", "is", null)
           .not("product_id", "is", null)
           .not("video_mp4_url", "is", null)
+          .neq("video_mp4_url", "")
           .order("rank", { ascending: true })
           .limit(10);
         if (error) throw error;
@@ -277,6 +278,7 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-brand-mist text-brand-ink">
       <GlobalHeader showMenu={false} />
+      <div className="bg-brand-ink text-brand-mist text-center px-4 py-4 text-sm border-b border-white/10"><a href="/programa-creadores" className="inline-flex items-center justify-center rounded-lg bg-brand-pink px-5 py-3 font-semibold text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-cyan">Gana hasta el 30% por recomendar TokXray →</a></div>
 
       {/* ===================== HERO ===================== */}
       <section className="relative overflow-hidden bg-gradient-ink text-brand-mist">
@@ -308,20 +310,20 @@ const Landing = () => {
                 <span className="absolute inset-0 rounded-full bg-brand-cyan animate-ping motion-reduce:animate-none" />
                 <span className="relative size-2 rounded-full bg-brand-cyan" />
               </span>
-              Lo que vende AHORA en TikTok Shop
+              Descubre qué vende en TikTok Shop México
             </span>
           </div>
 
           {/* concept-first H1 */}
           <h1 className="text-center text-display-lg md:text-display-xl font-display font-extrabold tracking-tight text-balance max-w-3xl mx-auto leading-[1.05]">
             Ve qué está{" "}
-            <span className="text-brand-pink">vendiendo hoy</span> en TikTok
+            <span className="text-brand-pink">vendiendo</span> en TikTok
             Shop, qué dijeron en el video y{" "}
             <span className="text-brand-cyan">copia el guión.</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-center text-base md:text-xl leading-relaxed text-brand-mist/75">
-            TokXray analiza por ti qué funciona en este momento. Cada mañana ves
+            Explora cada actualización de Kalodata:
             los videos que más venden, cuánto generaron y el guión completo,
             listo para adaptar a tu producto.
           </p>
@@ -334,7 +336,7 @@ const Landing = () => {
               onClick={() => goApp("hero")}
               className="w-full sm:w-auto"
             >
-              Ver lo que vende hoy
+              Ver lo que vende
               <ArrowRight className="ml-1 h-5 w-5" />
             </Button>
             <Button
@@ -351,7 +353,7 @@ const Landing = () => {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-brand-mist/60">
             <span className="inline-flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-brand-cyan" />
-              Actualizado cada mañana
+              Datos de Kalodata · México
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Eye className="h-3.5 w-3.5 text-brand-cyan" />
@@ -372,10 +374,10 @@ const Landing = () => {
             <div>
               <span className="text-micro uppercase text-brand-cyan inline-flex items-center gap-1.5">
                 <Flame className="h-3.5 w-3.5" />
-                Videos que más venden · hoy
+                Videos que más venden · México
               </span>
               <h2 className="mt-2 text-display-md font-display font-extrabold tracking-tight">
-                Mira lo que está funcionando ahora
+                Mira lo que está funcionando
               </h2>
             </div>
           </div>
@@ -389,7 +391,7 @@ const Landing = () => {
               ? Array.from({ length: 4 }).map((_, i) => (
                   <VideoSkeleton key={i} />
                 ))
-              : (videos.length ? videos : FALLBACK_VIDEOS).map((v) => (
+              : videos.map((v) => (
                   <VideoCard
                     key={v.id}
                     video={v}
@@ -397,6 +399,7 @@ const Landing = () => {
                   />
                 ))}
           </HScroll>
+          {!videosLoading && videos.length === 0 && <p className="text-sm text-brand-mist/60">No hay videos disponibles en este momento.</p>}
 
           <div className="mt-6 flex justify-center">
             <Button variant="brand-outline" size="brand-md" onClick={() => goApp("video_carousel_cta")}>
@@ -413,7 +416,7 @@ const Landing = () => {
           <div className="mb-6">
             <span className="text-micro uppercase text-brand-pink inline-flex items-center gap-1.5">
               <Gem className="h-3.5 w-3.5" />
-              Productos con oportunidad · hoy
+              Productos con oportunidad · México
             </span>
             <h2 className="mt-2 text-display-md font-display font-extrabold tracking-tight text-brand-ink">
               Dónde hay dinero antes de que se sature
@@ -434,7 +437,7 @@ const Landing = () => {
               ? Array.from({ length: 4 }).map((_, i) => (
                   <OppSkeleton key={i} />
                 ))
-              : (opps.length ? opps : FALLBACK_OPPS).map((p) => (
+              : opps.map((p) => (
                   <OppCard
                     key={p.id}
                     opp={p}
@@ -443,6 +446,7 @@ const Landing = () => {
                   />
                 ))}
           </HScroll>
+          {!oppsLoading && opps.length === 0 && <p className="text-sm text-brand-ink/60">No hay oportunidades disponibles en este momento.</p>}
 
           <div className="mt-6 flex justify-center">
             <Button variant="brand" size="brand-md" onClick={() => goApp("opp_carousel_cta")}>
@@ -506,7 +510,7 @@ const Landing = () => {
             <div className="mt-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-xs text-brand-mist/50">
                 <Sparkles className="h-3.5 w-3.5 text-brand-cyan" />
-                Ejemplo basado en un video del top
+                Ejemplo ilustrativo de guión
               </div>
               <Button
                 variant={copied ? "cyber" : "brand-outline"}
@@ -542,7 +546,7 @@ const Landing = () => {
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-brand-ink/60">
               Una oportunidad real es la suma de tres cosas. TokXray las cruza
-              por ti, cada mañana.
+              por ti, en cada actualización.
             </p>
           </div>
 
@@ -600,13 +604,13 @@ const Landing = () => {
                 </div>
                 {market === "mx" && (
                   <p className="text-sm text-brand-mist/55">
-                    Se cobra en USD · ≈ {formatMoney(Math.round(PRICE_USD / 0.058))} al mes
+                    Se cobra en USD. Tu banco determina la conversión a pesos.
                   </p>
                 )}
                 <ul className="mt-6 space-y-2 text-sm text-brand-mist/80">
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Top 20 que más vende, cada mañana
+                    Ranking de videos por ventas
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
@@ -682,7 +686,7 @@ const Landing = () => {
             />
             <div className="relative">
               <h2 className="mx-auto max-w-2xl text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-balance">
-                Ve qué vende hoy y copia el guión antes que tu competencia.
+                Ve qué vende y copia el guión antes que tu competencia.
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-white/85">
                 Empieza gratis. Los primeros videos y su guión los ves sin
@@ -695,7 +699,7 @@ const Landing = () => {
                   onClick={() => goApp("final_cta")}
                 >
                   <PlayCircle className="mr-1.5 h-5 w-5" />
-                  Ver lo que vende hoy
+                  Ver lo que vende
                 </Button>
               </div>
             </div>
@@ -901,6 +905,9 @@ const VideoCard = ({
   video: LiveVideo;
   formatMoney: (n: number | null | undefined) => string;
 }) => {
+  const [mediaFailed, setMediaFailed] = useState(false);
+  useEffect(() => setMediaFailed(false), [video.video_mp4_url]);
+  if (!video.video_mp4_url?.trim() || mediaFailed) return null;
   const handle =
     video.creator_handle ||
     (video.creator_name ? `@${video.creator_name.replace(/\s+/g, "").toLowerCase()}` : "@creador");
@@ -921,6 +928,7 @@ const VideoCard = ({
           // tocarlo NO abre nada; el gesto pasa al carrusel que se frena al tocar.
           <video
             src={video.video_mp4_url}
+            onError={() => setMediaFailed(true)}
             poster={video.thumbnail_url || undefined}
             autoPlay
             muted
@@ -1136,108 +1144,5 @@ const compact = (n: number) =>
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(n);
-
-/* Used only if the live query returns nothing, so the rail is never empty. */
-const FALLBACK_VIDEOS: LiveVideo[] = [
-  {
-    id: "fb-1",
-    thumbnail_url: null,
-    video_mp4_url: null,
-    title: "Serum Vitamina C",
-    creator_name: "Mariana",
-    creator_handle: "@marianacrea",
-    revenue_mxn: 482500,
-    sales: 1240,
-    views: 2400000,
-    product_name: "Serum Vitamina C 30ml",
-    product_id: null,
-    product: { commission: 18 },
-  },
-  {
-    id: "fb-2",
-    thumbnail_url: null,
-    video_mp4_url: null,
-    title: "Resistencia Pro",
-    creator_name: "Javi",
-    creator_handle: "@javi.fit",
-    revenue_mxn: 311200,
-    sales: 870,
-    views: 1700000,
-    product_name: "Resistencia Pro Kit",
-    product_id: null,
-    product: { commission: 15 },
-  },
-  {
-    id: "fb-3",
-    thumbnail_url: null,
-    video_mp4_url: null,
-    title: "Set Antiadherentes",
-    creator_name: "Lulu",
-    creator_handle: "@casadelulu",
-    revenue_mxn: 268900,
-    sales: 640,
-    views: 985000,
-    product_name: "Sartenes Antiadherentes x5",
-    product_id: null,
-    product: { commission: 12 },
-  },
-  {
-    id: "fb-4",
-    thumbnail_url: null,
-    video_mp4_url: null,
-    title: "Labial Matte 24h",
-    creator_name: "Susana",
-    creator_handle: "@susanavibes",
-    revenue_mxn: 214300,
-    sales: 1530,
-    views: 742000,
-    product_name: "Labial Matte 24h",
-    product_id: null,
-    product: { commission: 20 },
-  },
-];
-
-const FALLBACK_OPPS: LiveOpportunity[] = [
-  {
-    id: "fo-1",
-    producto_nombre: "Serum Vitamina C 30ml",
-    imagen_url: null,
-    gmv_30d_calc: 482500,
-    earning_per_sale: 64,
-    is_hidden_gem: true,
-    is_high_pay: false,
-    opportunity_index: 92,
-  },
-  {
-    id: "fo-2",
-    producto_nombre: "Resistencia Pro Kit",
-    imagen_url: null,
-    gmv_30d_calc: 311200,
-    earning_per_sale: 88,
-    is_hidden_gem: false,
-    is_high_pay: true,
-    opportunity_index: 87,
-  },
-  {
-    id: "fo-3",
-    producto_nombre: "Sartenes Antiadherentes x5",
-    imagen_url: null,
-    gmv_30d_calc: 268900,
-    earning_per_sale: 52,
-    is_hidden_gem: true,
-    is_high_pay: false,
-    opportunity_index: 81,
-  },
-  {
-    id: "fo-4",
-    producto_nombre: "Labial Matte 24h",
-    imagen_url: null,
-    gmv_30d_calc: 214300,
-    earning_per_sale: 41,
-    is_hidden_gem: false,
-    is_high_pay: true,
-    opportunity_index: 78,
-  },
-];
 
 export default Landing;

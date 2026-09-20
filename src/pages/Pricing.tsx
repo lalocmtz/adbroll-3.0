@@ -1,3 +1,4 @@
+import { getStoredRefCode } from "@/lib/attribution";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +29,7 @@ const Pricing = () => {
   const { toast } = useToast();
   const [session, setSession] = useState<any>(null);
   const [referralCode, setReferralCode] = useState<string | null>(
-    searchParams.get("ref")
+    (searchParams.get("ref") || getStoredRefCode())
   );
   const [referralValid, setReferralValid] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -39,7 +40,7 @@ const Pricing = () => {
     });
 
     const checkReferral = async () => {
-      const urlRef = searchParams.get("ref");
+      const urlRef = (searchParams.get("ref") || getStoredRefCode());
       if (urlRef) {
         const { data } = await supabase
           .from("affiliate_codes")
@@ -72,7 +73,7 @@ const Pricing = () => {
     ? [
         "Dashboard con videos virales de TikTok Shop",
         "Scripts reales extraídos automáticamente",
-        "Variantes IA ilimitadas para tus guiones",
+        "Variantes IA para tus guiones",
         "Hooks generados por IA",
         "Oportunidades de productos con alto potencial",
         "Panel de afiliados (30% comisión recurrente)",
@@ -82,7 +83,7 @@ const Pricing = () => {
     : [
         "Dashboard with viral TikTok Shop videos",
         "Real scripts auto-extracted",
-        "Unlimited AI script variants",
+        "AI script variants",
         "AI-generated hooks",
         "High-potential product opportunities",
         "Affiliate panel (30% recurring commission)",
@@ -106,15 +107,15 @@ const Pricing = () => {
     {
       question: language === "es" ? "¿Cómo funciona el programa de afiliados?" : "How does the affiliate program work?",
       answer: language === "es"
-        ? "Ganas 30% de comisión recurrente por cada usuario que refieras mientras mantenga su suscripción activa. Es dinero pasivo real."
-        : "You earn 30% recurring commission for every user you refer as long as they maintain their active subscription. It's real passive income.",
+        ? "Ganas 30% de comisión recurrente por cada usuario que refieras mientras mantenga su suscripción activa. Las comisiones dependen de pagos reales."
+        : "You earn 30% recurring commission for every user you refer as long as they maintain their active subscription. Commissions depend on actual payments.",
     },
   ];
 
   const handleSelectPlan = async () => {
     // Reached checkout + real payment intent — give Meta both signals.
-    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
-    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
+    trackInitiateCheckout(30.00, "USD", "TokXray Pro");
+    trackAddPaymentInfo(30.00, "USD", "TokXray Pro");
 
     if (!session) {
       const refParam = referralCode ? `&ref=${referralCode}` : "";
@@ -149,8 +150,7 @@ const Pricing = () => {
     }
   };
 
-  const price = 24.99;
-  const discountedPrice = referralValid ? price * 0.5 : price;
+  const price = 30.00;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
@@ -191,8 +191,8 @@ const Pricing = () => {
             <Gift className="h-5 w-5 text-green-600" />
             <p className="text-green-800 font-medium">
               {language === "es"
-                ? "🎉 50% OFF en tu primer mes aplicado automáticamente"
-                : "🎉 50% OFF your first month applied automatically"}
+                ? "Código registrado: 50% en el primer mes para clientes nuevos. Confirma el total en Stripe"
+                : "Referral saved: 50% off the first month for new customers. Confirm the total in Stripe"}
             </p>
           </div>
         )}
@@ -232,20 +232,13 @@ const Pricing = () => {
 
             <div className="text-center mb-8">
               <div className="flex items-baseline justify-center gap-2">
-                {referralValid ? (
-                  <>
-                    <span className="text-2xl text-muted-foreground line-through">${price}</span>
-                    <span className="text-5xl font-bold text-primary">${discountedPrice.toFixed(2)}</span>
-                  </>
-                ) : (
-                  <span className="text-5xl font-bold">${price}</span>
-                )}
+                <span className="text-5xl font-bold">${price}</span>
                 <span className="text-muted-foreground text-lg">/{language === "es" ? "mes" : "month"}</span>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">~$499 MXN/{language === "es" ? "mes" : "month"}</p>
+              <p className="text-sm text-muted-foreground mt-2">USD</p>
               {referralValid && (
                 <p className="text-sm text-green-600 mt-2 font-medium">
-                  🎉 50% off {language === "es" ? "primer mes" : "first month"}
+                  {language === "es" ? "Consulta el total final en Stripe" : "See the final total in Stripe"}
                 </p>
               )}
             </div>

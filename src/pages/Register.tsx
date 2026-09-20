@@ -1,3 +1,4 @@
+import { authDestination, authCallbackUrl } from "@/lib/auth-destination";
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,13 +12,15 @@ import { Gift, X } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
 import { trackSignUp } from "@/lib/analytics";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { getStoredRefCode, persistRefCode } from "@/lib/attribution";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
+  const destination = authDestination(searchParams.get("redirect"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
+  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || getStoredRefCode() || "");
   const [grantCode, setGrantCode] = useState(searchParams.get("grant") || "");
   const [referralValid, setReferralValid] = useState<boolean | null>(null);
   const [grantValid, setGrantValid] = useState<boolean | null>(null);
@@ -92,15 +95,17 @@ const Register = () => {
     }
 
     setIsLoading(true);
+    if (referralCode && referralValid) persistRefCode(referralCode.trim().toUpperCase());
 
     try {
       const { data: signUpData, error } = await supabase.auth.signUp({
         email: result.data.email,
         password: result.data.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/app`,
+          emailRedirectTo: authCallbackUrl(destination),
           data: {
             full_name: result.data.fullName,
+            referral_code: referralValid ? referralCode.trim().toUpperCase() : null,
           },
         },
       });
@@ -108,45 +113,15 @@ const Register = () => {
       if (error) throw error;
 
       // If referral code is valid, apply it
-      if (referralCode && referralValid && signUpData.user) {
+      if (referralCode && referralValid && signUpData.session && signUpData.user) {
         await supabase.rpc("apply_referral_code", {
           p_user_id: signUpData.user.id,
           p_code: referralCode,
         });
       }
 
-      // If grant code is valid, activate the grant
-      if (grantCode && grantValid && grantData && signUpData.user) {
-        const now = new Date();
-        const endDate = new Date(now.getTime() + (grantData.granted_days || 30) * 24 * 60 * 60 * 1000);
-
-        // Create subscription with granted status
-        await supabase
-          .from("subscriptions")
-          .insert({
-            user_id: signUpData.user.id,
-            status: "active",
-            price_usd: 0,
-            renew_at: endDate.toISOString(),
-          });
-
-        // Update grant to active
-        await supabase
-          .from("creator_program_applications")
-          .update({
-            status: "active",
-            user_id: signUpData.user.id,
-            subscription_starts_at: now.toISOString(),
-            subscription_ends_at: endDate.toISOString(),
-          })
-          .eq("grant_code", grantCode.toUpperCase());
-
-        toast({
-          title: "¡Acceso activado!",
-          description: `Tienes ${grantData.granted_days || 30} días de acceso completo 🎉`,
-        });
-      }
-
+      // Promotional access is redeemed separately after email verification.
+      // Registration must never insert its own active subscription.
       // Send welcome email using edge function template
       try {
         await supabase.functions.invoke("send-email", {
@@ -168,12 +143,12 @@ const Register = () => {
       toast({
         title: "¡Cuenta creada!",
         description: referralValid
-          ? "Descuento de 50% disponible al suscribirte 🎉"
+          ? "Código de referido registrado"
           : "¡Bienvenido! Explora las herramientas.",
       });
 
       // Always redirect to /app - the paywall system will incentivize subscription
-      setTimeout(() => navigate("/app"), 1000);
+      navigate(`/auth/continue?redirect=${encodeURIComponent(destination)}`);
     } catch (error: any) {
       let message = error.message;
       if (error.message?.includes("already registered")) {
@@ -194,14 +169,14 @@ const Register = () => {
     
     // Store referral code in localStorage to apply after OAuth redirect
     if (referralCode && referralValid) {
-      localStorage.setItem("pending_referral_code", referralCode.toUpperCase());
+      persistRefCode(referralCode.toUpperCase());
     }
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/app`,
+          redirectTo: authCallbackUrl(destination),
         },
       });
 
@@ -238,7 +213,7 @@ const Register = () => {
           </div>
           <CardTitle>Crea tu cuenta gratis</CardTitle>
           <CardDescription>
-            Ve lo que vende hoy en TikTok Shop y copia el guión
+            Encuentra referencias de TikTok Shop y prepara tu siguiente video
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -263,7 +238,7 @@ const Register = () => {
             />
             {referralValid === true && (
               <p className="text-sm text-green-600 flex items-center gap-1">
-                🎉 Código válido - ¡50% off en tu primer mes!
+                Código válido. Cualquier descuento se confirma al pagar.
               </p>
             )}
             {referralValid === false && (
@@ -374,9 +349,10 @@ const Register = () => {
             <Button type="submit" className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading}>
               {isLoading ? "Creando cuenta..." : "Crear cuenta gratis"}
             </Button>
+            <p className="text-xs text-muted-foreground text-center">Al crear tu cuenta aceptas los <Link to="/terms" className="underline">términos de uso</Link> y la <Link to="/privacy" className="underline">política de privacidad</Link>. Consulta las <Link to="/terminos-afiliados" className="underline">condiciones del programa de afiliados</Link>.</p>
             <p className="text-sm text-center text-muted-foreground">
               ¿Ya tienes cuenta?{" "}
-              <Link to="/login" className="text-primary font-medium hover:underline">
+              <Link to={`/login?redirect=${encodeURIComponent(destination)}`} className="text-primary font-medium hover:underline">
                 Inicia sesión
               </Link>
             </p>

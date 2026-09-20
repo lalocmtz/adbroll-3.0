@@ -79,7 +79,7 @@ serve(async (req) => {
 
     // Generate onboarding link
     const { origin } = new URL(req.url);
-    const baseUrl = Deno.env.get("SITE_URL") || "https://adbroll.lovable.app";
+    const baseUrl = Deno.env.get("SITE_URL") || "https://tokxray.com";
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,

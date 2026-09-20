@@ -160,15 +160,16 @@ const Dashboard = () => {
             revenue_30d,
             producto_url
           )
-        `, {
+        ` as string, {
         count: "exact"
       }).not("video_mp4_url", "is", null) // Must be downloaded
+      .neq("video_mp4_url", "")
       .not("product_id", "is", null) // Must have product assigned
       .eq("country", market); // Filter by market (lowercase 'mx' or 'us')
 
       // Filtro de categoría EN LA CONSULTA (sobre el recurso embebido).
       if (isCategoryFiltered) {
-        query = query.eq("products.categoria", selectedCategory);
+        query = query.eq("product.categoria", selectedCategory);
       }
 
       if (sortOrder === "rank") {

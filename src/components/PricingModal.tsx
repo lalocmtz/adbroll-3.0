@@ -72,8 +72,8 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
 
   const handleSelectPlan = async (plan: "pro") => {
     // Reached checkout + real payment intent — give Meta both signals.
-    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
-    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
+    trackInitiateCheckout(30.00, "USD", "TokXray Pro");
+    trackAddPaymentInfo(30.00, "USD", "TokXray Pro");
 
     setLoadingPlan(plan);
     onOpenChange(false);
@@ -100,8 +100,7 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
     setLoadingPlan(null);
   };
 
-  const proPrice = 24.99;
-  const discountedProPrice = referralValid ? proPrice * 0.5 : proPrice;
+  const proPrice = 30.00;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,8 +116,8 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
             <Gift className="h-4 w-4 text-green-600" />
             <p className="text-green-800 dark:text-green-300 font-medium text-sm">
               {language === "es"
-                ? "¡Descuento aplicado! 50% off en tu primer mes 🎉"
-                : "Discount applied! 50% off your first month 🎉"}
+                ? "Código registrado; cualquier descuento se confirma en Stripe"
+                : "Referral saved; any discount is confirmed in Stripe"}
             </p>
           </div>
         )}
@@ -136,18 +135,7 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
               </p>
 
               <div className="flex items-baseline justify-center gap-1 mt-3">
-                {referralValid ? (
-                  <>
-                    <span className="text-sm text-muted-foreground line-through">
-                      ${proPrice}
-                    </span>
-                    <span className="text-2xl font-bold text-primary">
-                      ${discountedProPrice.toFixed(2)}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-2xl font-bold">${proPrice}</span>
-                )}
+                <span className="text-2xl font-bold">${proPrice}</span>
                 <span className="text-muted-foreground text-sm">
                   /{language === "es" ? "mes" : "month"}
                 </span>
