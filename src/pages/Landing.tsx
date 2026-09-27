@@ -278,7 +278,7 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-brand-mist text-brand-ink">
       <GlobalHeader showMenu={false} />
-      <div className="bg-brand-ink text-brand-mist text-center px-4 py-4 text-sm border-b border-white/10"><a href="/programa-creadores" className="inline-flex items-center justify-center rounded-lg bg-brand-pink px-5 py-3 font-semibold text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-cyan">Gana hasta el 30% por recomendar TokXray →</a></div>
+      <div className="bg-brand-ink text-brand-mist text-center px-4 py-4 text-sm border-b border-white/10"><a href="/programa-creadores" className="inline-flex items-center justify-center rounded-lg bg-brand-pink px-5 py-3 font-semibold text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-cyan">Gana dinero recomendando TokXray →</a></div>
 
       {/* ===================== HERO ===================== */}
       <section className="relative overflow-hidden bg-gradient-ink text-brand-mist">

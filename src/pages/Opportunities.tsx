@@ -11,8 +11,6 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { useNavigate } from "react-router-dom";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
-import { format } from "date-fns";
-import { es, enUS } from "date-fns/locale";
 import { useStartCheckout } from "@/lib/checkout";
 
 interface OpportunityProduct {
@@ -40,7 +38,6 @@ type BadgeFilter = "all" | "gems" | "rising" | "high_pay";
 const BADGE_FILTERS: { value: BadgeFilter; labelEs: string; labelEn: string }[] = [
   { value: "all", labelEs: "Todas", labelEn: "All" },
   { value: "gems", labelEs: "💎 Joyas", labelEn: "💎 Gems" },
-  { value: "rising", labelEs: "🚀 Despegando", labelEn: "🚀 Rising" },
   { value: "high_pay", labelEs: "💰 Paga bien", labelEn: "💰 High pay" },
 ];
 
@@ -131,7 +128,6 @@ const Opportunities = () => {
     );
   }
 
-  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: language === "es" ? es : enUS });
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -140,20 +136,20 @@ const Opportunities = () => {
         <div className="mb-3 md:mb-4 py-1 md:py-0">
           <div className="md:hidden">
             <h1 className="text-base font-bold text-foreground leading-tight">
-              💎 {language === "es" ? "Oportunidades detectadas HOY" : "Opportunities detected TODAY"}
+              💎 {language === "es" ? "Oportunidades del catálogo" : "Catalog opportunities"}
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {todayFormatted} · {language === "es" ? "IA de TokXray" : "TokXray AI"}
+              {language === "es" ? "Datos importados de Kalodata · Actualización manual" : "Imported Kalodata data · Manual updates"}
             </p>
           </div>
           <div className="hidden md:block">
             <h1 className="text-lg font-bold text-foreground leading-tight">
-              💎 {language === "es" ? `Oportunidades detectadas HOY, ${todayFormatted}` : `Opportunities detected TODAY, ${todayFormatted}`}
+              💎 {language === "es" ? "Oportunidades del catálogo" : "Catalog opportunities"}
             </h1>
             <p className="text-xs text-muted-foreground">
               {language === "es"
-                ? "Productos con demanda fuerte, poca competencia y buena comisión"
-                : "Products with strong demand, low competition, and good commission"}
+                ? "Explora señales de demanda y comisión en los datos importados de Kalodata"
+                : "Explore demand and commission signals in imported Kalodata data"}
             </p>
           </div>
         </div>
@@ -239,8 +235,8 @@ const Opportunities = () => {
             <Lightbulb className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <p className="text-[13px] text-foreground leading-relaxed">
               {language === "es"
-                ? "El índice compara cada producto contra su categoría: ventas reales, cuántos creadores ya lo promueven, si está creciendo y cuánto pagaría por venta."
-                : "The index compares each product against its category: real sales, how many creators already promote it, whether it's growing, and how much it pays per sale."}
+                ? "El índice experimental es una comparación estadística dentro de cada categoría y mercado, no una predicción de ventas. Pondera demanda (30%), cantidad de creadores (25%), evolución de ingresos (20%), comisión por venta (15%) y ROAS (10%). Los datos se actualizan al importar un nuevo reporte; no son datos en tiempo real. La señal de crecimiento sigue pendiente de validar con periodos comparables. Revisa las cifras y los videos antes de elegir un producto."
+                : "This experimental index is a statistical comparison within each category and market, not a sales prediction. Weights: demand 30%, creator count 25%, revenue evolution 20%, earnings per sale 15%, ROAS 10%. Data changes when a new report is imported, not in real time. Growth still needs validation against comparable reporting periods. Review the numbers and videos before choosing a product."}
             </p>
           </div>
         </div>
@@ -378,7 +374,10 @@ const OpportunityCard = ({
   isLoggedIn: boolean;
 }) => {
   const isEs = language === "es";
-  const reasons = (product.opportunity_reasons || []).slice(0, 3);
+  // Legacy snapshots lack source periods, so growth cannot yet be verified.
+  const reasons = (product.opportunity_reasons || [])
+    .filter((reason) => !reason.startsWith("Crecimiento"))
+    .slice(0, 3);
 
   const goToVideos = () => {
     if (!isLoggedIn) {
@@ -398,14 +397,6 @@ const OpportunityCard = ({
         ? "Vende mucho y casi nadie lo promueve todavía."
         : "Sells a lot and almost nobody promotes it yet.",
     });
-  if (product.is_rising)
-    badges.push({
-      emoji: "🚀",
-      label: isEs ? "Despegando" : "Rising",
-      tooltip: isEs
-        ? "Sus ventas crecen más rápido que el resto de su categoría."
-        : "Its sales are growing faster than the rest of its category.",
-    });
   if (product.is_high_pay)
     badges.push({
       emoji: "💰",
@@ -417,10 +408,10 @@ const OpportunityCard = ({
   if (product.is_brand_backed)
     badges.push({
       emoji: "🏷️",
-      label: isEs ? "Marca invirtiendo" : "Brand backed",
+      label: isEs ? "ROAS alto" : "High ROAS",
       tooltip: isEs
-        ? "La marca está metiendo dinero en anuncios: el producto tiene empuje."
-        : "The brand is investing in ads: the product has momentum.",
+        ? "ROAS reportado superior a 2 y entre los más altos de su categoría; no indica cuánto invierte la marca."
+        : "Reported ROAS above 2 and among the highest in its category; this does not indicate the brand’s ad spend.",
     });
   if (product.is_saturated)
     badges.push({
@@ -468,12 +459,12 @@ const OpportunityCard = ({
               <TooltipTrigger asChild>
                 <span className="inline-flex items-center gap-1 flex-shrink-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm cursor-help">
                   <TrendingUp className="h-3 w-3" />
-                  {product.opportunity_index ?? 0}
+                  {product.opportunity_index ?? 0}<span className="sr-only"> / 100 · Indicador experimental</span>
                 </span>
               </TooltipTrigger>
               <TooltipContent side="left" className="max-w-[220px]">
                 <p className="text-xs">
-                  {es
+                  {isEs
                     ? "Índice 0-100: demanda, espacio libre, crecimiento, pago por venta e inversión de marca, comparado contra su categoría."
                     : "0-100 index: demand, free space, growth, pay per sale and brand investment, compared against its category."}
                 </p>
@@ -511,7 +502,7 @@ const OpportunityCard = ({
         {(product.earning_per_sale ?? 0) > 0 && (
           <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/60 px-3 py-2">
             <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-              {isEs ? "Tú ganarías" : "You would earn"}
+              {isEs ? "Comisión estimada" : "Estimated commission"}
             </p>
             <p className="text-base md:text-lg font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
               ~{formatMoney(product.earning_per_sale)}{" "}
@@ -524,7 +515,7 @@ const OpportunityCard = ({
 
         {/* CTA */}
         <Button className="w-full h-11 text-[13px] font-semibold rounded-lg" onClick={goToVideos}>
-          {isEs ? "Ver los videos que ya venden esto" : "See the videos already selling this"}
+          {isEs ? "Ver videos relacionados" : "See related videos"}
           <ArrowRight className="h-4 w-4 ml-1.5" />
         </Button>
       </div>
