@@ -15,16 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getStoredRefCode } from "@/lib/attribution";
 import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
 
-const PRICE_USD = 24.99;
+const PRICE_USD = 30.00;
 const PLAN_LABEL = "TokXray Pro";
-
-const readProspectEmail = (): string | undefined => {
-  try {
-    return localStorage.getItem("adbroll_prospect_email") || undefined;
-  } catch {
-    return undefined;
-  }
-};
 
 /**
  * Kick off Stripe Checkout in one click and redirect the browser to the
@@ -33,7 +25,6 @@ const readProspectEmail = (): string | undefined => {
  */
 export async function startCheckout(): Promise<void> {
   const referral_code = getStoredRefCode() || undefined;
-  const prospectEmail = readProspectEmail();
 
   // Strong intent signals for Meta — fire both on the same click.
   trackInitiateCheckout(PRICE_USD, "USD", PLAN_LABEL);
@@ -44,13 +35,13 @@ export async function startCheckout(): Promise<void> {
       data: { session },
     } = await supabase.auth.getSession();
 
-    const { data, error } = session
-      ? await supabase.functions.invoke("create-checkout", {
-          body: { referral_code },
-        })
-      : await supabase.functions.invoke("create-checkout-guest", {
-          body: { email: prospectEmail || undefined, referral_code },
-        });
+    if (!session) {
+      window.location.href = `/register?redirect=%2Fpricing${referral_code ? `&ref=${encodeURIComponent(referral_code)}` : ""}`;
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("create-checkout", {
+      body: { referral_code },
+    });
 
     if (error) throw error;
 

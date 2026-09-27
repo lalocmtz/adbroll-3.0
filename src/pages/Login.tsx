@@ -1,5 +1,6 @@
+import { authDestination, authCallbackUrl } from "@/lib/auth-destination";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
@@ -12,6 +13,8 @@ import { loginSchema } from "@/lib/validations";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const Login = () => {
+  const [searchParams] = useSearchParams();
+  const destination = authDestination(searchParams.get("redirect"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +53,7 @@ const Login = () => {
         title: "¡Bienvenido de vuelta!",
       });
 
-      navigate("/app");
+      navigate(`/auth/continue?redirect=${encodeURIComponent(destination)}`);
     } catch (error: any) {
       toast({
         title: "Error al iniciar sesión",
@@ -70,7 +73,7 @@ const Login = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/app`,
+          redirectTo: authCallbackUrl(destination),
         },
       });
 
@@ -107,7 +110,7 @@ const Login = () => {
           </div>
           <CardTitle>Bienvenido de vuelta</CardTitle>
           <CardDescription>
-            Inicia sesión para ver lo que vende hoy
+            Continúa con tus videos, guiones y referidos
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -193,7 +196,7 @@ const Login = () => {
             </Button>
             <p className="text-sm text-center text-muted-foreground">
               ¿No tienes cuenta?{" "}
-              <Link to="/register" className="text-primary font-medium hover:underline">
+              <Link to={`/register?redirect=${encodeURIComponent(destination)}`} className="text-primary font-medium hover:underline">
                 Regístrate gratis
               </Link>
             </p>

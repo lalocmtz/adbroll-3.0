@@ -61,7 +61,7 @@ const exploreItems: NavItem[] = [
 // TU CENTRO - Work tools
 const workspaceItems: NavItem[] = [
   { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
-  { to: "/affiliates", labelEs: "Afiliados", labelEn: "Affiliates", icon: Coins, lockedForVisitor: true },
+  { to: "/affiliates", labelEs: "Gana recomendando", labelEn: "Earn by referring", icon: Coins, lockedForVisitor: false },
 ];
 
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {

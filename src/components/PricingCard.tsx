@@ -19,9 +19,8 @@ export const PricingCard = ({
   const { language } = useLanguage();
   const { referralCodeUsed, referralDiscount } = useReferralCode();
   
-  const price = 24.99;
+  const price = 30.00;
   const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied;
-  const discountedPrice = hasDiscount ? price * 0.5 : price;
 
   return (
     <Card
@@ -38,28 +37,17 @@ export const PricingCard = ({
       <div className="text-center mb-6">
         <h3 className="text-xl font-bold mb-2">TokXray Pro</h3>
         <div className="flex items-center justify-center gap-2">
-          {hasDiscount ? (
-            <>
-              <span className="text-2xl text-muted-foreground line-through">
-                ${price}
-              </span>
-              <span className="text-4xl font-bold text-primary">
-                ${discountedPrice.toFixed(2)}
-              </span>
-            </>
-          ) : (
-            <span className="text-4xl font-bold">${price}</span>
-          )}
+          <span className="text-4xl font-bold">${price}</span>
           <span className="text-muted-foreground">
             /{language === "es" ? "mes" : "mo"}
           </span>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
-          ~$499 MXN/{language === "es" ? "mes" : "mo"}
+          USD
         </p>
         {hasDiscount && (
           <p className="text-sm text-green-600 mt-2 font-medium">
-            🎉 {language === "es" ? "50% off primer mes" : "50% off first month"}
+            🎉 {language === "es" ? "Código registrado; consulta el total en Stripe" : "Referral saved; see the total in Stripe"}
           </p>
         )}
       </div>

@@ -32,8 +32,8 @@ export const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
 
   const handleSelectPlan = async (plan: "pro") => {
     // Reached checkout + real payment intent — give Meta both signals.
-    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
-    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
+    trackInitiateCheckout(30.00, "USD", "TokXray Pro");
+    trackAddPaymentInfo(30.00, "USD", "TokXray Pro");
 
     if (!isLoggedIn) {
       navigate(`/register?plan=${plan}`);
@@ -97,11 +97,11 @@ export const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
 
           <Card className="p-5 border-2 border-primary relative">
             <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] whitespace-nowrap">
-              50% OFF el primer mes · primeros 100
+              TokXray Pro · acceso completo
             </Badge>
 
             <div className="text-center mb-4 pt-2">
-              <div className="text-3xl font-bold mt-1">$24.99<span className="text-sm font-normal text-muted-foreground"> USD/mes</span></div>
+              <div className="text-3xl font-bold mt-1">$30.00<span className="text-sm font-normal text-muted-foreground"> USD/mes</span></div>
             </div>
 
             <ul className="space-y-2 mb-4">

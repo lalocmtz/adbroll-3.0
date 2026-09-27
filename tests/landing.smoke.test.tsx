@@ -1,110 +1,43 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { MarketProvider } from "@/contexts/MarketContext";
 import Landing from "@/pages/Landing";
 
-// Supabase client is imported transitively via GlobalHeader; stub it
-// so the test never hits the network.
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-      signOut: vi.fn().mockResolvedValue({ error: null }),
+    auth: { getUser: vi.fn().mockResolvedValue({data:{user:null}}), signOut: vi.fn() },
+    from: () => {
+      const query = { select: () => query, eq: () => query, not: () => query, neq: () => query, order: () => query, limit: async () => ({data:[],error:null}) };
+      return query;
     },
   },
 }));
-
-// Language context needs router context to render — wrap everything in
-// MemoryRouter below and skip the provider for this smoke test.
-vi.mock("@/contexts/LanguageContext", () => ({
-  LanguageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  useLanguage: () => ({ t: (k: string) => k, lang: "es", setLang: () => {} }),
-}));
-
-const renderLanding = () =>
-  render(
-    <MemoryRouter>
-      <Landing />
-    </MemoryRouter>,
-  );
-
-describe("Landing page (smoke) — Variante E", () => {
-  it("renders the narrative hero headline", () => {
-    renderLanding();
-    // Headline is split across inline spans; match the distinctive phrases.
-    expect(
-      screen.getByText(/Este creador ganó/i),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Hoy puedes ver su guión/i)).toBeInTheDocument();
+vi.mock("@/contexts/LanguageContext", () => ({ useLanguage: () => ({language:"es",formatMoney:(n:number)=>`$${n}`}) }));
+async function renderLanding() {
+  render(<MemoryRouter><MarketProvider><Landing /></MarketProvider></MemoryRouter>);
+  await waitFor(()=>expect(screen.getByRole("button",{name:"Empezar ahora"})).toBeInTheDocument());
+}
+describe("Mexico launch landing",()=>{
+  it("does not fabricate rankings when the data source returns no rows",async()=>{
+    await renderLanding();
+    expect(await screen.findByText("No hay videos disponibles en este momento.")).toBeInTheDocument();
+    expect(screen.queryByText("Serum Vitamina C 30ml")).not.toBeInTheDocument();
+    expect(screen.queryByText("@marianacrea")).not.toBeInTheDocument();
   });
-
-  it("shows the urgency chip and live GMV counter", () => {
-    renderLanding();
-    expect(
-      screen.getByText(/50 % OFF · primeros 100 creadores/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Rastreado hoy en TikTok Shop/i),
-    ).toBeInTheDocument();
+  it("shows the 30 USD monthly plan without outdated promotions",async()=>{
+    await renderLanding();
+    expect(screen.getByText("$30.00 USD")).toBeInTheDocument();
+    expect(screen.queryByText(/24\.99|50 % OFF|Antes \$499/)).not.toBeInTheDocument();
   });
-
-  it("renders the Top 20 dashboard mock with at least 3 real rows", () => {
-    renderLanding();
-    expect(screen.getByText("Serum Vitamina C 30ml")).toBeInTheDocument();
-    expect(screen.getByText("Resistencia Pro Kit")).toBeInTheDocument();
-    expect(
-      screen.getByText("Sartenes Antiadherentes x5"),
-    ).toBeInTheDocument();
+  it("explains manual snapshot updates rather than promising live sales",async()=>{
+    await renderLanding();
+    fireEvent.click(screen.getByRole("button",{name:"¿Cada cuánto se actualiza?"}));
+    expect(screen.getByText(/no son ventas en tiempo real/)).toBeInTheDocument();
   });
-
-  it("exposes the primary hero CTAs", () => {
-    renderLanding();
-    // Hero: "Ver el Top 20 de hoy" and "Ya tengo cuenta"
-    expect(
-      screen.getByRole("button", { name: /Ver el Top 20 de hoy/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Ya tengo cuenta/i }),
-    ).toBeInTheDocument();
-    // Top20 unlock CTA
-    expect(
-      screen.getByRole("button", { name: /Desbloquear los 20 videos/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("renders the guion demo with three tab variants", () => {
-    renderLanding();
-    expect(screen.getByRole("tab", { name: /Transcrito/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole("tab", { name: /Optimizado IA/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Agresivo/i })).toBeInTheDocument();
-  });
-
-  it("switches guion variants when a tab is clicked", () => {
-    renderLanding();
-    // Agresivo tab surfaces a distinctive phrase not present in ia_optimizado.
-    fireEvent.click(screen.getByRole("tab", { name: /Agresivo/i }));
-    expect(
-      screen.getByText(/5 productos caros no pudieron/i),
-    ).toBeInTheDocument();
-  });
-
-  it("renders the pricing card with promo price and gated fine print", () => {
-    renderLanding();
-    expect(
-      screen.getByRole("button", { name: /Empezar ahora/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Antes \$499 MXN · \$25 USD/i)).toBeInTheDocument();
-  });
-
-  it("renders the FAQ questions", () => {
-    renderLanding();
-    expect(
-      screen.getByText(/¿De dónde vienen los datos\?/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/¿Puedo cancelar cuando quiera\?/i),
-    ).toBeInTheDocument();
+  it("switches the script example",async()=>{
+    await renderLanding();
+    fireEvent.click(screen.getByRole("tab",{name:"Agresivo"}));
+    expect(screen.getByText(/5 productos caros no pudieron/)).toBeInTheDocument();
   });
 });

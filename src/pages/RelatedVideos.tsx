@@ -159,7 +159,7 @@ const RelatedVideos = () => {
       if (isProductView && productId) {
         const { data: product, error: productError } = await supabase
           .from("products")
-          .select("id, producto_nombre, imagen_url, total_ingresos_mxn, rank, producto_url")
+          .select("id, producto_nombre, imagen_url, total_ingresos_mxn, rank, producto_url, market, tiktok_product_id")
           .eq("id", productId)
           .maybeSingle();
 
@@ -175,6 +175,10 @@ const RelatedVideos = () => {
           .from("videos")
           .select(VIDEO_CARD_COLUMNS)
           .eq("product_id", productId)
+          .eq("country", product.market)
+          .not("video_mp4_url", "is", null)
+          .neq("video_mp4_url", "")
+          .or(product.tiktok_product_id && /^\d+$/.test(product.tiktok_product_id) ? `manual_match.eq.true,tiktok_product_id.eq.${product.tiktok_product_id}` : "manual_match.eq.true")
           .order("revenue_mxn", { ascending: false });
 
         if (videosError) throw videosError;
@@ -183,7 +187,7 @@ const RelatedVideos = () => {
       } else if (isCreatorView && creatorId) {
         const { data: creator, error: creatorError } = await supabase
           .from("creators")
-          .select("id, nombre_completo, usuario_creador, creator_handle, avatar_url, total_ingresos_mxn, tiktok_url")
+          .select("id, nombre_completo, usuario_creador, creator_handle, avatar_url, total_ingresos_mxn, tiktok_url, country")
           .eq("id", creatorId)
           .maybeSingle();
 
@@ -199,7 +203,10 @@ const RelatedVideos = () => {
         const { data: videosData, error: videosError } = await supabase
           .from("videos")
           .select(VIDEO_CARD_COLUMNS)
-          .or(`creator_id.eq.${creatorId},creator_handle.ilike.%${creatorHandle}%`)
+          .eq("creator_handle", creatorHandle)
+          .eq("country", creator.country || "mx")
+          .not("video_mp4_url", "is", null)
+          .neq("video_mp4_url", "")
           .order("revenue_mxn", { ascending: false });
 
         if (videosError) throw videosError;

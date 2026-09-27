@@ -37,6 +37,9 @@ import CheckoutSuccess from "./pages/CheckoutSuccess";
 import CheckoutCancel from "./pages/CheckoutCancel";
 import NotFound from "./pages/NotFound";
 import CreatorProgram from "./pages/CreatorProgram";
+import PartnerLanding from "./pages/PartnerLanding";
+import AffiliateTerms from "./pages/AffiliateTerms";
+import AuthContinue from "./pages/AuthContinue";
 import Redeem from "./pages/Redeem";
 import VideoAttribution from "./pages/admin/VideoAttribution";
 
@@ -54,6 +57,8 @@ const PageTracker = () => {
 
   useEffect(() => {
     trackPageView(location.pathname + location.search);
+    // Preserve referrals on direct /register, /pricing and /app links too.
+    const attribution = captureAttribution();
 
     // SPA route changes don't reload index.html, so the Meta Pixel
     // PageView that fires on initial load never re-fires on navigation.
@@ -65,8 +70,8 @@ const PageTracker = () => {
       window.fbq?.("track", "PageView");
     }
 
-    if (location.pathname === "/") {
-      const { payload, isNewPartnerSession } = captureAttribution();
+    if (["/", "/programa-creadores", "/gana"].includes(location.pathname)) {
+      const { payload, isNewPartnerSession } = attribution;
 
       track(Events.LandingViewed, {
         utm_source: payload.utm_source,
@@ -171,7 +176,11 @@ const App = () => {
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/checkout/success" element={<CheckoutSuccess />} />
                   <Route path="/checkout/cancel" element={<CheckoutCancel />} />
-                  <Route path="/programa-creadores" element={<CreatorProgram />} />
+                  <Route path="/programa-creadores" element={<PartnerLanding />} />
+                  <Route path="/gana" element={<PartnerLanding />} />
+                  <Route path="/colaboraciones" element={<CreatorProgram />} />
+                  <Route path="/terminos-afiliados" element={<AffiliateTerms />} />
+                  <Route path="/auth/continue" element={<AuthContinue />} />
                   <Route path="/canjear" element={<Redeem />} />
                   
                   {/* APP-FIRST: Main app routes (viewable by all, gated by blur) */}
@@ -244,7 +253,7 @@ const App = () => {
                     path="/affiliates"
                     element={
                       <AppRoute session={session}>
-                        <Affiliates />
+                        {session ? <Affiliates /> : <Navigate to="/programa-creadores" replace />}
                       </AppRoute>
                     }
                   />

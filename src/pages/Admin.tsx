@@ -1,3 +1,4 @@
+import CreatorPresentationUploader from "@/components/admin/CreatorPresentationUploader";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -552,7 +553,8 @@ const Admin = () => {
         <MatchReviewQueue onResolved={loadStats} />
 
         {/* Asset Uploader */}
-        <AssetUploader />
+        <CreatorPresentationUploader />
+            <AssetUploader />
 
         {/* Attribution Panel Link */}
         <Card className="mb-6 border-2 border-primary/20 bg-primary/5">

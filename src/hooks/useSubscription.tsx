@@ -95,7 +95,7 @@ export const useSubscription = () => {
   };
 
   // Derived states - simplified (no more premium tier)
-  const isPro = planTier === "pro" || hasActiveSubscription || isFounder || isGrantedAccess;
+  const isPro = hasActiveSubscription || isFounder || isGrantedAccess;
 
   return {
     subscription,

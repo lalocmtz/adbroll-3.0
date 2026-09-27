@@ -73,6 +73,8 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [mediaFailed, setMediaFailed] = useState(false);
+  useEffect(() => setMediaFailed(false), [video.video_mp4_url]);
   const [currentProductId, setCurrentProductId] = useState(video.product_id);
   const [currentProductName, setCurrentProductName] = useState(video.product_name);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -102,7 +104,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
 
   // Autoplay muted when video enters viewport (works on mobile and desktop)
   useEffect(() => {
-    if (!video.video_mp4_url || !containerRef.current) return;
+    if (mediaFailed || !video.video_mp4_url || !containerRef.current) return;
     
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -122,7 +124,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
     observer.observe(containerRef.current);
     
     return () => observer.disconnect();
-  }, [video.video_mp4_url]);
+  }, [video.video_mp4_url, mediaFailed]);
 
   useEffect(() => {
     const checkFavoriteStatus = async () => {
@@ -148,7 +150,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
         }
       });
     }
-  }, [video.video_mp4_url]);
+  }, [video.video_mp4_url, mediaFailed]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
@@ -216,6 +218,9 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
 
   const isTop5 = ranking <= 5;
 
+  // Do not advertise an unusable card when its stored media is missing or broken.
+  if (!video.video_mp4_url?.trim() || mediaFailed) return null;
+
   return (
     <>
       <motion.div 
@@ -263,6 +268,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             <>
               <video 
                 ref={videoRef}
+                onError={() => setMediaFailed(true)}
                 src={video.video_mp4_url}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                 muted

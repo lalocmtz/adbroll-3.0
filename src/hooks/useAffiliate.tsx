@@ -12,6 +12,7 @@ export interface AffiliateDashboard {
   link_ready: boolean;
   connect_ready: boolean;
   has_connect: boolean;
+  payout_hold?: boolean;
   usd_earned: number;
   usd_available: number;
   usd_withdrawn: number;

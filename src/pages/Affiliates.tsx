@@ -52,10 +52,10 @@ const Affiliates = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("connected") === "true") {
       toast({
-        title: language === "es" ? "¡Cuenta conectada!" : "Account connected!",
+        title: language === "es" ? "Revisando tu cuenta" : "Checking your account",
         description: language === "es" 
-          ? "Tu cuenta de Stripe está lista para recibir pagos"
-          : "Your Stripe account is ready to receive payments",
+          ? "Stripe confirmará si tu cuenta está habilitada para recibir pagos."
+          : "Stripe will confirm whether your account can receive payouts.",
       });
       window.history.replaceState({}, "", "/affiliates");
       refetch();
@@ -73,7 +73,7 @@ const Affiliates = () => {
   const hasConnect =
     dashboard?.has_connect ?? Boolean((affiliate as any)?.stripe_connect_id);
   const connectReady =
-    dashboard?.connect_ready ?? Boolean((affiliate as any)?.stripe_onboarding_complete);
+    Boolean(affiliate?.stripe_onboarding_complete && affiliate?.payouts_enabled);
 
   // Available balance from the RPC (fallback to the row).
   const usdAvailable = dashboard?.usd_available ?? affiliate?.usd_available ?? 0;
@@ -84,7 +84,7 @@ const Affiliates = () => {
 
   const handleCopyLink = async () => {
     if (activeCode) {
-      const link = `${ADBROLL_DOMAIN}?ref=${activeCode}`;
+      const link = `${ADBROLL_DOMAIN}/programa-creadores?ref=${activeCode}`;
       await navigator.clipboard.writeText(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -107,55 +107,9 @@ const Affiliates = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user");
 
-      // First check if user already has a code in affiliate_codes
-      const { data: existingCode } = await supabase
-        .from("affiliate_codes")
-        .select("code")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      let codeToUse: string;
-
-      if (existingCode?.code) {
-        // User already has a code, use it
-        codeToUse = existingCode.code;
-      } else {
-        // Generate new code
-        const { data: codeData, error: codeError } = await supabase.rpc("generate_ref_code");
-        if (codeError) throw codeError;
-
-        codeToUse = codeData as string;
-
-        // Insert into affiliate_codes
-        const { error: affiliateCodeError } = await supabase
-          .from("affiliate_codes")
-          .insert({ user_id: user.id, code: codeToUse });
-
-        if (affiliateCodeError) throw affiliateCodeError;
-      }
-
-      // Check if affiliates record exists
-      const { data: existingAffiliate } = await supabase
-        .from("affiliates")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!existingAffiliate) {
-        // Create affiliates record
-        const { error: affiliateError } = await supabase
-          .from("affiliates")
-          .insert({ 
-            user_id: user.id, 
-            ref_code: codeToUse,
-            active_referrals_count: 0,
-            usd_earned: 0,
-            usd_available: 0,
-            usd_withdrawn: 0,
-          });
-
-        if (affiliateError) throw affiliateError;
-      }
+      const { data: enrollment, error: enrollmentError } = await supabase.rpc("ensure_affiliate" as never);
+      if (enrollmentError) throw enrollmentError;
+      const codeToUse = (enrollment as unknown as { code: string }).code;
 
       toast({
         title: language === "es" ? "¡Código creado!" : "Code created!",
@@ -331,8 +285,8 @@ const Affiliates = () => {
             </p>
             <p className="text-sm font-medium text-green-600 mb-4">
               {language === "es"
-                ? "≈ $7.50 USD al mes por cada usuario activo"
-                : "≈ $7.50 USD per month for each active user"}
+                ? "≈ $9 USD al mes por cada usuario activo"
+                : "≈ $9 USD per month for each active user"}
             </p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="gap-1">
@@ -392,7 +346,7 @@ const Affiliates = () => {
             </div>
             <div>
               <p className="font-medium text-sm text-green-600">
-                {language === "es" ? "Ganas $7.50/mes" : "You earn $7.50/mo"}
+                {language === "es" ? "Ganas $9/mes" : "You earn $9/mo"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {language === "es"
@@ -406,6 +360,7 @@ const Affiliates = () => {
 
       {affiliate ? (
         <div className="space-y-6">
+          <p className="text-sm text-muted-foreground">30% de cada pago elegible: $4.50 USD del primer mes de $15 y $9 USD de cada renovación de $30. Sin límite de seis meses. Retiros desde $50 USD. <a href="/terminos-afiliados" className="underline">Condiciones del programa</a>.</p>
           {/* Share Section — first, so the link is the hero action */}
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -423,7 +378,7 @@ const Affiliates = () => {
                 </label>
                 <div className="flex gap-2">
                   <Input
-                    value={`${ADBROLL_DOMAIN}?ref=${activeCode}`}
+                    value={`${ADBROLL_DOMAIN}/programa-creadores?ref=${activeCode}`}
                     readOnly
                     className="text-sm"
                   />
@@ -497,8 +452,8 @@ const Affiliates = () => {
                         ? "Ya personalizaste tu código (solo se puede cambiar una vez)."
                         : "You already customized your code (it can only be changed once).")
                     : (language === "es"
-                        ? "Puedes personalizarlo una sola vez (4-12 letras o números). Toca el lápiz."
-                        : "You can customize it one time only (4-12 letters or numbers). Tap the pencil.")}
+                        ? "Puedes personalizarlo una vez, antes de recibir referidos (4–12 letras o números)."
+                        : "Customize once before receiving referrals (4–12 letters or numbers).")}
                 </p>
               </div>
             </div>
@@ -547,6 +502,7 @@ const Affiliates = () => {
             </Card>
           </div>
 
+          {dashboard?.payout_hold && <Card className="p-5 border-amber-400"><p className="font-semibold">Pagos en revisión</p><p className="text-sm text-muted-foreground">Hay un cobro en disputa asociado a tus comisiones. Los retiros están pausados mientras se concilia. Contacta a soporte para revisar el caso.</p></Card>}
           {/* Stripe Connect Section */}
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">

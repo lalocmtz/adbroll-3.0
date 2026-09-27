@@ -1,7 +1,6 @@
 import { useState } from "react";
 import DashboardSidebar from "./DashboardSidebar";
 import DashboardFooter from "@/components/DashboardFooter";
-import PreviewBanner from "@/components/PreviewBanner";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
@@ -39,6 +38,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <Menu className="h-5 w-5" />
             </Button>
             
+            <Button variant="ghost" size="sm" onClick={() => navigate(isLoggedIn ? "/affiliates" : "/programa-creadores")} className="text-xs font-semibold text-primary">Gana recomendando</Button>
             {/* Login button for visitors */}
             {!isLoggedIn && (
               <Button 
