@@ -120,32 +120,17 @@ const Register = () => {
 
       // Promotional access is redeemed separately after email verification.
       // Registration must never insert its own active subscription.
-      // Send welcome email using edge function template
-      try {
-        await supabase.functions.invoke("send-email", {
-          body: {
-            to: result.data.email,
-            template: "welcome_free",
-            templateData: {
-              name: result.data.fullName || "",
-            },
-          },
-        });
-      } catch (emailError) {
-        console.error("Error sending welcome email:", emailError);
-      }
-
       // Track CompleteRegistration event for Meta Pixel
       trackSignUp("email", result.data.email);
 
       toast({
         title: "¡Cuenta creada!",
-        description: referralValid
-          ? "Código de referido registrado"
-          : "¡Bienvenido! Explora las herramientas.",
+        description: signUpData.session
+          ? "Tu cuenta está lista. Ya puedes continuar."
+          : "Revisa tu correo y confirma tu cuenta para continuar.",
       });
 
-      // Always redirect to /app - the paywall system will incentivize subscription
+      // Continue after confirmation while preserving the requested destination
       navigate(`/auth/continue?redirect=${encodeURIComponent(destination)}`);
     } catch (error: any) {
       let message = error.message;

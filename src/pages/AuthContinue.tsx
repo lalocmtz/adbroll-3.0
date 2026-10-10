@@ -15,7 +15,12 @@ export default function AuthContinue() {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (!active) return;
       if (error || !user) { setMessage("Confirma tu correo e inicia sesión para continuar."); return; }
-      const code = getStoredRefCode();
+      // Email confirmation may open on another device without the referral cookie.
+      // The server still validates ownership, eligibility and existing attribution.
+      const signupCode = user.user_metadata?.referral_code;
+      const code = typeof signupCode === "string" && signupCode.trim()
+        ? signupCode.trim()
+        : getStoredRefCode();
       if (code) {
         const { error: referralError } = await supabase.rpc("apply_referral_code", { p_user_id: user.id, p_code: code });
         if (referralError) console.error("Referral will be revalidated at checkout", referralError.code);
