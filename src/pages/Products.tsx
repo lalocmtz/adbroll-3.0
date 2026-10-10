@@ -244,20 +244,20 @@ const Products = () => {
       <div className="mb-3 md:mb-4 py-1 md:py-0">
         <div className="md:hidden">
           <h1 className="text-base font-bold text-foreground leading-tight">
-            🛒 Productos que más venden HOY
+            🛒 Productos destacados de TikTok Shop
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {todayFormatted} · TikTok Shop {marketLabel}
+            TikTok Shop {marketLabel} · Último reporte importado
           </p>
         </div>
         
         {/* Desktop minimal header */}
         <div className="hidden md:block">
           <h1 className="text-lg font-bold text-foreground leading-tight">
-            🛒 Productos que más venden HOY, {todayFormatted}
+            🛒 Productos destacados de TikTok Shop
           </h1>
           <p className="text-xs text-muted-foreground">
-            TikTok Shop {marketLabel} · Encuentra productos de alta comisión
+            TikTok Shop {marketLabel} · Datos del último reporte importado, no en tiempo real
           </p>
         </div>
       </div>
@@ -340,7 +340,7 @@ const Products = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-5 [&>*]:min-w-0">
             {paginatedProducts.map((product, index) => {
               const globalIndex = (currentPage - 1) * PRODUCTS_PER_PAGE + index;
               const displayRank = globalIndex + 1;
@@ -402,7 +402,7 @@ const Products = () => {
                     </div>
                     <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-2xl md:rounded-[20px]">
                       <div className="text-center p-3 md:p-4">
-                        <Lock className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-1.5 md:mb-2 text-muted-foreground" />
+                        <Lock className="h-9 w-9 md:h-9 md:w-9 mx-auto mb-1.5 md:mb-2 text-muted-foreground" />
                         <p className="text-xs md:text-sm font-medium text-foreground">Desbloquear</p>
                       </div>
                     </div>
@@ -448,7 +448,7 @@ const Products = () => {
                               }
                               window.open(product.producto_url!, '_blank');
                             }}
-                            className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                            className="h-9 w-9 md:h-9 md:w-9 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
                           >
                             <ExternalLink className="h-3.5 w-3.5 md:h-[18px] md:w-[18px] text-muted-foreground hover:text-foreground transition-colors" />
                           </button>
@@ -464,7 +464,7 @@ const Products = () => {
                             }
                             toggleFavorite(product.id, e);
                           }}
-                          className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                          className="h-9 w-9 md:h-9 md:w-9 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
                         >
                           <Heart className={`h-3.5 w-3.5 md:h-[18px] md:w-[18px] transition-colors ${isFav ? 'text-primary fill-primary' : 'text-muted-foreground hover:text-foreground'}`} />
                         </button>
@@ -548,7 +548,7 @@ const Products = () => {
                     )}
 
                     <Button
-                      className="w-full h-8 md:h-10 text-xs md:text-sm"
+                      className="w-full h-11 text-xs md:text-sm"
                       onClick={() => {
                         if (!isLoggedIn) {
                           navigate("/unlock");

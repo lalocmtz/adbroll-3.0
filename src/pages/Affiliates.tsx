@@ -295,13 +295,13 @@ const Affiliates = () => {
                 <label className="text-xs text-muted-foreground mb-1.5 block">
                   {language === "es" ? "Tu link de referido" : "Your referral link"}
                 </label>
-                <div className="flex gap-2">
+                <div className="flex min-w-0 gap-2">
                   <Input
                     value={`${ADBROLL_DOMAIN}/programa-creadores?ref=${activeCode}`}
                     readOnly
-                    className="text-sm"
+                    className="min-w-0 text-sm"
                   />
-                  <Button onClick={handleCopyLink} className="shrink-0 gap-2">
+                  <Button onClick={handleCopyLink} className="shrink-0 gap-2 h-11 px-3">
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied
                       ? (language === "es" ? "¡Copiado!" : "Copied!")
@@ -315,13 +315,13 @@ const Affiliates = () => {
                 <label className="text-xs text-muted-foreground mb-1.5 block">
                   {language === "es" ? "Tu código" : "Your code"}
                 </label>
-                <div className="flex gap-2">
+                <div className="flex min-w-0 gap-2">
                   {isEditingCode ? (
                     <>
                       <Input
                         value={editedCode}
                         onChange={(e) => setEditedCode(e.target.value.toUpperCase())}
-                        className="font-mono font-bold tracking-wider text-lg uppercase"
+                        className="min-w-0 font-mono font-bold tracking-wider text-lg uppercase"
                         placeholder="TUCODIGO"
                         maxLength={12}
                       />
@@ -346,7 +346,7 @@ const Affiliates = () => {
                       <Input
                         value={activeCode}
                         readOnly
-                        className="font-mono font-bold tracking-wider text-lg"
+                        className="min-w-0 font-mono font-bold tracking-wider text-lg"
                       />
                       <Button
                         variant="outline"
@@ -428,7 +428,7 @@ const Affiliates = () => {
               ? "Aquí se acumulan tus comisiones por suscripciones cobradas. El equipo de TokXray revisa el saldo semanalmente y se pone en contacto contigo para coordinar el depósito. No necesitas conectar una cuenta de Stripe."
               : "Your commissions come from paid subscriptions. The TokXray team reviews balances weekly and contacts you to arrange a bank transfer. You do not need a Stripe account."}</p>
             <p className="text-sm font-medium">{language === "es" ? "Mínimo de pago: $50 USD" : "Minimum payment: $50 USD"}</p>
-            <p className="text-sm">{usdAvailable >= MINIMUM_PAYOUT
+            <p className="min-w-0 text-sm">{usdAvailable >= MINIMUM_PAYOUT
               ? (language === "es" ? "Tu saldo alcanza el mínimo para la revisión semanal." : "Your balance meets the minimum for weekly review.")
               : (language === "es" ? `Te faltan ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} para el mínimo.` : `You need ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} more to reach the minimum.`)}</p>
             <p className="text-xs text-muted-foreground">{language === "es" ? "El saldo disponible no significa que el depósito ya se haya realizado. Cada pago confirmado aparecerá en tu historial. Los reembolsos y disputas pueden ajustar el saldo." : "Available balance does not mean a transfer has been sent. Confirmed payments appear in your history. Refunds and disputes may adjust your balance."}</p>
@@ -444,7 +444,7 @@ const Affiliates = () => {
                 {withdrawalHistory.map((withdrawal) => (
                   <div
                     key={withdrawal.id}
-                    className="p-3 rounded-lg bg-muted/50 flex items-center justify-between"
+                    className="p-3 rounded-lg bg-muted/50 flex flex-wrap items-center justify-between gap-2"
                   >
                     <div>
                       <p className="text-xs text-muted-foreground">
@@ -487,7 +487,7 @@ const Affiliates = () => {
                 {dashReferrals.map((referral, i) => (
                   <div
                     key={`${referral.email_masked}-${i}`}
-                    className="p-3 rounded-lg bg-muted/50 flex items-center justify-between"
+                    className="p-3 rounded-lg bg-muted/50 flex flex-wrap items-center justify-between gap-2"
                   >
                     <div>
                       <p className="text-sm font-medium">{referral.email_masked}</p>
@@ -526,7 +526,7 @@ const Affiliates = () => {
                 {commissionsHistory.map((commission, i) => (
                   <div
                     key={`${commission.month}-${i}`}
-                    className="p-3 rounded-lg bg-muted/50 flex items-center justify-between"
+                    className="p-3 rounded-lg bg-muted/50 flex flex-wrap items-center justify-between gap-2"
                   >
                     <div>
                       <p className="text-xs text-muted-foreground">

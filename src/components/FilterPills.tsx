@@ -18,9 +18,10 @@ export const FilterPills = ({ options, value, onChange, className }: FilterPills
       {options.map((option) => (
         <button
           key={option.value}
+          aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            "px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 h-8",
+            "px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 min-h-11",
             value === option.value
               ? "bg-primary text-primary-foreground shadow-sm"
               : "bg-muted/60 text-muted-foreground hover:bg-muted border border-border/50"

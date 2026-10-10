@@ -1,3 +1,4 @@
+import { SubscriptionPrice } from "@/components/SubscriptionPrice";
 import { Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,15 +37,7 @@ export const PricingCard = ({
 
       <div className="text-center mb-6">
         <h3 className="text-xl font-bold mb-2">TokXray Pro</h3>
-        <div className="flex items-center justify-center gap-2">
-          <span className="text-4xl font-bold">${price}</span>
-          <span className="text-muted-foreground">
-            /{language === "es" ? "mes" : "mo"}
-          </span>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          USD
-        </p>
+        <SubscriptionPrice compact />
         {hasDiscount && (
           <p className="text-sm text-green-600 mt-2 font-medium">
             🎉 {language === "es" ? "Código registrado; consulta el total en Stripe" : "Referral saved; see the total in Stripe"}
@@ -83,8 +76,8 @@ export const ReferralDiscountBanner = () => {
       <p className="text-green-800 font-medium flex items-center gap-2">
         🎉{" "}
         {language === "es"
-          ? "Descuento aplicado: primer mes a US$15"
-          : "Discount applied: first month at US$15"}
+          ? "Oferta para clientes nuevos: primer mes a US$15"
+          : "New customer offer: first month at US$15"}
       </p>
       <p className="text-green-600 text-sm mt-1">
         {language === "es"

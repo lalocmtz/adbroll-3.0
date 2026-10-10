@@ -86,6 +86,12 @@ export const persistRefCode = (code: string) => {
   }
 };
 
+/** Remove an explicitly cleared code from both persistence layers. */
+export const clearStoredRefCode = () => {
+  if (typeof document !== "undefined") document.cookie = `${REF_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+  try { if (typeof localStorage !== "undefined") localStorage.removeItem(REF_LS_KEY); } catch { /* private mode */ }
+};
+
 /**
  * Parse attribution params from the current URL. Does not persist or
  * fire analytics — the caller decides. Pure function for easy testing.

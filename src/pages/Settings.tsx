@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
+import { SubscriptionPrice } from "@/components/SubscriptionPrice";
 import {
   Select,
   SelectContent,
@@ -87,31 +87,7 @@ const Settings = () => {
     }
   };
 
-  const handleSubscribe = async () => {
-    // Reached checkout + real payment intent — give Meta both signals.
-    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
-    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
-
-    setCheckoutLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan: "pro" }
-      });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
-    } catch (error) {
-      console.error("Checkout error:", error);
-      toast({
-        title: "Error",
-        description: language === "es" 
-          ? "No se pudo iniciar el checkout" 
-          : "Could not start checkout",
-        variant: "destructive",
-      });
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
+  const handleSubscribe = () => navigate('/pricing');
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
@@ -280,7 +256,7 @@ const Settings = () => {
                   <Zap className="h-5 w-5 text-primary" />
                   <span className="font-semibold">TokXray Pro</span>
                 </div>
-                <p className="text-2xl font-bold mb-2">$24.99<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+                <SubscriptionPrice compact />
                 <p className="text-sm text-muted-foreground mb-4">
                   {language === "es" 
                     ? "Acceso completo a todas las herramientas" 

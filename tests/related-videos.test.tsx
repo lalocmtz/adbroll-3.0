@@ -43,7 +43,7 @@ describe("related videos", () => {
   it("uses the full server count and requests the next page, then resets sorting to page one", async () => {
     mount();
     expect(await screen.findByText("45 videos disponibles")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "2", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Página 2", exact: true }));
     await waitFor(() => expect(state.queries.some(q => q.page?.[0] === 20 && q.page?.[1] === 39)).toBe(true));
     await screen.findByText("45 videos disponibles");
     fireEvent.click(screen.getByRole("button", { name: "Más vistas" }));

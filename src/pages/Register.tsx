@@ -7,12 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Gift, X } from "lucide-react";
+import { Gift, Mail, X } from "lucide-react";
 import { registerSchema } from "@/lib/validations";
 import { trackSignUp } from "@/lib/analytics";
 import { BrandLogo } from "@/components/brand/BrandLogo";
-import { getStoredRefCode, persistRefCode } from "@/lib/attribution";
+import { clearStoredRefCode, getStoredRefCode, persistRefCode } from "@/lib/attribution";
 
 const Register = () => {
   const [searchParams] = useSearchParams();
@@ -21,62 +20,54 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [referralCode, setReferralCode] = useState(searchParams.get("ref") || getStoredRefCode() || "");
-  const [grantCode, setGrantCode] = useState(searchParams.get("grant") || "");
-  const [referralValid, setReferralValid] = useState<boolean | null>(null);
-  const [grantValid, setGrantValid] = useState<boolean | null>(null);
-  const [grantData, setGrantData] = useState<any>(null);
+  const [referralCheck, setReferralCheck] = useState<{ code: string; status: "valid" | "invalid" | "error" } | null>(null);
+  const [showEmail, setShowEmail] = useState(false);
+  const normalizedCode = referralCode.trim().toUpperCase();
+  const referralStatus = !normalizedCode ? "empty"
+    : normalizedCode.length < 4 ? "invalid"
+    : referralCheck?.code === normalizedCode ? referralCheck.status : "pending";
+  const referralValid = referralStatus === "valid";
+  const referralBlocked = referralStatus !== "empty" && !referralValid;
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Validate referral code on change
   useEffect(() => {
-    const validateCode = async () => {
-      if (!referralCode || referralCode.length < 4) {
-        setReferralValid(null);
-        return;
-      }
+    let active = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (active && data.session) navigate(`/auth/continue?redirect=${encodeURIComponent(destination)}`, { replace: true });
+    }).catch(() => { /* A failed session check must not prevent registration. */ });
+    return () => { active = false; };
+  }, [destination, navigate]);
 
-      const { data } = await supabase.rpc("validate_referral_code", {
-        p_code: referralCode.trim().toUpperCase(),
-      });
-
-      setReferralValid(!!data);
-    };
-
-    const timeout = setTimeout(validateCode, 500);
-    return () => clearTimeout(timeout);
-  }, [referralCode]);
-
-  // Validate grant code on change
   useEffect(() => {
-    const validateGrant = async () => {
-      if (!grantCode || grantCode.length < 10) {
-        setGrantValid(null);
-        setGrantData(null);
-        return;
+    let active = true;
+    if (normalizedCode.length < 4) return;
+    const timeout = setTimeout(async () => {
+      try {
+        const { data, error } = await supabase.rpc("validate_referral_code", { p_code: normalizedCode });
+        if (active) setReferralCheck({ code: normalizedCode, status: error ? "error" : data ? "valid" : "invalid" });
+      } catch {
+        if (active) setReferralCheck({ code: normalizedCode, status: "error" });
       }
+    }, 350);
+    return () => { active = false; clearTimeout(timeout); };
+  }, [normalizedCode]);
 
-      const { data } = await supabase
-        .from("creator_program_applications")
-        .select("*")
-        .eq("grant_code", grantCode.toUpperCase())
-        .eq("status", "approved")
-        .maybeSingle();
-
-      setGrantValid(!!data);
-      setGrantData(data);
-    };
-
-    const timeout = setTimeout(validateGrant, 500);
-    return () => clearTimeout(timeout);
-  }, [grantCode]);
+  const canContinue = () => {
+    if (!referralBlocked) return true;
+    toast({ title: "Revisa tu código", description: referralStatus === "pending"
+      ? "Estamos verificándolo. Espera un momento para conservar tu descuento."
+      : "Corrige el código o déjalo vacío para continuar sin él.", variant: "destructive" });
+    return false;
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    if (!canContinue()) return;
 
     // Validate inputs
     const result = registerSchema.safeParse({ fullName, email, password, referralCode });
@@ -93,7 +84,8 @@ const Register = () => {
     }
 
     setIsLoading(true);
-    if (referralCode && referralValid) persistRefCode(referralCode.trim().toUpperCase());
+    if (referralValid) persistRefCode(normalizedCode);
+    else clearStoredRefCode();
 
     try {
       const { data: signUpData, error } = await supabase.auth.signUp({
@@ -103,7 +95,7 @@ const Register = () => {
           emailRedirectTo: authCallbackUrl(destination),
           data: {
             full_name: result.data.fullName,
-            referral_code: referralValid ? referralCode.trim().toUpperCase() : null,
+            referral_code: referralValid ? normalizedCode : null,
           },
         },
       });
@@ -114,7 +106,7 @@ const Register = () => {
       if (referralCode && referralValid && signUpData.session && signUpData.user) {
         await supabase.rpc("apply_referral_code", {
           p_user_id: signUpData.user.id,
-          p_code: referralCode,
+          p_code: normalizedCode,
         });
       }
 
@@ -131,7 +123,7 @@ const Register = () => {
       });
 
       // Continue after confirmation while preserving the requested destination
-      navigate(`/auth/continue?redirect=${encodeURIComponent(destination)}`);
+      navigate(`/auth/continue?redirect=${encodeURIComponent(destination)}`, { state: { confirmationEmail: result.data.email } });
     } catch (error: any) {
       let message = error.message;
       if (error.message?.includes("already registered")) {
@@ -148,12 +140,12 @@ const Register = () => {
   };
 
   const handleGoogleSignUp = async () => {
+    if (!canContinue()) return;
     setIsGoogleLoading(true);
     
     // Store referral code in localStorage to apply after OAuth redirect
-    if (referralCode && referralValid) {
-      persistRefCode(referralCode.toUpperCase());
-    }
+    if (referralValid) persistRefCode(normalizedCode);
+    else clearStoredRefCode();
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -175,7 +167,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center landing-light p-4">
+    <div className="min-h-[100dvh] flex items-start sm:items-center justify-center landing-light px-4 py-5">
       <Card className="w-full max-w-md card-landing-light relative">
         <button
           onClick={() => navigate("/app")}
@@ -184,8 +176,8 @@ const Register = () => {
         >
           <X className="h-5 w-5 text-muted-foreground" />
         </button>
-        <CardHeader>
-          <div className="text-center mb-4">
+        <CardHeader className="px-5 pt-5 pb-3">
+          <div className="text-center mb-2">
             <button
               type="button"
               onClick={() => navigate("/")}
@@ -194,41 +186,46 @@ const Register = () => {
               <BrandLogo tone="dark" size="lg" />
             </button>
           </div>
-          <CardTitle>Crea tu cuenta gratis</CardTitle>
+          {destination === "/pricing" && <p className="text-[11px] text-muted-foreground">1. Cuenta · 2. Confirmación · 3. Activar Pro</p>}
+          <CardTitle className="text-xl">Deja de adivinar tu próximo video</CardTitle>
           <CardDescription>
-            Encuentra referencias de TikTok Shop y prepara tu siguiente video
+            Crea tu cuenta y empieza a explorar TikTok Shop con un rumbo claro.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 px-5 pb-5">
+          <p className="rounded-xl bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+            Tu cuenta es gratis. Pro se contrata por separado por US$29/mes. No se cobra nada al registrarte. <Link to="/pricing" className="text-primary underline">Ver plan</Link>
+          </p>
           {/* Referral Code Input - Before OAuth for visibility */}
           <div className="space-y-2">
             <Label htmlFor="referralCode" className="flex items-center gap-2">
               <Gift className="h-4 w-4 text-primary" />
-              Código de referido (opcional)
+              Código del creador (opcional)
             </Label>
             <Input
               id="referralCode"
               value={referralCode}
               onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-              placeholder="ABC123"
+              placeholder="Ej. LALO"
+              maxLength={20}
+              autoComplete="off"
+              disabled={isLoading || isGoogleLoading}
+              aria-describedby="referral-status"
+              aria-invalid={referralStatus === "invalid"}
               className={`${
                 referralValid === true
                   ? "border-green-500 focus-visible:ring-green-500"
-                  : referralValid === false
+                  : referralStatus === "invalid"
                   ? "border-red-500 focus-visible:ring-red-500"
                   : ""
               }`}
             />
-            {referralValid === true && (
-              <p className="text-sm text-green-600 flex items-center gap-1">
-                Código válido. Cualquier descuento se confirma al pagar.
-              </p>
-            )}
-            {referralValid === false && (
-              <p className="text-sm text-red-500">
-                Código no válido
-              </p>
-            )}
+            <div id="referral-status" aria-live="polite" className="text-xs">
+              {referralStatus === "valid" && <p className="text-green-700">Código válido: primer mes de Pro a US$15 para nuevas suscripciones; después US$29/mes. Se confirma al pagar.</p>}
+              {referralStatus === "pending" && <p className="text-muted-foreground">Verificando tu código…</p>}
+              {referralStatus === "invalid" && <p className="text-destructive">Código no válido. Corrígelo o déjalo vacío.</p>}
+              {referralStatus === "error" && <p className="text-destructive">No pudimos verificarlo. Vuelve a escribirlo o déjalo vacío.</p>}
+            </div>
           </div>
 
           {/* Google OAuth Button */}
@@ -237,7 +234,7 @@ const Register = () => {
             variant="outline"
             className="w-full flex items-center justify-center gap-3"
             onClick={handleGoogleSignUp}
-            disabled={isGoogleLoading}
+            disabled={isGoogleLoading || isLoading || referralBlocked}
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -260,22 +257,16 @@ const Register = () => {
             {isGoogleLoading ? "Conectando..." : "Continuar con Google"}
           </Button>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                o con email
-              </span>
-            </div>
-          </div>
+          <Button type="button" variant="outline" className="w-full gap-2" onClick={() => setShowEmail(!showEmail)} aria-expanded={showEmail} aria-controls="email-registration" disabled={isLoading || isGoogleLoading}>
+            <Mail className="h-4 w-4" /> {showEmail ? "Ocultar formulario de correo" : "Continuar con correo"}
+          </Button>
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div className="space-y-2">
+          {showEmail && <form id="email-registration" onSubmit={handleRegister} className="space-y-3">
+            <div className="space-y-1">
               <Label htmlFor="fullName">Nombre completo</Label>
               <Input
                 id="fullName"
+                autoComplete="name"
                 value={fullName}
                 onChange={(e) => {
                   setFullName(e.target.value);
@@ -289,10 +280,11 @@ const Register = () => {
                 <p className="text-sm text-destructive">{errors.fullName}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                autoComplete="email"
                 type="email"
                 value={email}
                 onChange={(e) => {
@@ -307,10 +299,11 @@ const Register = () => {
                 <p className="text-sm text-destructive">{errors.email}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="password">Contraseña</Label>
               <Input
                 id="password"
+                autoComplete="new-password"
                 type="password"
                 value={password}
                 onChange={(e) => {
@@ -325,21 +318,21 @@ const Register = () => {
                 <p className="text-sm text-destructive">{errors.password}</p>
               )}
               <p className="text-xs text-muted-foreground">
-                Mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial
+                8+ caracteres con mayúscula, minúscula, número y símbolo.
               </p>
             </div>
 
-            <Button type="submit" className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading}>
+            <Button type="submit" className="w-full h-11 font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading || isGoogleLoading || referralBlocked}>
               {isLoading ? "Creando cuenta..." : "Crear cuenta gratis"}
             </Button>
-            <p className="text-xs text-muted-foreground text-center">Al crear tu cuenta aceptas los <Link to="/terms" className="underline">términos de uso</Link> y la <Link to="/privacy" className="underline">política de privacidad</Link>. Consulta las <Link to="/terminos-afiliados" className="underline">condiciones del programa de afiliados</Link>.</p>
-            <p className="text-sm text-center text-muted-foreground">
+          </form>}
+            <p className="text-[11px] leading-relaxed text-muted-foreground text-center">Al crear tu cuenta aceptas los <Link to="/terms" className="underline">términos de uso</Link> y la <Link to="/privacy" className="underline">política de privacidad</Link>. Consulta las <Link to="/terminos-afiliados" className="underline">condiciones del programa de afiliados</Link>.</p>
+            <p className="text-xs text-center text-muted-foreground">
               ¿Ya tienes cuenta?{" "}
               <Link to={`/login?redirect=${encodeURIComponent(destination)}`} className="text-primary font-medium hover:underline">
                 Inicia sesión
               </Link>
             </p>
-          </form>
         </CardContent>
       </Card>
     </div>

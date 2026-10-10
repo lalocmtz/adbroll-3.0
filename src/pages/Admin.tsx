@@ -1,7 +1,8 @@
+import { UserAffiliateOverview } from "@/components/admin/UserAffiliateOverview";
 import ApifyBatchImport from "@/components/admin/ApifyBatchImport";
 import CreatorPresentationUploader from "@/components/admin/CreatorPresentationUploader";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +30,8 @@ type Market = "mx" | "us";
 
 const Admin = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedTab = ["users", "analytics", "leads", "campaigns", "creators", "import"].includes(searchParams.get("tab") || "") ? searchParams.get("tab")! : "users";
   const selectedMarket: Market = "mx";
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -135,8 +138,12 @@ const Admin = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+        <Tabs value={selectedTab} onValueChange={tab => setSearchParams({ tab }, { replace: true })} className="space-y-6">
+          <div className="overflow-x-auto">
+          <TabsList className="inline-flex min-w-max justify-start">
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />Usuarios y afiliados
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Analytics
@@ -158,6 +165,12 @@ const Admin = () => {
               Importación
             </TabsTrigger>
           </TabsList>
+          </div>
+
+          <TabsContent value="users" className="space-y-6">
+            <UserAffiliateOverview />
+            <ManualAffiliatePayments />
+          </TabsContent>
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">

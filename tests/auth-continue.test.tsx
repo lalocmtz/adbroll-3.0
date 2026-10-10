@@ -22,28 +22,42 @@ beforeEach(() => {
 
 describe("post-auth referral attribution", () => {
   it("retains the signup code when email confirmation opens on another device", async () => {
-    mocks.getUser.mockResolvedValue({ data: { user: { id: "new-user", user_metadata: { referral_code: "LALO" } } }, error: null });
+    mocks.getUser.mockResolvedValue({ data: { user: { id: "new-user", email_confirmed_at: "2026-10-10", user_metadata: { referral_code: "LALO" } } }, error: null });
     openCallback();
     await screen.findByRole("heading", { name: "Mi panel de afiliados" });
     expect(mocks.rpc).toHaveBeenCalledWith("apply_referral_code", { p_user_id: "new-user", p_code: "LALO" });
   });
   it("uses the stored referral for Google users without signup metadata", async () => {
     mocks.getStoredRefCode.mockReturnValue("ALICIA");
-    mocks.getUser.mockResolvedValue({ data: { user: { id: "google-user", user_metadata: {} } }, error: null });
+    mocks.getUser.mockResolvedValue({ data: { user: { id: "google-user", email_confirmed_at: "2026-10-10", user_metadata: {} } }, error: null });
     openCallback();
     await screen.findByRole("heading", { name: "Mi panel de afiliados" });
     expect(mocks.rpc).toHaveBeenCalledWith("apply_referral_code", { p_user_id: "google-user", p_code: "ALICIA" });
   });
   it("keeps the submitted signup code when a later link changes browser attribution", async () => {
     mocks.getStoredRefCode.mockReturnValue("LATER");
-    mocks.getUser.mockResolvedValue({ data: { user: { id: "new-user", user_metadata: { referral_code: "LALO" } } }, error: null });
+    mocks.getUser.mockResolvedValue({ data: { user: { id: "new-user", email_confirmed_at: "2026-10-10", user_metadata: { referral_code: "LALO" } } }, error: null });
     openCallback();
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("apply_referral_code", { p_user_id: "new-user", p_code: "LALO" }));
+  });
+  it("provides a usable next step when the session lookup fails", async () => {
+    mocks.getUser.mockRejectedValue(new Error("Network unavailable"));
+    openCallback();
+    expect(await screen.findByRole("link", { name: "Ya confirmé, continuar" })).toBeVisible();
+    expect(screen.getByText(/Registrarte no inicia una suscripción/)).toBeVisible();
+  });
+  it("keeps an unconfirmed session on the confirmation step", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: "pending", email_confirmed_at: null } }, error: null });
+    openCallback();
+    await screen.findByText("Confirma tu correo e inicia sesión para continuar.");
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
   it("does not apply a referral before authentication", async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
     openCallback();
     await screen.findByText("Confirma tu correo e inicia sesión para continuar.");
     expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(screen.getByText(/Crear tu cuenta es gratis/)).toBeVisible();
+    expect(screen.getByRole("link", { name: "Ya confirmé, continuar" })).toHaveAttribute("href", "/login?redirect=%2Faffiliates");
   });
 });

@@ -1541,6 +1541,7 @@ export type Database = {
           gmv_30d_mxn: number | null
           gmv_7d_mxn: number | null
           id: string
+          identity_status: string | null
           imagen_url: string | null
           is_hidden: boolean | null
           is_opportunity: boolean | null
@@ -1575,6 +1576,7 @@ export type Database = {
           gmv_30d_mxn?: number | null
           gmv_7d_mxn?: number | null
           id?: string
+          identity_status?: string | null
           imagen_url?: string | null
           is_hidden?: boolean | null
           is_opportunity?: boolean | null
@@ -1609,6 +1611,7 @@ export type Database = {
           gmv_30d_mxn?: number | null
           gmv_7d_mxn?: number | null
           id?: string
+          identity_status?: string | null
           imagen_url?: string | null
           is_hidden?: boolean | null
           is_opportunity?: boolean | null
@@ -2348,6 +2351,25 @@ export type Database = {
       }
     }
     Functions: {
+      get_founder_user_overview: {
+        Args: { p_search?: string; p_filter?: string; p_offset?: number; p_limit?: number }
+        Returns: Json
+      }
+      get_catalog_admin_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          videos: number
+          products: number
+          creators: number
+          readyToShow: number
+          pendingDownload: number
+          pendingTranscription: number
+          failedTranscription: number
+          pendingMatch: number
+          pendingAvatars: number
+          lastSync: string | null
+        }
+      }
       validate_referral_code: {
         Args: { p_code: string }
         Returns: boolean

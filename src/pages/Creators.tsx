@@ -311,18 +311,18 @@ const Creators = () => {
             📊 {language === "es" ? "Ranking de Creadores" : "Creator Rankings"}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {todayFormatted} · TikTok Shop {marketLabel}
+            TikTok Shop {marketLabel} · Reporte importado
           </p>
         </div>
         
         <div className="hidden md:block">
           <h1 className="text-lg font-bold text-foreground leading-tight">
-            📊 {language === "es" ? "Ranking de Creadores" : "Creator Rankings"} · {todayFormatted}
+            📊 {language === "es" ? "Ranking de Creadores" : "Creator Rankings"}
           </h1>
           <p className="text-xs text-muted-foreground">
             {language === "es" 
-              ? `TikTok Shop ${marketLabel} · Descubre qué creadores están vendiendo más HOY`
-              : `TikTok Shop ${marketLabel} · Discover which creators are selling the most TODAY`}
+              ? `TikTok Shop ${marketLabel} · Ranking del reporte importado; no en tiempo real`
+              : `TikTok Shop ${marketLabel} · Imported report ranking; not real-time`}
           </p>
         </div>
       </div>

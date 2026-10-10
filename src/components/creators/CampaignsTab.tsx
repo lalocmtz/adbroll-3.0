@@ -150,7 +150,7 @@ const CampaignsTab = () => {
               onClick={() => openPaywall("campaign_apply")}
             >
               <Crown className="h-3 w-3" />
-              {language === "es" ? "Desbloquear $24.99/mes" : "Unlock $24.99/mo"}
+              {language === "es" ? "Desbloquear US$29/mes" : "Unlock US$29/mo"}
             </Button>
           </div>
         </div>

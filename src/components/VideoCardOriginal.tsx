@@ -230,14 +230,14 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut", delay: ranking * 0.05 }}
         whileHover={{ y: -4, transition: { duration: 0.2 } }}
-        className="bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-[#E2E8F0] dark:border-border p-2.5 md:p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-shadow duration-300 group"
+        className="min-w-0 w-full bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-[#E2E8F0] dark:border-border p-2.5 md:p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-shadow duration-300 group"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         {/* Video Container - Optimized for more visibility */}
-        <div ref={containerRef} className="relative aspect-[4/5] md:aspect-[4/5] bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-3">
+        <div ref={containerRef} className="relative w-full aspect-[4/5] bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-3">
           {/* Top Icons Bar */}
-          <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-20 flex items-center justify-between pointer-events-none">
+          <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-20 flex items-start justify-between gap-1 pointer-events-none">
             {/* Ranking Badge - smaller on mobile */}
             <span className={`pointer-events-auto text-[11px] md:text-[13px] font-bold px-2 md:px-2.5 py-0.5 md:py-1 rounded-full shadow-lg ${
               isTop5 
@@ -248,17 +248,19 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             </span>
 
             {/* Right Icons - smaller on mobile */}
-            <div className="flex items-center gap-1.5 md:gap-2 pointer-events-auto">
+            <div className="flex flex-col md:flex-row items-center gap-1.5 md:gap-2 pointer-events-auto">
               <button 
                 onClick={openTikTok}
-                className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                aria-label="Abrir video en TikTok"
+                className="h-11 w-11 md:h-9 md:w-9 shrink-0 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
               >
                 <ExternalLink className="h-3.5 w-3.5 md:h-[18px] md:w-[18px] text-[#CBD5E1] hover:text-[#1E293B] transition-colors" />
               </button>
               <button 
                 onClick={handleToggleFavorite}
+                aria-label={isFavorite ? "Quitar de favoritos" : "Guardar en favoritos"}
                 disabled={loading}
-                className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                className="h-11 w-11 md:h-9 md:w-9 shrink-0 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
               >
                 <Heart className={`h-3.5 w-3.5 md:h-[18px] md:w-[18px] transition-colors ${isFavorite ? 'text-[#F31260] fill-[#F31260]' : 'text-[#CBD5E1] hover:text-[#1E293B]'}`} />
               </button>
@@ -307,10 +309,10 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
         <div className="space-y-2 md:space-y-3">
           {/* Title and Creator */}
           <div>
-            <h3 className="text-[13px] md:text-[15px] font-semibold text-[#0F172A] dark:text-foreground line-clamp-2 leading-snug" title={video.title || 'Video TikTok Shop'}>
+            <h3 className="text-[13px] md:text-[15px] font-semibold text-[#0F172A] dark:text-foreground line-clamp-2 break-words [overflow-wrap:anywhere] leading-snug" title={video.title || 'Video TikTok Shop'}>
               {video.title || 'Video TikTok Shop'}
             </h3>
-            <p className="text-[11px] md:text-[13px] text-[#94A3B8] mt-0.5">
+            <p className="text-[11px] md:text-[13px] text-[#94A3B8] mt-0.5 truncate">
               @{video.creator_handle || video.creator_name || 'creator'}
             </p>
             {video.snapshot_date_range && <p className="text-[10px] text-muted-foreground mt-1">Ventas del {formatReportPeriod(video.snapshot_date_range)}</p>}
@@ -318,10 +320,10 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
 
           {/* Product Association - Compact on mobile, full on desktop */}
           {(video.product || video.product_name || currentProductName) && (
-            <div className="relative">
+            <div className="relative min-w-0">
               <button 
                 onClick={navigateToProduct}
-                className="flex items-center gap-1.5 md:gap-2.5 w-full p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-muted/50 hover:bg-muted transition-colors text-left"
+                className="flex items-center gap-1.5 md:gap-2.5 min-w-0 min-h-11 w-full p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-muted/50 hover:bg-muted transition-colors text-left"
               >
                 {video.product?.imagen_url ? (
                   <img src={video.product.imagen_url} alt={video.product.producto_nombre} className="w-7 h-7 md:w-10 md:h-10 rounded-md md:rounded-lg object-cover flex-shrink-0 border border-border" />
@@ -331,7 +333,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <span className="text-[11px] md:text-[13px] text-foreground font-medium line-clamp-1">
+                  <span className="text-[11px] md:text-[13px] text-foreground font-medium line-clamp-1 break-words [overflow-wrap:anywhere]">
                     {video.product?.producto_nombre || currentProductName || video.product_name}
                   </span>
                   {video.product?.total_ingresos_mxn && (
@@ -413,7 +415,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
 
           {/* CTA Button - Compact on mobile */}
           <Button 
-            className="w-full h-8 md:h-11 text-[11px] md:text-sm"
+            className="w-full h-11 text-xs md:text-sm px-2"
             onClick={handleAnalyzeClick}
           >
             <Sparkles className="h-3 w-3 md:h-4 md:w-4" />

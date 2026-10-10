@@ -89,7 +89,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center landing-light p-4">
+    <div className="min-h-[100dvh] flex items-center justify-center landing-light p-4">
       <Card className="w-full max-w-md card-landing-light relative">
         <button
           onClick={() => navigate("/app")}
@@ -98,8 +98,8 @@ const Login = () => {
         >
           <X className="h-5 w-5 text-muted-foreground" />
         </button>
-        <CardHeader>
-          <div className="text-center mb-4">
+        <CardHeader className="p-5 pb-3">
+          <div className="text-center mb-2">
             <button
               type="button"
               onClick={() => navigate("/")}
@@ -108,19 +108,19 @@ const Login = () => {
               <BrandLogo tone="dark" size="lg" />
             </button>
           </div>
-          <CardTitle>Bienvenido de vuelta</CardTitle>
+          <CardTitle className="text-xl">Bienvenido de vuelta</CardTitle>
           <CardDescription>
-            Continúa con tus videos, guiones y referidos
+            Tu próxima idea empieza aquí. Continúa con tus videos, guiones y referidos.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 p-5 pt-0">
           {/* Google OAuth Button */}
           <Button
             type="button"
             variant="outline"
             className="w-full flex items-center justify-center gap-3"
             onClick={handleGoogleLogin}
-            disabled={isGoogleLoading}
+            disabled={isGoogleLoading || isLoading}
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -154,11 +154,12 @@ const Login = () => {
             </div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
+          <form onSubmit={handleLogin} className="space-y-3">
+            <div className="space-y-1">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                autoComplete="email"
                 type="email"
                 value={email}
                 onChange={(e) => {
@@ -173,10 +174,11 @@ const Login = () => {
                 <p className="text-sm text-destructive">{errors.email}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="password">Contraseña</Label>
               <Input
                 id="password"
+                autoComplete="current-password"
                 type="password"
                 value={password}
                 onChange={(e) => {
@@ -192,15 +194,16 @@ const Login = () => {
               )}
             </div>
             <Link to="/recuperar-cuenta" className="block text-sm text-primary hover:underline">¿Olvidaste tu contraseña?</Link>
-            <Button type="submit" className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading}>
+            <Button type="submit" className="w-full h-11 font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading || isGoogleLoading}>
               {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
               ¿No tienes cuenta?{" "}
               <Link to={`/register?redirect=${encodeURIComponent(destination)}`} className="text-primary font-medium hover:underline">
-                Regístrate gratis
+                Crea tu cuenta
               </Link>
             </p>
+            <p className="text-xs text-center text-muted-foreground">La cuenta es gratis. La suscripción Pro se contrata por separado.</p>
           </form>
         </CardContent>
       </Card>

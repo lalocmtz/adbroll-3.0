@@ -233,12 +233,16 @@ const Opportunities = () => {
         <div className="bg-gradient-to-r from-primary/5 to-amber-500/5 border border-primary/10 rounded-xl p-4 mb-6">
           <div className="flex items-start gap-3">
             <Lightbulb className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-            <p className="text-[13px] text-foreground leading-relaxed">
+            <details className="text-[13px] text-foreground leading-relaxed">
+              <summary className="cursor-pointer font-medium">{language === "es" ? "Cómo calculamos las oportunidades" : "How opportunities are calculated"}</summary>
+              <p className="mt-2">
               {language === "es"
                 ? "El índice experimental es una comparación estadística dentro de cada categoría y mercado, no una predicción de ventas. Pondera demanda (30%), cantidad de creadores (25%), evolución de ingresos (20%), comisión por venta (15%) y ROAS (10%). Los datos se actualizan al importar un nuevo reporte; no son datos en tiempo real. La señal de crecimiento sigue pendiente de validar con periodos comparables. Revisa las cifras y los videos antes de elegir un producto."
                 : "This experimental index is a statistical comparison within each category and market, not a sales prediction. Weights: demand 30%, creator count 25%, revenue evolution 20%, earnings per sale 15%, ROAS 10%. Data changes when a new report is imported, not in real time. Growth still needs validation against comparable reporting periods. Review the numbers and videos before choosing a product."}
-            </p>
+              </p>
+              </details>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">{language === "es" ? "Índice experimental basado en reportes importados; no predice ni garantiza ventas." : "Experimental index based on imported reports; it does not predict or guarantee sales."}</p>
         </div>
 
         {filteredOpportunities.length === 0 ? (

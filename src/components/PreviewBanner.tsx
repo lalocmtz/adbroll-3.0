@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useBlurGate } from "@/hooks/useBlurGate";
 import { useStartCheckout } from "@/lib/checkout";
 
@@ -22,7 +22,7 @@ export const PreviewBanner = () => {
             </>
           ) : (
             <>
-              <Sparkles className="w-4 h-4 text-primary" />
+              <img src="/brand/tokxray-social-1024.png" alt="" className="h-6 w-6 rounded" />
               <span className="text-foreground/80">
                 <span className="font-medium">Vista previa</span> — Crea tu cuenta para continuar
               </span>
@@ -32,11 +32,11 @@ export const PreviewBanner = () => {
         <Button
           size="sm"
           variant="default"
-          onClick={startCheckout}
+          onClick={() => startCheckout()}
           disabled={checkoutLoading}
-          className="text-xs h-7 px-3"
+          className="text-xs min-h-11 px-3 shrink-0"
         >
-          {isLoggedIn ? "Activar $24.99/mes" : "Desbloquear $24.99/mes"}
+          {isLoggedIn ? "Activar US$29/mes" : "Desbloquear US$29/mes"}
         </Button>
       </div>
     </div>
