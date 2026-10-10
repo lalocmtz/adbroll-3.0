@@ -191,6 +191,7 @@ const Login = () => {
                 <p className="text-sm text-destructive">{errors.password}</p>
               )}
             </div>
+            <Link to="/recuperar-cuenta" className="block text-sm text-primary hover:underline">¿Olvidaste tu contraseña?</Link>
             <Button type="submit" className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading}>
               {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
             </Button>

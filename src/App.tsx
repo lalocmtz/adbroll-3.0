@@ -14,6 +14,7 @@ import { captureAttribution } from "@/lib/attribution";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
+import PasswordRecovery from "./pages/PasswordRecovery";
 import Register from "./pages/Register";
 import Unlock from "./pages/Unlock";
 import Dashboard from "./pages/Dashboard";
@@ -162,6 +163,8 @@ const App = () => {
                   
                   {/* Auth routes */}
                   <Route path="/login" element={<Login />} />
+                  <Route path="/recuperar-cuenta" element={<PasswordRecovery />} />
+                  <Route path="/actualizar-contrasena" element={<PasswordRecovery update />} />
                   <Route path="/register" element={<Register />} />
                   
                   {/* Unlock page (paywall landing) */}
