@@ -25,8 +25,6 @@ const Affiliates = () => {
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [editedCode, setEditedCode] = useState("");
   const [savingCode, setSavingCode] = useState(false);
-  const [connectLoading, setConnectLoading] = useState(false);
-  const [dashboardLoading, setDashboardLoading] = useState(false);
   const [withdrawalHistory, setWithdrawalHistory] = useState<any[]>([]);
 
   // Fetch withdrawal history
@@ -47,33 +45,11 @@ const Affiliates = () => {
     fetchWithdrawals();
   }, [affiliate?.id]);
 
-  // Check URL params for connect status
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("connected") === "true") {
-      toast({
-        title: language === "es" ? "Revisando tu cuenta" : "Checking your account",
-        description: language === "es" 
-          ? "Stripe confirmará si tu cuenta está habilitada para recibir pagos."
-          : "Stripe will confirm whether your account can receive payouts.",
-      });
-      window.history.replaceState({}, "", "/affiliates");
-      refetch();
-    }
-  }, []);
-
   // Production domain for referral links
   const ADBROLL_DOMAIN = "https://tokxray.com";
 
   // Prefer the server-computed code from the dashboard RPC, fall back to the row.
   const activeCode = dashboard?.code ?? affiliate?.ref_code;
-
-  // Stripe Connect state — prefer server-computed flags from the dashboard RPC,
-  // fall back to the raw affiliate row if the RPC is unavailable.
-  const hasConnect =
-    dashboard?.has_connect ?? Boolean((affiliate as any)?.stripe_connect_id);
-  const connectReady =
-    Boolean(affiliate?.stripe_onboarding_complete && affiliate?.payouts_enabled);
 
   // Available balance from the RPC (fallback to the row).
   const usdAvailable = dashboard?.usd_available ?? affiliate?.usd_available ?? 0;
@@ -170,68 +146,11 @@ const Affiliates = () => {
     }
   };
 
-  const handleConnectStripe = async () => {
-    setConnectLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("affiliate-create-connect");
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      console.error("Error connecting Stripe:", error);
-      toast({
-        title: "Error",
-        description: error.message || (language === "es" ? "No se pudo conectar" : "Could not connect"),
-        variant: "destructive",
-      });
-      setConnectLoading(false);
-    }
-  };
-
-  const handleOpenDashboard = async () => {
-    setDashboardLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("affiliate-dashboard-link");
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (error: any) {
-      console.error("Error opening dashboard:", error);
-      toast({
-        title: "Error",
-        description: error.message || (language === "es" ? "No se pudo abrir" : "Could not open"),
-        variant: "destructive",
-      });
-    } finally {
-      setDashboardLoading(false);
-    }
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
     }).format(amount);
-  };
-
-  const getNextWednesday = () => {
-    const now = new Date();
-    const daysUntilWednesday = (3 - now.getDay() + 7) % 7 || 7;
-    const nextWednesday = new Date(now);
-    nextWednesday.setDate(now.getDate() + daysUntilWednesday);
-    return nextWednesday.toLocaleDateString(language === "es" ? "es-MX" : "en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   if (loading) {
@@ -299,7 +218,7 @@ const Affiliates = () => {
               </Badge>
               <Badge variant="secondary" className="gap-1">
                 <Clock className="h-3 w-3" />
-                {language === "es" ? "Pagos cada miércoles" : "Paid every Wednesday"}
+                {language === "es" ? "Revisión semanal de pagos" : "Weekly payment review"}
               </Badge>
             </div>
           </div>
@@ -503,106 +422,16 @@ const Affiliates = () => {
           </div>
 
           {dashboard?.payout_hold && <Card className="p-5 border-amber-400"><p className="font-semibold">Pagos en revisión</p><p className="text-sm text-muted-foreground">Hay un cobro en disputa asociado a tus comisiones. Los retiros están pausados mientras se concilia. Contacta a soporte para revisar el caso.</p></Card>}
-          {/* Stripe Connect Section */}
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <CreditCard className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">
-                {language === "es" ? "Cuenta de cobro" : "Payout account"}
-              </h3>
-            </div>
-
-            {!hasConnect ? (
-              <div className="text-center py-4">
-                <AlertCircle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-4">
-                  {language === "es"
-                    ? "Conecta tu cuenta bancaria para recibir tus pagos automáticamente cada miércoles."
-                    : "Connect your bank account to receive payments automatically every Wednesday."}
-                </p>
-                <Button onClick={handleConnectStripe} disabled={connectLoading} className="gap-2">
-                  {connectLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <CreditCard className="h-4 w-4" />
-                  )}
-                  {language === "es" ? "Conectar cuenta bancaria" : "Connect bank account"}
-                </Button>
-              </div>
-            ) : !connectReady ? (
-              <div className="text-center py-4">
-                <Clock className="h-10 w-10 text-amber-500 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-4">
-                  {language === "es"
-                    ? "Tu cuenta está pendiente de verificación. Completa el proceso para recibir pagos."
-                    : "Your account is pending verification. Complete the process to receive payments."}
-                </p>
-                <Button onClick={handleConnectStripe} disabled={connectLoading} className="gap-2">
-                  {connectLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ExternalLink className="h-4 w-4" />
-                  )}
-                  {language === "es" ? "Completar verificación" : "Complete verification"}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-700 dark:text-green-400">
-                    {language === "es" ? "✅ Cuenta conectada · Pagos cada miércoles" : "✅ Account connected · Paid every Wednesday"}
-                  </span>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {language === "es" ? "Mínimo para retiro" : "Minimum for payout"}
-                    </p>
-                    <p className="text-lg font-bold">${MINIMUM_PAYOUT} USD</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {language === "es" ? "Próximo pago" : "Next payout"}
-                    </p>
-                    <p className="text-lg font-bold">{getNextWednesday()}</p>
-                  </div>
-                </div>
-
-                {usdAvailable >= MINIMUM_PAYOUT ? (
-                  <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30">
-                    <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                      ✨ {language === "es"
-                        ? `¡Tienes ${formatCurrency(usdAvailable)} listos para el próximo pago!`
-                        : `You have ${formatCurrency(usdAvailable)} ready for the next payout!`}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <p className="text-sm text-muted-foreground">
-                      {language === "es"
-                        ? `Te faltan ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} para el mínimo de retiro.`
-                        : `You need ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} more to reach the minimum payout.`}
-                    </p>
-                  </div>
-                )}
-
-                <Button 
-                  variant="outline" 
-                  onClick={handleOpenDashboard} 
-                  disabled={dashboardLoading}
-                  className="w-full gap-2"
-                >
-                  {dashboardLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ExternalLink className="h-4 w-4" />
-                  )}
-                  {language === "es" ? "Ver panel de pagos en Stripe" : "View payment dashboard in Stripe"}
-                </Button>
-              </div>
-            )}
+          <Card className="p-5 space-y-3">
+            <h3 className="font-semibold">{language === "es" ? "Pagos por transferencia manual" : "Manual bank transfers"}</h3>
+            <p className="text-sm text-muted-foreground">{language === "es"
+              ? "Aquí se acumulan tus comisiones por suscripciones cobradas. El equipo de TokXray revisa el saldo semanalmente y se pone en contacto contigo para coordinar el depósito. No necesitas conectar una cuenta de Stripe."
+              : "Your commissions come from paid subscriptions. The TokXray team reviews balances weekly and contacts you to arrange a bank transfer. You do not need a Stripe account."}</p>
+            <p className="text-sm font-medium">{language === "es" ? "Mínimo de pago: $50 USD" : "Minimum payment: $50 USD"}</p>
+            <p className="text-sm">{usdAvailable >= MINIMUM_PAYOUT
+              ? (language === "es" ? "Tu saldo alcanza el mínimo para la revisión semanal." : "Your balance meets the minimum for weekly review.")
+              : (language === "es" ? `Te faltan ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} para el mínimo.` : `You need ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} more to reach the minimum.`)}</p>
+            <p className="text-xs text-muted-foreground">{language === "es" ? "El saldo disponible no significa que el depósito ya se haya realizado. Cada pago confirmado aparecerá en tu historial. Los reembolsos y disputas pueden ajustar el saldo." : "Available balance does not mean a transfer has been sent. Confirmed payments appear in your history. Refunds and disputes may adjust your balance."}</p>
           </Card>
 
           {/* Withdrawal History */}

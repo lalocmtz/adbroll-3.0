@@ -16,6 +16,7 @@ import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { ConversionFunnel } from "@/components/admin/ConversionFunnel";
 import { EmailLeadsList } from "@/components/admin/EmailLeadsList";
 import { ApiUsageMonitor } from "@/components/admin/ApiUsageMonitor";
+import { ManualAffiliatePayments } from "@/components/admin/ManualAffiliatePayments";
 import { FinancialDashboard } from "@/components/admin/FinancialDashboard";
 import { TrafficAnalytics } from "@/components/admin/TrafficAnalytics";
 import { CreditAnalytics } from "@/components/admin/CreditAnalytics";
@@ -288,6 +289,7 @@ const Admin = () => {
             
             {/* Financial Dashboard */}
             <FinancialDashboard />
+            <ManualAffiliatePayments />
             
             {/* Funnel + Traffic Side by Side */}
             <div className="grid md:grid-cols-2 gap-6">

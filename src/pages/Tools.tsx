@@ -135,7 +135,7 @@ const Tools = () => {
   const isEs = language === "es";
 
   const isBusy = ["download", "transcribe", "analyze", "variants"].includes(step);
-  const hasResult = step === "done" && !!transcript;
+  const hasResult = (step === "done" || step === "error") && !!transcript;
 
   // Carga el histórico del usuario logueado (no re-llama APIs, solo lee la tabla).
   const loadHistory = useCallback(async () => {
@@ -314,19 +314,21 @@ const Tools = () => {
 
       // PASO 3: analizar por que funciono.
       setStep("analyze");
-      const { data: inData } = await supabase.functions.invoke(
+      const { data: inData, error: insightsError } = await supabase.functions.invoke(
         "analyze-script-insights",
         { body: { script: tx, videoTitle: "Video de TikTok" } }
       );
-      if (inData?.insights) setInsights(inData.insights as Insights);
+      if (insightsError || inData?.error || !inData?.insights) throw new Error(t("No se pudo completar el análisis. La transcripción sigue disponible.", "Analysis failed. Your transcript is still available."));
+      setInsights(inData.insights as Insights);
 
       // PASO 4: generar 3 variantes.
       setStep("variants");
-      const { data: vData } = await supabase.functions.invoke(
+      const { data: vData, error: variantsError } = await supabase.functions.invoke(
         "generate-script-variants",
         { body: { transcript: tx, variantCount: 3, changeLevel: "medium" } }
       );
-      const vList: Variant[] = vData?.variants || [];
+      if (variantsError || vData?.error || !Array.isArray(vData?.variants) || !vData.variants.length) throw new Error(t("No se pudieron generar variantes. Conservamos la transcripción y el análisis en pantalla.", "Variants failed. Your transcript and insights remain on screen."));
+      const vList: Variant[] = vData.variants;
       setVariants(vList);
 
       // Registrar el analisis (cuenta para el limite diario + historial).
@@ -336,7 +338,7 @@ const Tools = () => {
         insights: (inData?.insights as Insights) ?? null,
         variants: vList,
       };
-      const { data: inserted } = await supabase
+      const { data: inserted, error: saveError } = await supabase
         .from("tool_analyses")
         .insert({
           user_id: user.id,
@@ -345,6 +347,8 @@ const Tools = () => {
         })
         .select("id, video_url, created_at, result")
         .single();
+
+      if (saveError || !inserted) throw new Error(t("El análisis está en pantalla, pero no se pudo guardar. No aparecerá en tu historial.", "Analysis is on screen but could not be saved to your history."));
 
       // Optimistic: agregar al tope del histórico.
       if (inserted) {

@@ -19,7 +19,7 @@ serve(async (req) => {
   if (!expected || req.headers.get("Authorization") !== `Bearer ${expected}`) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-  if (Deno.env.get("AFFILIATE_PAYOUTS_ENABLED") !== "true") {
+  if (Deno.env.get("AFFILIATE_PAYOUT_MODE") !== "connect" || Deno.env.get("AFFILIATE_PAYOUTS_ENABLED") !== "true") {
     return new Response(JSON.stringify({ error: "Payouts are not enabled" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
