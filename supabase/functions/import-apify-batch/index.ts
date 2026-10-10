@@ -3,10 +3,23 @@ import { authenticatedAI, failure, headers, reply } from '../_shared/gemini.ts';
 import { apifyId, boundedMP4, verifiedDownload } from '../_shared/download-contracts.ts';
 
 // Import a completed owner-run batch. This endpoint never starts billable runs.
-// Small resumable pages keep file transfer within an Edge request's lifetime.
+// Fetch metadata once per 12 records, but hold at most three MP4 transfers at once.
+// A completed group is the resume boundary; unprocessed records stay on the next page.
+export async function processBatchGroups<T, R extends { status: string }>(
+  rows: T[], processItem: (item: T) => Promise<R>, startedAt: number, now = Date.now,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let index = 0; index < rows.length; index += 3) {
+    const group = await Promise.all(rows.slice(index, index + 3).map(processItem));
+    results.push(...group);
+    if (group.some(row => row.status === 'retry') || now() - startedAt >= 75000) break;
+  }
+  return results;
+}
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response(null, { headers });
   try {
+    const startedAt = Date.now();
     const { db, userId } = await authenticatedAI(req);
     const role = await db.from('user_roles').select('role').eq('user_id', userId).eq('role', 'founder').maybeSingle();
     if (role.error || !role.data) throw new AIError('Solo el fundador puede importar lotes.', 403);
@@ -27,9 +40,9 @@ Deno.serve(async req => {
     const dataset = (await api(`datasets/${datasetId}`)).data;
     const total = dataset?.itemCount;
     if (!Number.isSafeInteger(total) || total < 0 || total > 100000) throw new AIError('El lote tiene un tamaño inválido.', 422);
-    const rows = await api(`datasets/${datasetId}/items?clean=true&offset=${offset}&limit=3`);
-    if (!Array.isArray(rows) || rows.length > 3 || (!rows.length && offset < total)) throw new AIError('El lote no devolvió la página esperada.', 502);
-    const results = await Promise.all(rows.map(async (item: any) => {
+    const rows = await api(`datasets/${datasetId}/items?clean=true&offset=${offset}&limit=12`);
+    if (!Array.isArray(rows) || rows.length > 12 || (!rows.length && offset < total)) throw new AIError('El lote no devolvió la página esperada.', 502);
+    const results = await processBatchGroups(rows, async (item: any) => {
       const id = typeof item.id === 'string' && /^\d{15,22}$/.test(item.id) ? item.id : null;
       try {
         if (!id) return { id, status: 'unavailable' };
@@ -52,10 +65,10 @@ Deno.serve(async req => {
       } catch (error) {
         return { id, status: error instanceof AIError && error.status === 422 ? 'unavailable' : 'retry', error: error instanceof AIError ? error.message : 'No se pudo transferir el archivo.' };
       }
-    }));
+    }, startedAt);
     // Retry the same page after a transient error; successful rows are skipped.
     const retry = results.some(row => row.status === 'retry');
-    const nextOffset = retry ? offset : offset + rows.length;
+    const nextOffset = retry ? offset : offset + results.length;
     return reply({ runId, total, offset, nextOffset, complete: !retry && nextOffset >= total, retry, results });
   } catch (error) { return failure(error); }
 });
