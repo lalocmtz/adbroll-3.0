@@ -12,9 +12,6 @@ import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lock, Sparkles } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { StreakBadge } from "@/components/brand/StreakBadge";
 import { useStartCheckout } from "@/lib/checkout";
 
 interface Video {
@@ -236,20 +233,18 @@ const Dashboard = () => {
     });
   };
   const marketLabel = market === 'mx' ? 'México' : 'Estados Unidos';
-  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: es });
   
   return <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
-      {/* Compact Mobile Hero Section - Dynamic Date */}
+      {/* Compact mobile catalogue header */}
       <div className="mb-3 md:mb-4 py-1 md:py-0">
         <div className="md:hidden">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-base font-bold text-foreground leading-tight">
-              🔥 Lo que vende HOY
+              Videos destacados de TikTok Shop
             </h1>
-            {isLoggedIn && <StreakBadge days={3} compact />}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {todayFormatted} · TikTok Shop {marketLabel}
+            TikTok Shop {marketLabel} · Datos del último reporte importado
           </p>
         </div>
 
@@ -258,12 +253,11 @@ const Dashboard = () => {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-bold text-foreground leading-tight">
-                🔥 Lo que vende HOY, {todayFormatted}
+                Videos destacados de TikTok Shop
               </h1>
-              {isLoggedIn && <StreakBadge days={3} />}
             </div>
             <p className="text-xs text-muted-foreground">
-              TikTok Shop {marketLabel} · Guiones y productos que generan $$$
+              TikTok Shop {marketLabel} · Datos del último reporte importado; no en tiempo real
             </p>
           </div>
           {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
