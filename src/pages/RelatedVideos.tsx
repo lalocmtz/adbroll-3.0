@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { ChevronRight, ArrowLeft, Package, DollarSign, ExternalLink, Eye, Loader
 import { useToast } from "@/hooks/use-toast";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import VideoCardOriginal from "@/components/VideoCardOriginal";
-import { FilterPills, DataSubtitle } from "@/components/FilterPills";
+import { FilterPills } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { openTikTokLink } from "@/lib/tiktokDeepLink";
 
@@ -20,7 +20,7 @@ const VIDEO_CARD_COLUMNS = `
   id, video_url, video_mp4_url, thumbnail_url, title,
   creator_name, creator_handle, creator_id, product_name, product_id,
   sales, revenue_mxn, views, roas, category, country, rank,
-  imported_at, processing_status,
+  imported_at, processing_status, snapshot_date_range,
   product:products!product_id (
     id, producto_nombre, imagen_url, total_ingresos_mxn, commission, price, precio_mxn, revenue_30d, producto_url
   )
@@ -97,6 +97,22 @@ const SORT_OPTIONS = [
 
 const ITEMS_PER_PAGE = 20;
 
+// TikTok handles are exact identities, never a fuzzy name/title search.
+export const creatorVideoFilter = (creator: Pick<CreatorInfo, "id" | "creator_handle" | "usuario_creador">) => {
+  const handle = (creator.creator_handle || creator.usuario_creador || "").trim().replace(/^@/, "").toLowerCase();
+  const clauses = [`creator_id.eq.${creator.id}`];
+  if (/^[a-z0-9._]+$/.test(handle)) {
+    // ilike is case-insensitive; escape underscores so they cannot match another creator.
+    const exactHandle = handle.replace(/_/g, "\\_");
+    clauses.push(`creator_handle.ilike.${exactHandle}`, `creator_handle.ilike.@${exactHandle}`);
+  }
+  return clauses.join(",");
+};
+
+const SORT_COLUMNS: Record<string, "revenue_mxn" | "sales" | "views"> = {
+  revenue: "revenue_mxn", sales: "sales", views: "views",
+};
+
 const formatCurrency = (num: number | null | undefined): string => {
   if (!num) return '$0';
   if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
@@ -123,6 +139,9 @@ const RelatedVideos = () => {
   
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalVideos, setTotalVideos] = useState(0);
+  const [identifiedVideos, setIdentifiedVideos] = useState(0);
+  const requestVersion = useRef(0);
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   const [sortOrder, setSortOrder] = useState("revenue");
@@ -138,23 +157,49 @@ const RelatedVideos = () => {
   const isCreatorView = !!creatorId;
 
   useEffect(() => {
-    fetchData();
+    setCurrentPage(1);
+    setProductInfo(null);
+    setCreatorInfo(null);
+    setCandidates([]);
   }, [productId, creatorId]);
 
   useEffect(() => {
-    sortVideos();
-  }, [sortOrder, videos.length]);
+    fetchData();
+    return () => { requestVersion.current += 1; };
+  }, [productId, creatorId, sortOrder, currentPage]);
 
   // Load candidate videos when product is available
   useEffect(() => {
     if (isProductView && productInfo && isFounder) {
       loadCandidates();
     }
-  }, [productInfo, isFounder]);
+  }, [productInfo?.id, isFounder]);
 
   const fetchData = async () => {
+    const version = ++requestVersion.current;
     try {
       setLoading(true);
+      setVideos([]);
+      setTotalVideos(0);
+      setIdentifiedVideos(0);
+      const from = (currentPage - 1) * ITEMS_PER_PAGE;
+      const loadVideos = async (scope: (query: any) => any) => {
+        const [page, identified] = await Promise.all([
+          scope(supabase.from("videos").select(VIDEO_CARD_COLUMNS, { count: "exact" }))
+            .not("video_mp4_url", "is", null)
+            .neq("video_mp4_url", "")
+            .order(SORT_COLUMNS[sortOrder] || "revenue_mxn", { ascending: false, nullsFirst: false })
+            .order("id", { ascending: true })
+            .range(from, from + ITEMS_PER_PAGE - 1),
+          scope(supabase.from("videos").select("id", { count: "exact", head: true })),
+        ]);
+        if (version !== requestVersion.current) return;
+        if (page.error) throw page.error;
+        if (identified.error) throw identified.error;
+        setVideos(page.data || []);
+        setTotalVideos(page.count || 0);
+        setIdentifiedVideos(identified.count || 0);
+      };
       
       if (isProductView && productId) {
         const { data: product, error: productError } = await supabase
@@ -169,20 +214,15 @@ const RelatedVideos = () => {
           navigate("/products");
           return;
         }
+        if (version !== requestVersion.current) return;
         setProductInfo(product);
 
-        const { data: videosData, error: videosError } = await supabase
-          .from("videos")
-          .select(VIDEO_CARD_COLUMNS)
+        await loadVideos(query => query
           .eq("product_id", productId)
           .eq("country", product.market)
-          .not("video_mp4_url", "is", null)
-          .neq("video_mp4_url", "")
-          .or(product.tiktok_product_id && /^\d+$/.test(product.tiktok_product_id) ? `manual_match.eq.true,tiktok_product_id.eq.${product.tiktok_product_id}` : "manual_match.eq.true")
-          .order("revenue_mxn", { ascending: false });
-
-        if (videosError) throw videosError;
-        setVideos(videosData || []);
+          .or(product.tiktok_product_id && /^\d+$/.test(product.tiktok_product_id)
+            ? `manual_match.eq.true,tiktok_product_id.eq.${product.tiktok_product_id}`
+            : "manual_match.eq.true"));
 
       } else if (isCreatorView && creatorId) {
         const { data: creator, error: creatorError } = await supabase
@@ -197,29 +237,22 @@ const RelatedVideos = () => {
           navigate("/creadores");
           return;
         }
+        if (version !== requestVersion.current) return;
         setCreatorInfo(creator);
 
-        const creatorHandle = creator.creator_handle || creator.usuario_creador;
-        const { data: videosData, error: videosError } = await supabase
-          .from("videos")
-          .select(VIDEO_CARD_COLUMNS)
-          .eq("creator_handle", creatorHandle)
-          .eq("country", creator.country || "mx")
-          .not("video_mp4_url", "is", null)
-          .neq("video_mp4_url", "")
-          .order("revenue_mxn", { ascending: false });
-
-        if (videosError) throw videosError;
-        setVideos(videosData || []);
+        await loadVideos(query => query
+          .or(creatorVideoFilter(creator))
+          .eq("country", creator.country || "mx"));
       }
     } catch (error: any) {
+      if (version !== requestVersion.current) return;
       toast({
         title: "Error al cargar datos",
         description: error.message,
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   };
 
@@ -292,25 +325,7 @@ const RelatedVideos = () => {
     }
   };
 
-  const sortVideos = () => {
-    const sorted = [...videos].sort((a, b) => {
-      switch (sortOrder) {
-        case "revenue": return (b.revenue_mxn || 0) - (a.revenue_mxn || 0);
-        case "sales": return (b.sales || 0) - (a.sales || 0);
-        case "views": return (b.views || 0) - (a.views || 0);
-        default: return 0;
-      }
-    });
-    if (JSON.stringify(sorted) !== JSON.stringify(videos)) {
-      setVideos(sorted);
-    }
-  };
-
-  const totalPages = Math.ceil(videos.length / ITEMS_PER_PAGE);
-  const paginatedVideos = videos.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const totalPages = Math.ceil(totalVideos / ITEMS_PER_PAGE);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -391,7 +406,7 @@ const RelatedVideos = () => {
               <h1 className="text-lg font-bold text-foreground truncate">{productInfo.producto_nombre}</h1>
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <DollarSign className="h-3.5 w-3.5" />
-                GMV 30D: {formatCurrency(productInfo.total_ingresos_mxn)}
+                GMV del reporte: {formatCurrency(productInfo.total_ingresos_mxn)}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -448,10 +463,10 @@ const RelatedVideos = () => {
               <h1 className="text-lg font-bold text-foreground truncate">
                 {creatorInfo.nombre_completo || creatorInfo.usuario_creador}
               </h1>
-              <p className="text-sm text-muted-foreground">@{creatorInfo.creator_handle || creatorInfo.usuario_creador}</p>
+              <p className="text-sm text-muted-foreground">@{(creatorInfo.creator_handle || creatorInfo.usuario_creador).trim().replace(/^@/, "")}</p>
               <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                 <DollarSign className="h-3.5 w-3.5" />
-                GMV Total: {formatCurrency(creatorInfo.total_ingresos_mxn)}
+                GMV del reporte: {formatCurrency(creatorInfo.total_ingresos_mxn)}
               </p>
             </div>
             {creatorInfo.tiktok_url && (
@@ -466,9 +481,11 @@ const RelatedVideos = () => {
 
       {/* Subtitle and Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-        <DataSubtitle />
+        <p className="text-[11px] text-muted-foreground mb-2">
+          Videos descargados y vinculados · métricas del reporte importado, no en tiempo real
+        </p>
         <Badge variant="secondary" className="w-fit text-xs">
-          {videos.length} {videos.length === 1 ? "video" : "videos"} vinculados
+          {totalVideos} {totalVideos === 1 ? "video disponible" : "videos disponibles"}
         </Badge>
       </div>
 
@@ -481,9 +498,14 @@ const RelatedVideos = () => {
       </div>
 
       {/* Linked Videos Grid */}
-      {videos.length === 0 && candidates.length === 0 ? (
+      {videos.length === 0 ? (
         <Card className="p-12 text-center">
-          <p className="text-muted-foreground text-lg">No se encontraron videos relacionados</p>
+          <p className="text-muted-foreground text-lg">Todavía no hay videos descargados para {isProductView ? "este producto" : "este creador"}</p>
+          <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
+            {identifiedVideos > 0
+              ? `Hay ${identifiedVideos} ${identifiedVideos === 1 ? "video identificado" : "videos identificados"} en los reportes. Falta descargar y verificar sus archivos para mostrarlos aquí.`
+              : `Necesitamos importar enlaces de videos ${isProductView ? "con el ID exacto de este producto" : "de esta cuenta"} y descargar sus archivos. El ranking por sí solo no incluye esos videos.`}
+          </p>
           <Button variant="outline" className="mt-4" onClick={() => navigate(isProductView ? "/products" : "/creadores")}>
             Volver a {isProductView ? "Productos" : "Creadores"}
           </Button>
@@ -492,10 +514,10 @@ const RelatedVideos = () => {
         <>
           {/* Linked videos */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {paginatedVideos.map((video, index) => (
+            {videos.map((video, index) => (
               <div key={video.id} className="relative group">
                 <VideoCardOriginal video={video} ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} />
-                {isFounder && (
+                {isFounder && isProductView && (
                   <Button
                     variant="destructive"
                     size="icon"

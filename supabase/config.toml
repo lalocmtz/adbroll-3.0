@@ -154,4 +154,9 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.analyze-catalog-link]
-verify_jwt = true
+# Custom authenticatedAI verifies the user JWT and paid entitlement.
+verify_jwt = false
+
+[functions.catalog-download]
+# Custom authenticatedAI verifies the user JWT and paid entitlement.
+verify_jwt = false

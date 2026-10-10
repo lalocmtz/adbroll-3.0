@@ -9,10 +9,12 @@ import VideoAnalysisModalOriginal from './VideoAnalysisModalOriginal';
 import ProductAssignmentModal from './ProductAssignmentModal';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
 import { cn } from '@/lib/utils';
+import { formatReportPeriod } from '@/lib/catalog-period';
 import { openTikTokLink } from '@/lib/tiktokDeepLink';
 interface Video {
   id: string;
   video_url: string;
+  snapshot_date_range?: string | null;
   video_mp4_url?: string | null;
   thumbnail_url?: string | null;
   title?: string | null;
@@ -311,6 +313,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             <p className="text-[11px] md:text-[13px] text-[#94A3B8] mt-0.5">
               @{video.creator_handle || video.creator_name || 'creator'}
             </p>
+            {video.snapshot_date_range && <p className="text-[10px] text-muted-foreground mt-1">Ventas del {formatReportPeriod(video.snapshot_date_range)}</p>}
           </div>
 
           {/* Product Association - Compact on mobile, full on desktop */}

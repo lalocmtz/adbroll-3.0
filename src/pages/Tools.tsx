@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
@@ -18,10 +18,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const DAILY_LIMIT = 5;
 const HISTORY_LIMIT = 20;
 
-// Acepta los formatos comunes de TikTok (link normal, vm.tiktok, /t/).
-const isValidTikTokUrl = (url: string): boolean => {
-  const trimmed = url.trim();
-  return /tiktok\.com/i.test(trimmed) || /vm\.tiktok/i.test(trimmed);
+// Full canonical links allow strict host/ID validation on both client and server.
+const isValidTikTokUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' && !url.username && !url.password &&
+      ['www.tiktok.com', 'tiktok.com', 'm.tiktok.com'].includes(url.hostname) &&
+      /^\/@[^/]+\/video\/\d+\/?$/.test(url.pathname);
+  } catch { return false; }
 };
 
 type Step = "idle" | "download" | "transcribe" | "analyze" | "variants" | "done" | "error";
@@ -112,6 +116,8 @@ const Tools = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const activeRequest = useRef(0);
+  useEffect(() => () => { activeRequest.current++; }, []);
   const [videoUrl, setVideoUrl] = useState("");
   const [step, setStep] = useState<Step>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -202,31 +208,13 @@ const Tools = () => {
     toast({ title: t("✓ Copiado", "✓ Copied") });
   };
 
-  // Verifica el limite diario contando los analisis de hoy del usuario.
-  const checkDailyLimit = async (userId: string): Promise<boolean> => {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const { count, error } = await supabase
-      .from("tool_analyses")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", startOfToday.toISOString());
-
-    if (error) {
-      console.error("No se pudo verificar el limite diario:", error);
-      return true; // No bloqueamos si falla la verificacion.
-    }
-    return (count ?? 0) < DAILY_LIMIT;
-  };
-
   const handleAnalyze = async () => {
     setErrorMsg(null);
     setLimitReached(false);
     setActiveHistoryId(null);
 
     if (!isValidTikTokUrl(videoUrl)) {
-      setErrorMsg(t("Ingresa un enlace válido de TikTok.", "Enter a valid TikTok link."));
+      setErrorMsg(t("Pega el enlace completo: https://www.tiktok.com/@creador/video/123…", "Paste the full link: https://www.tiktok.com/@creator/video/123…"));
       return;
     }
 
@@ -247,12 +235,6 @@ const Tools = () => {
       return;
     }
 
-    const underLimit = await checkDailyLimit(user.id);
-    if (!underLimit) {
-      setLimitReached(true);
-      return;
-    }
-
     // Reset de resultados previos.
     setTranscript("");
     setSegments([]);
@@ -268,7 +250,23 @@ const Tools = () => {
       .then((data) => data?.thumbnail_url && setThumbnail(data.thumbnail_url))
       .catch(() => {});
 
+    const requestId = ++activeRequest.current;
     try {
+      setStep("download");
+      let mediaReady = false;
+      for (let attempt = 0; attempt < 30; attempt++) {
+        if (requestId !== activeRequest.current) return;
+        const { data, error } = await supabase.functions.invoke("catalog-download", { body: { videoUrl: url } });
+        if (error) {
+          const detail = await error.context?.json?.().catch(() => null);
+          throw new Error(detail?.error || "No se pudo preparar el video. Inténtalo más tarde.");
+        }
+        if (data?.status === 'ready') { mediaReady = true; break; }
+        if (data?.status !== 'pending') throw new Error(data?.error || "No se pudo descargar este video.");
+        await new Promise(resolve => setTimeout(resolve, Math.min(15, Math.max(3, data.retryAfterSeconds || 8)) * 1000));
+      }
+      if (requestId !== activeRequest.current) return;
+      if (!mediaReady) throw new Error("La descarga sigue en proceso. Vuelve a analizar este mismo enlace en unos minutos; no se inicia otra descarga.");
       // Reuse the shared Gemini analysis for an available catalogue video.
       setStep("transcribe");
 
@@ -277,6 +275,7 @@ const Tools = () => {
         { body: { videoUrl: url } }
       );
 
+      if (requestId !== activeRequest.current) return;
       if (trError) {
         const detail = await trError.context?.json?.().catch(() => null);
         throw new Error(detail?.error || trError.message || "transcribe_failed");
@@ -309,30 +308,33 @@ const Tools = () => {
       const segs: Segment[] = Array.isArray(trData?.segments) ? trData.segments : [];
       setSegments(segs);
 
-      // PASO 3: analizar por que funciono.
-      setStep("analyze");
-      const { data: inData, error: insightsError } = await supabase.functions.invoke(
-        "analyze-script-insights",
-        { body: { script: tx, videoTitle: "Video de TikTok" } }
-      );
-      if (insightsError || inData?.error || !inData?.insights) throw new Error(t("No se pudo completar el análisis. La transcripción sigue disponible.", "Analysis failed. Your transcript is still available."));
-      setInsights(inData.insights as Insights);
-
-      // PASO 4: generar 3 variantes.
-      setStep("variants");
-      const { data: vData, error: variantsError } = await supabase.functions.invoke(
-        "generate-script-variants",
-        { body: { transcript: tx, variantCount: 3, changeLevel: "medium" } }
-      );
-      if (variantsError || vData?.error || !Array.isArray(vData?.variants) || !vData.variants.length) throw new Error(t("No se pudieron generar variantes. Conservamos la transcripción y el análisis en pantalla.", "Variants failed. Your transcript and insights remain on screen."));
-      const vList: Variant[] = vData.variants;
+      // The audiovisual analysis and base variants are already shared and cached.
+      // Do not charge two extra text generations every time someone opens it.
+      const analysis = trData?.analysis;
+      const sharedVariants = trData?.variants;
+      if (!analysis || !Array.isArray(sharedVariants?.hooks) || sharedVariants.hooks.length !== 3) {
+        throw new Error(t("El análisis compartido está incompleto. Inténtalo de nuevo.", "Shared analysis is incomplete. Try again."));
+      }
+      const sharedInsights: Insights = {
+        funcionamiento: `Gancho: ${analysis.hook || ''}`,
+        estructura: analysis.body || '',
+        ctaLocation: analysis.cta || '',
+        angulos: analysis.visual_observations || [],
+        fortalezas: analysis.beginner_takeaways || [],
+        debilidades: analysis.uncertainties || [],
+      };
+      setInsights(sharedInsights);
+      const vList: Variant[] = sharedVariants.hooks.map((hook: string) => ({
+        hook, body: sharedVariants.body_variant || '', cta: analysis.cta || '',
+        strategy_note: 'Gancho alternativo con un cuerpo compartido; adapta los detalles a tu producto.',
+      }));
       setVariants(vList);
 
       // Registrar el analisis (cuenta para el limite diario + historial).
       const savedResult: AnalysisResult = {
         transcript: tx,
         segments: segs,
-        insights: (inData?.insights as Insights) ?? null,
+        insights: sharedInsights,
         variants: vList,
       };
       const { data: inserted, error: saveError } = await supabase
@@ -361,6 +363,7 @@ const Tools = () => {
       setActiveTab("script");
       toast({ title: t("✓ Análisis listo", "✓ Analysis ready") });
     } catch (err: any) {
+      if (requestId !== activeRequest.current) return;
       console.error("Analyze error:", err);
       setStep("error");
       setErrorMsg(
@@ -431,8 +434,8 @@ const Tools = () => {
             </h1>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
               {t(
-                "Pega el enlace completo de un video disponible en el catálogo: consulta su guion, analiza su estructura y prepara 3 variantes.",
-                "Paste the full link of an available catalogue video: review its script, analyze its structure and create 3 variants."
+                "Pega el enlace completo de un video público de TikTok. Lo descargamos, analizamos su contenido y guardamos el resultado para reutilizarlo. Hasta 5 videos nuevos al día; algunos enlaces pueden no estar disponibles.",
+                "Paste the full link of a public TikTok video. We download it, analyze its content and save the result for reuse. Up to 5 new videos per day; some links may be unavailable."
               )}
             </p>
           </div>

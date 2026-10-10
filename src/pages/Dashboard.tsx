@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { FilterPills, DataSubtitle } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lock, Sparkles } from "lucide-react";
+import { CATALOG_PERIODS, CatalogPeriod, selectReportPeriod, formatReportPeriod } from "@/lib/catalog-period";
 import { useStartCheckout } from "@/lib/checkout";
 
 interface Video {
@@ -65,6 +66,11 @@ const SORT_OPTIONS = [{
   label: "Ganancias estimadas"
 }];
 const Dashboard = () => {
+  const [period, setPeriod] = useState<CatalogPeriod>("latest");
+  const [reportRanges, setReportRanges] = useState<string[]>([]);
+  const [reportsReady, setReportsReady] = useState(false);
+  const requestVersion = useRef(0);
+  const selectedReport = selectReportPeriod(reportRanges, period);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -94,13 +100,24 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchCategories();
+    let cancelled = false;
+    setReportsReady(false);
+    setReportRanges([]);
+    (supabase.rpc as any)("get_catalog_report_periods", { p_country: market }).then(({ data, error }: any) => {
+      if (cancelled) return;
+      if (error) toast({ title: "No se pudieron cargar los periodos", description: "Intenta recargar la página.", variant: "destructive" });
+      setReportRanges((data || []).map((row: { snapshot_date_range: string }) => row.snapshot_date_range));
+      setReportsReady(true);
+    });
+    return () => { cancelled = true; requestVersion.current++; };
   }, [market]);
   useEffect(() => {
     setCurrentPage(1);
-  }, [productFilter, creatorFilter, sortOrder, selectedCategory, market]);
+  }, [productFilter, creatorFilter, sortOrder, selectedCategory, market, period]);
   useEffect(() => {
+    if (!reportsReady) return;
     fetchVideos(currentPage);
-  }, [currentPage, sortOrder, selectedCategory, productFilter, creatorFilter, market]);
+  }, [currentPage, sortOrder, selectedCategory, productFilter, creatorFilter, market, period, reportsReady, selectedReport?.range]);
   const fetchCategories = async () => {
     const {
       data
@@ -111,6 +128,10 @@ const Dashboard = () => {
     }
   };
   const fetchVideos = async (page: number) => {
+    const version = ++requestVersion.current;
+    if (period !== 'all' && !selectedReport) {
+      setVideos([]); setTotalCount(0); setLoading(false); return;
+    }
     try {
       setLoading(true);
       const from = (page - 1) * ITEMS_PER_PAGE;
@@ -144,6 +165,7 @@ const Dashboard = () => {
           country,
           rank,
           imported_at,
+          snapshot_date_range,
           processing_status,
           product:products!product_id${isCategoryFiltered ? "!inner" : ""} (
             id,
@@ -164,6 +186,9 @@ const Dashboard = () => {
       .not("product_id", "is", null) // Must have product assigned
       .eq("country", market); // Filter by market (lowercase 'mx' or 'us')
 
+      // Every sort uses the same commercial report before pagination.
+      if (selectedReport) query = query.eq("snapshot_date_range", selectedReport.range);
+
       // Filtro de categoría EN LA CONSULTA (sobre el recurso embebido).
       if (isCategoryFiltered) {
         query = query.eq("product.categoria", selectedCategory);
@@ -172,9 +197,7 @@ const Dashboard = () => {
       if (sortOrder === "rank") {
         // Solo videos del último import publicado (los que conservan rank).
         // El histórico completo vive en daily_rankings.
-        query = query.not("rank", "is", null).order("rank", {
-          ascending: true
-        });
+        query = query.order("rank", { ascending: true, nullsFirst: false }).order("revenue_mxn", { ascending: false });
       } else if (sortOrder === "revenue") {
         query = query.order("revenue_mxn", {
           ascending: false
@@ -203,19 +226,22 @@ const Dashboard = () => {
         data,
         error,
         count
-      } = await query.range(from, to);
+      } = await query.order("id", { ascending: true }).range(from, to);
+      if (version !== requestVersion.current) return;
       if (error) throw error;
 
       setVideos((data || []) as unknown as Video[]);
       setTotalCount(count ?? 0);
     } catch (error: any) {
+      if (version !== requestVersion.current) return;
+      setVideos([]); setTotalCount(0);
       toast({
         title: "Error al cargar videos",
         description: error.message,
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   };
   if (loading) {
@@ -244,7 +270,7 @@ const Dashboard = () => {
             </h1>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            TikTok Shop {marketLabel} · Datos del último reporte importado
+            TikTok Shop {marketLabel} · Datos de Kalodata
           </p>
         </div>
 
@@ -257,7 +283,7 @@ const Dashboard = () => {
               </h1>
             </div>
             <p className="text-xs text-muted-foreground">
-              TikTok Shop {marketLabel} · Datos del último reporte importado; no en tiempo real
+              TikTok Shop {marketLabel} · Datos de Kalodata; no en tiempo real
             </p>
           </div>
           {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
@@ -273,6 +299,21 @@ const Dashboard = () => {
 
       {/* Filter Pills - Compact horizontal scrollable on mobile */}
       <div className="mb-4 md:mb-6">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <label htmlFor="catalog-period" className="text-xs font-medium">Periodo de ventas</label>
+          <Select value={period} onValueChange={(value) => { setCurrentPage(1); setPeriod(value as CatalogPeriod); }}>
+            <SelectTrigger id="catalog-period" className="h-9 w-auto min-w-[220px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATALOG_PERIODS.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground">{selectedReport ? formatReportPeriod(selectedReport.range) : period === 'all' ? 'Comparas reportes de distintas fechas' : 'Sin reporte importado para este periodo'}</span>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          {period === 'all' ? 'Histórico: cada video conserva las métricas de su último reporte. No representan ventas actuales.' : 'Filtra el periodo de ventas del reporte, no la fecha de publicación del video. No sumamos reportes que se superponen.'}
+        </p>
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
           {!isLoggedIn ? <div className="flex gap-1.5 opacity-60 cursor-pointer flex-wrap" onClick={() => {
           navigate("/unlock");
@@ -320,7 +361,7 @@ const Dashboard = () => {
 
       {videos.length === 0 ? <Card className="p-12 text-center">
           <p className="text-muted-foreground text-lg">
-            {productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos disponibles."}
+            {period !== 'all' && !selectedReport ? `Todavía no hay un reporte de ${period === 'latest' ? 'ventas' : `${period} días`} importado. Hace falta exportar ese periodo desde Kalodata.` : productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos descargados con estos filtros. Prueba otra categoría o periodo."}
           </p>
         </Card> : <>
           {/* Video Grid - 2 columns on mobile */}
