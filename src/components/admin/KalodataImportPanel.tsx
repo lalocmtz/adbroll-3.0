@@ -50,10 +50,10 @@ interface ImportSummary {
   none: number;
 }
 
-const KIND_META: Record<FileKind, { emoji: string; label: string; fn: string }> = {
-  videos: { emoji: "🎬", label: "Videos", fn: "process-kalodata" },
-  products: { emoji: "📦", label: "Productos", fn: "process-kalodata-products" },
-  creators: { emoji: "👤", label: "Creadores", fn: "process-kalodata-creators" },
+const KIND_META: Record<FileKind, { emoji: string; label: string }> = {
+  videos: { emoji: "🎬", label: "Videos" },
+  products: { emoji: "📦", label: "Productos" },
+  creators: { emoji: "👤", label: "Creadores" },
 };
 
 const MARKET_META: Record<Market, { emoji: string; label: string }> = {
@@ -152,7 +152,7 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
   );
 
   // ---------------------------------------------------------------------------
-  // Orquestación: creators -> products -> videos -> match-videos en loop.
+  // Orquestación: creators -> products -> videos; exact identity matching in the atomic import.
   // ---------------------------------------------------------------------------
   const runImport = async () => {
     if (!allResolved || isRunning) return;
@@ -162,15 +162,13 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
 
     const ordered = KIND_ORDER.flatMap((kind) => files.filter((f) => f.kind === kind));
     const hasVideos = ordered.some((f) => f.kind === "videos");
-    const markets = [...new Set(ordered.map((f) => f.market as Market))];
+
 
     const stageList: StageState[] = ordered.map((f) => ({
       label: `${KIND_META[f.kind as FileKind].emoji} ${KIND_META[f.kind as FileKind].label} · ${MARKET_META[f.market as Market].emoji} ${MARKET_META[f.market as Market].label}`,
       status: "pending" as const,
     }));
-    if (hasVideos) {
-      stageList.push({ label: "🔗 Vinculación automática (match-videos)", status: "pending" });
-    }
+
     setStages(stageList);
     setProgress(2);
 
@@ -202,8 +200,9 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
         const formData = new FormData();
         formData.append("file", f.file);
         formData.append("market", f.market as Market);
+        formData.append("kind", kind);
 
-        const { data, error } = await supabase.functions.invoke(KIND_META[kind].fn, {
+        const { data, error } = await supabase.functions.invoke("import-kalodata", {
           body: formData,
         });
         if (error) {
@@ -211,6 +210,8 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
           throw new Error(`Error importando ${KIND_META[kind].label}: ${error.message}`);
         }
 
+        if (!data?.success) throw new Error(data?.error || "La importación no fue confirmada.");
+        result.exact += data?.exact ?? 0;
         const processed = data?.processed ?? 0;
         result.imported[kind] = (result.imported[kind] || 0) + processed;
         // Telemetría nuevos/actualizados si la function la devuelve
@@ -225,47 +226,6 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
         setProgress(Math.round(((i + 1) / totalStages) * 100));
       }
 
-      // ---- Etapa final: match-videos en loop por mercado ----
-      if (hasVideos) {
-        const matchStageIdx = totalStages - 1;
-        setStage(matchStageIdx, { status: "running" });
-
-        for (const market of markets) {
-          let cycles = 0;
-          const MAX_CYCLES = 30;
-          while (cycles < MAX_CYCLES) {
-            cycles++;
-            const { data, error } = await supabase.functions.invoke("match-videos", {
-              body: { market, limit: 100 },
-            });
-            if (error) {
-              throw new Error(`Error en la vinculación automática: ${error.message}`);
-            }
-
-            const processed = data?.processed ?? 0;
-            result.exact += data?.exact ?? 0;
-            result.fuzzy += data?.fuzzy ?? 0;
-            result.ai += data?.ai ?? 0;
-            result.review += data?.review ?? 0;
-            result.none += data?.none ?? 0;
-
-            setStage(matchStageIdx, {
-              status: "running",
-              detail: `${result.exact + result.fuzzy + result.ai} vinculados · ${result.review} en revisión`,
-            });
-
-            // Detener cuando no quedan pendientes o el lote devolvió solo review/none
-            const matchedThisRound = (data?.exact ?? 0) + (data?.fuzzy ?? 0) + (data?.ai ?? 0);
-            if (processed === 0 || matchedThisRound === 0) break;
-          }
-        }
-
-        setStage(matchStageIdx, {
-          status: "done",
-          detail: `${result.exact} exactos · ${result.fuzzy} fuzzy · ${result.ai} IA · ${result.review} en revisión`,
-        });
-      }
-
       setProgress(100);
       setSummary(result);
       setFiles([]);
@@ -274,7 +234,7 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
       toast({
         title: "✅ Importación completada",
         description: hasVideos
-          ? `${result.exact + result.fuzzy + result.ai} videos vinculados, ${result.review} esperan tu confirmación.`
+          ? `${result.exact} vinculaciones nuevas por ID exacto de TikTok Shop.`
           : "Datos importados correctamente.",
       });
     } catch (err) {
@@ -479,7 +439,7 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
                       {summary.exact + summary.fuzzy + summary.ai}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {summary.exact} exactos · {summary.fuzzy} fuzzy · {summary.ai} IA
+                      {summary.exact} por ID exacto
                     </p>
                   </div>
                   <div>
@@ -513,7 +473,7 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
 
         <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded space-y-1">
           <p className="font-medium">Orden automático: Creadores → Productos → Videos → Vinculación</p>
-          <p>Los datos existentes se actualizan, los nuevos se crean. Los videos sin match claro quedan en la cola de confirmación de abajo.</p>
+          <p>Se actualiza por ID de TikTok y se conservan los MP4, análisis y vínculos manuales. Cada Excel se guarda completo o se rechaza sin cambios. Productos y creadores: reportes de 30 días. Videos: conserva cada periodo por separado. La descarga de MP4 se hace desde el panel de Apify.</p>
         </div>
       </CardContent>
     </Card>

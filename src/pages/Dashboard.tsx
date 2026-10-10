@@ -135,103 +135,18 @@ const Dashboard = () => {
     try {
       setLoading(true);
       const from = (page - 1) * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-
-      // Paginación REAL en Supabase: filtramos y ordenamos en la consulta y
-      // pedimos solo la página con .range() + count exacto. Nunca traemos el
-      // dataset completo al cliente.
-      // SECURITY: select EXPLICIT non-premium columns. The premium columns
-      // (transcript, variants_json, analysis_json) are REVOKEd at the DB level
-      // for anon/authenticated. El guion se pide aparte vía el RPC gated
-      // `get_video_script`.
-      const isCategoryFiltered = !!selectedCategory && selectedCategory !== "all";
-
-      let query = supabase.from("videos").select(`
-          id,
-          video_url,
-          video_mp4_url,
-          thumbnail_url,
-          title,
-          creator_name,
-          creator_handle,
-          creator_id,
-          product_name,
-          product_id,
-          sales,
-          revenue_mxn,
-          views,
-          roas,
-          category,
-          country,
-          rank,
-          imported_at,
-          snapshot_date_range,
-          processing_status,
-          product:products!product_id${isCategoryFiltered ? "!inner" : ""} (
-            id,
-            producto_nombre,
-            imagen_url,
-            total_ingresos_mxn,
-            commission,
-            price,
-            precio_mxn,
-            categoria,
-            revenue_30d,
-            producto_url
-          )
-        ` as string, {
-        count: "exact"
-      }).not("video_mp4_url", "is", null) // Must be downloaded
-      .neq("video_mp4_url", "")
-      .not("product_id", "is", null) // Must have product assigned
-      .eq("country", market); // Filter by market (lowercase 'mx' or 'us')
-
-      // Every sort uses the same commercial report before pagination.
-      if (selectedReport) query = query.eq("snapshot_date_range", selectedReport.range);
-
-      // Filtro de categoría EN LA CONSULTA (sobre el recurso embebido).
-      if (isCategoryFiltered) {
-        query = query.eq("product.categoria", selectedCategory);
-      }
-
-      if (sortOrder === "rank") {
-        // Solo videos del último import publicado (los que conservan rank).
-        // El histórico completo vive en daily_rankings.
-        query = query.order("rank", { ascending: true, nullsFirst: false }).order("revenue_mxn", { ascending: false });
-      } else if (sortOrder === "revenue") {
-        query = query.order("revenue_mxn", {
-          ascending: false
-        });
-      } else if (sortOrder === "sales") {
-        query = query.order("sales", {
-          ascending: false
-        });
-      } else if (sortOrder === "views") {
-        query = query.order("views", {
-          ascending: false
-        });
-      } else if (sortOrder === "earnings") {
-        query = query.order("revenue_mxn", {
-          ascending: false
-        });
-      }
-      if (productFilter) {
-        query = query.ilike("product_name", `%${productFilter}%`);
-      }
-      if (creatorFilter) {
-        query = query.or(`creator_name.ilike.%${creatorFilter}%,creator_handle.ilike.%${creatorFilter}%`);
-      }
-
-      const {
-        data,
-        error,
-        count
-      } = await query.order("id", { ascending: true }).range(from, to);
+      // Server chooses one exact report, applies filters/sort, then paginates.
+      // Snapshot metrics survive later imports of the same video's other periods.
+      const { data, error } = await (supabase.rpc as any)("get_catalog_videos", {
+        p_country: market, p_report: selectedReport?.range || null, p_sort: sortOrder,
+        p_category: selectedCategory === 'all' ? null : selectedCategory,
+        p_product: productFilter || null, p_creator: creatorFilter || null, p_offset: from,
+      });
       if (version !== requestVersion.current) return;
       if (error) throw error;
 
-      setVideos((data || []) as unknown as Video[]);
-      setTotalCount(count ?? 0);
+      setVideos((data?.rows || []) as Video[]);
+      setTotalCount(data?.count ?? 0);
     } catch (error: any) {
       if (version !== requestVersion.current) return;
       setVideos([]); setTotalCount(0);

@@ -164,3 +164,6 @@ verify_jwt = false
 [functions.import-apify-batch]
 # Custom user JWT, paid entitlement and founder role checks.
 verify_jwt = false
+
+[functions.import-kalodata]
+verify_jwt = false
