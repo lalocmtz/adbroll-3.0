@@ -1,13 +1,5 @@
-// One-click checkout helper.
-//
-// Sends any "unlock / start" CTA straight to Stripe Checkout — Stripe's own
-// page collects the email + card for cold visitors, so we never need an
-// intermediate email-capture screen. Logged-in users go through
-// `create-checkout` (uses their auth + profile); guests go through
-// `create-checkout-guest` (email optional).
-//
-// Affiliate attribution (ref_code) is always forwarded so commissions are
-// preserved.
+// Guests register before checkout; signed-in users use create-checkout.
+// Referral attribution is forwarded through registration and validated on the server.
 
 import { useState } from "react";
 import { toast } from "sonner";
