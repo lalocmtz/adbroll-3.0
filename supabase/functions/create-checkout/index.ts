@@ -99,10 +99,17 @@ serve(async (req) => {
     const candidateCode = normalizeReferralCode(profile?.referral_code_used || referral_code);
     const { data: affiliateCode } = candidateCode ? await supabaseAdmin.from("affiliate_codes").select("code,user_id").eq("code", candidateCode).maybeSingle() : { data: null };
     const validCode = affiliateCode?.user_id !== user.id ? affiliateCode?.code : null;
-    const metadata = { supabase_user_id: user.id, plan_type: "pro", price_usd: "29", billing_policy: BILLING_POLICY, first_purchase: String(isNewCustomer), referral_code: validCode || "" };
+    const metadata = { supabase_user_id: user.id, plan_type: "pro", price_usd: "29", billing_policy: BILLING_POLICY, checkout_brand: "tokxray-v1", first_purchase: String(isNewCustomer), referral_code: validCode || "" };
 
     // Build checkout session params
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    // Session-level branding keeps the shared Stripe account unchanged.
+    // The older SDK type predates this additive Stripe API field.
+    const sessionParams: Stripe.Checkout.SessionCreateParams & { branding_settings: { display_name: string; button_color: string; icon: { type: "url"; url: string } } } = {
+      branding_settings: {
+        display_name: "TokXray",
+        button_color: "#e92350",
+        icon: { type: "url", url: "https://tokxray.com/brand/tokxray-social-1024.png" },
+      },
       customer: customerId,
       mode: "subscription",
       payment_method_types: ["card"],
@@ -127,7 +134,7 @@ serve(async (req) => {
     const openSessions = await stripe.checkout.sessions.list({ customer: customerId, status: "open", limit: 100 });
     for (const openSession of openSessions.data) {
       if (openSession.mode !== "subscription") continue;
-      if (openSession.metadata?.referral_code === (validCode || "") && openSession.metadata?.price_usd === "29" && openSession.metadata?.billing_policy === BILLING_POLICY) {
+      if (openSession.metadata?.referral_code === (validCode || "") && openSession.metadata?.price_usd === "29" && openSession.metadata?.billing_policy === BILLING_POLICY && openSession.metadata?.checkout_brand === "tokxray-v1") {
         return new Response(JSON.stringify({ url: openSession.url }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       await stripe.checkout.sessions.expire(openSession.id);
