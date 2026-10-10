@@ -1,3 +1,4 @@
+import ApifyBatchImport from "@/components/admin/ApifyBatchImport";
 import CreatorPresentationUploader from "@/components/admin/CreatorPresentationUploader";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -325,6 +326,7 @@ const Admin = () => {
 
           {/* Import Tab */}
           <TabsContent value="import" className="space-y-6">
+        <ApifyBatchImport />
         {/* Last Sync & Refresh */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

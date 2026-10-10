@@ -160,3 +160,7 @@ verify_jwt = false
 [functions.catalog-download]
 # Custom authenticatedAI verifies the user JWT and paid entitlement.
 verify_jwt = false
+
+[functions.import-apify-batch]
+# Custom user JWT, paid entitlement and founder role checks.
+verify_jwt = false
