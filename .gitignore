@@ -32,3 +32,6 @@ docs/TokXray_Auditoria-y-Copy.md
 # Python local bytecode
 __pycache__/
 *.pyc
+
+# Local Supabase CLI state
+/supabase/.temp/

@@ -47,7 +47,7 @@ const emailWrapper = (content: string) => `
           <!-- Header with Logo -->
           <tr>
             <td align="center" style="padding: 40px 40px 24px;">
-              <img src="https://gcntnilurlulejwwtpaa.supabase.co/storage/v1/object/public/assets/logo-dark.png" alt="TokXray" height="48" style="height: 48px;">
+              <img src="${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets/logo-dark.png" alt="TokXray" height="48" style="height: 48px;">
             </td>
           </tr>
           <!-- Content -->

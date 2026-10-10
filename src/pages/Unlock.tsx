@@ -131,7 +131,7 @@ const Unlock = () => {
               className="rounded-xl md:rounded-2xl overflow-hidden shadow-xl md:shadow-2xl border border-border"
             >
               <video
-                src="https://gcntnilurlulejwwtpaa.supabase.co/storage/v1/object/public/assets/landing-video-1766294993055.mp4"
+                src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets/landing-video-1766294993055.mp4`}
                 autoPlay
                 muted
                 loop
