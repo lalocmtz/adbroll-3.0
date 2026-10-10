@@ -406,7 +406,7 @@ const RelatedVideos = () => {
               <h1 className="text-lg font-bold text-foreground truncate">{productInfo.producto_nombre}</h1>
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <DollarSign className="h-3.5 w-3.5" />
-                GMV del reporte: {formatCurrency(productInfo.total_ingresos_mxn)}
+                {productInfo.total_ingresos_mxn === null ? 'Métricas del producto pendientes de un reporte de Kalodata' : `GMV del reporte: ${formatCurrency(productInfo.total_ingresos_mxn)}`}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">

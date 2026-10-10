@@ -1,10 +1,7 @@
-export type CatalogPeriod = 'latest' | '7' | '30' | '60' | 'all';
-export const CATALOG_PERIODS = [
-  { value: 'latest', label: 'Último reporte' },
-  { value: '7', label: 'Última semana · 7 días' },
+export type CatalogPeriod = '7' | '30';
+export const CATALOG_PERIODS: { value: CatalogPeriod; label: string }[] = [
+  { value: '7', label: 'Últimos 7 días' },
   { value: '30', label: 'Últimos 30 días' },
-  { value: '60', label: 'Últimos 60 días' },
-  { value: 'all', label: 'Histórico · todos los reportes' },
 ];
 
 export function parseReportPeriod(range: string) {
@@ -20,9 +17,8 @@ export function parseReportPeriod(range: string) {
 
 // Never combine overlapping snapshots or silently substitute a different window.
 export function selectReportPeriod(ranges: string[], period: CatalogPeriod) {
-  if (period === 'all') return null;
   return ranges.map(parseReportPeriod)
-    .filter((r): r is NonNullable<typeof r> => !!r && (period === 'latest' || r.days === Number(period)))
+    .filter((r): r is NonNullable<typeof r> => !!r && r.days === Number(period))
     .sort((a, b) => b.end.localeCompare(a.end) || a.days - b.days)[0] ?? null;
 }
 

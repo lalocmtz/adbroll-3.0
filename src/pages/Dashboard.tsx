@@ -66,7 +66,7 @@ const SORT_OPTIONS = [{
   label: "Ganancias estimadas"
 }];
 const Dashboard = () => {
-  const [period, setPeriod] = useState<CatalogPeriod>("latest");
+  const [period, setPeriod] = useState<CatalogPeriod>("30");
   const [reportRanges, setReportRanges] = useState<string[]>([]);
   const [reportsReady, setReportsReady] = useState(false);
   const requestVersion = useRef(0);
@@ -129,7 +129,7 @@ const Dashboard = () => {
   };
   const fetchVideos = async (page: number) => {
     const version = ++requestVersion.current;
-    if (period !== 'all' && !selectedReport) {
+    if (!selectedReport) {
       setVideos([]); setTotalCount(0); setLoading(false); return;
     }
     try {
@@ -215,19 +215,19 @@ const Dashboard = () => {
       {/* Filter Pills - Compact horizontal scrollable on mobile */}
       <div className="mb-4 md:mb-6">
         <div className="flex flex-wrap items-center gap-2 mb-3">
-          <label htmlFor="catalog-period" className="text-xs font-medium">Periodo de ventas</label>
-          <Select value={period} onValueChange={(value) => { setCurrentPage(1); setPeriod(value as CatalogPeriod); }}>
-            <SelectTrigger id="catalog-period" className="h-9 w-auto min-w-[220px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CATALOG_PERIODS.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground">{selectedReport ? formatReportPeriod(selectedReport.range) : period === 'all' ? 'Comparas reportes de distintas fechas' : 'Sin reporte importado para este periodo'}</span>
+          <div role="group" aria-label="Periodo de ventas" className="flex gap-2">
+            {CATALOG_PERIODS.map(option => <button
+              key={option.value}
+              type="button"
+              aria-pressed={period === option.value}
+              onClick={() => { setCurrentPage(1); setPeriod(option.value); }}
+              className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${period === option.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/60 text-muted-foreground border-border/50 hover:bg-muted'}`}
+            >{option.label}</button>)}
+          </div>
+          <span className="text-xs text-muted-foreground">{selectedReport ? `Datos del ${formatReportPeriod(selectedReport.range)}` : 'Sin reporte importado para este periodo'}</span>
         </div>
         <p className="text-xs text-muted-foreground mb-3">
-          {period === 'all' ? 'Histórico: cada video conserva las métricas de su último reporte. No representan ventas actuales.' : 'Filtra el periodo de ventas del reporte, no la fecha de publicación del video. No sumamos reportes que se superponen.'}
+          Ventas del periodo seleccionado, independientemente de cuándo se publicó el video.
         </p>
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
           {!isLoggedIn ? <div className="flex gap-1.5 opacity-60 cursor-pointer flex-wrap" onClick={() => {
@@ -276,7 +276,7 @@ const Dashboard = () => {
 
       {videos.length === 0 ? <Card className="p-12 text-center">
           <p className="text-muted-foreground text-lg">
-            {period !== 'all' && !selectedReport ? `Todavía no hay un reporte de ${period === 'latest' ? 'ventas' : `${period} días`} importado. Hace falta exportar ese periodo desde Kalodata.` : productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos descargados con estos filtros. Prueba otra categoría o periodo."}
+            {!selectedReport ? `Todavía no hay un reporte de ${period} días importado. Hace falta exportar ese periodo desde Kalodata.` : productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos descargados con estos filtros. Prueba otra categoría o periodo."}
           </p>
         </Card> : <>
           {/* Video Grid - 2 columns on mobile */}

@@ -80,6 +80,7 @@ const Products = () => {
         .from("products")
         .select("*")
         .eq("market", market) // Filter by market
+        .neq("identity_status", "video_source") // No product metrics until its Kalodata export arrives.
         .order("rank", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
