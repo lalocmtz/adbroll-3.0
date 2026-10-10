@@ -269,21 +269,18 @@ const Tools = () => {
       .catch(() => {});
 
     try {
-      // PASO 1 + 2: descargar/transcribir.
-      // transcribe-assemblyai acepta la URL cruda de TikTok: internamente extrae
-      // el MP4 (tikwm/savetik/etc.) y lo transcribe, sin requerir un registro en
-      // la tabla videos. Por eso no insertamos un video temporal.
-      setStep("download");
-      // Pequena pausa visual para que se vea el paso de descarga.
-      await new Promise((r) => setTimeout(r, 400));
+      // Reuse the shared Gemini analysis for an available catalogue video.
       setStep("transcribe");
 
       const { data: trData, error: trError } = await supabase.functions.invoke(
-        "transcribe-assemblyai",
+        "analyze-catalog-link",
         { body: { videoUrl: url } }
       );
 
-      if (trError) throw new Error(trError.message || "transcribe_failed");
+      if (trError) {
+        const detail = await trError.context?.json?.().catch(() => null);
+        throw new Error(detail?.error || trError.message || "transcribe_failed");
+      }
 
       if (trData?.error) {
         if (trData.quotaExceeded) {
@@ -434,8 +431,8 @@ const Tools = () => {
             </h1>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
               {t(
-                "Pega cualquier TikTok y descubre por qué vende: guión, análisis y 3 variantes listas para grabar.",
-                "Paste any TikTok and discover why it sells: script, breakdown and 3 ready-to-shoot variants."
+                "Pega el enlace completo de un video disponible en el catálogo: consulta su guion, analiza su estructura y prepara 3 variantes.",
+                "Paste the full link of an available catalogue video: review its script, analyze its structure and create 3 variants."
               )}
             </p>
           </div>

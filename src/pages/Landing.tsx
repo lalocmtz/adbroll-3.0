@@ -104,7 +104,7 @@ const faqs = [
   },
   {
     q: "¿Puedo copiar los guiones?",
-    a: "Sí. Cada video trae su guión transcrito más versiones reescritas: una optimizada para tu producto y otra más agresiva. Copias la que te queda, cambias el nombre del producto y publicas.",
+    a: "En los videos analizados puedes consultar la transcripción y generar variantes. Adáptalas a tu producto y comprueba que cada afirmación sea cierta antes de publicar.",
   },
   {
     q: "¿Cómo veo las oportunidades?",
@@ -463,12 +463,10 @@ const Landing = () => {
           <div className="mb-10 text-center">
             <span className="text-micro uppercase text-brand-cyan">El guión</span>
             <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight">
-              Cada video trae su guión, listo para copiar
+              Analiza el guion y prepara tu propia versión
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-brand-mist/60">
-              Transcripción literal de lo que dijeron, más dos versiones
-              reescritas para tu producto. Copias la que te queda, cambias el
-              nombre y publicas.
+              Solicita el análisis de un video disponible y adapta sus ideas a tu producto. La transcripción y las variantes generadas con IA necesitan tu revisión.
             </p>
           </div>
 
@@ -545,7 +543,7 @@ const Landing = () => {
               Cómo TokXray detecta dónde hay dinero
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-brand-ink/60">
-              Una oportunidad real es la suma de tres cosas. TokXray las cruza
+              El indicador combina señales del reporte para ayudarte a comparar productos. TokXray las cruza
               por ti, en cada actualización.
             </p>
           </div>
@@ -554,7 +552,7 @@ const Landing = () => {
             <PillarCard
               icon={<TrendingUp className="h-5 w-5" />}
               title="Vende mucho"
-              body="Productos con ventas fuertes y constantes, no modas de un día."
+              body="Productos con ventas destacadas en el período del reporte."
             />
             <PillarCard
               icon={<ShoppingBag className="h-5 w-5" />}
@@ -622,7 +620,7 @@ const Landing = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Analiza cualquier video pegando su link
+                    Analiza los videos disponibles en el catálogo
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
@@ -911,7 +909,7 @@ const VideoCard = ({
   const handle =
     video.creator_handle ||
     (video.creator_name ? `@${video.creator_name.replace(/\s+/g, "").toLowerCase()}` : "@creador");
-  // "El creador ganó ≈" only when we have a commission %. Never invent it.
+  // "Comisión estimada ≈" only when we have a commission %. Never invent it.
   const commission = video.product?.commission ?? null;
   const creatorEarned =
     commission != null && video.revenue_mxn != null
@@ -966,7 +964,7 @@ const VideoCard = ({
         </div>
         {creatorEarned != null && (
           <p className="text-[11px] text-brand-money">
-            El creador ganó ≈ {formatMoney(creatorEarned)}
+            Comisión estimada ≈ {formatMoney(creatorEarned)}
           </p>
         )}
         <div className="flex items-center gap-3 pt-1 text-[11px] text-brand-mist/50">

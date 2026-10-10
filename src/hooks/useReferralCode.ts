@@ -121,11 +121,9 @@ export const useReferralCode = () => {
   };
 
   const validateReferralCode = async (code: string): Promise<boolean> => {
-    const { data } = await supabase
-      .from("affiliate_codes")
-      .select("id")
-      .eq("code", code.toUpperCase())
-      .maybeSingle();
+    const { data } = await supabase.rpc("validate_referral_code", {
+      p_code: code.trim().toUpperCase(),
+    });
 
     return !!data;
   };

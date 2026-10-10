@@ -55,6 +55,24 @@ interface VideoAnalysisModalOriginalProps {
   onClose: () => void;
   video: Video;
 }
+const VisualObservations = ({ analysis }: { analysis: Record<string, unknown> }) => (
+  <>
+    {[
+      ['visual_observations', 'Qué se ve en el video'],
+      ['beginner_takeaways', 'Ideas para tu siguiente video'],
+      ['uncertainties', 'Qué falta comprobar'],
+    ].map(([key, title]) => {
+      const items = analysis[key];
+      if (!Array.isArray(items) || !items.length) return null;
+      return <div key={key} className="card-premium p-4">
+        <h4 className="font-semibold text-sm mb-2">{title}</h4>
+        <ul className="list-disc pl-5 space-y-1 text-sm text-foreground/80">
+          {items.filter((item): item is string => typeof item === 'string').map((item, i) => <li key={i}>{item}</li>)}
+        </ul>
+      </div>;
+    })}
+  </>
+);
 const formatNumber = (num: number | null | undefined): string => {
   if (!num) return '0';
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -163,6 +181,11 @@ const VideoAnalysisModalOriginal = ({
       setScriptLocked(false);
       setTranscript(row.transcript || '');
       setVariants(row.variants_json ?? null);
+      if (hasPaid) {
+        const saved = await supabase.rpc('get_video_analysis', { _video_id: video.id });
+        if (saved.error) throw saved.error;
+        setAnalysis(saved.data);
+      }
     } catch (error: any) {
       console.error('Error loading script via RPC:', error);
     } finally {
@@ -173,10 +196,11 @@ const VideoAnalysisModalOriginal = ({
   // Fetch the gated script whenever the modal opens.
   useEffect(() => {
     if (isOpen) {
+      setAnalysis(null);
       loadScript();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, video.id]);
+  }, [isOpen, video.id, hasPaid]);
   const processVideo = async () => {
     setIsProcessing(true);
     try {
@@ -201,7 +225,7 @@ const VideoAnalysisModalOriginal = ({
         if (downloadError) throw downloadError;
         console.log('Download result:', downloadData);
       }
-      setStatusMessage('Transcribiendo audio con IA...');
+      setStatusMessage('Analizando audio y escenas con Gemini...');
       const {
         data: analyzeData,
         error: analyzeError
@@ -210,13 +234,16 @@ const VideoAnalysisModalOriginal = ({
           videoId: video.id
         }
       });
-      if (analyzeError) throw analyzeError;
-      console.log('Analysis result:', analyzeData);
-      if (analyzeData) {
-        setTranscript(analyzeData.transcript || '');
-        setAnalysis(analyzeData.analysis || null);
-        setVariants(analyzeData.variants || null);
+      if (analyzeError) {
+        const detail = await analyzeError.context?.json?.().catch(() => null);
+        throw new Error(detail?.error || analyzeError.message);
       }
+      if (!analyzeData?.success || !analyzeData.analysis || typeof analyzeData.transcript !== 'string') {
+        throw new Error(analyzeData?.error || 'El análisis no está completo. Inténtalo de nuevo.');
+      }
+      setTranscript(analyzeData.transcript);
+      setAnalysis(analyzeData.analysis);
+      setVariants(analyzeData.variants || null);
       setStatusMessage('¡Análisis completado!');
     } catch (error: any) {
       console.error('Processing error:', error);
@@ -706,6 +733,7 @@ const VideoAnalysisModalOriginal = ({
                         </div>
                       ) : analysis ? (
                         <div className="space-y-3">
+                          <VisualObservations analysis={analysis} />
                           {analysis.hook && (
                             <div className="card-premium p-4">
                               <div className="flex items-center gap-2 mb-2">
@@ -1144,6 +1172,7 @@ const VideoAnalysisModalOriginal = ({
                       {/* Analysis Tab */}
                       <TabsContent value="analysis" className="mt-0 space-y-3 animate-fade-in">
                         {analysis ? <>
+                            <VisualObservations analysis={analysis} />
                             {/* Hook */}
                             {analysis.hook && <div className="card-premium p-4 border-l-4 border-l-primary bg-gradient-to-r from-primary/[0.03] to-transparent">
                                 <div className="flex items-center justify-between mb-2">

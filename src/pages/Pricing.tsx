@@ -42,11 +42,9 @@ const Pricing = () => {
     const checkReferral = async () => {
       const urlRef = (searchParams.get("ref") || getStoredRefCode());
       if (urlRef) {
-        const { data } = await supabase
-          .from("affiliate_codes")
-          .select("id")
-          .eq("code", urlRef.toUpperCase())
-          .maybeSingle();
+        const { data } = await supabase.rpc("validate_referral_code", {
+          p_code: urlRef.trim().toUpperCase(),
+        });
         if (data) {
           setReferralCode(urlRef.toUpperCase());
           setReferralValid(true);

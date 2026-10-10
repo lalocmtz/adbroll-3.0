@@ -39,11 +39,9 @@ const Register = () => {
         return;
       }
 
-      const { data } = await supabase
-        .from("affiliate_codes")
-        .select("id")
-        .eq("code", referralCode.toUpperCase())
-        .maybeSingle();
+      const { data } = await supabase.rpc("validate_referral_code", {
+        p_code: referralCode.trim().toUpperCase(),
+      });
 
       setReferralValid(!!data);
     };

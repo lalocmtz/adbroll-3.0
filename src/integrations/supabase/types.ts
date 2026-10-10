@@ -2348,6 +2348,14 @@ export type Database = {
       }
     }
     Functions: {
+      validate_referral_code: {
+        Args: { p_code: string }
+        Returns: boolean
+      }
+      get_video_analysis: {
+        Args: { _video_id: string }
+        Returns: Json
+      }
       apply_referral_code: {
         Args: { p_code: string; p_user_id: string }
         Returns: boolean
