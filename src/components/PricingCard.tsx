@@ -19,7 +19,7 @@ export const PricingCard = ({
   const { language } = useLanguage();
   const { referralCodeUsed, referralDiscount } = useReferralCode();
   
-  const price = 30.00;
+  const price = 29.00;
   const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied;
 
   return (
@@ -83,8 +83,8 @@ export const ReferralDiscountBanner = () => {
       <p className="text-green-800 font-medium flex items-center gap-2">
         🎉{" "}
         {language === "es"
-          ? "Descuento aplicado: primer mes a mitad de precio"
-          : "Discount applied: first month at half price"}
+          ? "Descuento aplicado: primer mes a US$15"
+          : "Discount applied: first month at US$15"}
       </p>
       <p className="text-green-600 text-sm mt-1">
         {language === "es"

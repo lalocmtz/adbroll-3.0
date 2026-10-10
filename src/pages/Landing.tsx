@@ -116,7 +116,7 @@ const faqs = [
   },
 ];
 
-const PRICE_USD = 30.00;
+const PRICE_USD = 29.00;
 
 /* ============================== page ============================== */
 
@@ -679,7 +679,7 @@ const Landing = () => {
               className="pointer-events-none absolute inset-0 opacity-20"
               style={{
                 backgroundImage:
-                  "radial-gradient(circle at 20% 30%, white 0%, transparent 40%), radial-gradient(circle at 80% 70%, white 0%, transparent 40%)",
+                  "radial-gradient(circle at 20% 15%, white 0%, transparent 40%), radial-gradient(circle at 80% 70%, white 0%, transparent 40%)",
               }}
             />
             <div className="relative">

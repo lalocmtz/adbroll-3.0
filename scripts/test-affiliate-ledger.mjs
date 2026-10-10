@@ -87,4 +87,18 @@ await assert.rejects(()=>scalar("SELECT record_manual_affiliate_payment($1,50,'B
 assert.equal((await scalar('SELECT get_manual_affiliate_payments()')).payments.length,1);
 console.log('PASS: manual payouts without Connect, founder authorization, $50 minimum, insufficient funds, dispute hold, reference idempotency, conflicting retry, pending withdrawal guard, admin history.');
 console.log('PASS: migrations; discounted commission; invoice deduplication; $50 minimum; payout reservation/retry; concurrent new earnings; refund partial/full/reordered; attribution ownership/immutability; dashboard; dispute hold; client write restriction.');
+
+await db.exec(await readFile(new URL('../supabase/migrations/20261010040000_launch_commission_policy.sql',import.meta.url),'utf8'));
+const newBuyer='00000000-0000-4000-8000-000000000010';
+await db.query('INSERT INTO profiles(id) VALUES($1)',[newBuyer]);
+const creditV2=(invoice,cents,type='recurring')=>scalar("SELECT record_affiliate_commission_v2($1,'ALICIA',$2,$3,$4)",[newBuyer,invoice,cents,type]);
+assert.equal(Number(await creditV2('v2-first',1500,'initial')),15);
+assert.equal(await creditV2('v2-first',1500,'initial'),null);
+assert.equal(Number(await creditV2('v2-renew',2900)),4.35);
+assert.equal(Number(await creditV2('v2-resubscribe',1500,'initial')),2.25);
+assert.equal(Number(await scalar("SELECT count(*) FROM affiliate_payouts WHERE user_id_referred=$1 AND initial_reward",[newBuyer])),1);
+assert.equal(await scalar("SELECT has_function_privilege('authenticated','record_affiliate_commission_v2(uuid,text,text,integer,text)','EXECUTE')"),false);
+await scalar("SELECT reconcile_affiliate_refund('v2-first',1500,1500)");
+assert.equal(Number(await creditV2('v2-after-refund',1500,'initial')),2.25);
+console.log('New affiliate policy: full first payment, renewals, retries, resubscriptions and refunded initial bonus verified');
 await db.close();

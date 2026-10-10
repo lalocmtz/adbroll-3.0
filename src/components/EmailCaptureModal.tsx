@@ -178,7 +178,7 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
   ];
 
   const basePrice = 24.99;
-  const displayPrice = codeValid ? `$${(basePrice * 0.5).toFixed(2)}` : `$${basePrice.toFixed(2)}`;
+  const displayPrice = codeValid ? "$15.00" : `$${basePrice.toFixed(2)}`;
   const originalPrice = codeValid ? `$${basePrice.toFixed(2)}` : null;
   const planLabel = 'TokXray Pro';
 
@@ -303,7 +303,7 @@ export const EmailCaptureModal = ({ open, onOpenChange, referralCode: initialRef
             {codeValid === true && (
               <p className="text-sm text-green-600 flex items-center gap-1 font-medium">
                 <Check className="h-4 w-4" />
-                ¡Código aplicado! 50% off en tu primer mes
+                ¡Código aplicado! Primer mes a US$15
               </p>
             )}
             {codeError && referralCode.trim() && (

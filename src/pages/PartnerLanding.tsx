@@ -14,7 +14,7 @@ export default function PartnerLanding() {
   const register = (destination: string) => `/register?redirect=${encodeURIComponent(destination)}${code ? `&ref=${encodeURIComponent(code)}` : ""}`;
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = "Recomienda TokXray · 30% recurrente para creadores";
+    document.title = "Recomienda TokXray · 15% recurrente para creadores";
     // Public asset managed by the founder from the admin panel.
     const { data } = supabase.storage.from("assets").getPublicUrl("creator-program/presentation.mp4");
     setVideoUrl(data.publicUrl);
@@ -29,16 +29,16 @@ export default function PartnerLanding() {
       <section className="partner-hero partner-wrap">
         <div>
           <p className="partner-eyebrow"><span /> PARA CREADORES DE TIKTOK SHOP MÉXICO</p>
-          <h1>Recomienda TokXray.<br />Gana el <em>30% cada mes.</em></h1>
-          <p className="partner-intro">Aprende qué grabar con ejemplos de TikTok Shop. Comparte TokXray con otros creadores y gana el <strong>30% de sus pagos</strong> mientras sigan suscritos.</p>
+          <h1>Recomienda TokXray.<br />Gana el <em>15% cada mes.</em></h1>
+          <p className="partner-intro">Aprende qué grabar con ejemplos de TikTok Shop. Comparte TokXray con otros creadores y gana <strong>$15 USD por su primer pago y 15% de sus renovaciones</strong> mientras sigan suscritos.</p>
           <div className="partner-actions"><Link className="partner-button" to={register("/affiliates")}>Quiero recomendar TokXray <ArrowUpRight size={20} /></Link><Link className="partner-text-link" to={register("/pricing")}>Quiero usar la herramienta <ArrowRight size={17} /></Link></div>
           <p className="partner-caption">Crea tu cuenta y conoce el programa. No necesitas experiencia previa.</p>
         </div>
         <aside className="partner-ticket" aria-label="Comisión por renovación">
           <div className="partner-ticket-top"><span>TU RECOMENDACIÓN CUENTA</span><ArrowUpRight size={26} /></div>
-          <div className="partner-ticket-number">30<span>%</span></div>
+          <div className="partner-ticket-number">15<span>%</span></div>
           <p>Comisión recurrente.<br />Sin límite de seis meses.</p>
-          <div className="partner-ticket-bottom"><strong>$9 USD</strong><span>por cada renovación<br />cobrada de $30 USD</span></div>
+          <div className="partner-ticket-bottom"><strong>$4.35 USD</strong><span>por cada renovación<br />cobrada de $29 USD</span></div>
         </aside>
       </section>
       <section className="partner-video-section partner-wrap" aria-labelledby="presentation-title">
@@ -56,13 +56,13 @@ export default function PartnerLanding() {
         ].map(([number, title, body, icon]) => <article key={String(number)}><div className="partner-step-top"><span>{number}</span>{icon}</div><h3>{title}</h3><p>{body}</p></article>)}</div>
       </section>
       <section className="partner-calculator-band"><div className="partner-wrap partner-calculator">
-        <div><p className="partner-eyebrow">HAZ TUS NÚMEROS</p><h2>Una recomendación.<br />Más de una comisión.</h2><p>Si alguien se suscribe con tu código, paga $15 USD el primer mes y después $30 USD al mes. Recibes $4.50 USD del primer pago y $9 USD de cada renovación cobrada.</p><p>Las comisiones dependen de pagos reales. Este ejemplo no garantiza resultados.</p></div>
-        <div className="partner-calculator-card"><label htmlFor="referrals">Referidos que renuevan <strong>{referrals}</strong></label><input id="referrals" type="range" min="1" max="100" value={referrals} onChange={e => setReferrals(Number(e.target.value))} /><output htmlFor="referrals">${referrals * 9}<span> USD / mes</span></output><p>{referrals} renovaciones de $30 USD × 30%. Sin impuestos, reembolsos ni pagos fallidos en este ejemplo.</p><div className="partner-rule"><Check size={17} /> Mínimo de retiro: $50 USD</div><div className="partner-rule"><Check size={17} /> Procesamiento semanal del saldo disponible</div></div>
+        <div><p className="partner-eyebrow">HAZ TUS NÚMEROS</p><h2>Una recomendación.<br />Más de una comisión.</h2><p>Si alguien se suscribe con tu código, paga $15 USD el primer mes y después $29 USD al mes. Recibes $15 USD del primer pago y $4.35 USD de cada renovación cobrada.</p><p>Las comisiones dependen de pagos reales. Este ejemplo no garantiza resultados.</p></div>
+        <div className="partner-calculator-card"><label htmlFor="referrals">Referidos que renuevan <strong>{referrals}</strong></label><input id="referrals" type="range" min="1" max="100" value={referrals} onChange={e => setReferrals(Number(e.target.value))} /><output htmlFor="referrals">${(referrals * 4.35).toFixed(2)}<span> USD / mes</span></output><p>{referrals} renovaciones de $29 USD × 15%. Sin impuestos, reembolsos ni pagos fallidos en este ejemplo.</p><div className="partner-rule"><Check size={17} /> Mínimo de retiro: $50 USD</div><div className="partner-rule"><Check size={17} /> Procesamiento semanal del saldo disponible</div></div>
       </div></section>
       <section className="partner-wrap partner-faq"><div><p className="partner-eyebrow">LAS REGLAS, CLARAS</p><h2>Antes de comenzar.</h2></div><div>{[
         ["¿Tengo que ser un creador experto?", "No. TokXray está pensado también para quienes empiezan: referencias, productos y guiones para entender cómo presentar una oferta. Tu contenido y tus resultados siguen dependiendo de ti."],
-        ["¿Cuánto cuesta usar TokXray?", "$30 USD al mes. Los clientes nuevos con un código de afiliado válido obtienen 50% de descuento en su primer mes: $15 USD. Después, $30 USD al mes hasta cancelar. El checkout muestra los impuestos aplicables."],
-        ["¿Durante cuánto tiempo gano comisiones?", "Recibes 30% de los pagos elegibles de tus referidos directos mientras su suscripción continúe pagando. No hay un límite de seis meses. No se generan comisiones por registros gratuitos, pagos fallidos o cobros reembolsados."],
+        ["¿Cuánto cuesta usar TokXray?", "$29 USD al mes. Los clientes nuevos con un código de afiliado válido obtienen un primer mes de $15 USD. Después, $29 USD al mes hasta cancelar. El checkout muestra los impuestos aplicables."],
+        ["¿Durante cuánto tiempo gano comisiones?", "Recibes hasta $15 USD por el primer pago de cada cliente nuevo y 15% de las renovaciones elegibles de tus referidos directos mientras su suscripción continúe pagando. No hay un límite de seis meses. No se generan comisiones por registros gratuitos, pagos fallidos o cobros reembolsados."],
         ["¿Gano por los referidos de mis referidos?", "La comisión corresponde únicamente a las suscripciones que tú recomiendas directamente. No existen niveles adicionales ni pagos por reclutar afiliados."],
         ["¿Cómo recibo mi dinero?", "El equipo de TokXray revisa los saldos semanalmente y te contacta para coordinar una transferencia manual cuando alcanzas $50 USD disponibles. Los depósitos confirmados aparecen en tu historial; no necesitas una cuenta de Stripe."],
         ["¿Los datos se actualizan en tiempo real?", "Actualizamos el catálogo mediante importaciones de Kalodata. Consulta el periodo de cada ranking: son referencias históricas, no una garantía de ventas futuras. Algunos videos pueden dejar de estar disponibles."],

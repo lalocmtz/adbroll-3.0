@@ -14,7 +14,7 @@ describe("creator funnel", () => {
   it("calculates actual renewal commissions without promising income", () => {
     render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
     fireEvent.change(screen.getByRole("slider"), { target: { value: "20" } });
-    expect(screen.getByText("$180")).toBeInTheDocument();
+    expect(screen.getByText("$87.00")).toBeInTheDocument();
     expect(screen.getByText(/no garantiza resultados/)).toBeInTheDocument();
   });
   it("has a useful fallback before the founder uploads the video", () => {

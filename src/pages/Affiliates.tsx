@@ -195,17 +195,17 @@ const Affiliates = () => {
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold mb-1">
-              {language === "es" ? "💰 Gana 30% recurrente por cada referido" : "💰 Earn 30% recurring per referral"}
+              {language === "es" ? "💰 Gana 15% recurrente por cada referido" : "💰 Earn 15% recurring per referral"}
             </h2>
             <p className="text-sm text-muted-foreground mb-2">
               {language === "es"
-                ? "Cada vez que alguien se registre con tu código y se suscriba a TokXray Pro, recibirás el 30% de su pago mensual."
-                : "Every time someone signs up with your code and subscribes to TokXray Pro, you'll receive 30% of their monthly payment."}
+                ? "Cada vez que alguien se registre con tu código y se suscriba a TokXray Pro, recibirás $15 USD por el primer pago de un cliente nuevo y 15% de sus renovaciones elegibles."
+                : "Every time someone signs up with your code and subscribes to TokXray Pro, you'll receive $15 USD for a new customer's first payment and 15% of eligible renewals."}
             </p>
             <p className="text-sm font-medium text-green-600 mb-4">
               {language === "es"
-                ? "≈ $9 USD al mes por cada usuario activo"
-                : "≈ $9 USD per month for each active user"}
+                ? "≈ $4.35 USD al mes por cada usuario activo"
+                : "≈ $4.35 USD per month for each active user"}
             </p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="gap-1">
@@ -265,7 +265,7 @@ const Affiliates = () => {
             </div>
             <div>
               <p className="font-medium text-sm text-green-600">
-                {language === "es" ? "Ganas $9/mes" : "You earn $9/mo"}
+                {language === "es" ? "Ganas $4.35/mes" : "You earn $4.35/mo"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {language === "es"
@@ -279,7 +279,7 @@ const Affiliates = () => {
 
       {affiliate ? (
         <div className="space-y-6">
-          <p className="text-sm text-muted-foreground">30% de cada pago elegible: $4.50 USD del primer mes de $15 y $9 USD de cada renovación de $30. Sin límite de seis meses. Retiros desde $50 USD. <a href="/terminos-afiliados" className="underline">Condiciones del programa</a>.</p>
+          <p className="text-sm text-muted-foreground">Para nuevos clientes: hasta $15 USD del primer mes de $15 y $4.35 USD de cada renovación de $29. Sin límite de seis meses. Retiros desde $50 USD. <a href="/terminos-afiliados" className="underline">Condiciones del programa</a>.</p>
           {/* Share Section — first, so the link is the hero action */}
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -562,8 +562,8 @@ const Affiliates = () => {
           </h3>
           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
             {language === "es" 
-              ? "Crea tu código de afiliado único y compártelo con otros creadores. Ganarás 30% de cada pago que hagan."
-              : "Create your unique affiliate code and share it with other creators. You'll earn 30% of every payment they make."}
+              ? "Crea tu código de afiliado único y compártelo con otros creadores. Ganarás hasta $15 USD por cada cliente nuevo y 15% de sus renovaciones elegibles."
+              : "Create your unique affiliate code and share it with other creators. You'll earn up to $15 USD per new customer and 15% of eligible renewals."}
           </p>
           <Button 
             size="lg" 

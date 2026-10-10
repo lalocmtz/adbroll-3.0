@@ -32,8 +32,8 @@ export const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
 
   const handleSelectPlan = async (plan: "pro") => {
     // Reached checkout + real payment intent — give Meta both signals.
-    trackInitiateCheckout(30.00, "USD", "TokXray Pro");
-    trackAddPaymentInfo(30.00, "USD", "TokXray Pro");
+    trackInitiateCheckout(29.00, "USD", "TokXray Pro");
+    trackAddPaymentInfo(29.00, "USD", "TokXray Pro");
 
     if (!isLoggedIn) {
       navigate(`/register?plan=${plan}`);
@@ -101,7 +101,7 @@ export const PaywallModal = ({ open, onClose }: PaywallModalProps) => {
             </Badge>
 
             <div className="text-center mb-4 pt-2">
-              <div className="text-3xl font-bold mt-1">$30.00<span className="text-sm font-normal text-muted-foreground"> USD/mes</span></div>
+              <div className="text-3xl font-bold mt-1">$29.00<span className="text-sm font-normal text-muted-foreground"> USD/mes</span></div>
             </div>
 
             <ul className="space-y-2 mb-4">

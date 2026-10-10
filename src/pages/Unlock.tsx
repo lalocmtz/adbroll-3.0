@@ -187,10 +187,10 @@ const Unlock = () => {
                   {[
                     "Dashboard con videos virales",
                     "Scripts reales extraídos automáticamente",
-                    "Variantes IA ilimitadas",
+                    "Variantes IA: hasta 20 consultas al día",
                     "Hooks generados por IA",
                     "Oportunidades de productos",
-                    "Panel de afiliados (30% comisión)",
+                    "Panel de afiliados (15% comisión)",
                     "Todas las herramientas incluidas"
                   ].map((f, i) => (
                     <li key={i} className="flex items-start gap-2.5">

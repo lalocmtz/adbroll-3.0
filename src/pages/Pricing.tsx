@@ -74,7 +74,7 @@ const Pricing = () => {
         "Variantes IA para tus guiones",
         "Hooks generados por IA",
         "Oportunidades de productos con alto potencial",
-        "Panel de afiliados (30% comisión recurrente)",
+        "Panel de afiliados (15% comisión recurrente)",
         "Ranking de creadores top",
         "Soporte prioritario",
       ]
@@ -84,7 +84,7 @@ const Pricing = () => {
         "AI script variants",
         "AI-generated hooks",
         "High-potential product opportunities",
-        "Affiliate panel (30% recurring commission)",
+        "Affiliate panel (15% recurring commission)",
         "Top creator rankings",
         "Priority support",
       ];
@@ -105,15 +105,15 @@ const Pricing = () => {
     {
       question: language === "es" ? "¿Cómo funciona el programa de afiliados?" : "How does the affiliate program work?",
       answer: language === "es"
-        ? "Ganas 30% de comisión recurrente por cada usuario que refieras mientras mantenga su suscripción activa. Las comisiones dependen de pagos reales."
-        : "You earn 30% recurring commission for every user you refer as long as they maintain their active subscription. Commissions depend on actual payments.",
+        ? "Ganas 15% de comisión recurrente por cada usuario que refieras mientras mantenga su suscripción activa. Las comisiones dependen de pagos reales."
+        : "You earn 15% recurring commission for every user you refer as long as they maintain their active subscription. Commissions depend on actual payments.",
     },
   ];
 
   const handleSelectPlan = async () => {
     // Reached checkout + real payment intent — give Meta both signals.
-    trackInitiateCheckout(30.00, "USD", "TokXray Pro");
-    trackAddPaymentInfo(30.00, "USD", "TokXray Pro");
+    trackInitiateCheckout(29.00, "USD", "TokXray Pro");
+    trackAddPaymentInfo(29.00, "USD", "TokXray Pro");
 
     if (!session) {
       const refParam = referralCode ? `&ref=${referralCode}` : "";
@@ -148,7 +148,7 @@ const Pricing = () => {
     }
   };
 
-  const price = 30.00;
+  const price = 29.00;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
@@ -189,8 +189,8 @@ const Pricing = () => {
             <Gift className="h-5 w-5 text-green-600" />
             <p className="text-green-800 font-medium">
               {language === "es"
-                ? "Código registrado: 50% en el primer mes para clientes nuevos. Confirma el total en Stripe"
-                : "Referral saved: 50% off the first month for new customers. Confirm the total in Stripe"}
+                ? "Código registrado: primer mes a US$15 para clientes nuevos. Confirma el total en Stripe"
+                : "Referral saved: first month at US$15 for new customers. Confirm the total in Stripe"}
             </p>
           </div>
         )}

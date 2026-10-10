@@ -170,7 +170,7 @@ const CreatorProgram = () => {
 
   const benefits = [
     { icon: Gift, title: "1 mes gratis", description: "Acceso completo a todas las funciones" },
-    { icon: DollarSign, title: "30% comisión", description: "De por vida por cada referido que pague" },
+    { icon: DollarSign, title: "15% comisión", description: "De por vida por cada referido que pague" },
     { icon: Video, title: "1-3 videos", description: "Crea contenido sobre TokXray" },
     { icon: Users, title: "Comunidad", description: "Únete a creadores top de TikTok Shop" },
   ];
@@ -200,7 +200,7 @@ const CreatorProgram = () => {
             🎉 Programa de Creadores
           </Badge>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Gana acceso gratis + 30% de comisión
+            Gana acceso gratis + 15% de comisión
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Únete al programa de creadores de TokXray. Crea 1-3 videos sobre la plataforma

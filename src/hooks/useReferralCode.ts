@@ -18,11 +18,11 @@ export interface ReferralDiscount {
   created_at: string;
 }
 
-// Single plan: TokXray Pro $30/month
+// Single plan: TokXray Pro $29/month
 export const PLANS = {
   free: { name: "Free", price: 0 },
-  creator: { name: "TokXray Pro", price: 30 },
-  studio: { name: "TokXray Pro", price: 30 },
+  creator: { name: "TokXray Pro", price: 29 },
+  studio: { name: "TokXray Pro", price: 29 },
 } as const;
 
 export type PlanType = keyof typeof PLANS;
@@ -169,9 +169,9 @@ export const useReferralCode = () => {
         return { success: false, error: "No referral code applied" };
       }
 
-      // Always use $30 for TokXray Pro
-      const originalPrice = 30;
-      const discountedPrice = originalPrice * 0.5;
+      // Always use $29 for TokXray Pro
+      const originalPrice = 29;
+      const discountedPrice = 15;
 
       const { data, error } = await supabase
         .from("affiliate_discounts")
@@ -199,10 +199,10 @@ export const useReferralCode = () => {
   };
 
   const getPriceForPlan = (planType: PlanType) => {
-    // Always return $30 for paid plans
-    const originalPrice = planType === "free" ? 0 : 30;
+    // Always return $29 for paid plans
+    const originalPrice = planType === "free" ? 0 : 29;
     const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied && originalPrice > 0;
-    const discountedPrice = hasDiscount ? originalPrice * 0.5 : originalPrice;
+    const discountedPrice = hasDiscount ? 15 : originalPrice;
 
     return {
       originalPrice,

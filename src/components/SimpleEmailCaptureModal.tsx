@@ -19,8 +19,8 @@ interface SimpleEmailCaptureModalProps {
 
 const BULLETS = [
   "Videos que más venden en TikTok Shop, actualizados a diario",
-  "Guiones reales extraídos por IA + variantes ilimitadas",
-  "Oportunidades de productos y panel de afiliados (30%)",
+  "Análisis de video y variantes de guiones con límites diarios",
+  "Oportunidades de productos y panel de afiliados (15%)",
 ];
 
 /**

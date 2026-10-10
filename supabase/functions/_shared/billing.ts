@@ -1,5 +1,5 @@
-export const MONTHLY_PRICE_CENTS = 3000;
-export const AFFILIATE_RATE = 0.3;
+export const MONTHLY_PRICE_CENTS = 2900;
+export const AFFILIATE_RATE = 0.15;
 
 export function normalizeReferralCode(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -21,7 +21,7 @@ export function stripeSubscriptionStatus(status: string): string {
 
 export function validateMonthlyPrice(price: { active: boolean; currency: string; unit_amount: number | null; recurring?: { interval: string; interval_count: number } | null }): void {
   if (!price.active || price.currency !== "usd" || price.unit_amount !== MONTHLY_PRICE_CENTS || price.recurring?.interval !== "month" || price.recurring.interval_count !== 1) {
-    throw new Error("Configure an active recurring price of 30 USD per month");
+    throw new Error("Configure an active recurring price of 29 USD per month");
   }
 }
 
@@ -30,9 +30,14 @@ export function canRetryPayout(createdAt: string, nowMs = Date.now()): boolean {
   return Number.isFinite(age) && age >= 0 && age < 20 * 60 * 60 * 1000;
 }
 
-export function validateReferralCoupon(coupon: { valid: boolean; percent_off: number | null; duration: string; applies_to?: { products: string[] } }, productId: string): void {
-  if (!coupon.valid || coupon.percent_off !== 50 || coupon.duration !== "once" ||
+export function validateReferralCoupon(coupon: { valid: boolean; percent_off: number | null; amount_off?: number | null; currency?: string | null; duration: string; applies_to?: { products: string[] } }, productId: string): void {
+  if (!coupon.valid || coupon.percent_off !== null || coupon.amount_off !== 1400 || coupon.currency !== "usd" || coupon.duration !== "once" ||
       (coupon.applies_to && !coupon.applies_to.products.includes(productId))) {
-    throw new Error("Configure a valid 50% first-invoice coupon for TokXray Pro");
+    throw new Error("Configure a valid 14 USD first-invoice coupon for TokXray Pro");
   }
+}
+
+export const BILLING_POLICY = "2026-10-10";
+export function affiliateCommissionCents(baseCents: number, initial: boolean): number {
+  return initial ? Math.min(1500, Math.max(0, baseCents)) : Math.round(Math.max(0, baseCents) * AFFILIATE_RATE);
 }

@@ -1,4 +1,4 @@
-import { commissionBaseCents, stripeSubscriptionStatus } from "../_shared/billing.ts";
+import { BILLING_POLICY, commissionBaseCents, stripeSubscriptionStatus } from "../_shared/billing.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -91,14 +91,14 @@ serve(async (req) => {
         }
         case "invoice.paid": {
           console.log("Processing invoice.paid...");
-          const invoice = event.data.object as Stripe.Invoice;
+          const invoice = await stripe.invoices.retrieve((event.data.object as Stripe.Invoice).id);
           await handleInvoicePaid(invoice);
           console.log("✓ invoice.paid processed");
           break;
         }
         case "invoice.payment_failed": {
           console.log("Processing invoice.payment_failed...");
-          const invoice = event.data.object as Stripe.Invoice;
+          const invoice = await stripe.invoices.retrieve((event.data.object as Stripe.Invoice).id);
           await handlePaymentFailed(invoice);
           console.log("✓ invoice.payment_failed processed");
           break;
@@ -180,12 +180,20 @@ serve(async (req) => {
   }
 });
 
+function isTokXraySubscription(subscription: Stripe.Subscription): boolean {
+  const productId = Deno.env.get("STRIPE_PRODUCT_ID");
+  if (!productId) throw new Error("STRIPE_PRODUCT_ID not configured");
+  return subscription.items.data.some(item => (typeof item.price.product === "string" ? item.price.product : item.price.product.id) === productId);
+}
+
 async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   if (session.mode !== "subscription" || session.payment_status !== "paid") return;
   if (session.metadata?.plan !== "pro" && session.metadata?.plan_type !== "pro") return;
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
-  const priceUsd = 30; // Single price (TokXray Pro)
+  const currentCheckoutSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+  if (!isTokXraySubscription(currentCheckoutSubscription)) return;
+  const priceUsd = session.metadata?.billing_policy === BILLING_POLICY ? 29 : 30;
 
   // Para checkouts fríos (1 clic directo a Stripe) NO mandamos guest_email en
   // metadata; Stripe recolecta el email en su página. Lo tomamos de
@@ -252,7 +260,6 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   }
 
   // Read current state so a delayed checkout event cannot reactivate a cancelled subscription.
-  const currentCheckoutSubscription = await stripe.subscriptions.retrieve(subscriptionId);
   const { data: existingSubscription, error: existingError } = await supabaseAdmin.from("subscriptions")
     .select("stripe_subscription_id").eq("user_id", userId).maybeSingle();
   if (existingError) throw existingError;
@@ -302,7 +309,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     
     if (profile?.email && !isNewAccount) {
       await sendEmail(profile.email, "subscription_confirmed", { 
-        price: "30",
+        price: String((session.amount_total ?? 0) / 100),
         plan: "TokXray Pro",
       });
     }
@@ -313,6 +320,8 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   if (!invoice.subscription) return;
   const customerId = invoice.customer as string;
   const subscriptionId = invoice.subscription as string;
+  const currentSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+  if (!isTokXraySubscription(currentSubscription)) return;
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
@@ -325,7 +334,6 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   }
 
   const priceAmount = commissionBaseCents(invoice) / 100;
-  const currentSubscription = await stripe.subscriptions.retrieve(subscriptionId);
   if (!profile.referral_code_used && currentSubscription.metadata?.referral_code) {
     const { data: code, error: codeError } = await supabaseAdmin.from("affiliate_codes").select("code,user_id").eq("code", currentSubscription.metadata.referral_code).maybeSingle();
     if (codeError) throw codeError;
@@ -346,7 +354,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const isRenewal = invoice.billing_reason === "subscription_cycle";
   if (isRenewal && profile.email) {
     await sendEmail(profile.email, "subscription_confirmed", { 
-      price: "30",
+      price: String(invoice.amount_paid / 100),
       plan: "TokXray Pro",
     });
   }
@@ -355,15 +363,16 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   // billing_reason: 'subscription_create' = primer pago, 'subscription_cycle' = renovación.
   // Marcamos el type para distinguir comisión inicial vs recurrente. La idempotencia
   // por stripe_invoice_id evita que un invoice reintentado pague dos veces.
-  if (profile.referral_code_used) {
-    const commissionType = invoice.billing_reason === "subscription_cycle" ? "recurring" : "initial";
+  if (profile.referral_code_used && ["subscription_create", "subscription_cycle"].includes(invoice.billing_reason || "")) {
+    const commissionType = invoice.billing_reason === "subscription_create" && currentSubscription.metadata?.first_purchase !== "false" ? "initial" : "recurring";
     await calculateAffiliateCommission(
       profile.id,
       profile.referral_code_used,
       priceAmount,
       profile.email,
       invoice.id,
-      commissionType
+      commissionType,
+      currentSubscription.metadata?.billing_policy
     );
   }
 }
@@ -374,7 +383,8 @@ async function calculateAffiliateCommission(
   amountPaid: number,
   referredEmail?: string,
   stripeInvoiceId?: string,
-  commissionType: "initial" | "recurring" = "recurring"
+  commissionType: "initial" | "recurring" = "recurring",
+  billingPolicy?: string
 ) {
   const { data: affiliateCode } = await supabaseAdmin
     .from("affiliate_codes")
@@ -387,16 +397,16 @@ async function calculateAffiliateCommission(
     return;
   }
 
-  const commissionRate = 0.30;
-  const commissionAmount = amountPaid * commissionRate;
+  const modernPolicy = billingPolicy === BILLING_POLICY;
 
   // Insert the invoice and increment balances in ONE database transaction.
-  const { data: recorded, error: commissionError } = await supabaseAdmin.rpc("record_affiliate_commission", {
+  const { data: recorded, error: commissionError } = await supabaseAdmin.rpc(modernPolicy ? "record_affiliate_commission_v2" : "record_affiliate_commission", {
     p_referred_user_id: referredUserId, p_code: referralCode,
     p_invoice_id: stripeInvoiceId, p_amount_paid_cents: Math.round(amountPaid * 100), p_type: commissionType,
   });
   if (commissionError) throw commissionError;
   if (!recorded) return;
+  const commissionAmount = modernPolicy ? Number(recorded) : Math.round(amountPaid * 100 * 0.30) / 100;
   const { data: affiliate } = await supabaseAdmin.from("affiliates")
     .select("user_id").eq("user_id", affiliateCode.user_id).single();
   if (affiliate) {
@@ -450,6 +460,11 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  subscription = await stripe.subscriptions.retrieve(subscription.id);
+  if (!isTokXraySubscription(subscription)) return;
+  const { data: tracked, error: trackedError } = await supabaseAdmin.from("subscriptions").select("user_id").eq("stripe_subscription_id", subscription.id).maybeSingle();
+  if (trackedError) throw trackedError;
+  if (!tracked) return; // Ignore a delayed cancellation of a replaced subscription.
   const customerId = subscription.customer as string;
 
   const { data: profile } = await supabaseAdmin
@@ -486,6 +501,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string;
   subscription = await stripe.subscriptions.retrieve(subscription.id);
+  if (!isTokXraySubscription(subscription)) return;
   const status = subscription.status;
 
   const { data: profile } = await supabaseAdmin

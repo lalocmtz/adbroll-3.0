@@ -58,22 +58,22 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
     ? [
         "Dashboard de videos virales",
         "Scripts reales + extractor IA",
-        "Variantes IA ilimitadas",
+        "Variantes IA: hasta 20 consultas al día",
         "Hooks generados por IA",
-        "Panel de afiliados (30%)",
+        "Panel de afiliados (15%)",
       ]
     : [
         "Viral videos dashboard",
         "Real scripts + AI extractor",
-        "Unlimited AI variants",
+        "AI variants: up to 20 requests per day",
         "AI-generated hooks",
-        "Affiliate panel (30%)",
+        "Affiliate panel (15%)",
       ];
 
   const handleSelectPlan = async (plan: "pro") => {
     // Reached checkout + real payment intent — give Meta both signals.
-    trackInitiateCheckout(30.00, "USD", "TokXray Pro");
-    trackAddPaymentInfo(30.00, "USD", "TokXray Pro");
+    trackInitiateCheckout(29.00, "USD", "TokXray Pro");
+    trackAddPaymentInfo(29.00, "USD", "TokXray Pro");
 
     setLoadingPlan(plan);
     onOpenChange(false);
@@ -100,7 +100,7 @@ const PricingModal = ({ open, onOpenChange }: PricingModalProps) => {
     setLoadingPlan(null);
   };
 
-  const proPrice = 30.00;
+  const proPrice = 29.00;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

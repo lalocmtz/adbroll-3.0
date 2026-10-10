@@ -1,4 +1,4 @@
-import { normalizeReferralCode, validateMonthlyPrice, validateReferralCoupon } from "../_shared/billing.ts";
+import { BILLING_POLICY, normalizeReferralCode, validateMonthlyPrice, validateReferralCoupon } from "../_shared/billing.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -50,13 +50,14 @@ serve(async (req) => {
     });
 
     // Check if user already has a Stripe customer
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("stripe_customer_id, email, referral_code_used")
       .eq("id", user.id)
       .single();
 
-    let customerId = profile?.stripe_customer_id;
+    if (profileError || !profile) throw profileError || new Error("Profile missing");
+    let customerId = profile.stripe_customer_id;
 
     // Create Stripe customer if doesn't exist
     if (!customerId) {
@@ -75,13 +76,13 @@ serve(async (req) => {
         .eq("id", user.id);
       
       if (updateError) {
-        console.error("Error updating stripe_customer_id:", updateError);
+        throw updateError;
       } else {
         console.log(`Saved stripe_customer_id ${customerId} for user ${user.id}`);
       }
     }
 
-    // Single plan: Pro at $30
+    // Single plan: Pro at $29
     const priceId = Deno.env.get("STRIPE_PRICE_ID_PRO");
 
     if (!priceId) {
@@ -98,7 +99,7 @@ serve(async (req) => {
     const candidateCode = normalizeReferralCode(profile?.referral_code_used || referral_code);
     const { data: affiliateCode } = candidateCode ? await supabaseAdmin.from("affiliate_codes").select("code,user_id").eq("code", candidateCode).maybeSingle() : { data: null };
     const validCode = affiliateCode?.user_id !== user.id ? affiliateCode?.code : null;
-    const metadata = { supabase_user_id: user.id, plan_type: "pro", price_usd: "30", referral_code: validCode || "" };
+    const metadata = { supabase_user_id: user.id, plan_type: "pro", price_usd: "29", billing_policy: BILLING_POLICY, first_purchase: String(isNewCustomer), referral_code: validCode || "" };
 
     // Build checkout session params
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
@@ -126,7 +127,7 @@ serve(async (req) => {
     const openSessions = await stripe.checkout.sessions.list({ customer: customerId, status: "open", limit: 100 });
     for (const openSession of openSessions.data) {
       if (openSession.mode !== "subscription") continue;
-      if (openSession.metadata?.referral_code === (validCode || "") && openSession.metadata?.price_usd === "30") {
+      if (openSession.metadata?.referral_code === (validCode || "") && openSession.metadata?.price_usd === "29" && openSession.metadata?.billing_policy === BILLING_POLICY) {
         return new Response(JSON.stringify({ url: openSession.url }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       await stripe.checkout.sessions.expire(openSession.id);

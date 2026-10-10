@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getStoredRefCode } from "@/lib/attribution";
 import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
 
-const PRICE_USD = 30.00;
+const PRICE_USD = 29.00;
 const PLAN_LABEL = "TokXray Pro";
 
 /**

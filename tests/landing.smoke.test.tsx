@@ -25,9 +25,9 @@ describe("Mexico launch landing",()=>{
     expect(screen.queryByText("Serum Vitamina C 30ml")).not.toBeInTheDocument();
     expect(screen.queryByText("@marianacrea")).not.toBeInTheDocument();
   });
-  it("shows the 30 USD monthly plan without outdated promotions",async()=>{
+  it("shows the 29 USD monthly plan without outdated promotions",async()=>{
     await renderLanding();
-    expect(screen.getByText("$30.00 USD")).toBeInTheDocument();
+    expect(screen.getByText("$29.00 USD")).toBeInTheDocument();
     expect(screen.queryByText(/24\.99|50 % OFF|Antes \$499/)).not.toBeInTheDocument();
   });
   it("explains manual snapshot updates rather than promising live sales",async()=>{
