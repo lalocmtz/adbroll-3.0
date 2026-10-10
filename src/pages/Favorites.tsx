@@ -228,6 +228,7 @@ const Favorites = () => {
 
   return (
     <div className="pt-5 pb-6 px-4 md:px-6">
+      <h1 className="text-lg font-bold mb-2">{t("favorites")}</h1>
       {/* Minimal header */}
       <div className="flex items-center gap-2 mb-3">
         <Heart className="h-4 w-4 text-red-500 fill-current" />
@@ -237,22 +238,22 @@ const Favorites = () => {
       </div>
 
       <Tabs defaultValue="videos" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4 h-9">
-          <TabsTrigger value="videos" className="flex items-center gap-1.5 text-xs">
+        <TabsList className="grid w-full grid-cols-4 mb-4 h-auto">
+          <TabsTrigger value="videos" className="flex flex-col sm:flex-row min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1">
             <Video className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t("videos")}</span> ({videos.length})
+            <span>{t("videos")}</span> ({videos.length})
           </TabsTrigger>
-          <TabsTrigger value="productos" className="flex items-center gap-1.5 text-xs">
+          <TabsTrigger value="productos" className="flex flex-col sm:flex-row min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1">
             <Package className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t("products")}</span> ({products.length})
+            <span>{t("products")}</span> ({products.length})
           </TabsTrigger>
-          <TabsTrigger value="guiones" className="flex items-center gap-1.5 text-xs">
+          <TabsTrigger value="guiones" className="flex flex-col sm:flex-row min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1">
             <FileText className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Guiones</span> ({scripts.length})
+            <span>Guiones</span> ({scripts.length})
           </TabsTrigger>
-          <TabsTrigger value="creadores" className="flex items-center gap-1.5 text-xs">
+          <TabsTrigger value="creadores" className="flex flex-col sm:flex-row min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1">
             <Users className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t("creators")}</span> ({creators.length})
+            <span>{t("creators")}</span> ({creators.length})
           </TabsTrigger>
         </TabsList>
 
@@ -361,7 +362,7 @@ const Favorites = () => {
                       </div>
 
                       <Button
-                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        className="w-full h-11 text-xs font-semibold bg-primary hover:bg-primary/90"
                         onClick={() => setSelectedVideo(video)}
                       >
                         <Sparkles className="h-3.5 w-3.5 mr-1.5" />
@@ -491,8 +492,8 @@ const Favorites = () => {
                       </div>
 
                       <Button
-                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
-                        onClick={() => navigate(`/app?productName=${encodeURIComponent(product.producto_nombre)}`)}
+                        className="w-full h-11 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        onClick={() => navigate(`/videos/product/${fav.product_id}`)}
                       >
                         <Play className="h-3.5 w-3.5 mr-1.5" />
                         Ver videos
@@ -657,8 +658,8 @@ const Favorites = () => {
 
                     <div className="space-y-1.5">
                       <Button
-                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
-                        onClick={() => navigate(`/app?creator=${encodeURIComponent(creator.creator_handle || creator.usuario_creador)}`)}
+                        className="w-full h-11 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        onClick={() => navigate(`/videos/creator/${creator.id}`)}
                       >
                         <Play className="h-3.5 w-3.5 mr-1.5" />
                         Ver videos
