@@ -1,4 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
+import { BrandContactLinks, BRAND_CONTACT } from "@/components/BrandContactLinks";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, Mail, MessageCircle, AlertTriangle, ChevronDown, ChevronUp, CreditCard, RefreshCcw, Settings, Calendar, Database, FileText } from "lucide-react";
@@ -143,7 +144,7 @@ const Support = () => {
           <p className="text-muted-foreground mb-6">{data.contactText}</p>
           <div className="flex flex-col gap-3">
             <Button asChild size="lg">
-              <a href="mailto:contacto@tokxray.com">
+              <a href={`mailto:${BRAND_CONTACT.email}`}>
                 <Mail className="h-4 w-4 mr-2" />
                 contacto@tokxray.com
               </a>
@@ -154,16 +155,18 @@ const Support = () => {
               className="bg-[#25D366] hover:bg-[#20BD5A] text-white"
             >
               <a 
-                href="https://wa.me/522213267653?text=Hola!%20Tengo%20una%20pregunta%20sobre%20TokXray"
+                href={BRAND_CONTACT.whatsapp}
                 target="_blank" 
                 rel="noopener noreferrer"
               >
                 <MessageCircle className="h-4 w-4 mr-2" fill="white" />
-                {language === "es" ? "Escribir por WhatsApp" : "Message on WhatsApp"}
+                WhatsApp · {BRAND_CONTACT.phoneLabel}
               </a>
             </Button>
           </div>
         </Card>
+
+        <BrandContactLinks socialOnly className="justify-center text-muted-foreground" />
 
         {/* FAQ Section */}
         <Card className="p-6">

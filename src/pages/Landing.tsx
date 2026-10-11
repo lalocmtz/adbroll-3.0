@@ -19,6 +19,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import GlobalHeader from "@/components/GlobalHeader";
+import { BrandContactLinks, BRAND_CONTACT } from "@/components/BrandContactLinks";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { useMarket } from "@/contexts/MarketContext";
@@ -722,7 +723,7 @@ const Landing = () => {
               <a href="/login" className="hover:text-brand-ink">
                 Login
               </a>
-              <a href="mailto:hola@tokxray.com" className="hover:text-brand-ink">
+              <a href={`mailto:${BRAND_CONTACT.email}`} className="hover:text-brand-ink">
                 Contacto
               </a>
             </div>
@@ -730,6 +731,7 @@ const Landing = () => {
               © {new Date().getFullYear()} TokXray. Todos los derechos reservados.
             </p>
           </div>
+          <BrandContactLinks className="mt-6 justify-center text-brand-ink/70" />
         </div>
       </footer>
     </div>

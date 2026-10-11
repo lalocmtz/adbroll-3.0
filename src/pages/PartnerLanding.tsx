@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Play, Check, Clapperboard, ScanLine, Wallet, ArrowRight } from "lucide-react";
+import { BrandContactLinks } from "@/components/BrandContactLinks";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { getStoredRefCode } from "@/lib/attribution";
@@ -69,6 +70,6 @@ export default function PartnerLanding() {
       ].map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></section>
       <section className="partner-final partner-wrap"><p className="partner-eyebrow">TU SIGUIENTE PASO</p><h2>Empieza aprendiendo.<br />Crece compartiendo.</h2><Link className="partner-button" to={register("/affiliates")}>Crear mi cuenta <ArrowUpRight size={20} /></Link><p>¿Buscas ideas para tus propios videos? <Link to="/app">Explora el catálogo.</Link></p></section>
     </main>
-    <footer className="partner-footer partner-wrap"><BrandLogo tone="light" size="sm" /><span>© {new Date().getFullYear()} TokXray</span><Link to="/terminos-afiliados">Condiciones del programa</Link><Link to="/privacy">Privacidad</Link><Link to="/pricing">Precios</Link></footer>
+    <footer className="partner-footer partner-wrap"><BrandLogo tone="light" size="sm" /><span>© {new Date().getFullYear()} TokXray</span><Link to="/terminos-afiliados">Condiciones del programa</Link><Link to="/privacy">Privacidad</Link><Link to="/pricing">Precios</Link><BrandContactLinks className="w-full" /></footer>
   </div>;
 }
