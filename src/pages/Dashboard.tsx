@@ -185,7 +185,7 @@ const Dashboard = () => {
             </h1>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            TikTok Shop {marketLabel} · Datos de Kalodata
+            TikTok Shop {marketLabel} · Datos del último reporte
           </p>
         </div>
 
@@ -198,7 +198,7 @@ const Dashboard = () => {
               </h1>
             </div>
             <p className="text-xs text-muted-foreground">
-              TikTok Shop {marketLabel} · Datos de Kalodata; no en tiempo real
+              TikTok Shop {marketLabel} · Datos del último reporte; no en tiempo real
             </p>
           </div>
           {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
@@ -276,7 +276,7 @@ const Dashboard = () => {
 
       {videos.length === 0 ? <Card className="p-12 text-center">
           <p className="text-muted-foreground text-lg">
-            {!selectedReport ? `Todavía no hay un reporte de ${period} días importado. Hace falta exportar ese periodo desde Kalodata.` : productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos descargados con estos filtros. Prueba otra categoría o periodo."}
+            {!selectedReport ? `Todavía no hay un reporte de ${period} días importado. Estará disponible cuando se incorpore un reporte de ese periodo.` : productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos descargados con estos filtros. Prueba otra categoría o periodo."}
           </p>
         </Card> : <>
           {/* Video Grid - 2 columns on mobile */}

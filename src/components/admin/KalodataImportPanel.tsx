@@ -105,7 +105,7 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
       if (!lower.endsWith(".xlsx") && !lower.endsWith(".xls")) {
         toast({
           title: "Archivo ignorado",
-          description: `"${f.name}" no es un .xlsx de Kalodata.`,
+          description: `"${f.name}" no es un reporte .xlsx compatible.`,
           variant: "destructive",
         });
         continue;
@@ -255,7 +255,7 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center text-lg">
           <FileSpreadsheet className="h-5 w-5 mr-2" />
-          Archivos de Kalodata (.xlsx)
+          Reportes de TikTok Shop (.xlsx)
         </CardTitle>
         <CardDescription>
           Suelta 1-3 archivos de golpe. El tipo y el mercado se detectan solos por el nombre del archivo.
@@ -293,7 +293,7 @@ export const KalodataImportPanel = ({ onImported }: { onImported?: () => void })
             <div className="mx-auto h-12 w-12 rounded-xl bg-muted text-muted-foreground flex items-center justify-center">
               <Upload className="h-6 w-6" />
             </div>
-            <p className="text-sm font-semibold">Arrastra aquí los XLSX de Kalodata</p>
+            <p className="text-sm font-semibold">Arrastra aquí los reportes XLSX</p>
             <p className="text-xs text-muted-foreground">
               o toca para seleccionar · Videos, Productos y Creadores · MX o US · hasta 25 MB c/u
             </p>

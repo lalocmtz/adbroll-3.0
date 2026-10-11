@@ -100,7 +100,7 @@ const faqs = [
   },
   {
     q: "¿Cada cuánto se actualiza?",
-    a: "Los rankings se actualizan al importar un nuevo reporte de Kalodata. Cada reporte corresponde a un período de ventas; no son ventas en tiempo real.",
+    a: "Actualizamos el catálogo semanalmente con reportes sobre TikTok Shop México. Consulta el período de cada ranking y la fecha del último reporte; no son ventas en tiempo real.",
   },
   {
     q: "¿Puedo copiar los guiones?",
@@ -323,7 +323,7 @@ const Landing = () => {
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-center text-base md:text-xl leading-relaxed text-brand-mist/75">
-            Explora cada actualización de Kalodata:
+            Explora los datos de TikTok Shop México:
             los videos que más venden, cuánto generaron y el guión completo,
             listo para adaptar a tu producto.
           </p>
@@ -353,7 +353,7 @@ const Landing = () => {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-brand-mist/60">
             <span className="inline-flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5 text-brand-cyan" />
-              Datos de Kalodata · México
+              TikTok Shop México · Actualización semanal
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Eye className="h-3.5 w-3.5 text-brand-cyan" />

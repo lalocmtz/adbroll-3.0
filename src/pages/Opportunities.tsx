@@ -139,7 +139,7 @@ const Opportunities = () => {
               💎 {language === "es" ? "Oportunidades del catálogo" : "Catalog opportunities"}
             </h1>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {language === "es" ? "Datos importados de Kalodata · Actualización manual" : "Imported Kalodata data · Manual updates"}
+              {language === "es" ? "Datos de TikTok Shop · Consulta el periodo del reporte" : "TikTok Shop data · Check the report period"}
             </p>
           </div>
           <div className="hidden md:block">
@@ -148,8 +148,8 @@ const Opportunities = () => {
             </h1>
             <p className="text-xs text-muted-foreground">
               {language === "es"
-                ? "Explora señales de demanda y comisión en los datos importados de Kalodata"
-                : "Explore demand and commission signals in imported Kalodata data"}
+                ? "Explora señales de demanda y comisión en los reportes de TikTok Shop"
+                : "Explore demand and commission signals in TikTok Shop reports"}
             </p>
           </div>
         </div>
