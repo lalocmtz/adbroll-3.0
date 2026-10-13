@@ -18,10 +18,9 @@ export const PricingCard = ({
   onSelect,
 }: PricingCardProps) => {
   const { language } = useLanguage();
-  const { referralCodeUsed, referralDiscount } = useReferralCode();
+  const { referralCodeUsed } = useReferralCode();
   
-  const price = 29.00;
-  const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied;
+  const hasReferral = !!referralCodeUsed;
 
   return (
     <Card
@@ -38,7 +37,7 @@ export const PricingCard = ({
       <div className="text-center mb-6">
         <h3 className="text-xl font-bold mb-2">TokXray Pro</h3>
         <SubscriptionPrice compact />
-        {hasDiscount && (
+        {hasReferral && (
           <p className="text-sm text-green-600 mt-2 font-medium">
             🎉 {language === "es" ? "Código registrado; consulta el total en Stripe" : "Referral saved; see the total in Stripe"}
           </p>
@@ -67,17 +66,17 @@ export const PricingCard = ({
 
 export const ReferralDiscountBanner = () => {
   const { language } = useLanguage();
-  const { referralCodeUsed, referralDiscount } = useReferralCode();
+  const { referralCodeUsed } = useReferralCode();
 
-  if (!referralCodeUsed || referralDiscount?.discount_applied) return null;
+  if (!referralCodeUsed) return null;
 
   return (
     <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
       <p className="text-green-800 font-medium flex items-center gap-2">
         🎉{" "}
         {language === "es"
-          ? "Oferta para clientes nuevos: primer mes a US$15"
-          : "New customer offer: first month at US$15"}
+          ? "Tu código apoya al creador que te invitó. Pro: US$29/mes."
+          : "Your code supports the creator who invited you. Pro: US$29/month."}
       </p>
       <p className="text-green-600 text-sm mt-1">
         {language === "es"

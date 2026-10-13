@@ -1,4 +1,4 @@
-import { BILLING_POLICY, normalizeReferralCode, validateMonthlyPrice, validateReferralCoupon } from "../_shared/billing.ts";
+import { BILLING_POLICY, normalizeReferralCode, validateMonthlyPrice } from "../_shared/billing.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -43,6 +43,18 @@ serve(async (req) => {
     const user = userData.user;
     if (!user.email_confirmed_at) throw new Error("Confirma tu correo antes de suscribirte");
     const { referral_code } = await req.json();
+
+    const { data: lifetimeGrant, error: grantError } = await supabaseAdmin
+      .from("creator_program_applications")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .eq("access_kind", "lifetime")
+      .not("approved_at", "is", null)
+      .is("subscription_ends_at", null)
+      .limit(1);
+    if (grantError) throw grantError;
+    if (lifetimeGrant?.length) throw new Error("Ya tienes acceso vitalicio. Entra a la plataforma sin contratar una suscripción.");
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
@@ -124,16 +136,12 @@ serve(async (req) => {
       metadata,
       subscription_data: { metadata },
     };
-    const coupon = Deno.env.get("STRIPE_COUPON_ID");
-    if (validCode && isNewCustomer) {
-      if (!coupon) throw new Error("El descuento de referido aún no está configurado");
-      validateReferralCoupon(await stripe.coupons.retrieve(coupon), typeof price.product === "string" ? price.product : price.product.id);
-      sessionParams.discounts = [{ coupon }];
-    }
+    // Referral codes attribute commissions. The current policy charges $29
+    // from the first invoice; it never applies the previous launch coupon.
     // A still-open checkout is reused to avoid duplicate subscriptions from repeated clicks.
     const openSessions = await stripe.checkout.sessions.list({ customer: customerId, status: "open", limit: 100 });
     for (const openSession of openSessions.data) {
-      if (openSession.mode !== "subscription") continue;
+      if (openSession.mode !== "subscription" || openSession.metadata?.supabase_user_id !== user.id || openSession.metadata?.plan_type !== "pro") continue;
       if (openSession.metadata?.referral_code === (validCode || "") && openSession.metadata?.price_usd === "29" && openSession.metadata?.billing_policy === BILLING_POLICY && openSession.metadata?.checkout_brand === "tokxray-v1") {
         return new Response(JSON.stringify({ url: openSession.url }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }

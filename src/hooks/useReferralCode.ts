@@ -160,49 +160,16 @@ export const useReferralCode = () => {
     }
   };
 
-  const createDiscount = async (planType: PlanType): Promise<{ success: boolean; error: string | null }> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { success: false, error: "No user logged in" };
-
-      if (!referralCodeUsed) {
-        return { success: false, error: "No referral code applied" };
-      }
-
-      // Always use $29 for TokXray Pro
-      const originalPrice = 29;
-      const discountedPrice = 15;
-
-      const { data, error } = await supabase
-        .from("affiliate_discounts")
-        .insert({
-          user_id: user.id,
-          plan_original_price: originalPrice,
-          discounted_price: discountedPrice,
-          used_referral_code: referralCodeUsed,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === "23505") {
-          return { success: false, error: "Ya tienes un descuento aplicado" };
-        }
-        return { success: false, error: error.message };
-      }
-
-      setReferralDiscount(data);
-      return { success: true, error: null };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  };
+  // Referral codes attribute the creator; new subscriptions have no automatic discount.
+  const createDiscount = async (_planType: PlanType): Promise<{ success: boolean; error: string | null }> => ({
+    success: false, error: "El código identifica al creador. Pro cuesta US$29/mes sin descuento automático.",
+  });
 
   const getPriceForPlan = (planType: PlanType) => {
     // Always return $29 for paid plans
     const originalPrice = planType === "free" ? 0 : 29;
-    const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied && originalPrice > 0;
-    const discountedPrice = hasDiscount ? 15 : originalPrice;
+    const hasDiscount = false;
+    const discountedPrice = originalPrice;
 
     return {
       originalPrice,

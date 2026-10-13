@@ -1,10 +1,9 @@
-import { MONTHLY_PRICE_USD, REFERRAL_FIRST_MONTH_USD, estimateMxn } from '@/lib/pricing';
-export function SubscriptionPrice({ compact = false, firstMonth = false }: { compact?: boolean; firstMonth?: boolean }) {
-  const price = firstMonth ? REFERRAL_FIRST_MONTH_USD : MONTHLY_PRICE_USD;
+import { MONTHLY_PRICE_USD, estimateMxn } from '@/lib/pricing';
+export function SubscriptionPrice({ compact = false }: { compact?: boolean; firstMonth?: boolean }) {
   return <div className="space-y-1">
-    <p><strong className={compact ? 'text-2xl tracking-tight' : 'text-3xl font-bold tracking-tight'}>US${price}</strong><span className="ml-1.5 text-sm text-muted-foreground">{firstMonth ? 'el primer mes' : '/ mes'}</span></p>
-    <p className="text-sm text-muted-foreground">≈ ${estimateMxn(price)} MXN{firstMonth ? ' el primer mes' : ' / mes'}</p>
-    {firstMonth && <p className="text-xs text-muted-foreground">Después US$29 / mes (≈ $522 MXN).</p>}
+    <p><strong className={compact ? 'text-2xl tracking-tight' : 'text-3xl font-bold tracking-tight'}>US${MONTHLY_PRICE_USD}</strong><span className="ml-1.5 text-sm text-muted-foreground">/ mes</span></p>
+    <p className="text-sm text-muted-foreground">≈ ${estimateMxn(MONTHLY_PRICE_USD)} MXN / mes</p>
+    <p className="text-xs text-muted-foreground">El mismo precio desde el primer mes, con o sin código.</p>
   </div>;
 }
 export function CurrencyDisclosure() {

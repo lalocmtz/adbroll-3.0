@@ -1,4 +1,4 @@
-import { BILLING_POLICY, commissionBaseCents, stripeSubscriptionStatus } from "../_shared/billing.ts";
+import { commissionRecorder, invoiceCommissionType, policyMonthlyPrice, commissionBaseCents, stripeSubscriptionStatus } from "../_shared/billing.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
@@ -125,6 +125,19 @@ serve(async (req) => {
           // Disputes require manual reconciliation before any further payouts.
           const dispute = event.data.object as Stripe.Dispute;
           const customerCharge = await stripe.charges.retrieve(typeof dispute.charge === "string" ? dispute.charge : dispute.charge.id);
+          const invoiceId = typeof customerCharge.invoice === "string" ? customerCharge.invoice : customerCharge.invoice?.id;
+          if (invoiceId) {
+            const invoice = await stripe.invoices.retrieve(invoiceId);
+            if (!invoice.subscription) break;
+            const subscription = await stripe.subscriptions.retrieve(typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription.id);
+            if (!isTokXraySubscription(subscription)) break;
+            // A dispute can arrive before invoice.paid; record the immutable
+            // recipients first, then hold both direct and leader balances.
+            await handleInvoicePaid(invoice);
+            const { error } = await supabaseAdmin.rpc("hold_affiliate_invoice", { p_invoice_id: invoiceId });
+            if (error) throw error;
+            break;
+          }
           const customerId = typeof customerCharge.customer === "string" ? customerCharge.customer : customerCharge.customer?.id;
           if (customerId) {
             const { data: referred, error: lookupError } = await supabaseAdmin.from("profiles").select("referral_code_used").eq("stripe_customer_id", customerId).maybeSingle();
@@ -193,7 +206,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
   const subscriptionId = session.subscription as string;
   const currentCheckoutSubscription = await stripe.subscriptions.retrieve(subscriptionId);
   if (!isTokXraySubscription(currentCheckoutSubscription)) return;
-  const priceUsd = session.metadata?.billing_policy === BILLING_POLICY ? 29 : 30;
+  const priceUsd = policyMonthlyPrice(session.metadata?.billing_policy);
 
   // Para checkouts fríos (1 clic directo a Stripe) NO mandamos guest_email en
   // metadata; Stripe recolecta el email en su página. Lo tomamos de
@@ -363,8 +376,8 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   // billing_reason: 'subscription_create' = primer pago, 'subscription_cycle' = renovación.
   // Marcamos el type para distinguir comisión inicial vs recurrente. La idempotencia
   // por stripe_invoice_id evita que un invoice reintentado pague dos veces.
-  if (profile.referral_code_used && ["subscription_create", "subscription_cycle"].includes(invoice.billing_reason || "")) {
-    const commissionType = invoice.billing_reason === "subscription_create" && currentSubscription.metadata?.first_purchase !== "false" ? "initial" : "recurring";
+  const commissionType = invoiceCommissionType(invoice.billing_reason, currentSubscription.metadata?.first_purchase, currentSubscription.metadata?.billing_policy);
+  if (profile.referral_code_used && commissionType) {
     await calculateAffiliateCommission(
       profile.id,
       profile.referral_code_used,
@@ -383,7 +396,7 @@ async function calculateAffiliateCommission(
   amountPaid: number,
   referredEmail?: string,
   stripeInvoiceId?: string,
-  commissionType: "initial" | "recurring" = "recurring",
+  commissionType: "initial" | "recurring" | "reactivation" = "recurring",
   billingPolicy?: string
 ) {
   const { data: affiliateCode } = await supabaseAdmin
@@ -397,16 +410,16 @@ async function calculateAffiliateCommission(
     return;
   }
 
-  const modernPolicy = billingPolicy === BILLING_POLICY;
+  const recorder = commissionRecorder(billingPolicy);
 
   // Insert the invoice and increment balances in ONE database transaction.
-  const { data: recorded, error: commissionError } = await supabaseAdmin.rpc(modernPolicy ? "record_affiliate_commission_v2" : "record_affiliate_commission", {
+  const { data: recorded, error: commissionError } = await supabaseAdmin.rpc(recorder, {
     p_referred_user_id: referredUserId, p_code: referralCode,
     p_invoice_id: stripeInvoiceId, p_amount_paid_cents: Math.round(amountPaid * 100), p_type: commissionType,
   });
   if (commissionError) throw commissionError;
   if (!recorded) return;
-  const commissionAmount = modernPolicy ? Number(recorded) : Math.round(amountPaid * 100 * 0.30) / 100;
+  const commissionAmount = recorder === "record_affiliate_commission" ? Math.round(amountPaid * 100 * 0.30) / 100 : Number(recorded);
   const { data: affiliate } = await supabaseAdmin.from("affiliates")
     .select("user_id").eq("user_id", affiliateCode.user_id).single();
   if (affiliate) {

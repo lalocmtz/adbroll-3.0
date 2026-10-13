@@ -11,7 +11,9 @@ export default function PartnerLanding() {
   const [referrals, setReferrals] = useState(10);
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const code = new URLSearchParams(window.location.search).get("ref") || getStoredRefCode();
+  const params = new URLSearchParams(window.location.search);
+  const leader = /^[a-zA-Z0-9]{4,12}$/.test(params.get("leader") || "") ? params.get("leader")!.toUpperCase() : null;
+  const code = leader ? null : params.get("ref") || getStoredRefCode();
   const register = (destination: string) => `/register?redirect=${encodeURIComponent(destination)}${code ? `&ref=${encodeURIComponent(code)}` : ""}`;
   useEffect(() => {
     const previousTitle = document.title;
@@ -24,16 +26,17 @@ export default function PartnerLanding() {
   return <div className="partner-page">
     <header className="partner-nav partner-wrap">
       <Link to="/" aria-label="TokXray, inicio"><BrandLogo tone="light" size="md" /></Link>
-      <nav aria-label="Navegación del programa"><a href="#como-funciona">Cómo funciona</a><Link to="/login?redirect=%2Faffiliates">Entrar <ArrowUpRight size={16} /></Link></nav>
+      <nav aria-label="Navegación del programa"><a href="#como-funciona">Cómo funciona</a><Link to={`/login?redirect=${encodeURIComponent(leader ? `/affiliates?leader=${leader}` : "/affiliates")}`}>Entrar <ArrowUpRight size={16} /></Link></nav>
     </header>
     <main>
       <section className="partner-hero partner-wrap">
         <div>
           <p className="partner-eyebrow"><span /> PARA CREADORES DE TIKTOK SHOP MÉXICO</p>
           <h1>Recomienda TokXray.<br />Gana el <em>15% cada mes.</em></h1>
-          <p className="partner-intro">Aprende qué grabar con ejemplos de TikTok Shop. Comparte TokXray con otros creadores y gana <strong>$15 USD por su primer pago y 15% de sus renovaciones</strong> mientras sigan suscritos.</p>
-          <div className="partner-actions"><Link className="partner-button" to={register("/affiliates")}>Quiero recomendar TokXray <ArrowUpRight size={20} /></Link><Link className="partner-text-link" to={register("/pricing")}>Quiero usar la herramienta <ArrowRight size={17} /></Link></div>
+          <p className="partner-intro">Aprende qué grabar con ejemplos de TikTok Shop. Comparte TokXray con otros creadores y gana <strong>$10 USD por su primer pago y 15% de sus renovaciones</strong> mientras sigan suscritos.</p>
+          <div className="partner-actions"><Link className="partner-button" to={register(leader ? `/affiliates?leader=${leader}` : "/affiliates")}>Quiero recomendar TokXray <ArrowUpRight size={20} /></Link><Link className="partner-text-link" to={register("/pricing")}>Quiero usar la herramienta <ArrowRight size={17} /></Link></div>
           <p className="partner-caption">Crea tu cuenta y conoce el programa. No necesitas experiencia previa.</p>
+          {leader && <p className="partner-caption">Te invita la comunidad <strong>{leader}</strong>. Al crear tu cuenta podrás revisar y aceptar la invitación; registrarte no te vincula automáticamente.</p>}
         </div>
         <aside className="partner-ticket" aria-label="Comisión por renovación">
           <div className="partner-ticket-top"><span>TU RECOMENDACIÓN CUENTA</span><ArrowUpRight size={26} /></div>
@@ -57,18 +60,27 @@ export default function PartnerLanding() {
         ].map(([number, title, body, icon]) => <article key={String(number)}><div className="partner-step-top"><span>{number}</span>{icon}</div><h3>{title}</h3><p>{body}</p></article>)}</div>
       </section>
       <section className="partner-calculator-band"><div className="partner-wrap partner-calculator">
-        <div><p className="partner-eyebrow">HAZ TUS NÚMEROS</p><h2>Una recomendación.<br />Más de una comisión.</h2><p>Si alguien se suscribe con tu código, paga $15 USD el primer mes y después $29 USD al mes. Recibes $15 USD del primer pago y $4.35 USD de cada renovación cobrada.</p><p>Las comisiones dependen de pagos reales. Este ejemplo no garantiza resultados.</p></div>
+        <div><p className="partner-eyebrow">HAZ TUS NÚMEROS</p><h2>Una recomendación.<br />Más de una comisión.</h2><p>Si alguien se suscribe con tu código, paga $29 USD al mes desde el inicio. Recibes $10 USD del primer pago y $4.35 USD de cada renovación cobrada.</p><p>Las comisiones dependen de pagos reales. Este ejemplo no garantiza resultados.</p></div>
         <div className="partner-calculator-card"><label htmlFor="referrals">Referidos que renuevan <strong>{referrals}</strong></label><input id="referrals" type="range" min="1" max="100" value={referrals} onChange={e => setReferrals(Number(e.target.value))} /><output htmlFor="referrals">${(referrals * 4.35).toFixed(2)}<span> USD / mes</span></output><p>{referrals} renovaciones de $29 USD × 15%. Sin impuestos, reembolsos ni pagos fallidos en este ejemplo.</p><div className="partner-rule"><Check size={17} /> Mínimo de retiro: $50 USD</div><div className="partner-rule"><Check size={17} /> Procesamiento semanal del saldo disponible</div></div>
       </div></section>
+      <section className="partner-wrap partner-how" style={{ paddingTop: 64 }}>
+        <div className="partner-section-head"><p className="partner-eyebrow">CRECE CON TU COMUNIDAD</p><h2>Invita creadores.<br />Acompaña sus primeros pasos.</h2><p>Cada creador tiene su código y conserva US$10 por cada primer pago y 15% de sus renovaciones. Si acepta tu invitación de comunidad, tú recibes 5% de las renovaciones de sus clientes directos: US$1.45 por cada renovación completa de US$29.</p></div>
+        <p className="partner-caption">Ejemplo: 10 clientes que renuevan generan US$43.50 para el creador y US$14.50 para su líder. No se paga por incorporar creadores ni por una primera compra indirecta. Las comisiones requieren pagos reales elegibles.</p>
+        <Link className="partner-button" to={register(leader ? `/affiliates?leader=${leader}` : "/affiliates")}>Crear mi comunidad <ArrowUpRight size={20} /></Link>
+      </section>
+      <section className="partner-wrap partner-how">
+        <div className="partner-section-head"><p className="partner-eyebrow">PROGRAMA DE CONTENIDO</p><h2>Tres videos.<br />Tu acceso vitalicio.</h2><p>Publica tres videos originales sobre TokXray y autoriza su uso en pauta durante 12 meses. Tras revisar tus entregables, activamos tu acceso personal mientras TokXray opere. Conservas tu código y tus comisiones; no necesitas traer clientes para conservar ese acceso.</p></div>
+        <Link className="partner-button" to={register("/colaboraciones")}>Solicitar acceso por contenido <ArrowUpRight size={20} /></Link>
+      </section>
       <section className="partner-wrap partner-faq"><div><p className="partner-eyebrow">LAS REGLAS, CLARAS</p><h2>Antes de comenzar.</h2></div><div>{[
         ["¿Tengo que ser un creador experto?", "No. TokXray está pensado también para quienes empiezan: referencias, productos y guiones para entender cómo presentar una oferta. Tu contenido y tus resultados siguen dependiendo de ti."],
-        ["¿Cuánto cuesta usar TokXray?", "$29 USD al mes. Los clientes nuevos con un código de afiliado válido obtienen un primer mes de $15 USD. Después, $29 USD al mes hasta cancelar. El checkout muestra los impuestos aplicables."],
-        ["¿Durante cuánto tiempo gano comisiones?", "Recibes hasta $15 USD por el primer pago de cada cliente nuevo y 15% de las renovaciones elegibles de tus referidos directos mientras su suscripción continúe pagando. No hay un límite de seis meses. No se generan comisiones por registros gratuitos, pagos fallidos o cobros reembolsados."],
-        ["¿Gano por los referidos de mis referidos?", "La comisión corresponde únicamente a las suscripciones que tú recomiendas directamente. No existen niveles adicionales ni pagos por reclutar afiliados."],
+        ["¿Cuánto cuesta usar TokXray?", "$29 USD al mes desde el primer mes, con o sin código. El código reconoce al creador que te invitó; no cambia el precio. El checkout muestra los impuestos aplicables."],
+        ["¿Durante cuánto tiempo gano comisiones?", "Recibes hasta $10 USD por el primer pago de cada cliente nuevo y 15% de las renovaciones elegibles de tus referidos directos mientras su suscripción continúe pagando. No hay un límite de seis meses. No se generan comisiones por registros gratuitos, pagos fallidos o cobros reembolsados."],
+        ["¿Gano por los referidos de mis referidos?", "Si invitas a un creador y acepta unirse a tu comunidad antes de generar clientes de pago, recibes 5% de las renovaciones elegibles de sus clientes directos. Ese creador conserva su 15%. Es un solo escalón: no ganas por niveles más profundos ni por registros gratuitos."],
         ["¿Cómo recibo mi dinero?", "El equipo de TokXray revisa los saldos semanalmente y te contacta para coordinar una transferencia manual cuando alcanzas $50 USD disponibles. Los depósitos confirmados aparecen en tu historial; no necesitas una cuenta de Stripe."],
         ["¿Los datos se actualizan en tiempo real?", "Actualizamos el catálogo semanalmente con reportes sobre TikTok Shop México. Consulta el periodo de cada ranking: son referencias históricas, no una garantía de ventas futuras. Algunos videos pueden dejar de estar disponibles."],
       ].map(([q, a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}</div></section>
-      <section className="partner-final partner-wrap"><p className="partner-eyebrow">TU SIGUIENTE PASO</p><h2>Empieza aprendiendo.<br />Crece compartiendo.</h2><Link className="partner-button" to={register("/affiliates")}>Crear mi cuenta <ArrowUpRight size={20} /></Link><p>¿Buscas ideas para tus propios videos? <Link to="/app">Explora el catálogo.</Link></p></section>
+      <section className="partner-final partner-wrap"><p className="partner-eyebrow">TU SIGUIENTE PASO</p><h2>Empieza aprendiendo.<br />Crece compartiendo.</h2><Link className="partner-button" to={register(leader ? `/affiliates?leader=${leader}` : "/affiliates")}>Crear mi cuenta <ArrowUpRight size={20} /></Link><p>¿Buscas ideas para tus propios videos? <Link to="/app">Explora el catálogo.</Link></p></section>
     </main>
     <footer className="partner-footer partner-wrap"><BrandLogo tone="light" size="sm" /><span>© {new Date().getFullYear()} TokXray</span><Link to="/terminos-afiliados">Condiciones del programa</Link><Link to="/privacy">Privacidad</Link><Link to="/pricing">Precios</Link><BrandContactLinks className="w-full" /></footer>
   </div>;

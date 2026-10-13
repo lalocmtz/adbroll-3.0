@@ -38,9 +38,9 @@ describe("ambiguous payout retries", () => {
   });
 });
 
-describe("first-month referral offer", () => {
-  it("pays the full first 15 dollars and 15 percent of renewals", () => {
-    expect(affiliateCommissionCents(commissionBaseCents({ currency: "usd", amount_paid: 1500 }), true)).toBe(1500);
+describe("new customer referral policy", () => {
+  it("pays ten dollars once and 15 percent of renewals", () => {
+    expect(affiliateCommissionCents(commissionBaseCents({ currency: "usd", amount_paid: 2900 }), true)).toBe(1000);
     expect(affiliateCommissionCents(commissionBaseCents({ currency: "usd", amount_paid: 2900 }), false)).toBe(435);
   });
   it("rejects repeating or mismatched coupons", () => {
@@ -50,9 +50,10 @@ describe("first-month referral offer", () => {
   });
 });
 
-it("caps the initial reward at actual net cash and at fifteen dollars",()=>{
+it("caps the initial reward at actual net cash and at ten dollars",()=>{
  expect(affiliateCommissionCents(1000,true)).toBe(1000);
- expect(affiliateCommissionCents(2900,true)).toBe(1500);
+ expect(affiliateCommissionCents(500,true)).toBe(500);
+ expect(affiliateCommissionCents(2900,true)).toBe(1000);
  expect(affiliateCommissionCents(0,true)).toBe(0);
  expect(affiliateCommissionCents(1500,false)).toBe(225);
 });

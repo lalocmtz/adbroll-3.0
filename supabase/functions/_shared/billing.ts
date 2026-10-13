@@ -37,7 +37,27 @@ export function validateReferralCoupon(coupon: { valid: boolean; percent_off: nu
   }
 }
 
-export const BILLING_POLICY = "2026-10-10";
+export const BILLING_POLICY = "2026-10-13";
+export const PREVIOUS_BILLING_POLICY = "2026-10-10";
+
+// A subscription keeps the policy captured at checkout, even after a new launch.
+export function commissionRecorder(policy?: string): string {
+  if (policy === BILLING_POLICY) return "record_affiliate_commission_v3";
+  if (policy === PREVIOUS_BILLING_POLICY) return "record_affiliate_commission_v2";
+  if (!policy) return "record_affiliate_commission";
+  throw new Error(`Unsupported billing policy: ${policy}`);
+}
+
+export function policyMonthlyPrice(policy?: string): number {
+  return policy === BILLING_POLICY || policy === PREVIOUS_BILLING_POLICY ? 29 : 30;
+}
+
+export function invoiceCommissionType(reason: string | null, firstPurchase: string | undefined, policy?: string): "initial" | "recurring" | "reactivation" | null {
+  if (reason === "subscription_cycle") return "recurring";
+  if (reason !== "subscription_create") return null;
+  if (firstPurchase !== "false") return "initial";
+  return policy === BILLING_POLICY ? "reactivation" : "recurring";
+}
 export function affiliateCommissionCents(baseCents: number, initial: boolean): number {
-  return initial ? Math.min(1500, Math.max(0, baseCents)) : Math.round(Math.max(0, baseCents) * AFFILIATE_RATE);
+  return initial ? Math.min(1000, Math.max(0, baseCents)) : Math.round(Math.max(0, baseCents) * AFFILIATE_RATE);
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AffiliateNetworkPanel } from "@/components/AffiliateNetworkPanel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,7 +61,7 @@ const Affiliates = () => {
 
   const handleCopyLink = async () => {
     if (activeCode) {
-      const link = `${ADBROLL_DOMAIN}/programa-creadores?ref=${activeCode}`;
+      const link = `${ADBROLL_DOMAIN}/?ref=${activeCode}`;
       await navigator.clipboard.writeText(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -199,8 +200,8 @@ const Affiliates = () => {
             </h2>
             <p className="text-sm text-muted-foreground mb-2">
               {language === "es"
-                ? "Cada vez que alguien se registre con tu código y se suscriba a TokXray Pro, recibirás $15 USD por el primer pago de un cliente nuevo y 15% de sus renovaciones elegibles."
-                : "Every time someone signs up with your code and subscribes to TokXray Pro, you'll receive $15 USD for a new customer's first payment and 15% of eligible renewals."}
+                ? "Cada vez que alguien se registre con tu código y se suscriba a TokXray Pro, recibirás $10 USD por el primer pago de un cliente nuevo y 15% de sus renovaciones elegibles."
+                : "Every time someone signs up with your code and subscribes to TokXray Pro, you'll receive $10 USD for a new customer's first payment and 15% of eligible renewals."}
             </p>
             <p className="text-sm font-medium text-green-600 mb-4">
               {language === "es"
@@ -279,7 +280,7 @@ const Affiliates = () => {
 
       {affiliate ? (
         <div className="space-y-6">
-          <p className="text-sm text-muted-foreground">Para nuevos clientes: hasta $15 USD del primer mes de $15 y $4.35 USD de cada renovación de $29. Sin límite de seis meses. Retiros desde $50 USD. <a href="/terminos-afiliados" className="underline">Condiciones del programa</a>.</p>
+          <p className="text-sm text-muted-foreground">Para nuevos clientes: hasta $10 USD del primer pago y $4.35 USD de cada renovación completa de $29. Tu cliente paga $29 USD desde el primer mes. Sin límite de seis meses. Retiros desde $50 USD. <a href="/terminos-afiliados" className="underline">Condiciones del programa</a>.</p>
           {/* Share Section — first, so the link is the hero action */}
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -297,7 +298,7 @@ const Affiliates = () => {
                 </label>
                 <div className="flex min-w-0 gap-2">
                   <Input
-                    value={`${ADBROLL_DOMAIN}/programa-creadores?ref=${activeCode}`}
+                    value={`${ADBROLL_DOMAIN}/?ref=${activeCode}`}
                     readOnly
                     className="min-w-0 text-sm"
                   />
@@ -371,12 +372,14 @@ const Affiliates = () => {
                         ? "Ya personalizaste tu código (solo se puede cambiar una vez)."
                         : "You already customized your code (it can only be changed once).")
                     : (language === "es"
-                        ? "Puedes personalizarlo una vez, antes de recibir referidos (4–12 letras o números)."
-                        : "Customize once before receiving referrals (4–12 letters or numbers).")}
+                        ? "Puedes personalizarlo una vez, antes de recibir referidos o vincular creadores (4–12 letras o números)."
+                        : "Customize once before receiving referrals or adding creators (4–12 letters or numbers).")}
                 </p>
               </div>
             </div>
           </Card>
+
+          <AffiliateNetworkPanel code={activeCode || ""} onJoined={refetch} />
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -386,7 +389,7 @@ const Affiliates = () => {
                 {dashboard?.active_referrals ?? affiliate.active_referrals_count}
               </p>
               <p className="text-xs text-muted-foreground">
-                {language === "es" ? "Activos" : "Active"}
+                {language === "es" ? "Clientes directos activos" : "Active direct customers"}
               </p>
             </Card>
 
@@ -471,7 +474,7 @@ const Affiliates = () => {
           {/* Referrals */}
           <Card className="p-5">
             <h3 className="font-semibold mb-4">
-              {language === "es" ? "Tus referidos" : "Your referrals"}
+              {language === "es" ? "Tus clientes directos" : "Your direct customers"}
             </h3>
             {dashReferrals.length === 0 ? (
               <div className="text-center py-8">
@@ -520,7 +523,7 @@ const Affiliates = () => {
           {commissionsHistory.length > 0 && (
             <Card className="p-5">
               <h3 className="font-semibold mb-4">
-                {language === "es" ? "Historial de comisiones" : "Commission history"}
+                {language === "es" ? "Comisiones por clientes directos" : "Direct customer commissions"}
               </h3>
               <div className="space-y-2">
                 {commissionsHistory.map((commission, i) => (
@@ -562,8 +565,8 @@ const Affiliates = () => {
           </h3>
           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
             {language === "es" 
-              ? "Crea tu código de afiliado único y compártelo con otros creadores. Ganarás hasta $15 USD por cada cliente nuevo y 15% de sus renovaciones elegibles."
-              : "Create your unique affiliate code and share it with other creators. You'll earn up to $15 USD per new customer and 15% of eligible renewals."}
+              ? "Crea tu código de afiliado único y compártelo con otros creadores. Ganarás hasta $10 USD por cada cliente nuevo y 15% de sus renovaciones elegibles."
+              : "Create your unique affiliate code and share it with other creators. You'll earn up to $10 USD per new customer and 15% of eligible renewals."}
           </p>
           <Button 
             size="lg" 

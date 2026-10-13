@@ -59,7 +59,7 @@ const Register = () => {
   const canContinue = () => {
     if (!referralBlocked) return true;
     toast({ title: "Revisa tu código", description: referralStatus === "pending"
-      ? "Estamos verificándolo. Espera un momento para conservar tu descuento."
+      ? "Estamos verificándolo. Espera un momento para registrar quién te invitó."
       : "Corrige el código o déjalo vacío para continuar sin él.", variant: "destructive" });
     return false;
   };
@@ -221,7 +221,7 @@ const Register = () => {
               }`}
             />
             <div id="referral-status" aria-live="polite" className="text-xs">
-              {referralStatus === "valid" && <p className="text-green-700">Código válido: primer mes de Pro a US$15 para nuevas suscripciones; después US$29/mes. Se confirma al pagar.</p>}
+              {referralStatus === "valid" && <p className="text-green-700">Código válido: tu recomendación quedará vinculada a ese creador. Pro cuesta US$29/mes desde el inicio, sin descuento por código.</p>}
               {referralStatus === "pending" && <p className="text-muted-foreground">Verificando tu código…</p>}
               {referralStatus === "invalid" && <p className="text-destructive">Código no válido. Corrígelo o déjalo vacío.</p>}
               {referralStatus === "error" && <p className="text-destructive">No pudimos verificarlo. Vuelve a escribirlo o déjalo vacío.</p>}
