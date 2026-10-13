@@ -1,238 +1,48 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { useToast } from "@/hooks/use-toast";
-import { Gift, CheckCircle, Loader2, ArrowRight } from "lucide-react";
 
-const Redeem = () => {
-  const [searchParams] = useSearchParams();
-  const [grantCode, setGrantCode] = useState(searchParams.get("code") || "");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [codeValid, setCodeValid] = useState<boolean | null>(null);
-  const [grantData, setGrantData] = useState<any>(null);
-  const [session, setSession] = useState<any>(null);
+export default function Redeem() {
+  const [params] = useSearchParams();
+  const [code, setCode] = useState(params.get('code') || '');
+  const [loading, setLoading] = useState(false);
+  const [verified, setVerified] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const returnTo = `/canjear?code=${encodeURIComponent(code)}`;
+  useEffect(() => { void supabase.auth.getUser().then(({ data }) => setVerified(Boolean(data.user?.email_confirmed_at))); }, []);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Verify code when it changes
-  useEffect(() => {
-    const verifyCode = async () => {
-      if (!grantCode || grantCode.length < 10) {
-        setCodeValid(null);
-        setGrantData(null);
-        return;
-      }
-
-      setIsVerifying(true);
-      try {
-        const { data, error } = await supabase
-          .from("creator_program_applications")
-          .select("*")
-          .eq("grant_code", grantCode.toUpperCase())
-          .eq("status", "approved")
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (data) {
-          setCodeValid(true);
-          setGrantData(data);
-        } else {
-          setCodeValid(false);
-          setGrantData(null);
-        }
-      } catch (error) {
-        console.error("Error verifying code:", error);
-        setCodeValid(false);
-      } finally {
-        setIsVerifying(false);
-      }
-    };
-
-    const timeout = setTimeout(verifyCode, 500);
-    return () => clearTimeout(timeout);
-  }, [grantCode]);
-
-  const handleRedeem = async () => {
-    if (!codeValid || !grantData) {
-      toast({
-        title: "Código inválido",
-        description: "Verifica que el código sea correcto",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // If not logged in, redirect to register with the grant code
-    if (!session) {
-      navigate(`/register?grant=${grantCode}`);
-      return;
-    }
-
-    setIsLoading(true);
+  async function redeem(event: React.FormEvent) {
+    event.preventDefault();
+    setLoading(true);
     try {
-      const now = new Date();
-      const endDate = new Date(now.getTime() + (grantData.granted_days || 30) * 24 * 60 * 60 * 1000);
-
-      // Create subscription with granted status
-      const { error: subError } = await supabase
-        .from("subscriptions")
-        .insert({
-          user_id: session.user.id,
-          status: "active",
-          price_usd: 0,
-          renew_at: endDate.toISOString(),
-        });
-
-      if (subError && subError.code !== "23505") {
-        throw subError;
-      }
-
-      // Update grant to active
-      const { error: grantError } = await supabase
-        .from("creator_program_applications")
-        .update({
-          status: "active",
-          user_id: session.user.id,
-          subscription_starts_at: now.toISOString(),
-          subscription_ends_at: endDate.toISOString(),
-        })
-        .eq("grant_code", grantCode.toUpperCase());
-
-      if (grantError) throw grantError;
-
-      toast({
-        title: "¡Código canjeado!",
-        description: `Tienes ${grantData.granted_days || 30} días de acceso completo. ¡Disfruta!`,
-      });
-
-      // Redirect to app
-      setTimeout(() => navigate("/app"), 1500);
+      const { data, error } = await supabase.rpc('redeem_creator_access', { p_code: code });
+      if (error) throw error;
+      const grant = data as { access_kind: string; subscription_ends_at: string | null };
+      toast({ title: 'Acceso activado', description: grant.access_kind === 'lifetime' ? 'Tu acceso vitalicio está listo.' : `Acceso hasta ${new Date(grant.subscription_ends_at!).toLocaleDateString('es-MX')}.` });
+      navigate('/app', { replace: true });
     } catch (error: any) {
-      console.error("Redeem error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "No se pudo canjear el código",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center landing-light p-4">
-      <Card className="w-full max-w-md card-landing-light">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <Gift className="h-8 w-8 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">Canjear código</CardTitle>
-          <CardDescription>
-            Ingresa tu código del programa de creadores para activar tu acceso gratuito
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="grantCode">Código de acceso</Label>
-            <Input
-              id="grantCode"
-              value={grantCode}
-              onChange={(e) => setGrantCode(e.target.value.toUpperCase())}
-              placeholder="CREATOR-XXXXXX"
-              className={`text-center text-lg font-mono tracking-wider ${
-                codeValid === true
-                  ? "border-green-500 focus-visible:ring-green-500"
-                  : codeValid === false
-                  ? "border-destructive focus-visible:ring-destructive"
-                  : ""
-              }`}
-            />
-            {isVerifying && (
-              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Verificando código...
-              </p>
-            )}
-            {codeValid === true && grantData && (
-              <p className="text-sm text-green-600 flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                ¡Código válido! {grantData.granted_days || 30} días de acceso
-              </p>
-            )}
-            {codeValid === false && (
-              <p className="text-sm text-destructive">
-                Código no válido o ya utilizado
-              </p>
-            )}
-          </div>
-
-          {codeValid && grantData && (
-            <div className="p-4 bg-muted/50 rounded-lg space-y-2">
-              <p className="text-sm font-medium">Detalles del acceso:</p>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• {grantData.granted_days || 30} días de acceso completo</li>
-                <li>• Todas las funciones desbloqueadas</li>
-                <li>• Podrás crear tu código de afiliado</li>
-              </ul>
-            </div>
-          )}
-
-          <Button
-            onClick={handleRedeem}
-            className="w-full"
-            disabled={!codeValid || isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Activando...
-              </>
-            ) : !session ? (
-              <>
-                Crear cuenta y activar
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            ) : (
-              <>
-                Activar acceso
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
-
-          {!session && (
-            <p className="text-xs text-center text-muted-foreground">
-              ¿Ya tienes cuenta?{" "}
-              <button
-                onClick={() => navigate(`/login?redirect=/canjear?code=${grantCode}`)}
-                className="text-primary hover:underline"
-              >
-                Inicia sesión
-              </button>
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default Redeem;
+      toast({ title: 'No se pudo activar', description: error.message || 'Revisa el código y usa el correo de tu solicitud.', variant: 'destructive' });
+    } finally { setLoading(false); }
+  }
+  return <main className="min-h-[100dvh] flex items-center justify-center bg-background p-4">
+    <Card className="w-full max-w-md"><CardHeader className="text-center">
+      <Link to="/" className="mx-auto mb-4"><BrandLogo tone="dark" size="lg" /></Link>
+      <CardTitle>Activa tu acceso de creador</CardTitle><CardDescription>Usa el correo verificado de tu solicitud. Este código es personal y no genera cargos.</CardDescription>
+    </CardHeader><CardContent className="space-y-4">
+      <form onSubmit={redeem} className="space-y-4"><Label htmlFor="grant-code">Código de acceso</Label><Input id="grant-code" required value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="CREATOR-XXXXXX" />
+        {verified ? <Button className="w-full" disabled={loading || !code.trim()}>{loading ? 'Activando…' : 'Activar acceso'}</Button> : <>
+          <Button className="w-full" asChild><Link to={`/login?redirect=${encodeURIComponent(returnTo)}`}>Iniciar sesión y activar</Link></Button>
+          <Button className="w-full" variant="outline" asChild><Link to={`/register?redirect=${encodeURIComponent(returnTo)}`}>Crear cuenta y confirmar correo</Link></Button>
+        </>}
+      </form>
+      <p className="text-xs text-muted-foreground">Si tu acceso vitalicio ya fue aprobado, puedes entrar directamente. <Link to="/colaboraciones" className="underline">Consultar solicitud</Link></p>
+    </CardContent></Card>
+  </main>;
+}

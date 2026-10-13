@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { hasCreatorAccess } from "@/lib/creator-access";
 import { Tables } from "@/integrations/supabase/types";
 
 export type Subscription = Tables<"subscriptions">;
@@ -19,6 +20,13 @@ export const useSubscription = () => {
   }, []);
 
   const checkSubscription = async () => {
+    setLoading(true);
+    setSubscription(null);
+    setHasActiveSubscription(false);
+    setIsFounder(false);
+    setIsGrantedAccess(false);
+    setGrantExpiresAt(null);
+    setPlanTier("free");
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -59,11 +67,10 @@ export const useSubscription = () => {
         .from("creator_program_applications")
         .select("*")
         .eq("user_id", user.id)
-        .eq("status", "active")
-        .gte("subscription_ends_at", new Date().toISOString())
+        .in("status", ["active", "approved", "pending_review", "rejected"])
         .maybeSingle();
 
-      if (grantData) {
+      if (hasCreatorAccess(grantData)) {
         setIsGrantedAccess(true);
         setGrantExpiresAt(grantData.subscription_ends_at);
         setHasActiveSubscription(true);
@@ -86,7 +93,7 @@ export const useSubscription = () => {
       }
 
       setSubscription(data);
-      setHasActiveSubscription(data?.status === "active");
+      setHasActiveSubscription(Boolean(data && ["active", "trialing"].includes(data.status) && (!data.renew_at || Date.parse(data.renew_at) > Date.now())));
       setLoading(false);
     } catch (error) {
       console.error("Error checking subscription:", error);

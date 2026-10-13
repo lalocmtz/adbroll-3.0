@@ -641,6 +641,11 @@ export type Database = {
       }
       creator_program_applications: {
         Row: {
+          access_kind: string
+          video_urls: string[]
+          ad_permission_at: string | null
+          ad_license_months: number | null
+          ad_license_ends_at: string | null
           approved_at: string | null
           approved_by: string | null
           created_at: string
@@ -660,6 +665,11 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          access_kind?: string
+          video_urls?: string[]
+          ad_permission_at?: string | null
+          ad_license_months?: number | null
+          ad_license_ends_at?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
@@ -679,6 +689,11 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          access_kind?: string
+          video_urls?: string[]
+          ad_permission_at?: string | null
+          ad_license_months?: number | null
+          ad_license_ends_at?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
@@ -2351,6 +2366,22 @@ export type Database = {
       }
     }
     Functions: {
+      grant_creator_preview: {
+        Args: { p_email: string; p_days?: number }
+        Returns: Json
+      }
+      submit_creator_lifetime_application: {
+        Args: { p_full_name: string; p_whatsapp: string; p_tiktok_url: string; p_video_urls: string[]; p_ad_permission: boolean }
+        Returns: Json
+      }
+      review_creator_lifetime_application: {
+        Args: { p_application_id: string; p_approve: boolean }
+        Returns: Json
+      }
+      redeem_creator_access: {
+        Args: { p_code: string }
+        Returns: Json
+      }
       get_founder_user_overview: {
         Args: { p_search?: string; p_filter?: string; p_offset?: number; p_limit?: number }
         Returns: Json

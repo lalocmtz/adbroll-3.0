@@ -1,6 +1,14 @@
-const destinations = new Set(["/app", "/affiliates", "/pricing", "/settings", "/canjear"]);
+const destinations = new Set(["/app", "/affiliates", "/pricing", "/settings", "/canjear", "/colaboraciones"]);
 export function authDestination(value: string | null): string {
-  return value && destinations.has(value) ? value : "/app";
+  if (value && destinations.has(value)) return value;
+  // Preserve only the community invitation parameter, never arbitrary redirects.
+  if (value && /^\/affiliates\?leader=[a-zA-Z0-9]{4,12}$/.test(value)) {
+    return `/affiliates?leader=${value.split("=")[1].toUpperCase()}`;
+  }
+  if (value && /^\/canjear\?code=CREATOR-[A-Z0-9]+$/i.test(value)) {
+    return `/canjear?code=${value.split("=")[1].toUpperCase()}`;
+  }
+  return "/app";
 }
 export function authCallbackUrl(destination: string): string {
   return `${window.location.origin}/auth/continue?redirect=${encodeURIComponent(authDestination(destination))}`;
