@@ -72,5 +72,51 @@ await login(6); const previewApp=await submit();await db.exec('reset role');asse
 await login(1);await review(previewApp.id,false);await db.exec('reset role');assert.equal(await paid(6),true);
 await db.query("update creator_program_applications set subscription_ends_at=now()-interval '1 day' where user_id=$1",[uid(6)]);assert.equal(await paid(6),false);
 await login(6);await submit();await login(1);await review(previewApp.id);await db.exec('reset role');assert.equal(await paid(6),true);
+// The capacity migration backfills already-approved lifetimes and permanently closes at 100.
+// A previously revoked lifetime must also consume its original place.
+await db.query("update creator_program_applications set status='rejected' where id=$1",[app.id]);
+await db.exec(await readFile(new URL('../supabase/migrations/20261013134121_creator_lifetime_capacity_100.sql',import.meta.url),'utf8'));
+const capacity=async()=>(await db.query('select get_creator_lifetime_capacity() as result')).rows[0].result;
+assert.deepEqual(await capacity(),{limit:100,claimed:2,remaining:98,is_open:true});
+await db.query("update creator_program_applications set status='active' where id=$1",[app.id]);
+assert.equal((await capacity()).claimed,2);
+await db.exec('set role anon');
+assert.deepEqual(await capacity(),{limit:100,claimed:2,remaining:98,is_open:true});
+await assert.rejects(()=>db.query('select * from creator_lifetime_places'),/permission denied/);
+await assert.rejects(()=>db.query('select * from creator_lifetime_capacity_state'),/permission denied/);
+await db.exec('reset role');
+await db.exec(`insert into auth.users(id,email,email_confirmed_at) select ('00000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,'user'||n||'@example.com',now() from generate_series(10,110)n;`);
+// Approved service writes must consume a place too; they cannot bypass the cap.
+await db.exec(`insert into creator_program_applications(email,user_id,status,access_kind,approved_at)
+  select email,id,'active','lifetime',now() from auth.users where email ~ '^user([1-9][0-9]|10[0-6])@' and id>='00000000-0000-0000-0000-000000000010'::uuid;`);
+assert.deepEqual(await capacity(),{limit:100,claimed:99,remaining:1,is_open:true});
+await login(107);const place100=await submit();
+await login(108);const place101=await submit();
+assert.equal((await capacity()).claimed,99); // Pending applications do not reserve a place.
+await login(1);
+await db.query('select grant_creator_preview($1,$2)',['user109@example.com',7]);
+assert.equal((await capacity()).claimed,99); // Neither do invited previews.
+const finalPlace=await review(place100.id);
+assert.deepEqual(await capacity(),{limit:100,claimed:100,remaining:0,is_open:false});
+assert.deepEqual(await review(place100.id),finalPlace); // Idempotency survives closure.
+await assert.rejects(()=>review(place101.id),/Se agotaron los 100/);
+await login(108);await assert.rejects(submit(),/Se agotaron los 100/);
+await login(110);await assert.rejects(submit(),/Se agotaron los 100/);
+await login(2);assert.equal((await redeem(approved.grant_code)).access_kind,'lifetime'); // Existing grants remain usable.
+await db.exec('reset role');
+await db.query("update creator_program_applications set status='rejected' where id=$1",[place100.id]);
+assert.equal((await capacity()).claimed,100);assert.equal((await capacity()).is_open,false);
+await db.query('delete from creator_program_applications where id=$1',[place100.id]);
+assert.equal((await capacity()).claimed,100); // No FK cascade can release the durable place.
+await assert.rejects(()=>db.exec('delete from creator_lifetime_places where place_number=100'),/permanentes/);
+await assert.rejects(()=>db.exec('truncate creator_lifetime_places'),/permanentes/);
+await assert.rejects(()=>db.exec('update creator_lifetime_capacity_state set claimed=99'),/solo puede avanzar/);
+await db.exec('grant insert on creator_program_applications to service_role;set role service_role');
+await assert.rejects(()=>db.query("insert into creator_program_applications(email,user_id,status,access_kind,approved_at) values('bypass@example.com',$1,'active','lifetime',now())",[uid(110)]),/Se agotaron los 100/);
+await assert.rejects(()=>db.exec('delete from creator_lifetime_places'),/permission denied/);
+await db.exec('reset role');
+assert.equal((await db.query('select count(*)::integer n from creator_lifetime_places')).rows[0].n,100);
+assert.deepEqual(await capacity(),{limit:100,claimed:100,remaining:0,is_open:false});
+console.log('PASS: durable capacity backfill, public aggregate without PII, 99/100/101 boundary, no pending/preview reservation, repeat approval/redemption, permanent closure after revocation/deletion, no counter reset, and service-write bypass prevention.');
 console.log('PASS: verified email binding, 3 distinct URLs, ad consent, founder-only approval, denied direct writes, lifetime expiry semantics, legacy atomic redemption, repeat idempotency, revoked entitlement, founder overview and resubmission.');
 await db.close();

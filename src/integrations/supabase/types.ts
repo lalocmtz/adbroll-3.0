@@ -2366,6 +2366,10 @@ export type Database = {
       }
     }
     Functions: {
+      get_creator_lifetime_capacity: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       grant_creator_preview: {
         Args: { p_email: string; p_days?: number }
         Returns: Json

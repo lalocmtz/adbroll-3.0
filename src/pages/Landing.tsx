@@ -33,6 +33,7 @@ import {
   trackViewContent,
 } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { useCreatorLifetimeCapacity } from "@/hooks/useCreatorLifetimeCapacity";
 
 /* =====================================================================
  * TokXray landing — concepto: "TokXray analiza qué funciona HOY en
@@ -122,6 +123,7 @@ const PRICE_USD = 29.00;
 /* ============================== page ============================== */
 
 const Landing = () => {
+  const lifetimeCapacity = useCreatorLifetimeCapacity();
   const navigate = useNavigate();
   const { market } = useMarket();
   const { formatMoney } = useLanguage();
@@ -279,7 +281,7 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-brand-mist text-brand-ink">
       <GlobalHeader showMenu={false} />
-      <div className="bg-brand-ink text-brand-mist text-center px-4 py-4 text-sm border-b border-white/10"><a href="/programa-creadores" className="inline-flex items-center justify-center rounded-lg bg-brand-pink px-5 py-3 font-semibold text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-cyan">Gana dinero recomendando TokXray →</a></div>
+      <div className="bg-brand-ink text-brand-mist text-center px-4 py-4 text-sm border-b border-white/10 space-y-3"><a href="/programa-creadores" className="inline-flex items-center justify-center rounded-lg bg-brand-pink px-5 py-3 font-semibold text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-cyan">Gana dinero recomendando TokXray →</a><p><a href="/programa-creadores#acceso-vitalicio" className="inline-block py-2 text-brand-cyan underline underline-offset-4">{lifetimeCapacity.capacity ? lifetimeCapacity.capacity.is_open ? `Solo 100 creadores: quedan ${lifetimeCapacity.capacity.remaining} accesos vitalicios por contenido` : 'Los 100 accesos vitalicios ya fueron otorgados · conoce el programa' : 'Oferta para los primeros 100 creadores · consulta disponibilidad'}</a></p></div>
 
       {/* ===================== HERO ===================== */}
       <section className="relative overflow-hidden bg-gradient-ink text-brand-mist">

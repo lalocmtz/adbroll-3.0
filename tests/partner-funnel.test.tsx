@@ -3,10 +3,32 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import PartnerLanding from "@/pages/PartnerLanding";
 import { authDestination } from "@/lib/auth-destination";
+const capacityMock = vi.hoisted(() => ({ capacity: { limit: 100, claimed: 0, remaining: 100, is_open: true } as any, error: null as string | null }));
+vi.mock("@/hooks/useCreatorLifetimeCapacity", () => ({ useCreatorLifetimeCapacity: () => ({ ...capacityMock, loading: false, refresh: vi.fn() }) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { storage: { from: () => ({ getPublicUrl: () => ({ data: { publicUrl: "https://example.com/presentation.mp4" } }) }) } } }));
 vi.mock("@/lib/attribution", () => ({ getStoredRefCode: () => "ALICIA" }));
-beforeEach(() => window.history.replaceState({}, "", "/"));
+beforeEach(() => { window.history.replaceState({}, "", "/"); capacityMock.capacity = { limit: 100, claimed: 0, remaining: 100, is_open: true }; capacityMock.error = null; });
 describe("creator funnel", () => {
+  it("closes the lifetime offer at 100 without closing the commission program", () => {
+    capacityMock.capacity = { limit: 100, claimed: 100, remaining: 0, is_open: false };
+    render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
+    expect(screen.queryByRole('link', { name: /Quiero ser uno de los 100/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Consultar mi solicitud o acceso/ })).toHaveAttribute('href', '/colaboraciones');
+    expect(screen.getByRole('link', { name: /Quiero recomendar/ })).toBeVisible();
+  });
+  it("shows real remaining places and explains that signup does not reserve one", () => {
+    capacityMock.capacity = { limit: 100, claimed: 99, remaining: 1, is_open: true };
+    render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
+    expect(screen.getAllByText('Queda 1 de 100 accesos vitalicios')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: /Quiero ser uno de los 100/ })).toHaveAttribute('href', '/register?redirect=%2Fcolaboraciones&ref=ALICIA');
+    expect(screen.getByText(/Crear tu cuenta, recibir una prueba o enviar los enlaces no reserva/)).toBeVisible();
+  });
+  it("does not promise an available place if capacity is unknown", () => {
+    capacityMock.capacity = null; capacityMock.error = 'No pudimos verificar los accesos disponibles.';
+    render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
+    expect(screen.queryByRole('link', { name: /Quiero ser uno de los 100/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Consultar disponibilidad/ })).toBeVisible();
+  });
   it("preserves referral and destination for both signup paths", () => {
     render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
     expect(screen.getByRole("link", { name: /Quiero recomendar/ })).toHaveAttribute("href", "/register?redirect=%2Faffiliates&ref=ALICIA");

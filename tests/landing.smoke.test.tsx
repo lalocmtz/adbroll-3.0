@@ -6,6 +6,7 @@ import Landing from "@/pages/Landing";
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
+    rpc: vi.fn().mockResolvedValue({ data: { limit: 100, claimed: 24, remaining: 76, is_open: true }, error: null }),
     auth: { getUser: vi.fn().mockResolvedValue({data:{user:null}}), signOut: vi.fn() },
     from: () => {
       const query = { select: () => query, eq: () => query, not: () => query, neq: () => query, order: () => query, limit: async () => ({data:[],error:null}) };
@@ -19,6 +20,10 @@ async function renderLanding() {
   await waitFor(()=>expect(screen.getByRole("button",{name:"Empezar ahora"})).toBeInTheDocument());
 }
 describe("Mexico launch landing",()=>{
+  it("uses the real capacity for the creator invitation",async()=>{
+    await renderLanding();
+    expect(await screen.findByRole('link',{name:'Solo 100 creadores: quedan 76 accesos vitalicios por contenido'})).toHaveAttribute('href','/programa-creadores#acceso-vitalicio');
+  });
   it("does not fabricate rankings when the data source returns no rows",async()=>{
     await renderLanding();
     expect(await screen.findByText("No hay videos disponibles en este momento.")).toBeInTheDocument();

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useCreatorLifetimeCapacity } from "@/hooks/useCreatorLifetimeCapacity";
+import { CreatorLifetimeCapacity } from "@/components/creators/CreatorLifetimeCapacity";
 
 interface Application {
   id: string;
@@ -41,6 +43,8 @@ const CreatorProgramManager = () => {
   const [filter, setFilter] = useState<string>("all");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { toast } = useToast();
+  const capacityState = useCreatorLifetimeCapacity();
+  const canApprove = !capacityState.loading && !capacityState.error && capacityState.capacity?.is_open === true;
   const [previewEmail, setPreviewEmail] = useState("");
   const [previewDays, setPreviewDays] = useState(7);
   const [grantingPreview, setGrantingPreview] = useState(false);
@@ -86,6 +90,11 @@ const CreatorProgramManager = () => {
   }, [filter]);
 
   const reviewApplication = async (application: Application, approve: boolean) => {
+    if (approve && !canApprove) {
+      toast({ title: 'No se puede aprobar ahora', description: 'Verifica el cupo disponible. Los accesos ya otorgados se conservan.', variant: 'destructive' });
+      await capacityState.refresh();
+      return;
+    }
     setProcessingId(application.id);
     try {
       const { error } = await supabase.rpc("review_creator_lifetime_application", {
@@ -97,7 +106,7 @@ const CreatorProgramManager = () => {
       await fetchApplications();
     } catch (error: any) {
       toast({ title: "No se pudo revisar", description: error.message, variant: "destructive" });
-    } finally { setProcessingId(null); }
+    } finally { await capacityState.refresh(); setProcessingId(null); }
   };
 
   const copyToClipboard = (text: string) => {
@@ -126,7 +135,8 @@ const CreatorProgramManager = () => {
 
   return (
     <div className="space-y-6">
-      <Card><CardHeader><CardTitle>Invitar a un creador a probar TokXray</CardTitle><CardDescription>Primero debe crear y verificar su cuenta. Activa una prueba para que grabe; el acceso vitalicio se aprueba después de recibir los tres videos y el permiso de pauta.</CardDescription></CardHeader>
+      <CreatorLifetimeCapacity state={capacityState} />
+      <Card><CardHeader><CardTitle>Invitar a un creador a probar TokXray</CardTitle><CardDescription>Primero debe crear y verificar su cuenta. Activa una prueba para que grabe; el acceso vitalicio se aprueba después de recibir los tres videos y el permiso de pauta, si quedan lugares. Activar una prueba no reserva ni consume cupo.</CardDescription></CardHeader>
         <CardContent><form onSubmit={grantPreview} className="flex flex-col sm:flex-row gap-3 items-end">
           <label className="text-sm space-y-1 flex-1 w-full">Correo de su cuenta<Input aria-label="Correo del creador invitado" type="email" required value={previewEmail} onChange={e => setPreviewEmail(e.target.value)} placeholder="creador@ejemplo.com" /></label>
           <label className="text-sm space-y-1 w-full sm:w-28">Días de prueba<Input aria-label="Días de prueba" type="number" min={1} max={30} required value={previewDays} onChange={e => setPreviewDays(Number(e.target.value))} /></label>
@@ -199,7 +209,7 @@ const CreatorProgramManager = () => {
                   <SelectItem value="rejected">Rechazados</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="icon" onClick={fetchApplications}>
+              <Button variant="outline" size="icon" aria-label="Actualizar solicitudes y cupo" onClick={() => { void fetchApplications(); void capacityState.refresh(); }}>
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               </Button>
             </div>
@@ -272,8 +282,6 @@ const CreatorProgramManager = () => {
                       ) : (
                         <span className="text-xs text-muted-foreground">Se crea al aprobar</span>
                       )}
-                        </Button>
-                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {format(new Date(app.created_at), "dd MMM", { locale: es })}
@@ -285,8 +293,8 @@ const CreatorProgramManager = () => {
                             variant="default"
                             size="sm"
                             onClick={() => reviewApplication(app, true)}
-                            disabled={processingId === app.id || app.video_urls?.length !== 3 || !app.ad_permission_at}
-                            title="Revisa tres videos originales publicados y permiso de pauta antes de activar"
+                            disabled={processingId === app.id || !canApprove || app.video_urls?.length !== 3 || !app.ad_permission_at}
+                            title={canApprove ? "Revisa tres videos originales publicados y permiso de pauta antes de activar" : "Se requiere cupo disponible confirmado para aprobar"}
                           >
                             {processingId === app.id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -300,6 +308,7 @@ const CreatorProgramManager = () => {
                           <Button
                             variant="destructive"
                             size="sm"
+                            aria-label={`Devolver entrega de ${app.full_name}`}
                             onClick={() => reviewApplication(app, false)}
                             disabled={processingId === app.id}
                           >

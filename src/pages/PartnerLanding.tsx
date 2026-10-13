@@ -5,9 +5,12 @@ import { BrandContactLinks } from "@/components/BrandContactLinks";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { getStoredRefCode } from "@/lib/attribution";
+import { useCreatorLifetimeCapacity } from "@/hooks/useCreatorLifetimeCapacity";
+import { CreatorLifetimeCapacity } from "@/components/creators/CreatorLifetimeCapacity";
 import "./partner-landing.css";
 
 export default function PartnerLanding() {
+  const lifetimeCapacity = useCreatorLifetimeCapacity();
   const [referrals, setReferrals] = useState(10);
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -36,6 +39,8 @@ export default function PartnerLanding() {
           <p className="partner-intro">Aprende qué grabar con ejemplos de TikTok Shop. Comparte TokXray con otros creadores y gana <strong>$10 USD por su primer pago y 15% de sus renovaciones</strong> mientras sigan suscritos.</p>
           <div className="partner-actions"><Link className="partner-button" to={register(leader ? `/affiliates?leader=${leader}` : "/affiliates")}>Quiero recomendar TokXray <ArrowUpRight size={20} /></Link><Link className="partner-text-link" to={register("/pricing")}>Quiero usar la herramienta <ArrowRight size={17} /></Link></div>
           <p className="partner-caption">Crea tu cuenta y conoce el programa. No necesitas experiencia previa.</p>
+          <div className="mt-6"><CreatorLifetimeCapacity state={lifetimeCapacity} tone="dark" compact /></div>
+          <a className="partner-text-link mt-3" href="#acceso-vitalicio">{lifetimeCapacity.capacity?.is_open === false ? 'Ver cierre del acceso vitalicio' : 'Conoce cómo conseguir tu acceso vitalicio'} <ArrowRight size={17} /></a>
           {leader && <p className="partner-caption">Te invita la comunidad <strong>{leader}</strong>. Al crear tu cuenta podrás revisar y aceptar la invitación; registrarte no te vincula automáticamente.</p>}
         </div>
         <aside className="partner-ticket" aria-label="Comisión por renovación">
@@ -68,9 +73,11 @@ export default function PartnerLanding() {
         <p className="partner-caption">Ejemplo: 10 clientes que renuevan generan US$43.50 para el creador y US$14.50 para su líder. No se paga por incorporar creadores ni por una primera compra indirecta. Las comisiones requieren pagos reales elegibles.</p>
         <Link className="partner-button" to={register(leader ? `/affiliates?leader=${leader}` : "/affiliates")}>Crear mi comunidad <ArrowUpRight size={20} /></Link>
       </section>
-      <section className="partner-wrap partner-how">
-        <div className="partner-section-head"><p className="partner-eyebrow">PROGRAMA DE CONTENIDO</p><h2>Tres videos.<br />Tu acceso vitalicio.</h2><p>Publica tres videos originales sobre TokXray y autoriza su uso en pauta durante 12 meses. Tras revisar tus entregables, activamos tu acceso personal mientras TokXray opere. Conservas tu código y tus comisiones; no necesitas traer clientes para conservar ese acceso.</p></div>
-        <Link className="partner-button" to={register("/colaboraciones")}>Solicitar acceso por contenido <ArrowUpRight size={20} /></Link>
+      <section id="acceso-vitalicio" className="partner-wrap partner-how scroll-mt-8">
+        <div className="partner-section-head"><p className="partner-eyebrow">SOLO LOS PRIMEROS 100 CREADORES APROBADOS</p><h2>{lifetimeCapacity.capacity?.is_open === false ? <>Los 100 accesos<br />ya fueron otorgados.</> : <>Tres videos.<br />Tu acceso vitalicio.</>}</h2><p>Esta oferta se cierra al otorgar 100 accesos. Publica tres videos originales sobre TokXray y autoriza su uso en pauta durante 12 meses. Si tus entregables son aprobados y todavía hay cupo, activamos tu acceso personal mientras TokXray opere. Conservas tu código y tus comisiones; no necesitas traer clientes para conservar ese acceso.</p></div>
+        <div className="mb-6 max-w-xl"><CreatorLifetimeCapacity state={lifetimeCapacity} tone="dark" /></div>
+        {lifetimeCapacity.capacity?.is_open && !lifetimeCapacity.error ? <Link className="partner-button" to={register("/colaboraciones")}>Quiero ser uno de los 100 <ArrowUpRight size={20} /></Link> : <Link className="partner-text-link" to="/colaboraciones">{lifetimeCapacity.capacity?.is_open === false ? 'Consultar mi solicitud o acceso' : 'Consultar disponibilidad'} <ArrowRight size={17} /></Link>}
+        <p className="partner-caption">Crear tu cuenta, recibir una prueba o enviar los enlaces no reserva una plaza. Se asigna al aprobar los tres videos y el permiso de pauta. El programa de comisiones sigue disponible aunque se agoten los accesos gratuitos.</p>
       </section>
       <section className="partner-wrap partner-faq"><div><p className="partner-eyebrow">LAS REGLAS, CLARAS</p><h2>Antes de comenzar.</h2></div><div>{[
         ["¿Tengo que ser un creador experto?", "No. TokXray está pensado también para quienes empiezan: referencias, productos y guiones para entender cómo presentar una oferta. Tu contenido y tus resultados siguen dependiendo de ti."],
