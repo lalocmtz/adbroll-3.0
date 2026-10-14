@@ -15,3 +15,6 @@ Oferta aprobada: US$15 mensuales desde el primer pago; sin prueba o descuento po
 149 pruebas automatizadas, TypeScript y compilación aprobados. SQL local cubre duplicados, atribución, reactivación, reembolsos y conservación histórica. Permisos RPC comprobados en producción. Documentos renderizados y revisados en seis páginas.
 
 La compra real con tarjeta y la recepción de su webhook deben comprobarse con la prueba del propietario. No se realizó un cargo en este lanzamiento.
+
+## Publicación verificada
+Vercel producción READY: dpl_8TPW93pXpa62FeyGb7JaFHGUjyLh, commit 0c8ce3ecdb9c5c043ec0558b9940c951b41eafc8. Dominio tokxray.com actualizado. Verificado en navegador: pricing US$15/≈MXN270, registro US$15, programa de creadores US$5/15%/5% y panel autenticado con conteos/comisiones. La cuenta administrativa tiene acceso completo; no se forzó un checkout ni se efectuó un cargo.
