@@ -42,7 +42,7 @@ interface NavItem {
 
 // Section labels
 const sectionLabels = {
-  explore: { es: "EXPLORA TIKTOKSHOP", en: "EXPLORE TIKTOKSHOP" },
+  explore: { es: "PREPARA TU PRÓXIMO VIDEO", en: "PREPARE YOUR NEXT VIDEO" },
   earn: { es: "GANA DINERO", en: "EARN MONEY" },
   workspace: { es: "TU CENTRO", en: "YOUR HUB" },
   account: { es: "CUENTA", en: "ACCOUNT" },
@@ -54,7 +54,7 @@ const exploreItems: NavItem[] = [
   { to: "/app", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle, lockedForVisitor: false },
   { to: "/products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: false },
   { to: "/tools", labelEs: "Analizar video", labelEn: "Analyze video", icon: Wand2, lockedForVisitor: false },
-  { to: "/ranking-creadores", labelEs: "Ranking Creadores", labelEn: "Creator Rankings", icon: TrendingUp, lockedForVisitor: false },
+  { to: "/ranking-creadores", labelEs: "Ranking de creadores", labelEn: "Creator Rankings", icon: TrendingUp, lockedForVisitor: false },
   { to: "/opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
 ];
 

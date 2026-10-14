@@ -3,9 +3,9 @@ export function SubscriptionPrice({ compact = false }: { compact?: boolean; firs
   return <div className="space-y-1">
     <p><strong className={compact ? 'text-2xl tracking-tight' : 'text-3xl font-bold tracking-tight'}>US${MONTHLY_PRICE_USD}</strong><span className="ml-1.5 text-sm text-muted-foreground">/ mes</span></p>
     <p className="text-sm text-muted-foreground">≈ ${estimateMxn(MONTHLY_PRICE_USD)} MXN / mes</p>
-    <p className="text-xs text-muted-foreground">El mismo precio desde el primer mes, con o sin código.</p>
+    <p className="text-xs text-muted-foreground">US$29 desde el primer mes. El código de creador no cambia el precio.</p>
   </div>;
 }
 export function CurrencyDisclosure() {
-  return <p className="text-[11px] leading-relaxed text-muted-foreground">Cobro en USD. Equivalente ilustrativo a $18 MXN/USD; tu banco determina el tipo de cambio y el importe en pesos. Revisa el total antes de confirmar en Stripe.</p>;
+  return <p className="text-[11px] leading-relaxed text-muted-foreground">El cobro es en dólares (USD). La referencia en pesos usa $18 MXN por dólar; el tipo de cambio y el importe final dependen de tu banco. Revisa el total en Stripe antes de confirmar.</p>;
 }

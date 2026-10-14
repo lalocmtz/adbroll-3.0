@@ -12,13 +12,16 @@ import { Link } from "react-router-dom";
 
 const faqData = {
   es: [
+    { question: "¿Cómo preparo mi primer video con TokXray?", answer: "Elige una referencia de un producto que puedas demostrar. Revisa sus ventas y período; con Pro puedes analizar un video disponible y adaptar el guion a tu voz. Graba tu versión y observa cómo responde tu audiencia." },
+    { question: "¿Los datos son en tiempo real?", answer: "No. El catálogo se actualiza semanalmente con reportes de TikTok Shop México. Comprueba el período y la fecha del reporte antes de comparar cifras." },
+    { question: "¿Necesito tarjeta para explorar?", answer: "No necesitas tarjeta para la vista previa ni para crear tu cuenta. Los datos completos y las herramientas de análisis requieren Pro. Solo pagas cuando contratas la suscripción." },
     {
       question: "¿Qué es TokXray?",
-      answer: "TokXray es una herramienta de análisis creativo que ayuda a identificar videos, productos y guiones que están funcionando en TikTok Shop."
+      answer: "TokXray te ayuda a elegir qué grabar para TikTok Shop México: compara productos y videos con ventas reportadas, entiende el guion y prepara tu propia versión. Las referencias orientan tus pruebas; no garantizan ventas."
     },
     {
       question: "¿Cómo funciona la suscripción?",
-      answer: "La suscripción se renueva automáticamente cada mes. Puedes cancelarla en cualquier momento desde tu panel de usuario. Una vez cancelada, el acceso permanece activo hasta que concluya el periodo ya pagado."
+      answer: "Pro cuesta US$29 al mes y se renueva automáticamente. Crear tu cuenta es gratis y no genera un cobro. Puedes cancelarla en cualquier momento desde tu panel de usuario. Una vez cancelada, el acceso permanece activo hasta que concluya el periodo ya pagado."
     },
     {
       question: "¿Cómo aparecerá el cargo en mi estado de cuenta?",
@@ -38,13 +41,16 @@ const faqData = {
     }
   ],
   en: [
+    { question: "How do I prepare my first video with TokXray?", answer: "Choose a reference for a product you can demonstrate. Check its reported sales and period. With Pro, analyze an available video and adapt the script to your voice. Film your version and observe your audience’s response." },
+    { question: "Is the data live?", answer: "No. The catalog is updated weekly with TikTok Shop Mexico reports. Check the date and reporting period before comparing figures." },
+    { question: "Do I need a card to explore?", answer: "No card is required for the preview or to create an account. Full data and analysis tools require Pro. You only pay when you subscribe." },
     {
       question: "What is TokXray?",
-      answer: "TokXray is a creative analytics tool that helps identify videos, products, and scripts that are working on TikTok Shop."
+      answer: "TokXray helps you decide what to film for TikTok Shop Mexico: compare products and videos with reported sales, understand the script and prepare your own version. References inform your tests; they do not guarantee sales."
     },
     {
       question: "How does the subscription work?",
-      answer: "The subscription renews automatically every month. You can cancel it at any time from your user dashboard. Once canceled, access remains active until the end of the already paid period."
+      answer: "Pro costs US$29 per month and renews automatically. Creating an account is free and does not charge you. You can cancel it at any time from your user dashboard. Once canceled, access remains active until the end of the already paid period."
     },
     {
       question: "How will the charge appear on my statement?",
@@ -81,8 +87,8 @@ const FAQ = () => {
           <h1 className="text-3xl md:text-4xl font-bold mb-4">{t("faq")}</h1>
           <p className="text-lg text-muted-foreground">
             {language === "es" 
-              ? "Encuentra respuestas a las preguntas más comunes sobre TokXray"
-              : "Find answers to the most common questions about TokXray"
+              ? "Ten claro qué puedes explorar, qué incluye Pro y cómo gestionar tu cuenta"
+              : "Understand what you can explore, what Pro includes and how to manage your account"
             }
           </p>
         </div>

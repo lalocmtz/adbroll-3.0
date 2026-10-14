@@ -33,14 +33,12 @@ import {
   trackViewContent,
 } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { formatReportPeriod } from "@/lib/catalog-period";
 import { useCreatorLifetimeCapacity } from "@/hooks/useCreatorLifetimeCapacity";
 
-/* =====================================================================
- * TokXray landing — concepto: "TokXray analiza qué funciona HOY en
- * TikTok Shop por ti. Ve qué vende en tiempo real, qué se dijo en el
- * video y copia el guión." Sin mencionar la palabra prohibida.
- * Todos los CTA llevan directo a /app (app-first, gateada por blur).
- * ===================================================================== */
+/* Landing: dejar de grabar a ciegas → elegir una referencia → adaptar el guion.
+ * Las cifras corresponden al reporte importado, no a ventas en tiempo real.
+ * Los CTA de exploración llevan a la vista previa de /app. */
 
 /* ------------------------- live data types -------------------------- */
 
@@ -52,6 +50,7 @@ interface LiveVideo {
   creator_name: string | null;
   creator_handle: string | null;
   revenue_mxn: number | null;
+  snapshot_date_range: string | null;
   sales: number | null;
   views: number | null;
   product_name: string | null;
@@ -79,42 +78,50 @@ const guionVariants: Record<
   { label: string; tone: string; body: string }
 > = {
   transcrito: {
-    label: "Transcrito",
-    tone: "Lo que dijo el creador, palabra por palabra",
-    body: 'Miren esto, llevo tres semanas usando este serum y mi piel cambió por completo. El truco es aplicarlo antes del bloqueador. Les dejo el link aquí abajo, yo ya compré tres.',
+    label: "Referencia",
+    tone: "Ejemplo didáctico: problema, demostración y siguiente paso",
+    body: '¿Tu escritorio también termina así? Mira cómo uso este organizador para separar los cables y dejar a mano lo que necesito. Te muestro cómo queda y las medidas para que veas si cabe en tu espacio.',
   },
   ia_optimizado: {
-    label: "Optimizado",
-    tone: "Reescrito para tu producto, mismo hook, mismo ritmo",
-    body: 'Tres semanas con este [TU_PRODUCTO] y noto la diferencia real. El truco está en cuándo lo usas, no en cuánto. Te explico en 15 segundos por qué ya compré tres. Link abajo.',
+    label: "Tu versión",
+    tone: "Conserva la estructura. Cambia el producto y cuenta tu experiencia real",
+    body: '¿Te pasa [PROBLEMA CONCRETO]? Así uso [TU PRODUCTO] para [USO QUE PUEDES DEMOSTRAR]. Te enseño el antes, cómo funciona y qué revisaría antes de comprarlo. Mira los detalles en la ficha.',
   },
   ia_agresivo: {
-    label: "Agresivo",
-    tone: "Hook más fuerte, urgencia, directo al CTA",
-    body: 'Spoiler: este [TU_PRODUCTO] hizo lo que 5 productos caros no pudieron. Tres semanas, resultados reales, y sí, ya compré tres. ¿Lo vas a probar o vas a seguir gastando en lo mismo? Link abajo.',
+    label: "Otro inicio",
+    tone: "Prueba un comienzo distinto sin inventar resultados ni urgencia",
+    body: 'Antes de comprar [TU PRODUCTO], revisa esto: [DETALLE IMPORTANTE]. Aquí puedes ver cómo funciona en [SITUACIÓN REAL]. Si buscas [USO ESPECÍFICO], compara las medidas y características en la ficha.',
   },
 };
 
 const faqs = [
   {
-    q: "¿Qué es TokXray?",
-    a: "TokXray analiza por ti qué está vendiendo en TikTok Shop. En cada actualización ves los videos que más venden, cuánto generaron y exactamente qué se dijo en ellos, con el guión listo para copiar y adaptar a tu producto.",
+    q: "¿Qué voy a poder hacer con TokXray?",
+    a: "Elegir un producto con más contexto antes de grabar. Consulta videos con ventas reportadas de TikTok Shop México, entiende qué se dijo y adapta el guion a tu producto y a tu forma de hablar. Tú decides qué probar; TokXray te ayuda a dejar de empezar desde cero.",
+  },
+  {
+    q: "¿En qué se diferencia de buscar videos gratis en TikTok?",
+    a: "Aquí puedes comparar la referencia, sus ventas reportadas y el análisis de su guion en un mismo recorrido. Las vistas por sí solas no te dicen cuánto vendió un video. Revisa el período del reporte antes de comparar.",
+  },
+  {
+    q: "¿Puedo explorar antes de pagar?",
+    a: "Sí. Puedes explorar la vista previa sin tarjeta y crear tu cuenta gratis. Los datos completos y las herramientas de análisis requieren Pro, por US$29 al mes. Crear una cuenta no inicia una suscripción ni genera un cobro.",
   },
   {
     q: "¿Cada cuánto se actualiza?",
     a: "Actualizamos el catálogo semanalmente con reportes sobre TikTok Shop México. Consulta el período de cada ranking y la fecha del último reporte; no son ventas en tiempo real.",
   },
   {
-    q: "¿Puedo copiar los guiones?",
-    a: "En los videos analizados puedes consultar la transcripción y generar variantes. Adáptalas a tu producto y comprueba que cada afirmación sea cierta antes de publicar.",
+    q: "¿Tengo que copiar lo que dice otro creador?",
+    a: "No. Usa la referencia para entender cómo empieza, demuestra el producto y propone la compra. Adapta la estructura a tu voz y revisa las transcripciones y variantes de IA. Publica tu propio video y solo afirma lo que puedas demostrar.",
   },
   {
-    q: "¿Cómo veo las oportunidades?",
-    a: "TokXray te marca los productos que venden mucho, con pocos creadores compitiendo y con mejor comisión. Así sabes qué empujar antes de que se sature.",
+    q: "¿Esto garantiza que voy a vender?",
+    a: "No. Las ventas de otra persona no garantizan las tuyas. Las oportunidades comparan señales del reporte: ventas, creadores y comisión disponible. Son un punto de partida para elegir y probar, no una promesa de ingresos ni de poca competencia futura.",
   },
   {
     q: "¿Puedo cancelar cuando quiera?",
-    a: "Sí, en un clic, sin letra chica. No tocamos tu tarjeta si cancelas antes del siguiente cobro.",
+    a: "Sí. En Configuración puedes gestionar tu suscripción y cancelar la próxima renovación. Conservas el acceso hasta que termine el período pagado. El cobro mensual es en USD; tu banco determina el importe en pesos.",
   },
 ];
 
@@ -156,7 +163,7 @@ const Landing = () => {
           .from("videos")
           .select(
             `id, thumbnail_url, video_mp4_url, title, creator_name, creator_handle,
-             revenue_mxn, sales, views, product_name, product_id,
+             revenue_mxn, sales, views, product_name, product_id, snapshot_date_range,
              product:products!product_id ( commission )`,
           )
           .eq("country", market)
@@ -319,16 +326,15 @@ const Landing = () => {
 
           {/* concept-first H1 */}
           <h1 className="text-center text-display-lg md:text-display-xl font-display font-extrabold tracking-tight text-balance max-w-3xl mx-auto leading-[1.05]">
-            Ve qué está{" "}
-            <span className="text-brand-pink">vendiendo</span> en TikTok
-            Shop, qué dijeron en el video y{" "}
-            <span className="text-brand-cyan">copia el guión.</span>
+            Deja de <span className="text-brand-pink">grabar a ciegas.</span>{" "}
+            Ve qué vende y prepara{" "}
+            <span className="text-brand-cyan">tu próximo guion.</span>
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-center text-base md:text-xl leading-relaxed text-brand-mist/75">
-            Explora los datos de TikTok Shop México:
-            los videos que más venden, cuánto generaron y el guión completo,
-            listo para adaptar a tu producto.
+            Ya le dedicas tiempo a grabar. Elige tu próximo video con una referencia:
+            qué producto vendió, cuánto generó según el reporte y qué dijo el creador.
+            Adapta el guion a tu voz y a tu producto.
           </p>
 
           {/* CTA row */}
@@ -339,7 +345,7 @@ const Landing = () => {
               onClick={() => goApp("hero")}
               className="w-full sm:w-auto"
             >
-              Ver lo que vende
+              Explorar videos gratis
               <ArrowRight className="ml-1 h-5 w-5" />
             </Button>
             <Button
@@ -360,11 +366,11 @@ const Landing = () => {
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Eye className="h-3.5 w-3.5 text-brand-cyan" />
-              Empieza sin tarjeta
+              Vista previa sin tarjeta
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Copy className="h-3.5 w-3.5 text-brand-cyan" />
-              Guiones listos para copiar
+              Guiones para hacer tu versión
             </span>
           </div>
         </div>
@@ -377,10 +383,10 @@ const Landing = () => {
             <div>
               <span className="text-micro uppercase text-brand-cyan inline-flex items-center gap-1.5">
                 <Flame className="h-3.5 w-3.5" />
-                Videos que más venden · México
+                Referencias con ventas reportadas · México
               </span>
               <h2 className="mt-2 text-display-md font-display font-extrabold tracking-tight">
-                Mira lo que está funcionando
+                Antes de grabar, mira qué vendió
               </h2>
             </div>
           </div>
@@ -406,9 +412,29 @@ const Landing = () => {
 
           <div className="mt-6 flex justify-center">
             <Button variant="brand-outline" size="brand-md" onClick={() => goApp("video_carousel_cta")}>
-              Ver el top completo
+              Explorar el ranking
               <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-brand-mist border-b border-brand-ink/5">
+        <div className="mx-auto max-w-5xl px-[var(--page-pad-x)] py-14 md:py-20">
+          <h2 className="text-center text-display-md font-display font-extrabold text-brand-ink">
+            De «¿qué grabo?» a una idea que puedes probar
+          </h2>
+          <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-brand-ink/60">
+            Si ya vendiste y quieres encontrar qué repetir, empieza por entender la referencia.
+            Si vas comenzando, sigue estos mismos tres pasos.
+          </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            <PillarCard icon={<Eye className="h-5 w-5" />} title="1. Elige una referencia"
+              body="Busca un producto que puedas mostrar y revisa sus videos, ventas y período del reporte." />
+            <PillarCard icon={<Copy className="h-5 w-5" />} title="2. Haz tuyo el guion" accent="cyan"
+              body="Entiende los primeros segundos y la demostración. Adapta las ideas a tu experiencia real." />
+            <PillarCard icon={<PlayCircle className="h-5 w-5" />} title="3. Graba y prueba"
+              body="Publica tu versión. Observa qué funciona con tu audiencia y decide qué ajustar después." />
           </div>
         </div>
       </section>
@@ -422,11 +448,11 @@ const Landing = () => {
               Productos con oportunidad · México
             </span>
             <h2 className="mt-2 text-display-md font-display font-extrabold tracking-tight text-brand-ink">
-              Dónde hay dinero antes de que se sature
+              Elige el producto antes de invertir tu tiempo
             </h2>
             <p className="mt-2 max-w-xl text-brand-ink/60">
-              Productos que venden mucho, con pocos creadores compitiendo y
-              mejor comisión. Aquí es donde conviene entrar.
+              Compara ventas, creadores y comisión disponible. Encuentra un producto
+              que puedas demostrar bien y revisa sus señales antes de elegirlo.
             </p>
           </div>
 
@@ -449,11 +475,12 @@ const Landing = () => {
                   />
                 ))}
           </HScroll>
+          <p className="mt-3 text-xs text-brand-ink/60">Cifras del reporte importado. Abre el catálogo para revisar el período y los datos disponibles de cada producto.</p>
           {!oppsLoading && opps.length === 0 && <p className="text-sm text-brand-ink/60">No hay oportunidades disponibles en este momento.</p>}
 
           <div className="mt-6 flex justify-center">
             <Button variant="brand" size="brand-md" onClick={() => goApp("opp_carousel_cta")}>
-              Ver todas las oportunidades
+              Explorar el catálogo
               <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
@@ -464,12 +491,12 @@ const Landing = () => {
       <section className="bg-brand-ink text-brand-mist">
         <div className="mx-auto max-w-4xl px-[var(--page-pad-x)] py-16 md:py-24">
           <div className="mb-10 text-center">
-            <span className="text-micro uppercase text-brand-cyan">El guión</span>
+            <span className="text-micro uppercase text-brand-cyan">De la referencia a tu voz</span>
             <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight">
-              Analiza el guion y prepara tu propia versión
+              Ya elegiste el producto. Ahora, ¿qué dices?
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-brand-mist/60">
-              Solicita el análisis de un video disponible y adapta sus ideas a tu producto. La transcripción y las variantes generadas con IA necesitan tu revisión.
+              Entiende cómo abre el video, cómo presenta el producto y cómo invita a comprar. Usa esa estructura como punto de partida para tu propio guion.
             </p>
           </div>
 
@@ -511,7 +538,7 @@ const Landing = () => {
             <div className="mt-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-xs text-brand-mist/50">
                 <Sparkles className="h-3.5 w-3.5 text-brand-cyan" />
-                Ejemplo ilustrativo de guión
+                Ejemplo didáctico, no transcripción real
               </div>
               <Button
                 variant={copied ? "cyber" : "brand-outline"}
@@ -526,7 +553,7 @@ const Landing = () => {
                 ) : (
                   <>
                     <Copy className="mr-1 h-4 w-4" />
-                    Copiar guión
+                    Copiar ejemplo
                   </>
                 )}
               </Button>
@@ -540,33 +567,33 @@ const Landing = () => {
         <div className="mx-auto max-w-5xl px-[var(--page-pad-x)] py-16 md:py-24">
           <div className="mb-10 text-center">
             <span className="text-micro uppercase text-brand-pink">
-              Oportunidades reales
+              Señales para decidir
             </span>
             <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-brand-ink">
-              Cómo TokXray detecta dónde hay dinero
+              No elijas solo por la comisión
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-brand-ink/60">
-              El indicador combina señales del reporte para ayudarte a comparar productos. TokXray las cruza
-              por ti, en cada actualización.
+              Un producto necesita contexto. El indicador combina estas señales del reporte
+              para ayudarte a comparar; no predice cuánto vas a vender.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
             <PillarCard
               icon={<TrendingUp className="h-5 w-5" />}
-              title="Vende mucho"
-              body="Productos con ventas destacadas en el período del reporte."
+              title="Ventas reportadas"
+              body="Revisa cuánto vendió el producto y en qué período. Popularidad y ventas no son lo mismo."
             />
             <PillarCard
               icon={<ShoppingBag className="h-5 w-5" />}
-              title="Poca competencia"
-              body="Todavía hay pocos creadores promoviéndolo: aún cabes tú."
+              title="Creadores que lo muestran"
+              body="Compara cuántos creadores aparecen en el reporte. No es una garantía de que el producto esté libre de competencia."
               accent="cyan"
             />
             <PillarCard
               icon={<Wallet className="h-5 w-5" />}
-              title="Mejor comisión"
-              body="Pagan más por venta, así cada video que grabas rinde más."
+              title="Comisión disponible"
+              body="Estima lo que podrías recibir por una venta y confirma la oferta vigente en TikTok Shop."
             />
           </div>
         </div>
@@ -578,7 +605,7 @@ const Landing = () => {
           <div className="mb-10 text-center">
             <span className="text-micro uppercase text-brand-pink">Precio</span>
             <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-brand-ink">
-              Un plan. Un precio. Sin letra chica.
+              Tu próximo video empieza con una decisión
             </h2>
           </div>
 
@@ -611,23 +638,23 @@ const Landing = () => {
                 <ul className="mt-6 space-y-2 text-sm text-brand-mist/80">
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Ranking de videos por ventas
+                    Compara videos por ventas reportadas
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Guión transcrito + 2 versiones reescritas
+                    Consulta el guion y prepara variantes con IA
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Oportunidades de productos detectadas por ti
+                    Elige productos con señales para comparar
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Analiza los videos disponibles en el catálogo
+                    Entiende la estructura de los videos disponibles
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Cancelas en un clic. Sin letra chica.
+                    Gestiona o cancela tu plan desde Configuración
                   </li>
                 </ul>
               </div>
@@ -638,11 +665,11 @@ const Landing = () => {
                   onClick={() => goApp("pricing")}
                   className="w-full"
                 >
-                  Empezar ahora
+                  Explorar antes de suscribirme
                   <ArrowRight className="ml-1 h-5 w-5" />
                 </Button>
                 <p className="text-center text-xs text-brand-mist/45">
-                  Explora gratis primero. Cancelas cuando quieras.
+                  La vista previa es gratis. Pro se contrata por separado y se renueva cada mes.
                 </p>
               </div>
             </div>
@@ -654,9 +681,9 @@ const Landing = () => {
       <section className="bg-brand-mist border-t border-brand-ink/5">
         <div className="mx-auto max-w-3xl px-[var(--page-pad-x)] py-16 md:py-20">
           <div className="mb-10 text-center">
-            <span className="text-micro uppercase text-brand-pink">FAQ</span>
+            <span className="text-micro uppercase text-brand-pink">Antes de decidir</span>
             <h2 className="mt-3 text-display-md font-display font-extrabold tracking-tight text-brand-ink">
-              Dudas frecuentes
+              Resuelve tus dudas antes de dar el paso
             </h2>
           </div>
           <div className="space-y-3">
@@ -687,11 +714,11 @@ const Landing = () => {
             />
             <div className="relative">
               <h2 className="mx-auto max-w-2xl text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-balance">
-                Ve qué vende y copia el guión antes que tu competencia.
+                Que tu próximo video tenga un punto de partida.
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-white/85">
-                Empieza gratis. Los primeros videos y su guión los ves sin
-                pagar nada.
+                No necesitas otra idea al azar. Explora las referencias, elige qué vale
+                la pena probar y prepara un guion que suene a ti.
               </p>
               <div className="mt-8 flex justify-center">
                 <Button
@@ -700,7 +727,7 @@ const Landing = () => {
                   onClick={() => goApp("final_cta")}
                 >
                   <PlayCircle className="mr-1.5 h-5 w-5" />
-                  Ver lo que vende
+                  Explorar videos gratis
                 </Button>
               </div>
             </div>
@@ -715,7 +742,7 @@ const Landing = () => {
             <div className="flex flex-col items-center md:items-start gap-1">
               <BrandLogo tone="dark" />
               <p className="text-sm text-brand-ink/50">
-                Rayos X a TikTok Shop. Ve qué vende, copia el guión.
+                Menos adivinar. Más claridad antes de grabar.
               </p>
             </div>
             <div className="flex items-center gap-6 text-sm text-brand-ink/55">
@@ -723,7 +750,7 @@ const Landing = () => {
                 Entrar
               </button>
               <a href="/login" className="hover:text-brand-ink">
-                Login
+                Iniciar sesión
               </a>
               <a href={`mailto:${BRAND_CONTACT.email}`} className="hover:text-brand-ink">
                 Contacto
@@ -734,6 +761,9 @@ const Landing = () => {
             </p>
           </div>
           <BrandContactLinks className="mt-6 justify-center text-brand-ink/70" />
+          <p className="mt-5 text-center text-xs text-brand-ink/50">
+            TokXray es una herramienta independiente, no afiliada a TikTok. Las ventas corresponden al reporte indicado y no garantizan resultados propios.
+          </p>
         </div>
       </footer>
     </div>
@@ -960,12 +990,15 @@ const VideoCard = ({
       <div className="space-y-1.5 p-3">
         <div>
           <p className="text-[10px] uppercase tracking-wide text-brand-mist/40">
-            Generó en ventas
+            Ventas según el reporte
           </p>
           <p className="font-mono tabular-nums text-money-md font-bold text-brand-cyan">
             {formatMoney(video.revenue_mxn)}
           </p>
         </div>
+        <p className="text-[10px] leading-relaxed text-brand-mist/55">
+          {video.snapshot_date_range ? formatReportPeriod(video.snapshot_date_range) : "Período no disponible"}
+        </p>
         {creatorEarned != null && (
           <p className="text-[11px] text-brand-money">
             Comisión estimada ≈ {formatMoney(creatorEarned)}
@@ -1016,12 +1049,12 @@ const OppCard = ({
         <div className="absolute left-2 top-2 flex gap-1">
           {opp.is_hidden_gem && (
             <span className="rounded-pill bg-white/95 px-2 py-0.5 text-[11px] font-semibold shadow-sm">
-              💎 Joya
+              💎 Señal de oportunidad
             </span>
           )}
           {opp.is_high_pay && (
             <span className="rounded-pill bg-white/95 px-2 py-0.5 text-[11px] font-semibold shadow-sm">
-              💰 Paga bien
+              💰 Comisión destacada
             </span>
           )}
         </div>
@@ -1032,7 +1065,7 @@ const OppCard = ({
         </p>
         <div>
           <p className="text-[10px] uppercase tracking-wide text-brand-ink/40">
-            Vendió
+            Ventas según el reporte
           </p>
           <p className="font-mono tabular-nums text-money-md font-bold text-brand-ink">
             {formatMoney(opp.gmv_30d_calc)}

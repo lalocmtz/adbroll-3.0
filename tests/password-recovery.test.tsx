@@ -10,7 +10,7 @@ describe("password recovery", () => {
     auth.resetPasswordForEmail.mockResolvedValue({ error: null });
     render(<MemoryRouter><PasswordRecovery /></MemoryRouter>);
     fireEvent.change(screen.getByLabelText("Correo electrónico"), { target: { value: "creator@example.com" } });
-    fireEvent.click(screen.getByRole("button", { name: "Enviar enlace" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enviar enlace de recuperación" }));
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Si existe una cuenta"));
     expect(auth.resetPasswordForEmail).toHaveBeenCalledWith("creator@example.com", { redirectTo: `${window.location.origin}/actualizar-contrasena` });
   });

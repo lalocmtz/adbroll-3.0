@@ -78,8 +78,8 @@ const Settings = () => {
       toast({
         title: "Error",
         description: language === "es" 
-          ? "No se pudo abrir el portal" 
-          : "Could not open portal",
+          ? "No pudimos abrir la gestión de tu suscripción. Inténtalo de nuevo."
+          : "We could not open subscription management. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -103,7 +103,7 @@ const Settings = () => {
       return (
         <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
           <Crown className="h-3 w-3 mr-1" />
-          Founder
+          {language === "es" ? "Administrador" : "Administrator"}
         </Badge>
       );
     }
@@ -111,7 +111,7 @@ const Settings = () => {
       return (
         <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0">
           <Sparkles className="h-3 w-3 mr-1" />
-          Creator Program
+          {language === "es" ? "Acceso de creador" : "Creator access"}
         </Badge>
       );
     }
@@ -125,7 +125,7 @@ const Settings = () => {
     }
     return (
       <Badge variant="secondary">
-        Free
+        {language === "es" ? "Cuenta gratuita" : "Free account"}
       </Badge>
     );
   };
@@ -163,7 +163,7 @@ const Settings = () => {
               <Input value={userName} readOnly className="mt-1 bg-muted h-9" />
             </div>
             <div>
-              <Label className="text-xs">Email</Label>
+              <Label className="text-xs">{language === "es" ? "Correo electrónico" : "Email"}</Label>
               <Input value={userEmail} readOnly className="mt-1 bg-muted h-9" />
             </div>
             <div className="flex items-center gap-2 pt-2 text-sm text-muted-foreground">
@@ -187,7 +187,7 @@ const Settings = () => {
             </div>
             {!subscriptionLoading && getPlanBadge()}
           </div>
-          
+
           {subscriptionLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -225,13 +225,13 @@ const Settings = () => {
                     ) : (
                       <>
                         <ExternalLink className="h-4 w-4" />
-                        {language === "es" ? "Gestionar" : "Manage"}
+                        {language === "es" ? "Mis pagos" : "Billing"}
                       </>
                     )}
                   </Button>
                 )}
               </div>
-              
+
               {/* Subscription Info */}
               {!isFounder && !isGrantedAccess && (
                 <div className="pt-3 border-t border-border/50 space-y-2">
@@ -242,8 +242,8 @@ const Settings = () => {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {language === "es"
-                      ? "• Puedes cancelarla en cualquier momento desde el portal"
-                      : "• You can cancel anytime from the portal"}
+                      ? "• Usa Mis pagos para revisar tus pagos o cancelar la renovación"
+                      : "• Use Billing to review payments or cancel renewal"}
                   </p>
                 </div>
               )}
@@ -259,8 +259,8 @@ const Settings = () => {
                 <SubscriptionPrice compact />
                 <p className="text-sm text-muted-foreground mb-4">
                   {language === "es" 
-                    ? "Acceso completo a todas las herramientas" 
-                    : "Full access to all tools"}
+                    ? "Tu cuenta incluye la vista previa. Con Pro puedes analizar referencias y adaptar guiones antes de grabar."
+                    : "Your account includes the preview. With Pro, you can analyze references and adapt scripts before recording."}
                 </p>
                 <Button 
                   onClick={handleSubscribe} 
@@ -270,7 +270,7 @@ const Settings = () => {
                   {checkoutLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    language === "es" ? "Suscribirse" : "Subscribe"
+                    language === "es" ? "Ver el plan Pro" : "View the Pro plan"
                   )}
                 </Button>
               </div>
@@ -300,7 +300,7 @@ const Settings = () => {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">{language === "es" ? "Moneda" : "Currency"}</Label>
+              <Label className="text-xs">{language === "es" ? "Moneda de los datos" : "Data currency"}</Label>
               <Select value={currency} onValueChange={(v) => setCurrency(v as "MXN" | "USD")}>
                 <SelectTrigger className="mt-1 h-9">
                   <SelectValue />

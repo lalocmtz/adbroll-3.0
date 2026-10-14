@@ -19,8 +19,8 @@ interface FolderCreateModalProps {
 }
 
 const suggestedFolders = [
-  { name: "B-Roll", icon: "video", color: "#EF4444", description: "Clips de video para tus contenidos" },
-  { name: "Guiones", icon: "script", color: "#10B981", description: "Scripts y textos para videos" },
+  { name: "Tomas de apoyo", icon: "video", color: "#EF4444", description: "Clips de video para tus contenidos" },
+  { name: "Guiones", icon: "script", color: "#10B981", description: "Guiones y textos para tus videos" },
   { name: "Audios", icon: "audio", color: "#8B5CF6", description: "Música y efectos de sonido" },
   { name: "Proyectos", icon: "project", color: "#3B82F6", description: "Agrupa archivos por proyecto" },
   { name: "Productos", icon: "project", color: "#F59E0B", description: "Fotos y videos de productos" },
@@ -30,7 +30,7 @@ const iconOptions = [
   { id: "folder", icon: Folder, label: "Carpeta" },
   { id: "video", icon: Video, label: "Video" },
   { id: "audio", icon: Music, label: "Audio" },
-  { id: "script", icon: FileText, label: "Guión" },
+  { id: "script", icon: FileText, label: "Guion" },
   { id: "image", icon: ImageIcon, label: "Imagen" },
   { id: "project", icon: Package, label: "Proyecto" },
 ];

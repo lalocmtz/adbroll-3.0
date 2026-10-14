@@ -38,7 +38,7 @@ const PRODUCTS_PER_PAGE = 20;
 
 const SORT_OPTIONS = [
   { value: "ranking", label: "Ranking actual" },
-  { value: "revenue_30d", label: "Más ingresos" },
+  { value: "revenue_30d", label: "Más ventas en pesos" },
   { value: "commission", label: "Más comisión" },
   { value: "creators_count", label: "Más creadores" },
 ];
@@ -244,20 +244,20 @@ const Products = () => {
       <div className="mb-3 md:mb-4 py-1 md:py-0">
         <div className="md:hidden">
           <h1 className="text-base font-bold text-foreground leading-tight">
-            🛒 Productos destacados de TikTok Shop
+            🛒 Elige un producto para tu próximo video
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            TikTok Shop {marketLabel} · Último reporte importado
+            TikTok Shop {marketLabel} · Ventas y comisiones del último reporte
           </p>
         </div>
         
         {/* Desktop minimal header */}
         <div className="hidden md:block">
           <h1 className="text-lg font-bold text-foreground leading-tight">
-            🛒 Productos destacados de TikTok Shop
+            🛒 Elige un producto para tu próximo video
           </h1>
           <p className="text-xs text-muted-foreground">
-            TikTok Shop {marketLabel} · Datos del último reporte importado, no en tiempo real
+            Compara ventas y comisiones, después revisa los videos. TikTok Shop {marketLabel} · Último reporte, no en tiempo real
           </p>
         </div>
       </div>
@@ -335,7 +335,7 @@ const Products = () => {
           <p className="text-muted-foreground text-lg">
             {products.length === 0 
               ? "No hay productos disponibles."
-              : "No hay productos que coincidan con los filtros."}
+              : "No hay productos con estos filtros. Prueba otra categoría."}
           </p>
         </div>
       ) : (
@@ -390,11 +390,11 @@ const Products = () => {
                         )}
                         <div className="grid grid-cols-2 gap-1.5 md:gap-3">
                           <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
-                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Ingresos</p>
+                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Ventas en pesos</p>
                             <p className="text-[11px] md:text-sm font-bold text-foreground">{formatCurrency(getRevenue(product))}</p>
                           </div>
                           <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-muted">
-                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Ventas</p>
+                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Unidades vendidas</p>
                             <p className="text-[11px] md:text-sm font-bold text-foreground">{formatNumber(getSales(product))}</p>
                           </div>
                         </div>
@@ -498,9 +498,9 @@ const Products = () => {
                       <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
                         <div className="hidden md:flex items-center gap-1.5 mb-1">
                           <TrendingUp className="h-3.5 w-3.5 text-foreground/60" />
-                          <span className="text-[11px] text-muted-foreground">Ingresos</span>
+                          <span className="text-[11px] text-muted-foreground">Ventas en pesos</span>
                         </div>
-                        <p className="text-[9px] md:hidden text-muted-foreground">Ingresos</p>
+                        <p className="text-[9px] md:hidden text-muted-foreground">Ventas en pesos</p>
                         <p className="text-[11px] md:text-sm font-bold text-foreground">
                           {formatCurrency(getRevenue(product))}
                         </p>
@@ -509,9 +509,9 @@ const Products = () => {
                       <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-muted">
                         <div className="hidden md:flex items-center gap-1.5 mb-1">
                           <ShoppingCart className="h-3.5 w-3.5 text-foreground/60" />
-                          <span className="text-[11px] text-muted-foreground">Ventas</span>
+                          <span className="text-[11px] text-muted-foreground">Unidades vendidas</span>
                         </div>
-                        <p className="text-[9px] md:hidden text-muted-foreground">Ventas</p>
+                        <p className="text-[9px] md:hidden text-muted-foreground">Unidades vendidas</p>
                         <p className="text-[11px] md:text-sm font-bold text-foreground">
                           {formatNumber(getSales(product))}
                         </p>

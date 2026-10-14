@@ -177,12 +177,12 @@ const Affiliates = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold">
-              {language === "es" ? "Programa de Afiliados" : "Affiliate Program"}
+              {language === "es" ? "Tu código y tus comisiones" : "Your code and commissions"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {language === "es"
-                ? "💰 Gana dinero invitando creadores a TokXray"
-                : "💰 Earn money by inviting creators to TokXray"}
+                ? "Comparte cómo eliges una referencia y preparas un guion con TokXray."
+                : "Share how you choose a reference and prepare a script with TokXray."}
             </p>
           </div>
         </div>
@@ -196,22 +196,22 @@ const Affiliates = () => {
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold mb-1">
-              {language === "es" ? "💰 Gana 15% recurrente por cada referido" : "💰 Earn 15% recurring per referral"}
+              {language === "es" ? "US$10 por el primer pago. 15% por las renovaciones." : "US$10 for the first payment. 15% for renewals."}
             </h2>
             <p className="text-sm text-muted-foreground mb-2">
               {language === "es"
-                ? "Cada vez que alguien se registre con tu código y se suscriba a TokXray Pro, recibirás $10 USD por el primer pago de un cliente nuevo y 15% de sus renovaciones elegibles."
-                : "Every time someone signs up with your code and subscribes to TokXray Pro, you'll receive $10 USD for a new customer's first payment and 15% of eligible renewals."}
+                ? "Por cada cliente nuevo que se suscriba con tu código, recibes US$10 por su primer pago elegible y 15% de sus renovaciones. Crear una cuenta gratuita no genera comisión."
+                : "For each new customer who subscribes with your code, you receive US$10 for their first eligible payment and 15% of renewals. Creating a free account does not earn a commission."}
             </p>
             <p className="text-sm font-medium text-green-600 mb-4">
               {language === "es"
-                ? "≈ $4.35 USD al mes por cada usuario activo"
-                : "≈ $4.35 USD per month for each active user"}
+                ? "Una renovación completa de US$29 genera US$4.35 para ti."
+                : "A full US$29 renewal earns you US$4.35."}
             </p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="gap-1">
                 <TrendingUp className="h-3 w-3" />
-                {language === "es" ? "Sin límite" : "No limit"}
+                {language === "es" ? "Sin límite de seis meses" : "No six-month limit"}
               </Badge>
               <Badge variant="secondary" className="gap-1">
                 <Users className="h-3 w-3" />
@@ -238,12 +238,12 @@ const Affiliates = () => {
             </div>
             <div>
               <p className="font-medium text-sm">
-                {language === "es" ? "Comparte tu link" : "Share your link"}
+                {language === "es" ? "Comparte tu código" : "Share your code"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {language === "es"
-                  ? "Mándalo a otros creadores"
-                  : "Send it to other creators"}
+                  ? "Muéstralo junto a un ejemplo de uso."
+                  : "Show it alongside an example of how you use TokXray."}
               </p>
             </div>
           </div>
@@ -253,10 +253,10 @@ const Affiliates = () => {
             </div>
             <div>
               <p className="font-medium text-sm">
-                {language === "es" ? "Alguien se suscribe" : "Someone subscribes"}
+                {language === "es" ? "Un cliente contrata Pro" : "A customer subscribes to Pro"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {language === "es" ? "Con tu link, a TokXray" : "With your link, to TokXray"}
+                {language === "es" ? "Su compra queda ligada a tu código." : "Their purchase is linked to your code."}
               </p>
             </div>
           </div>
@@ -266,12 +266,12 @@ const Affiliates = () => {
             </div>
             <div>
               <p className="font-medium text-sm text-green-600">
-                {language === "es" ? "Ganas $4.35/mes" : "You earn $4.35/mo"}
+                {language === "es" ? "Consulta tus comisiones" : "Check your commissions"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {language === "es"
-                  ? "Mientras siga pagando"
-                  : "For as long as they keep paying"}
+                  ? "Se registran cuando se cobra un pago elegible."
+                  : "They are recorded when an eligible payment is collected."}
               </p>
             </div>
           </div>
@@ -286,7 +286,7 @@ const Affiliates = () => {
             <div className="flex items-center gap-2 mb-4">
               <Share2 className="h-5 w-5 text-primary" />
               <h3 className="font-semibold">
-                {language === "es" ? "Tu link de afiliado" : "Your affiliate link"}
+                {language === "es" ? "Tu enlace para recomendar Pro" : "Your link to recommend Pro"}
               </h3>
             </div>
 
@@ -294,7 +294,7 @@ const Affiliates = () => {
               {/* One-click copy link — the primary action */}
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">
-                  {language === "es" ? "Tu link de referido" : "Your referral link"}
+                  {language === "es" ? "Enlace para nuevos clientes" : "Link for new customers"}
                 </label>
                 <div className="flex min-w-0 gap-2">
                   <Input
@@ -306,7 +306,7 @@ const Affiliates = () => {
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied
                       ? (language === "es" ? "¡Copiado!" : "Copied!")
-                      : (language === "es" ? "Copiar mi link" : "Copy my link")}
+                      : (language === "es" ? "Copiar enlace" : "Copy link")}
                   </Button>
                 </div>
               </div>
@@ -314,7 +314,7 @@ const Affiliates = () => {
               {/* Editable code (one-time) */}
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">
-                  {language === "es" ? "Tu código" : "Your code"}
+                  {language === "es" ? "Tu código de creador" : "Your creator code"}
                 </label>
                 <div className="flex min-w-0 gap-2">
                   {isEditingCode ? (
@@ -481,8 +481,8 @@ const Affiliates = () => {
                 <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">
                   {language === "es"
-                    ? "Aún no tienes referidos. ¡Comparte tu link y empieza a ganar!"
-                    : "No referrals yet. Share your link and start earning!"}
+                    ? "Todavía no hay clientes vinculados a tu código. Comparte tu enlace cuando muestres cómo usas TokXray."
+                    : "No customers are linked to your code yet. Share your link when you show how you use TokXray."}
                 </p>
               </div>
             ) : (
@@ -561,12 +561,12 @@ const Affiliates = () => {
             <Sparkles className="h-8 w-8 text-green-600" />
           </div>
           <h3 className="text-lg font-bold mb-2">
-            {language === "es" ? "¡Empieza a ganar dinero hoy!" : "Start earning money today!"}
+            {language === "es" ? "Prepara tu código para recomendar TokXray" : "Set up your code to recommend TokXray"}
           </h3>
           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
             {language === "es" 
-              ? "Crea tu código de afiliado único y compártelo con otros creadores. Ganarás hasta $10 USD por cada cliente nuevo y 15% de sus renovaciones elegibles."
-              : "Create your unique affiliate code and share it with other creators. You'll earn up to $10 USD per new customer and 15% of eligible renewals."}
+              ? "Crea tu código y compártelo al enseñar una referencia o un guion que te haya servido. Recibes hasta US$10 por el primer pago de un cliente nuevo y 15% de sus renovaciones elegibles."
+              : "Create your code and share it when showing a reference or script you found useful. You receive up to US$10 for a new customer's first payment and 15% of eligible renewals."}
           </p>
           <Button 
             size="lg" 

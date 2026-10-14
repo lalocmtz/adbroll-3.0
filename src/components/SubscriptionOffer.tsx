@@ -58,10 +58,10 @@ export function SubscriptionOffer() {
   }
   return <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm text-slate-950" aria-label="Suscripción TokXray Pro">
     <div className="flex items-center justify-between gap-3 mb-3"><BrandLogo tone="dark" size="sm" /><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium">TokXray Pro</span></div>
-    {isPro ? <div className="space-y-4 py-4"><h2 className="text-xl font-semibold">Tu acceso completo está activo</h2><p className="text-sm text-muted-foreground">Elige un producto, estudia un video y prepara tu siguiente guion.</p><Button asChild className="w-full h-11"><Link to="/app">Encontrar mi siguiente idea <ArrowRight className="ml-2 h-4 w-4" /></Link></Button><Link to="/settings" className="block text-center text-sm underline">Administrar mi cuenta</Link></div> : <>
+    {isPro ? <div className="space-y-4 py-4"><h2 className="text-xl font-semibold">Tu acceso completo está activo</h2><p className="text-sm text-muted-foreground">Elige una referencia con ventas reportadas, adapta su guion y prepara tu próxima grabación.</p><Button asChild className="w-full h-11"><Link to="/app">Elegir una referencia <ArrowRight className="ml-2 h-4 w-4" /></Link></Button><Link to="/settings" className="block text-center text-sm underline">Administrar mi cuenta</Link></div> : <>
       <SubscriptionPrice />
       <ul className="space-y-2 my-4 text-[13px] leading-5">
-        {['Encuentra productos y videos con ventas reportadas.', 'Entiende el gancho, el guion y la estructura con IA.', 'Prepara tres variantes para grabar con tu estilo.'].map(text => <li className="flex gap-2" key={text}><Check aria-hidden="true" className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />{text}</li>)}
+        {['Elige productos y videos con ventas reportadas.', 'Analiza el guion y sus primeros segundos con IA.', 'Adapta tres variantes de guion a tu estilo y graba.'].map(text => <li className="flex gap-2" key={text}><Check aria-hidden="true" className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />{text}</li>)}
       </ul>
       <details className="mb-3 text-xs" open={code ? true : undefined}>
         <summary className="cursor-pointer py-2 font-medium">{savedCode ? 'Tu código de creador registrado' : '¿Tienes un código de creador?'}</summary>
@@ -69,8 +69,8 @@ export function SubscriptionOffer() {
         <Input id="subscription-referral" value={code} disabled={savedCode} autoCapitalize="characters" maxLength={12} placeholder="Ej. LALO" className="h-10 mt-1" onChange={e => {setCode(e.target.value.toUpperCase()); setCodeStatus(e.target.value.trim() ? 'checking' : 'empty');}} />
         <p role="status" className={`mt-1 ${codeStatus === 'invalid' || codeStatus === 'error' ? 'text-red-600' : 'text-muted-foreground'}`}>{codeStatus === 'checking' ? 'Comprobando código…' : codeStatus === 'valid' ? 'Código reconocido. Se conservará al crear tu cuenta y al pagar.' : codeStatus === 'invalid' ? 'No encontramos ese código. Corrígelo o bórralo para continuar.' : codeStatus === 'error' ? 'No pudimos comprobar el código. Intenta de nuevo.' : 'El código reconoce al creador que te invitó. Tu precio sigue siendo US$29 al mes.'}</p>
       </details>
-      <Button className="w-full h-11 rounded-xl text-sm bg-slate-950 hover:bg-slate-800 text-white" onClick={continueToPayment} disabled={loading || !authReady || accessLoading || ['checking','invalid','error'].includes(codeStatus)}>{loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Abriendo pago…</> : signedIn ? 'Continuar al pago seguro' : 'Crear cuenta y continuar'}{!loading && <ArrowRight className="ml-2 h-4 w-4" />}</Button>
-      <p className="text-xs text-center text-muted-foreground mt-2">{signedIn ? 'Renovación mensual. Cancela desde Configuración.' : 'Crear tu cuenta no tiene costo. Pro se activa al pagar.'}</p>
+      <Button className="w-full h-11 rounded-xl text-sm bg-slate-950 hover:bg-slate-800 text-white" onClick={continueToPayment} disabled={loading || !authReady || accessLoading || ['checking','invalid','error'].includes(codeStatus)}>{loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Abriendo pago…</> : signedIn ? 'Continuar al pago seguro' : 'Crear cuenta y ver Pro'}{!loading && <ArrowRight className="ml-2 h-4 w-4" />}</Button>
+      <p className="text-xs text-center text-muted-foreground mt-2">{signedIn ? 'Renovación mensual. Cancela desde Configuración.' : 'Cuenta gratis, sin tarjeta. Pro se activa al completar el pago.'}</p>
       <div className="mt-3"><CurrencyDisclosure /></div>
     </>}
   </section>;

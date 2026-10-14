@@ -90,8 +90,8 @@ interface CreatorInfo {
 }
 
 const SORT_OPTIONS = [
-  { value: "revenue", label: "Más ingresos" },
-  { value: "sales", label: "Más ventas" },
+  { value: "revenue", label: "Más ventas en pesos" },
+  { value: "sales", label: "Más unidades vendidas" },
   { value: "views", label: "Más vistas" },
 ];
 
@@ -345,7 +345,7 @@ const RelatedVideos = () => {
       setAuditResults({ issues: data.issuesCount, fixed: data.fixed });
       toast({
         title: autoFix ? "Auditoría con corrección completada" : "Auditoría completada",
-        description: `${data.analyzed} videos analizados, ${data.issuesCount} issues encontrados${autoFix ? `, ${data.fixed} corregidos` : ''}`
+        description: `${data.analyzed} videos analizados, ${data.issuesCount} problemas encontrados${autoFix ? `, ${data.fixed} corregidos` : ''}`
       });
       if (autoFix && data.fixed > 0) fetchData();
     } catch (error: any) {
@@ -406,7 +406,7 @@ const RelatedVideos = () => {
               <h1 className="text-base sm:text-lg font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug">{productInfo.producto_nombre}</h1>
               <p className="text-xs sm:text-sm text-muted-foreground flex items-start gap-1">
                 <DollarSign className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                {productInfo.total_ingresos_mxn === null ? 'Métricas del producto pendientes del próximo reporte' : `GMV del reporte: ${formatCurrency(productInfo.total_ingresos_mxn)}`}
+                {productInfo.total_ingresos_mxn === null ? 'Todavía no hay cifras del producto en el reporte' : `Ventas del reporte: ${formatCurrency(productInfo.total_ingresos_mxn)}`}
               </p>
             </div>
             <div className="col-span-2 flex min-w-0 flex-wrap gap-2 lg:col-span-1 lg:justify-end [&>button]:min-h-11">
@@ -466,7 +466,7 @@ const RelatedVideos = () => {
               <p className="text-xs sm:text-sm text-muted-foreground break-all">@{(creatorInfo.creator_handle || creatorInfo.usuario_creador).trim().replace(/^@/, "")}</p>
               <p className="text-xs sm:text-sm text-muted-foreground flex items-start gap-1 mt-1">
                 <DollarSign className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                GMV del reporte: {formatCurrency(creatorInfo.total_ingresos_mxn)}
+                Ventas del reporte: {formatCurrency(creatorInfo.total_ingresos_mxn)}
               </p>
             </div>
             {creatorInfo.tiktok_url && (
@@ -500,7 +500,7 @@ const RelatedVideos = () => {
       {/* Linked Videos Grid */}
       {videos.length === 0 ? (
         <Card className="min-w-0 px-4 py-8 sm:p-12 text-center">
-          <p className="text-muted-foreground text-lg">Todavía no hay videos descargados para {isProductView ? "este producto" : "este creador"}</p>
+          <p className="text-muted-foreground text-lg">Todavía no hay videos disponibles para {isProductView ? "este producto" : "este creador"}</p>
           <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
             {identifiedVideos > 0
               ? `Hay ${identifiedVideos} ${identifiedVideos === 1 ? "video identificado" : "videos identificados"} en los reportes. Falta descargar y verificar sus archivos para mostrarlos aquí.`

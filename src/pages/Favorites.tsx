@@ -194,7 +194,7 @@ const Favorites = () => {
       const { error } = await supabase.from("favorites_scripts").delete().eq("id", id);
       if (error) throw error;
       setScripts(scripts.filter((s) => s.id !== id));
-      toast({ title: "✓ Guión eliminado de favoritos" });
+      toast({ title: "✓ Guion eliminado de favoritos" });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -205,7 +205,7 @@ const Favorites = () => {
       await navigator.clipboard.writeText(content);
       setCopiedScript(id);
       setTimeout(() => setCopiedScript(null), 2000);
-      toast({ title: "✓ Guión copiado" });
+      toast({ title: "✓ Guion copiado" });
     } catch (error) {
       toast({ title: "Error al copiar", variant: "destructive" });
     }
@@ -326,7 +326,7 @@ const Favorites = () => {
                         <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
                           <div className="flex items-center gap-1 mb-0.5">
                             <DollarSign className="h-2.5 w-2.5 text-emerald-600" />
-                            <span className="text-[9px] text-muted-foreground">Ingresos</span>
+                            <span className="text-[9px] text-muted-foreground">Ventas en pesos</span>
                           </div>
                           <p className="text-xs font-bold text-emerald-600">
                             {formatCurrency(video.revenue_mxn || video.ingresos_mxn)}
@@ -335,7 +335,7 @@ const Favorites = () => {
                         <div className="p-1.5 rounded-md bg-muted">
                           <div className="flex items-center gap-1 mb-0.5">
                             <ShoppingCart className="h-2.5 w-2.5 text-foreground" />
-                            <span className="text-[9px] text-muted-foreground">Ventas</span>
+                            <span className="text-[9px] text-muted-foreground">Unidades vendidas</span>
                           </div>
                           <p className="text-xs font-bold text-foreground">
                             {formatNumber(video.sales || video.ventas)}
@@ -344,7 +344,7 @@ const Favorites = () => {
                         <div className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
                           <div className="flex items-center gap-1 mb-0.5">
                             <DollarSign className="h-2.5 w-2.5 text-amber-600" />
-                            <span className="text-[9px] text-muted-foreground">Ganancias Est.</span>
+                            <span className="text-[9px] text-muted-foreground">Comisión estimada</span>
                           </div>
                           <p className="text-xs font-bold text-amber-600">
                             {formatCurrency(commissionEstimated)}
@@ -453,7 +453,7 @@ const Favorites = () => {
                         <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
                           <div className="flex items-center gap-1 mb-0.5">
                             <TrendingUp className="h-2.5 w-2.5 text-emerald-600" />
-                            <span className="text-[9px] text-muted-foreground">Ingresos 30D</span>
+                            <span className="text-[9px] text-muted-foreground">Ventas reportadas</span>
                           </div>
                           <p className="text-xs font-bold text-emerald-600">
                             {formatCurrency(revenue)}
@@ -463,7 +463,7 @@ const Favorites = () => {
                         <div className="p-1.5 rounded-md bg-muted">
                           <div className="flex items-center gap-1 mb-0.5">
                             <ShoppingCart className="h-2.5 w-2.5 text-foreground" />
-                            <span className="text-[9px] text-muted-foreground">Ventas 30D</span>
+                            <span className="text-[9px] text-muted-foreground">Unidades reportadas</span>
                           </div>
                           <p className="text-xs font-bold text-foreground">
                             {formatNumber(sales)}
@@ -513,7 +513,7 @@ const Favorites = () => {
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground">No tienes guiones guardados</p>
               <p className="text-xs text-muted-foreground/70 mt-2">
-                Guarda guiones desde el modal de análisis de video usando el botón ❤️
+                Abre el análisis de un video y guarda el guion con el corazón para retomarlo aquí.
               </p>
             </Card>
           ) : (
@@ -532,7 +532,7 @@ const Favorites = () => {
                           </div>
                           <div>
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              {script.variant_type || "Guión"}
+                              {script.variant_type || "Guion"}
                             </Badge>
                             <p className="text-[10px] text-muted-foreground mt-0.5">
                               #{index + 1}
@@ -590,7 +590,7 @@ const Favorites = () => {
                           onClick={() => handleCopyScript(script.content, fav.id)}
                         >
                           <Copy className="h-3 w-3 mr-1" />
-                          Copiar guión
+                          Copiar guion
                         </Button>
                       </div>
                     </CardContent>
@@ -643,7 +643,7 @@ const Favorites = () => {
 
                     <div className="grid grid-cols-2 gap-1.5 mb-2.5">
                       <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50 text-center">
-                        <p className="text-[8px] text-muted-foreground uppercase">GMV Total</p>
+                        <p className="text-[8px] text-muted-foreground uppercase">Ventas reportadas</p>
                         <p className="text-xs font-bold text-emerald-600">
                           {formatCurrency(creator.total_ingresos_mxn)}
                         </p>

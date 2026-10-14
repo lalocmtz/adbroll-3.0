@@ -17,7 +17,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("@/contexts/LanguageContext", () => ({ useLanguage: () => ({language:"es",formatMoney:(n:number)=>`$${n}`}) }));
 async function renderLanding() {
   render(<MemoryRouter><MarketProvider><Landing /></MarketProvider></MemoryRouter>);
-  await waitFor(()=>expect(screen.getByRole("button",{name:"Empezar ahora"})).toBeInTheDocument());
+  await waitFor(()=>expect(screen.getByRole("button",{name:"Explorar antes de suscribirme"})).toBeInTheDocument());
 }
 describe("Mexico launch landing",()=>{
   it("uses the real capacity for the creator invitation",async()=>{
@@ -42,7 +42,7 @@ describe("Mexico launch landing",()=>{
   });
   it("switches the script example",async()=>{
     await renderLanding();
-    fireEvent.click(screen.getByRole("tab",{name:"Agresivo"}));
-    expect(screen.getByText(/5 productos caros no pudieron/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab",{name:"Otro inicio"}));
+    expect(screen.getByText(/Antes de comprar \[TU PRODUCTO\]/)).toBeInTheDocument();
   });
 });

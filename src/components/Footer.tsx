@@ -4,7 +4,7 @@ import { BrandContactLinks } from "@/components/BrandContactLinks";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const Footer = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <footer className="border-t border-border bg-card mt-auto">
@@ -14,14 +14,14 @@ const Footer = () => {
           <div className="space-y-4">
             <BrandLogo tone="dark" size="md" />
             <p className="text-sm text-muted-foreground">
-              Rayos X a TikTok Shop. Datos reales, guión listo.
+              Menos adivinar. Más claridad antes de grabar.
             </p>
 
           </div>
 
           {/* Links */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-foreground">Links</h3>
+            <h3 className="font-semibold text-foreground">Explora TokXray</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -52,12 +52,12 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  {t("language") === "es" ? "Política de Reembolsos" : "Refund Policy"}
+                  {language === "es" ? "Política de Reembolsos" : "Refund Policy"}
                 </Link>
               </li>
               <li>
                 <Link to="/support" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  {t("language") === "es" ? "Soporte" : "Support"}
+                  {language === "es" ? "Soporte" : "Support"}
                 </Link>
               </li>
             </ul>
@@ -75,6 +75,7 @@ const Footer = () => {
             © {new Date().getFullYear()} TokXray. {t("allRightsReserved")}.
           </p>
 
+          <p className="text-xs text-muted-foreground">TokXray es independiente y no está afiliado a TikTok.</p>
           {/* Company Legal Information */}
           <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t border-border/50">
             <p>

@@ -27,7 +27,7 @@ beforeEach(() => {
 describe("registration onboarding", () => {
   it("distinguishes the free account from paid Pro before choosing email or Google", () => {
     openRegister();
-    expect(screen.getByText(/Tu cuenta es gratis. Pro se contrata por separado/)).toBeVisible();
+    expect(screen.getByText(/Tu cuenta y la vista previa son gratis, sin tarjeta/)).toBeVisible();
     expect(screen.queryByLabelText("Contraseña")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Continuar con correo" }));
     expect(screen.getByLabelText("Contraseña")).toBeVisible();
@@ -53,7 +53,7 @@ describe("registration onboarding", () => {
     await screen.findByText(/Código válido:/);
     fireEvent.click(screen.getByRole("button", { name: "Continuar con correo" }));
     fireEvent.change(screen.getByLabelText("Nombre completo"), { target: { value: "Lalo Corona" } });
-    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "lalo@example.com" } });
+    fireEvent.change(screen.getByLabelText("Correo electrónico"), { target: { value: "lalo@example.com" } });
     fireEvent.change(screen.getByLabelText("Contraseña"), { target: { value: "MyPassword1!" } });
     fireEvent.click(screen.getByRole("button", { name: "Crear cuenta gratis" }));
     await screen.findByRole("heading", { name: "Confirmación" });

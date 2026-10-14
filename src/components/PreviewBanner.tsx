@@ -17,14 +17,14 @@ export const PreviewBanner = () => {
             <>
               <Lock className="w-4 h-4 text-primary" />
               <span className="text-foreground/80">
-                <span className="font-medium">Modo gratuito</span> — Activa tu plan para desbloquear todo
+                <span className="font-medium">Vista previa gratuita</span> — Los guiones y el análisis requieren Pro
               </span>
             </>
           ) : (
             <>
               <img src="/brand/tokxray-social-1024.png" alt="" className="h-6 w-6 rounded" />
               <span className="text-foreground/80">
-                <span className="font-medium">Vista previa</span> — Crea tu cuenta para continuar
+                <span className="font-medium">Explora sin tarjeta</span> — Crea tu cuenta y decide después si activas Pro
               </span>
             </>
           )}
@@ -36,7 +36,7 @@ export const PreviewBanner = () => {
           disabled={checkoutLoading}
           className="text-xs min-h-11 px-3 shrink-0"
         >
-          {isLoggedIn ? "Activar US$29/mes" : "Desbloquear US$29/mes"}
+          {isLoggedIn ? "Activar Pro · US$29/mes" : "Continuar con Pro"}
         </Button>
       </div>
     </div>

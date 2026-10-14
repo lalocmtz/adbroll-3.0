@@ -12,7 +12,7 @@ describe("creator funnel", () => {
   it("closes the lifetime offer at 100 without closing the commission program", () => {
     capacityMock.capacity = { limit: 100, claimed: 100, remaining: 0, is_open: false };
     render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
-    expect(screen.queryByRole('link', { name: /Quiero ser uno de los 100/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Ver requisitos y enviar mis videos/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Consultar mi solicitud o acceso/ })).toHaveAttribute('href', '/colaboraciones');
     expect(screen.getByRole('link', { name: /Quiero recomendar/ })).toBeVisible();
   });
@@ -20,13 +20,13 @@ describe("creator funnel", () => {
     capacityMock.capacity = { limit: 100, claimed: 99, remaining: 1, is_open: true };
     render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
     expect(screen.getAllByText('Queda 1 de 100 accesos vitalicios')).toHaveLength(2);
-    expect(screen.getByRole('link', { name: /Quiero ser uno de los 100/ })).toHaveAttribute('href', '/register?redirect=%2Fcolaboraciones&ref=ALICIA');
+    expect(screen.getByRole('link', { name: /Ver requisitos y enviar mis videos/ })).toHaveAttribute('href', '/register?redirect=%2Fcolaboraciones&ref=ALICIA');
     expect(screen.getByText(/Crear tu cuenta, recibir una prueba o enviar los enlaces no reserva/)).toBeVisible();
   });
   it("does not promise an available place if capacity is unknown", () => {
     capacityMock.capacity = null; capacityMock.error = 'No pudimos verificar los accesos disponibles.';
     render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
-    expect(screen.queryByRole('link', { name: /Quiero ser uno de los 100/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Ver requisitos y enviar mis videos/ })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Consultar disponibilidad/ })).toBeVisible();
   });
   it("preserves referral and destination for both signup paths", () => {
@@ -52,10 +52,10 @@ describe("creator funnel", () => {
     expect(screen.getByText("$87.00")).toBeInTheDocument();
     expect(screen.getByText(/no garantiza resultados/)).toBeInTheDocument();
   });
-  it("has a useful fallback before the founder uploads the video", () => {
+  it("has a useful fallback when the presentation cannot load", () => {
     render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
     fireEvent.error(screen.getByLabelText("Presentación del programa TokXray"));
-    expect(screen.getByText("La presentación está en camino.")).toBeInTheDocument();
+    expect(screen.getByText("No pudimos cargar el video.")).toBeInTheDocument();
   });
   it("allows only known local post-auth destinations", () => {
     expect(authDestination("/affiliates")).toBe("/affiliates");

@@ -121,12 +121,12 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
       if (error) throw error;
 
       setSavedScripts(prev => new Set([...prev, variantType]));
-      toast({ title: "✓ Guión guardado en favoritos" });
+      toast({ title: "✓ Guion guardado en favoritos" });
     } catch (error: any) {
       console.error("Error saving script:", error);
       toast({ 
         title: "Error", 
-        description: "No se pudo guardar el guión",
+        description: "No se pudo guardar el guion",
         variant: "destructive"
       });
     } finally {
@@ -183,7 +183,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
         console.error("Analysis error:", error);
         toast({
           title: "Error",
-          description: "No se pudo analizar el guión",
+          description: "No se pudo analizar el guion",
           variant: "destructive",
         });
         return;
@@ -396,7 +396,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
               <TabsList className="grid w-full grid-cols-3 mb-4">
                 <TabsTrigger value="script" className="gap-1 text-xs px-2">
                   <FileText className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Script</span>
+                  <span className="hidden sm:inline">Guion</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="analysis" 
@@ -463,7 +463,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                     {/* Section Title */}
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-semibold md:text-sm md:font-medium">
-                        🧠 Guión generado por IA
+                        🧠 Guion generado por IA
                       </h3>
                       <div className="flex items-center gap-1">
                         <SaveButton text={transcript} variantType="Transcripción Original" />
@@ -490,7 +490,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                 {loadingAnalysis ? (
                   <div className="flex flex-col items-center justify-center py-8 md:py-12 gap-3">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Analizando estructura del guión...</p>
+                    <p className="text-sm text-muted-foreground">Analizando estructura del guion...</p>
                   </div>
                 ) : sections.length === 0 ? (
                   <div className="text-center py-8 md:py-12 text-muted-foreground">
@@ -547,7 +547,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                               <div className="text-left">
                                 <h4 className="text-sm font-semibold">Generador de Variantes IA</h4>
                                 <p className="text-xs text-muted-foreground">
-                                  {variants ? "Variantes generadas • Clic para expandir" : "Crea guiones optimizados basados en este video"}
+                                  {variants ? "Variantes generadas • Clic para expandir" : "Prepara versiones de este guion para probar"}
                                 </p>
                               </div>
                             </div>

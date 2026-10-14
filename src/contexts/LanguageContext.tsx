@@ -24,7 +24,7 @@ const LANG_SYNCED_KEY = "adbroll_lang_synced";
 const translations = {
   es: {
     // Navigation
-    dashboard: "Dashboard",
+    dashboard: "Inicio",
     videos: "Videos",
     products: "Productos",
     opportunities: "Oportunidades",
@@ -34,7 +34,7 @@ const translations = {
     admin: "Admin",
     
     // Common labels
-    revenue: "Ingresos",
+    revenue: "Monto vendido",
     sales: "Ventas",
     views: "Vistas",
     followers: "Seguidores",
@@ -50,26 +50,26 @@ const translations = {
     filters: "Filtros",
     sortBy: "Ordenar por",
     allCategories: "Todas las categorías",
-    moreRevenue: "Más ingresos",
-    moreSales: "Más ventas",
+    moreRevenue: "Mayor monto vendido",
+    moreSales: "Más unidades vendidas",
     moreViews: "Más vistas",
     moreRecent: "Más recientes",
     moreFollowers: "Más seguidores",
-    moreLives: "Más lives",
+    moreLives: "Más directos",
     moreCommission: "Mayor comisión",
     moreCreators: "Más creadores activos",
     bestRating: "Mejor calificación",
     minCommission: "Comisión mín.",
-    minRating: "Rating mín.",
+    minRating: "Calificación mín.",
     
     // Video related
-    viewScript: "Ver guión AI",
-    analyzeScript: "Analizar guion y replicar",
-    script: "Script",
+    viewScript: "Ver guion",
+    analyzeScript: "Entender y adaptar guion",
+    script: "Guion",
     analysis: "Análisis",
-    aiVariants: "Variantes IA",
+    aiVariants: "Versiones con IA",
     copyScript: "Copiar guion completo",
-    generateVariants: "Generar variantes IA",
+    generateVariants: "Preparar versiones con IA",
     viewOnTiktok: "Ver en TikTok",
     openInTiktok: "Abrir en TikTok",
     
@@ -77,22 +77,22 @@ const translations = {
     viewProduct: "Ver producto",
     viewProductVideos: "Ver videos de este producto",
     viewInTiktokShop: "Ver en TikTok Shop",
-    revenue30d: "Ingresos 30D",
-    sales30d: "Ventas 30D",
-    estimatedCommission: "Comisión Est.",
+    revenue30d: "Monto vendido · 30 días",
+    sales30d: "Unidades · 30 días",
+    estimatedCommission: "Comisión estimada",
     
     // Creator related
     viewCreatorVideos: "Ver videos",
     viewCreatorProducts: "Productos",
     viewProfile: "Ver perfil",
-    gmvTotal: "GMV Total",
-    lives: "Lives",
-    gmvLives: "GMV Lives",
-    gmvVideos: "GMV Videos",
+    gmvTotal: "Ventas reportadas",
+    lives: "Directos",
+    gmvLives: "Ventas en directos",
+    gmvVideos: "Ventas en videos",
     
     // Favorites
     myFavorites: "Mis Favoritos",
-    noFavorites: "No tienes favoritos guardados aún",
+    noFavorites: "Guarda una referencia para volver a ella cuando prepares tu video",
     savedItems: "elemento(s) guardado(s)",
     noSavedVideos: "No tienes videos guardados",
     noSavedProducts: "No tienes productos guardados",
@@ -125,13 +125,13 @@ const translations = {
     noCreatorsAvailable: "No hay creadores disponibles",
     
     // Page titles
-    top100Videos: "Top 100 videos de TikTok Shop",
+    top100Videos: "Videos con ventas reportadas en TikTok Shop",
     tiktokShopProducts: "Productos TikTok Shop",
-    top50Creators: "Creadores Top 50 TikTok Shop",
-    productsSubtitle: "Los productos más rentables para promocionar como creador",
-    creatorsSubtitle: "Los creadores con mejor rendimiento en los últimos 30 días",
-    dataBasedOn30Days: "Datos basados en los últimos 30 días",
-    dataUpdated: "Datos actualizados · Últimos 30 días",
+    top50Creators: "Ranking de creadores de TikTok Shop",
+    productsSubtitle: "Compara ventas y comisión antes de elegir qué producto grabar",
+    creatorsSubtitle: "Encuentra referencias en los creadores del reporte y estudia sus videos",
+    dataBasedOn30Days: "Cifras del período indicado en el reporte",
+    dataUpdated: "Consulta el período de cada reporte",
     
     // Footer
     aboutTokXray: "Sobre TokXray",
@@ -160,7 +160,7 @@ const translations = {
   },
   en: {
     // Navigation
-    dashboard: "Dashboard",
+    dashboard: "Home",
     videos: "Videos",
     products: "Products",
     opportunities: "Opportunities",
@@ -170,7 +170,7 @@ const translations = {
     admin: "Admin",
     
     // Common labels
-    revenue: "Revenue",
+    revenue: "Sales value",
     sales: "Sales",
     views: "Views",
     followers: "Followers",
@@ -186,8 +186,8 @@ const translations = {
     filters: "Filters",
     sortBy: "Sort by",
     allCategories: "All categories",
-    moreRevenue: "Most revenue",
-    moreSales: "Most sales",
+    moreRevenue: "Highest sales value",
+    moreSales: "Most units sold",
     moreViews: "Most views",
     moreRecent: "Most recent",
     moreFollowers: "Most followers",
@@ -199,8 +199,8 @@ const translations = {
     minRating: "Min rating",
     
     // Video related
-    viewScript: "View AI Script",
-    analyzeScript: "Analyze script and replicate",
+    viewScript: "View script",
+    analyzeScript: "Understand and adapt the script",
     script: "Script",
     analysis: "Analysis",
     aiVariants: "AI Variants",
@@ -221,10 +221,10 @@ const translations = {
     viewCreatorVideos: "View videos",
     viewCreatorProducts: "Products",
     viewProfile: "View profile",
-    gmvTotal: "Total GMV",
+    gmvTotal: "Reported sales",
     lives: "Lives",
-    gmvLives: "GMV Lives",
-    gmvVideos: "GMV Videos",
+    gmvLives: "Livestream sales",
+    gmvVideos: "Video sales",
     
     // Favorites
     myFavorites: "My Favorites",
@@ -261,13 +261,13 @@ const translations = {
     noCreatorsAvailable: "No creators available",
     
     // Page titles
-    top100Videos: "Top 100 TikTok Shop videos",
+    top100Videos: "TikTok Shop videos with reported sales",
     tiktokShopProducts: "TikTok Shop Products",
-    top50Creators: "Top 50 TikTok Shop Creators",
-    productsSubtitle: "The most profitable products to promote as a creator",
-    creatorsSubtitle: "Top performing creators in the last 30 days",
-    dataBasedOn30Days: "Data based on the last 30 days",
-    dataUpdated: "Data updated · Last 30 days",
+    top50Creators: "TikTok Shop creator rankings",
+    productsSubtitle: "Compare sales and commission before choosing a product to film",
+    creatorsSubtitle: "Find references in the reported creators and study their videos",
+    dataBasedOn30Days: "Figures for the reporting period shown",
+    dataUpdated: "Check the period of each report",
     
     // Footer
     aboutTokXray: "About TokXray",

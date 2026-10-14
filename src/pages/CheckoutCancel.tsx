@@ -9,18 +9,18 @@ const CheckoutCancel = () => {
 
   const content = {
     es: {
-      title: "Pago cancelado",
-      subtitle: "El proceso de pago no se completó en esta pantalla",
-      description: "Si tuviste algún problema durante el proceso de pago, puedes intentarlo de nuevo o contactarnos para ayudarte.",
-      tryAgain: "Intentar de nuevo",
-      goBack: "Volver al inicio",
+      title: "No completaste el pago",
+      subtitle: "Puedes seguir explorando la vista previa",
+      description: "Tu cuenta gratuita sigue disponible. Si quieres activar Pro, vuelve al plan. Si ya ves un cargo en tu banco, revisa tu cuenta o contacta a soporte antes de pagar de nuevo.",
+      tryAgain: "Volver al plan Pro",
+      goBack: "Explorar la vista previa",
     },
     en: {
-      title: "Payment cancelled",
-      subtitle: "Checkout was not completed on this screen",
-      description: "If you had any issues during checkout, you can try again or contact us for help.",
-      tryAgain: "Try again",
-      goBack: "Go back home",
+      title: "Checkout was not completed",
+      subtitle: "You can keep exploring the preview",
+      description: "Your free account is still available. Return to the plan when you want to activate Pro. If your bank already shows a charge, check your account or contact support before paying again.",
+      tryAgain: "Back to the Pro plan",
+      goBack: "Explore the preview",
     },
   };
 

@@ -85,7 +85,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   const navigate = useNavigate();
   const { hasPaid, isLoggedIn, openPaywall, shouldBlur, shouldBlurPartial, isFounder } = useBlurGateContext();
   
-  // GLOSARIO: revenue_mxn es GMV del video ("Generó en ventas"). La ganancia
+  // GLOSARIO: revenue_mxn es GMV del video ("Ventas reportadas"). La ganancia
   // del creador solo se estima si el producto tiene commission REAL (escala
   // 0-100, igual que en process-kalodata-products). Sin commission no se
   // muestra nada: no inventamos porcentajes.
@@ -337,7 +337,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
                     {video.product?.producto_nombre || currentProductName || video.product_name}
                   </span>
                   {video.product?.total_ingresos_mxn && (
-                    <span className="hidden md:inline text-[11px] text-muted-foreground">GMV: {formatCurrency(video.product.total_ingresos_mxn)}</span>
+                    <span className="hidden md:inline text-[11px] text-muted-foreground">Ventas: {formatCurrency(video.product.total_ingresos_mxn)}</span>
                   )}
                 </div>
                 <span className="text-[10px] md:text-[11px] text-muted-foreground shrink-0">→</span>
@@ -372,7 +372,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#ECFDF5] dark:bg-success/10">
               <div className="flex items-center gap-1 mb-0.5 md:mb-1">
                 <DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5 text-[#475569]" />
-                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Generó en ventas</span>
+                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Ventas reportadas</span>
               </div>
               <p className="text-xs md:text-sm font-bold text-[#0F172A] dark:text-foreground">
                 {showFullData ? formatCurrency(video.revenue_mxn) : "•••"}
@@ -382,7 +382,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
               <div className="flex items-center gap-1 mb-0.5 md:mb-1">
                 <ShoppingCart className="h-3 w-3 md:h-3.5 md:w-3.5 text-[#475569]" />
-                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Ventas</span>
+                <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Unidades vendidas</span>
               </div>
               <p className="text-xs md:text-sm font-bold text-[#0F172A] dark:text-foreground">
                 {showFullData ? formatNumber(video.sales) : "•••"}
@@ -394,7 +394,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
               <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-[#FEF3C7] dark:bg-amber-950/30">
                 <div className="flex items-center gap-1 mb-0.5 md:mb-1">
                   <DollarSign className="h-3 w-3 md:h-3.5 md:w-3.5 text-[#475569]" />
-                  <span className="text-[9px] md:text-[11px] text-[#94A3B8]">El creador ganó ≈</span>
+                  <span className="text-[9px] md:text-[11px] text-[#94A3B8]">Comisión estimada ≈</span>
                 </div>
                 <p className="text-xs md:text-sm font-bold text-[#0F172A] dark:text-foreground">
                   {showFullData ? formatCurrency(commissionEstimated) : "•••"}
@@ -419,7 +419,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             onClick={handleAnalyzeClick}
           >
             <Sparkles className="h-3 w-3 md:h-4 md:w-4" />
-            <span className="hidden sm:inline">Analizar guion y replicar</span>
+            <span className="hidden sm:inline">Entender y adaptar guion</span>
             <span className="sm:hidden">Ver guion →</span>
           </Button>
         </div>

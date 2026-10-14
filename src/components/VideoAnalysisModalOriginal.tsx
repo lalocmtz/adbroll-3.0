@@ -124,7 +124,7 @@ const VideoAnalysisModalOriginal = ({
   const [generatorOpen, setGeneratorOpen] = useState(true);
 
   // Calculate earnings - unified formula matching VideoCardOriginal.
-  // GLOSARIO: revenue_mxn es GMV ("Generó en ventas"). La ganancia del creador
+  // GLOSARIO: revenue_mxn es GMV ("Ventas reportadas"). La ganancia del creador
   // solo se estima si el producto tiene commission REAL (escala 0-100, igual
   // que process-kalodata-products). Sin commission no se muestra nada.
   const hasCommission = video.product?.commission != null && video.product.commission > 0;
@@ -391,7 +391,7 @@ const VideoAnalysisModalOriginal = ({
 
   // Copy entire variant to clipboard
   const copyVariant = (variant: GeneratedVariant, index: number) => {
-    const fullText = `Hook:\n${variant.hook}\n\nCuerpo:\n${variant.body}\n\nCTA:\n${variant.cta}`;
+    const fullText = `Primeros segundos:\n${variant.hook}\n\nCuerpo:\n${variant.body}\n\nInvitación a actuar:\n${variant.cta}`;
     handleCopy(fullText, `full-variant-${index}`);
   };
 
@@ -414,7 +414,7 @@ const VideoAnalysisModalOriginal = ({
 
       // Generate a unique script ID and save directly to favorites_scripts
       const scriptId = crypto.randomUUID();
-      const fullScript = `Hook:\n${variant.hook}\n\nCuerpo:\n${variant.body}\n\nCTA:\n${variant.cta}`;
+      const fullScript = `Primeros segundos:\n${variant.hook}\n\nCuerpo:\n${variant.body}\n\nInvitación a actuar:\n${variant.cta}`;
 
       const {
         error: favError
@@ -436,7 +436,7 @@ const VideoAnalysisModalOriginal = ({
       });
       if (favError) throw favError;
       toast({
-        title: '✅ Guión guardado',
+        title: '✅ Guion guardado',
         description: 'Puedes verlo en la sección de Favoritos'
       });
     } catch (error: any) {
@@ -502,7 +502,7 @@ const VideoAnalysisModalOriginal = ({
                 className="grid grid-cols-4 gap-2"
               >
                 <div className="bg-[#ECFDF5] rounded-lg p-2 text-center">
-                  <div className="text-[10px] text-muted-foreground">Generó en ventas</div>
+                  <div className="text-[10px] text-muted-foreground">Ventas reportadas</div>
                   <div className="text-sm font-bold text-foreground">{formatCurrency(video.revenue_mxn)}</div>
                 </div>
                 <div className="bg-muted rounded-lg p-2 text-center">
@@ -557,18 +557,18 @@ const VideoAnalysisModalOriginal = ({
               <div className="p-3 border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
                 <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2 flex items-center gap-1.5">
                   <Sparkles className="h-3 w-3" />
-                  Guion extraído con IA
+                  Referencia para tu próximo video
                 </div>
                 
                 {/* Sales highlight (GMV) - all bold black */}
                 <p className="text-sm font-bold text-foreground leading-snug">
-                  Este video generó {formatCurrency(video.revenue_mxn)} en ventas.
+                  Ventas reportadas de este video: {formatCurrency(video.revenue_mxn)}.
                 </p>
 
                 {/* Creator earnings - solo con comisión real del producto */}
                 {hasCommission && (
                   <p className="text-sm text-foreground mt-1">
-                    El creador ganó ≈{' '}
+                    Comisión estimada ≈{' '}
                     <span className="text-lg font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
                     {' '}<span className="text-xs text-muted-foreground">(comisión {commissionRate}%)</span>
                   </p>
@@ -612,10 +612,10 @@ const VideoAnalysisModalOriginal = ({
               {/* Instructions text - Below video, centered */}
               <div className="text-center">
                 <p className="text-sm text-foreground leading-snug">
-                  Grábate con la <span className="font-semibold">misma energía</span> que usó el creador.
+                  Observa cómo presenta el producto y <span className="font-semibold">dale tu propia voz</span>.
                 </p>
                 <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                  Usa el mismo guion o alguna de nuestras variantes optimizadas con IA.
+                  Adapta lo que dice a tu producto y a tu forma de hablar. Revisa los datos antes de grabar.
                 </p>
               </div>
             </div>
@@ -626,7 +626,7 @@ const VideoAnalysisModalOriginal = ({
                 <TabsList className="grid grid-cols-3 w-full h-10 p-1 bg-muted/50 rounded-xl">
                   <TabsTrigger value="script" className="gap-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-[10px] px-1">
                     <FileText className="h-3.5 w-3.5" />
-                    Script
+                    Guion
                   </TabsTrigger>
                   <TabsTrigger value="analysis" className="gap-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-[10px] px-1">
                     {!hasPaid && <Lock className="h-2.5 w-2.5" />}
@@ -688,7 +688,7 @@ const VideoAnalysisModalOriginal = ({
                             {!hasPaid && !variants && (
                               <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3 text-center">
                                 <p className="text-xs text-muted-foreground mb-2">
-                                  Desbloquea las versiones optimizadas con IA de este guion.
+                                  Con Pro, explora otras formas de contar esta idea y adáptala a tu producto.
                                 </p>
                                 <Button onClick={() => openPaywall('Variantes IA')} size="sm" className="rounded-xl">
                                   <Wand2 className="h-3.5 w-3.5 mr-2" />
@@ -740,7 +740,7 @@ const VideoAnalysisModalOriginal = ({
                                 <div className="h-6 w-6 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
                                   <Sparkles className="h-3.5 w-3.5 text-amber-600" />
                                 </div>
-                                <h4 className="font-semibold text-sm">Hook</h4>
+                                <h4 className="font-semibold text-sm">Primeros segundos</h4>
                               </div>
                               <p className="text-sm text-foreground/80">{analysis.hook}</p>
                             </div>
@@ -762,7 +762,7 @@ const VideoAnalysisModalOriginal = ({
                                 <div className="h-6 w-6 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                                   <TrendingUp className="h-3.5 w-3.5 text-green-600" />
                                 </div>
-                                <h4 className="font-semibold text-sm">CTA</h4>
+                                <h4 className="font-semibold text-sm">Invitación a actuar</h4>
                               </div>
                               <p className="text-sm text-foreground/80">{analysis.cta}</p>
                             </div>
@@ -804,7 +804,7 @@ const VideoAnalysisModalOriginal = ({
                                     <div className="text-left">
                                       <h3 className="font-semibold text-xs text-foreground">Generador de Variantes IA</h3>
                                       <p className="text-[10px] text-muted-foreground">
-                                        {generatedVariants.length > 0 ? `${generatedVariants.length} variante(s) generada(s)` : 'Crea guiones optimizados'}
+                                        {generatedVariants.length > 0 ? `${generatedVariants.length} variante(s) generada(s)` : 'Prepara otras versiones del guion'}
                                       </p>
                                     </div>
                                   </div>
@@ -904,7 +904,7 @@ const VideoAnalysisModalOriginal = ({
                                 
                                 <div className="space-y-2 text-xs">
                                   <div>
-                                    <span className="font-medium text-primary">🎣 Hook:</span>
+                                    <span className="font-medium text-primary">🎣 Primeros segundos:</span>
                                     <p className="text-foreground/80 mt-0.5">{variant.hook}</p>
                                   </div>
                                   <div>
@@ -912,7 +912,7 @@ const VideoAnalysisModalOriginal = ({
                                     <p className="text-foreground/80 mt-0.5">{variant.body}</p>
                                   </div>
                                   <div>
-                                    <span className="font-medium text-success">🎯 CTA:</span>
+                                    <span className="font-medium text-success">🎯 Invitación a actuar:</span>
                                     <p className="text-foreground/80 mt-0.5">{variant.cta}</p>
                                   </div>
                                   {variant.strategy_note && (
@@ -968,7 +968,7 @@ const VideoAnalysisModalOriginal = ({
                     </div>
                     {hasCommission && (
                       <div className="flex items-center justify-between pt-1 border-t border-border/50">
-                        <span className="text-xs text-muted-foreground">El creador ganó ≈</span>
+                        <span className="text-xs text-muted-foreground">Comisión estimada ≈</span>
                         <span className="text-xs font-bold text-success tabular-nums">
                           {formatCurrency(totalCreatorEarnings)}
                         </span>
@@ -1002,7 +1002,7 @@ const VideoAnalysisModalOriginal = ({
                         </div>
                       )}
                       <div className="flex items-center justify-between pt-1 border-t border-border/50">
-                        <span className="text-xs text-muted-foreground">GMV 30d</span>
+                        <span className="text-xs text-muted-foreground">Ventas de 30 días</span>
                         <span className="text-xs font-bold tabular-nums">{formatCurrency(video.product.revenue_30d)}</span>
                       </div>
                     </div> : <p className="text-xs text-muted-foreground italic text-center py-2">Sin producto</p>}
@@ -1031,14 +1031,14 @@ const VideoAnalysisModalOriginal = ({
               <div className="card-premium p-3 bg-gradient-to-b from-primary/5 to-transparent">
                 <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2 flex items-center gap-1.5">
                   <Sparkles className="h-3 w-3" />
-                  Guion extraído con IA
+                  Referencia para tu próximo video
                 </div>
                 <p className="text-sm font-bold text-foreground leading-snug">
-                  Este video generó {formatCurrency(video.revenue_mxn)} en ventas.
+                  Ventas reportadas de este video: {formatCurrency(video.revenue_mxn)}.
                 </p>
                 {hasCommission && (
                   <p className="text-sm text-foreground mt-1">
-                    El creador ganó ≈{' '}
+                    Comisión estimada ≈{' '}
                     <span className="text-base font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
                     {' '}<span className="text-xs text-muted-foreground">(comisión {commissionRate}%)</span>
                   </p>
@@ -1052,10 +1052,10 @@ const VideoAnalysisModalOriginal = ({
                   Siguiente paso
                 </div>
                 <p className="text-sm text-foreground leading-snug">
-                  Grábate con la <span className="font-semibold">misma energía</span> que usó el creador.
+                  Observa cómo presenta el producto y <span className="font-semibold">dale tu propia voz</span>.
                 </p>
                 <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                  Usa el mismo guion o alguna de nuestras variantes optimizadas con IA.
+                  Adapta lo que dice a tu producto y a tu forma de hablar. Revisa los datos antes de grabar.
                 </p>
               </div>
             </div>
@@ -1089,7 +1089,7 @@ const VideoAnalysisModalOriginal = ({
                     <TabsList className="grid grid-cols-3 w-full h-10 md:h-11 p-1 bg-muted/50 rounded-xl">
                       <TabsTrigger value="script" className="gap-1.5 md:gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs md:text-sm">
                         <FileText className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                        Script
+                        Guion
                       </TabsTrigger>
                       <TabsTrigger value="analysis" className="gap-1.5 md:gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs md:text-sm">
                         {!hasPaid && <Lock className="h-3 w-3" />}
@@ -1144,7 +1144,7 @@ const VideoAnalysisModalOriginal = ({
                               </div>
                               {!hasPaid && !variants && <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center">
                                   <p className="text-sm text-muted-foreground mb-2">
-                                    Desbloquea las versiones optimizadas con IA de este guion.
+                                    Con Pro, explora otras formas de contar esta idea y adáptala a tu producto.
                                   </p>
                                   <Button onClick={() => openPaywall('Variantes IA')} size="sm" className="rounded-xl">
                                     <Wand2 className="h-4 w-4 mr-2" />
@@ -1180,7 +1180,7 @@ const VideoAnalysisModalOriginal = ({
                                     <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
                                       <span className="text-sm">🎣</span>
                                     </div>
-                                    <h3 className="font-semibold text-primary text-sm">Hook (Gancho)</h3>
+                                    <h3 className="font-semibold text-primary text-sm">Primeros segundos</h3>
                                   </div>
                                   <CopyButton text={analysis.hook} field="hook" variant="outline" />
                                 </div>
@@ -1208,7 +1208,7 @@ const VideoAnalysisModalOriginal = ({
                                     <div className="h-7 w-7 rounded-lg bg-success/10 flex items-center justify-center">
                                       <span className="text-sm">🎯</span>
                                     </div>
-                                    <h3 className="font-semibold text-success text-sm">Cierre / CTA</h3>
+                                    <h3 className="font-semibold text-success text-sm">Cierre e invitación a actuar</h3>
                                   </div>
                                   <CopyButton text={analysis.cta} field="cta" variant="outline" />
                                 </div>
@@ -1242,7 +1242,7 @@ const VideoAnalysisModalOriginal = ({
                                   <div className="text-left">
                                     <h3 className="font-semibold text-sm text-foreground">Generador de Variantes IA</h3>
                                     <p className="text-xs text-muted-foreground">
-                                      {generatedVariants.length > 0 ? `${generatedVariants.length} variante(s) generada(s)` : 'Crea guiones optimizados'}
+                                      {generatedVariants.length > 0 ? `${generatedVariants.length} variante(s) generada(s)` : 'Prepara otras versiones del guion'}
                                     </p>
                                   </div>
                                 </div>
@@ -1323,7 +1323,7 @@ const VideoAnalysisModalOriginal = ({
                               
                               <div className="space-y-2.5 text-sm">
                                 <div>
-                                  <span className="font-medium text-primary text-xs">🎣 Hook:</span>
+                                  <span className="font-medium text-primary text-xs">🎣 Primeros segundos:</span>
                                   <p className="text-foreground/80 mt-0.5">{variant.hook}</p>
                                 </div>
                                 <div>
@@ -1331,7 +1331,7 @@ const VideoAnalysisModalOriginal = ({
                                   <p className="text-foreground/80 mt-0.5">{variant.body}</p>
                                 </div>
                                 <div>
-                                  <span className="font-medium text-success text-xs">🎯 CTA:</span>
+                                  <span className="font-medium text-success text-xs">🎯 Invitación a actuar:</span>
                                   <p className="text-foreground/80 mt-0.5">{variant.cta}</p>
                                 </div>
                                 {variant.strategy_note && <div className="pt-2 border-t border-border/50">

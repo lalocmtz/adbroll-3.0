@@ -21,7 +21,7 @@ describe('creator program user flow', () => {
     mock.user = { ...verified, email_confirmed_at: null };
     renderPage();
     expect(await screen.findByRole('link', { name: 'Crear mi cuenta gratis' })).toHaveAttribute('href', '/register?redirect=%2Fcolaboraciones');
-    expect(screen.queryByRole('button', { name: 'Enviar para activar acceso vitalicio' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enviar mis videos a revisión' })).not.toBeInTheDocument();
     expect(mock.rpc).not.toHaveBeenCalledWith('submit_creator_lifetime_application', expect.anything());
   });
   it('lets an invited creator submit 3 videos while retaining an active finite preview', async () => {
@@ -35,7 +35,7 @@ describe('creator program user flow', () => {
     const links = ['https://www.tiktok.com/@creator/video/123', 'https://www.instagram.com/reel/abc/', 'https://www.youtube.com/shorts/xyz'];
     links.forEach((value, i) => fireEvent.change(screen.getByLabelText(`Video publicado ${i + 1}`), { target: { value } }));
     fireEvent.click(screen.getByRole('checkbox'));
-    fireEvent.submit(screen.getByRole('button', { name: 'Enviar para activar acceso vitalicio' }).closest('form')!);
+    fireEvent.submit(screen.getByRole('button', { name: 'Enviar mis videos a revisión' }).closest('form')!);
     await waitFor(() => expect(mock.rpc).toHaveBeenCalledWith('submit_creator_lifetime_application', expect.objectContaining({ p_video_urls: links, p_ad_permission: true })));
     expect(await screen.findByText('Estamos revisando tus tres videos')).toBeVisible();
     expect(screen.getByText(/Tu acceso de prueba está activo/)).toBeVisible();
@@ -45,7 +45,7 @@ describe('creator program user flow', () => {
     mock.capacity = { limit: 100, claimed: 100, remaining: 0, is_open: false };
     renderPage();
     expect(await screen.findByRole('link', { name: 'Usar TokXray' })).toHaveAttribute('href', '/app');
-    expect(screen.queryByRole('button', { name: 'Enviar para activar acceso vitalicio' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enviar mis videos a revisión' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ver mi código y comisiones' })).toHaveAttribute('href', '/affiliates');
   });
   it('does not invite guests to create videos or request a trial after the offer closes', async () => {
@@ -62,7 +62,7 @@ describe('creator program user flow', () => {
     renderPage();
     expect(await screen.findByText('Cupo vitalicio agotado')).toBeVisible();
     expect(screen.queryByLabelText('Video publicado 1')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Enviar para activar acceso vitalicio' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enviar mis videos a revisión' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ver mi código y comisiones' })).toBeVisible();
   });
   it('keeps a pending application visible without implying it reserved a place', async () => {
@@ -76,7 +76,7 @@ describe('creator program user flow', () => {
   it('blocks sending when availability cannot be verified, then enables after retry', async () => {
     mock.rpc.mockResolvedValueOnce({ data: null, error: { message: 'offline' } });
     renderPage();
-    const submit = await screen.findByRole('button', { name: 'Enviar para activar acceso vitalicio' });
+    const submit = await screen.findByRole('button', { name: 'Enviar mis videos a revisión' });
     expect(submit).toBeDisabled();
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos verificar');
     fireEvent.submit(submit.closest('form')!);
@@ -96,7 +96,7 @@ describe('creator program user flow', () => {
     const links = ['https://www.tiktok.com/@creator/video/123', 'https://www.instagram.com/reel/abc/', 'https://www.youtube.com/shorts/xyz'];
     links.forEach((value, i) => fireEvent.change(screen.getByLabelText(`Video publicado ${i + 1}`), { target: { value } }));
     fireEvent.click(screen.getByRole('checkbox'));
-    fireEvent.submit(screen.getByRole('button', { name: 'Enviar para activar acceso vitalicio' }).closest('form')!);
+    fireEvent.submit(screen.getByRole('button', { name: 'Enviar mis videos a revisión' }).closest('form')!);
     expect(await screen.findByText('Cupo vitalicio agotado')).toBeVisible();
     expect(mock.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'No se pudo enviar', description: 'Cupo agotado' }));
   });

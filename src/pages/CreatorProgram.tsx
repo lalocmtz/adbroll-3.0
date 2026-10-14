@@ -59,7 +59,7 @@ export default function CreatorProgram() {
       });
       if (error) throw error;
       await refresh();
-      toast({ title: 'Tus tres videos están en revisión', description: 'Podrás consultar aquí la activación de tu acceso.' });
+      toast({ title: 'Tus tres videos están en revisión', description: 'Consulta aquí el resultado. La solicitud no reserva un lugar ni activa el acceso todavía.' });
     } catch (error) {
       toast({ title: 'No se pudo enviar', description: error instanceof Error ? error.message : (error as { message?: string })?.message || 'Inténtalo de nuevo.', variant: 'destructive' });
     } finally { await capacityState.refresh(); setSubmitting(false); }
@@ -70,21 +70,21 @@ export default function CreatorProgram() {
   return <main className="min-h-[100dvh] bg-background">
     <header className="border-b"><div className="mx-auto max-w-4xl flex items-center justify-between gap-3 px-4 py-4">
       <Link to="/"><BrandLogo tone="dark" size="md" /></Link>
-      <Button variant="outline" size="sm" asChild><Link to={email ? '/affiliates' : '/login?redirect=%2Fcolaboraciones'}>{email ? 'Mi panel' : 'Iniciar sesión'}</Link></Button>
+      <Button variant="outline" size="sm" asChild><Link to={email ? '/affiliates' : '/login?redirect=%2Fcolaboraciones'}>{email ? 'Mi código y comisiones' : 'Iniciar sesión'}</Link></Button>
     </div></header>
     <section className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <div className="text-center space-y-3"><p className="text-sm text-primary font-semibold">Programa de creadores</p>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{capacityState.capacity?.is_open === false ? 'Los primeros 100 lugares están completos.' : 'Tres videos. TokXray de por vida.'}</h1>
-        <p className="text-muted-foreground">{capacityState.capacity?.is_open === false ? 'La oferta de acceso vitalicio por contenido está cerrada. Los accesos que ya aprobamos se mantienen mientras opere la plataforma.' : 'Publica tres videos originales sobre TokXray y autoriza su uso en anuncios durante 12 meses. Los primeros 100 creadores con entregables aprobados reciben acceso personal sin cuota mientras opere la plataforma.'}</p>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{capacityState.capacity?.is_open === false ? 'Los primeros 100 lugares están completos.' : 'Muestra cómo decides qué grabar.'}</h1>
+        <p className="text-muted-foreground">{capacityState.capacity?.is_open === false ? 'La oferta de acceso vitalicio por contenido está cerrada. Los accesos que ya aprobamos se mantienen mientras opere la plataforma.' : 'Comparte cómo eliges una referencia con ventas reportadas y adaptas el guion a tu producto. Publica tres videos originales sobre TokXray y autoriza su uso en anuncios durante 12 meses. Los primeros 100 creadores con videos y permiso aprobados reciben acceso personal sin cuota mientras opere la plataforma.'}</p>
       </div>
       <CreatorLifetimeCapacity state={capacityState} />
       {capacityState.capacity?.is_open !== false && <div className="grid sm:grid-cols-3 gap-3 text-sm">
-        {['1. Crea tu cuenta. Si fuiste invitado, solicita acceso de prueba.', '2. Publica tres videos y envíanos sus enlaces.', '3. Revisamos tu entrega y, si quedan lugares, activamos tu acceso.'].map(step => <div key={step} className="rounded-xl border p-4">{step}</div>)}
+        {['1. Crea y verifica tu cuenta. Si fuiste invitado, solicita tu prueba antes de grabar.', '2. Enseña tu proceso en tres videos originales. Publícalos y envía sus enlaces.', '3. Revisamos videos y permiso de pauta. Si se aprueban y hay cupo, activamos tu acceso.'].map(step => <div key={step} className="rounded-xl border p-4">{step}</div>)}
       </div>}
-      <p className="text-sm text-muted-foreground text-center">{capacityState.capacity?.is_open !== false && 'No necesitas tarjeta para solicitarlo. El acceso no depende de conseguir referidos ni de entregar videos adicionales. '}<Link className="text-primary underline" to="/programa-creadores">Consulta cómo ganar recomendando TokXray.</Link></p>
+      <p className="text-sm text-muted-foreground text-center">{capacityState.capacity?.is_open !== false && 'No necesitas tarjeta para solicitarlo. El acceso no depende de conseguir referidos ni de entregar videos adicionales. '}<Link className="text-primary underline" to="/programa-creadores">Conoce tus comisiones por recomendar TokXray.</Link></p>
       <Card className="max-w-xl mx-auto"><CardHeader><CardTitle>{lifetimeActive ? 'Tu acceso está activo' : application?.status === 'pending_review' ? 'Estamos revisando tus tres videos' : capacityState.capacity?.is_open === false ? 'Cupo vitalicio agotado' : 'Envía tus tres videos'}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          {active && !lifetimeActive && <div className="rounded-xl bg-primary/5 p-3 text-sm space-y-2"><p>Tu acceso de prueba está activo hasta {new Date(application!.subscription_ends_at!).toLocaleDateString('es-MX')}. Tu prueba no reserva acceso vitalicio; puedes solicitarlo si todavía hay lugares disponibles.</p><Link to="/app" className="text-primary underline">Entrar a la plataforma para preparar mis videos</Link></div>}
+          {active && !lifetimeActive && <div className="rounded-xl bg-primary/5 p-3 text-sm space-y-2"><p>Tu acceso de prueba está activo hasta {new Date(application!.subscription_ends_at!).toLocaleDateString('es-MX')}. Tu prueba no reserva acceso vitalicio; puedes solicitarlo si todavía hay lugares disponibles.</p><Link to="/app" className="text-primary underline">Elegir una referencia para mis videos</Link></div>}
           {loading ? <Loader2 className="animate-spin mx-auto" /> : !email && capacityState.capacity?.is_open === false ? <>
             <p className="text-sm text-muted-foreground">La oferta de 100 accesos vitalicios está cerrada. No grabes videos para solicitar este beneficio: ya no quedan lugares. Si tu acceso fue aprobado, se mantiene y puedes entrar con tu cuenta.</p>
             <Button className="w-full" asChild><Link to="/login?redirect=%2Fcolaboraciones">Entrar con mi cuenta existente</Link></Button>
@@ -117,7 +117,7 @@ export default function CreatorProgram() {
             <div className="space-y-1"><Label htmlFor="creator-profile">Tu perfil de TikTok</Label><Input id="creator-profile" type="url" required placeholder="https://www.tiktok.com/@tuusuario" value={form.tiktok_url} onChange={e => setForm({ ...form, tiktok_url: e.target.value })} /></div>
             {videos.map((video, index) => <div key={index} className="space-y-1"><Label htmlFor={`creator-video-${index}`}>Video publicado {index + 1}</Label><Input id={`creator-video-${index}`} type="url" required placeholder="Enlace de TikTok, Instagram o YouTube Shorts" value={video} onChange={e => setVideos(videos.map((v, i) => i === index ? e.target.value : v))} /></div>)}
             <label className="flex items-start gap-3 text-sm leading-relaxed"><input className="mt-1 h-4 w-4 shrink-0" type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} required /><span>Confirmo que los tres videos son originales y que tengo los derechos necesarios. Autorizo a TokXray a usarlos en anuncios y publicaciones durante 12 meses desde su aprobación, incluyendo mi imagen y voz. Esta autorización es independiente de mi acceso vitalicio.</span></label>
-            <Button type="submit" disabled={submitting || !canSubmit} className="w-full">{submitting ? 'Enviando…' : 'Enviar para activar acceso vitalicio'}</Button>
+            <Button type="submit" disabled={submitting || !canSubmit} className="w-full">{submitting ? 'Enviando…' : 'Enviar mis videos a revisión'}</Button>
           </form>}
         </CardContent></Card>
     </section>

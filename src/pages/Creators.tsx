@@ -49,11 +49,11 @@ interface Creator {
 type SortOption = "revenue" | "followers" | "views" | "lives" | "gmv_live" | "gmv_videos";
 
 const SORT_OPTIONS = [
-  { value: "revenue", label: "Más GMV" },
+  { value: "revenue", label: "Más ventas en pesos" },
   { value: "followers", label: "Más seguidores" },
-  { value: "gmv_videos", label: "Más GMV videos" },
-  { value: "gmv_live", label: "Más GMV lives" },
-  { value: "lives", label: "Más lives" },
+  { value: "gmv_videos", label: "Más ventas en videos" },
+  { value: "gmv_live", label: "Más ventas en directos" },
+  { value: "lives", label: "Más transmisiones en vivo" },
   { value: "views", label: "Más vistas" },
 ];
 
@@ -308,7 +308,7 @@ const Creators = () => {
       <div className="mb-3 md:mb-4 py-1 md:py-0">
         <div className="md:hidden">
           <h1 className="text-base font-bold text-foreground leading-tight">
-            📊 {language === "es" ? "Ranking de Creadores" : "Creator Rankings"}
+            📊 {language === "es" ? "Creadores para tomar como referencia" : "Creators to learn from"}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             TikTok Shop {marketLabel} · Reporte importado
@@ -317,12 +317,12 @@ const Creators = () => {
         
         <div className="hidden md:block">
           <h1 className="text-lg font-bold text-foreground leading-tight">
-            📊 {language === "es" ? "Ranking de Creadores" : "Creator Rankings"}
+            📊 {language === "es" ? "Creadores para tomar como referencia" : "Creators to learn from"}
           </h1>
           <p className="text-xs text-muted-foreground">
             {language === "es" 
-              ? `TikTok Shop ${marketLabel} · Ranking del reporte importado; no en tiempo real`
-              : `TikTok Shop ${marketLabel} · Imported report ranking; not real-time`}
+              ? `Explora sus videos y cómo presentan los productos. TikTok Shop ${marketLabel} · Último reporte; no en tiempo real`
+              : `Explore their videos and product presentations. TikTok Shop ${marketLabel} · Latest report; not real-time`}
           </p>
         </div>
       </div>
@@ -386,28 +386,28 @@ const Creators = () => {
                     <TableHead className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <TrendingUp className="h-3 w-3 text-emerald-500" />
-                        GMV Total
+                        Ventas reportadas
                       </div>
                     </TableHead>
                     <TableHead className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <ShoppingBag className="h-3 w-3 text-amber-500" />
-                        Ganancias Est.
+                        Comisión estimada
                       </div>
                     </TableHead>
                     <TableHead className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Video className="h-3 w-3 text-blue-500" />
-                        GMV Videos
+                        Ventas en videos
                       </div>
                     </TableHead>
                     <TableHead className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Radio className="h-3 w-3 text-rose-500" />
-                        GMV Lives
+                        Ventas en directos
                       </div>
                     </TableHead>
-                    <TableHead className="text-right">Lives</TableHead>
+                    <TableHead className="text-right">Directos</TableHead>
                     <TableHead className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Eye className="h-3 w-3" />
@@ -517,7 +517,7 @@ const Creators = () => {
                           {isLocked ? "•••" : formatNumber(creator.seguidores)}
                         </TableCell>
 
-                        {/* GMV Total */}
+                        {/* Ventas reportadas */}
                         <TableCell className="text-right">
                           <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                             {isLocked ? "•••" : formatCurrency(creator.total_ingresos_mxn)}
@@ -531,7 +531,7 @@ const Creators = () => {
                           </span>
                         </TableCell>
 
-                        {/* GMV Videos */}
+                        {/* Ventas en videos */}
                         <TableCell className="text-right">
                           <div>
                             <span className="text-blue-600 dark:text-blue-400 font-medium">
@@ -545,7 +545,7 @@ const Creators = () => {
                           </div>
                         </TableCell>
 
-                        {/* GMV Lives */}
+                        {/* Ventas en directos */}
                         <TableCell className="text-right">
                           <div>
                             <span className="text-rose-600 dark:text-rose-400 font-medium">
@@ -612,8 +612,8 @@ const Creators = () => {
                 <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
                   <TableHead className="w-8 text-center p-2">#</TableHead>
                   <TableHead className="p-2">Creador</TableHead>
-                  <TableHead className="text-right p-2">GMV</TableHead>
-                  <TableHead className="text-right p-2 w-20">Ganancias</TableHead>
+                  <TableHead className="text-right p-2">Ventas en pesos</TableHead>
+                  <TableHead className="text-right p-2 w-20">Comisión est.</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -37,8 +37,8 @@ type BadgeFilter = "all" | "gems" | "rising" | "high_pay";
 
 const BADGE_FILTERS: { value: BadgeFilter; labelEs: string; labelEn: string }[] = [
   { value: "all", labelEs: "Todas", labelEn: "All" },
-  { value: "gems", labelEs: "💎 Joyas", labelEn: "💎 Gems" },
-  { value: "high_pay", labelEs: "💰 Paga bien", labelEn: "💰 High pay" },
+  { value: "gems", labelEs: "💎 Menos creadores", labelEn: "💎 Fewer creators" },
+  { value: "high_pay", labelEs: "💰 Mayor comisión", labelEn: "💰 Higher commission" },
 ];
 
 const FREE_PREVIEW_LIMIT = 3;
@@ -121,7 +121,7 @@ const Opportunities = () => {
         <div className="text-center">
           <Sparkles className="h-8 w-8 text-primary animate-pulse mx-auto mb-3" />
           <p className="text-muted-foreground">
-            {language === "es" ? "Analizando oportunidades..." : "Analyzing opportunities..."}
+            {language === "es" ? "Cargando oportunidades..." : "Loading opportunities..."}
           </p>
         </div>
       </div>
@@ -148,8 +148,8 @@ const Opportunities = () => {
             </h1>
             <p className="text-xs text-muted-foreground">
               {language === "es"
-                ? "Explora señales de demanda y comisión en los reportes de TikTok Shop"
-                : "Explore demand and commission signals in TikTok Shop reports"}
+                ? "Compara demanda y comisión; revisa los videos antes de elegir qué grabar"
+                : "Compare demand and commission, then review the videos before choosing what to record"}
             </p>
           </div>
         </div>
@@ -237,8 +237,8 @@ const Opportunities = () => {
               <summary className="cursor-pointer font-medium">{language === "es" ? "Cómo calculamos las oportunidades" : "How opportunities are calculated"}</summary>
               <p className="mt-2">
               {language === "es"
-                ? "El índice experimental es una comparación estadística dentro de cada categoría y mercado, no una predicción de ventas. Pondera demanda (30%), cantidad de creadores (25%), evolución de ingresos (20%), comisión por venta (15%) y ROAS (10%). Los datos se actualizan al importar un nuevo reporte; no son datos en tiempo real. La señal de crecimiento sigue pendiente de validar con periodos comparables. Revisa las cifras y los videos antes de elegir un producto."
-                : "This experimental index is a statistical comparison within each category and market, not a sales prediction. Weights: demand 30%, creator count 25%, revenue evolution 20%, earnings per sale 15%, ROAS 10%. Data changes when a new report is imported, not in real time. Growth still needs validation against comparable reporting periods. Review the numbers and videos before choosing a product."}
+                ? "Este indicador compara productos de la misma categoría y mercado; no predice tus ventas. Considera demanda (30%), cantidad de creadores (25%), evolución de ventas en pesos (20%), comisión por venta (15%) y ventas por cada peso invertido en publicidad (10%). Cambia cuando incorporamos un reporte; no se actualiza en tiempo real. La señal de crecimiento todavía requiere validar periodos comparables. Úsalo para elegir qué productos revisar, junto con sus cifras y videos."
+                : "This indicator compares products in the same category and market; it does not predict your sales. It weighs demand (30%), creator count (25%), sales value trends (20%), commission per sale (15%) and sales per unit of advertising spend (10%). It changes with each imported report, not in real time. Growth still needs validation across comparable periods. Use it to choose products to review alongside their numbers and videos."}
               </p>
               </details>
           </div>
@@ -255,8 +255,8 @@ const Opportunities = () => {
             </p>
             <p className="text-xs text-muted-foreground/70">
               {language === "es"
-                ? "Prueba con otro filtro o vuelve después del próximo análisis."
-                : "Try another filter or come back after the next analysis."}
+                ? "Prueba otro filtro o vuelve cuando se incorpore un nuevo reporte."
+                : "Try another filter or return when a new report is added."}
             </p>
           </Card>
         ) : (
@@ -381,6 +381,12 @@ const OpportunityCard = ({
   // Legacy snapshots lack source periods, so growth cannot yet be verified.
   const reasons = (product.opportunity_reasons || [])
     .filter((reason) => !reason.startsWith("Crecimiento"))
+    .map((reason) => reason
+      .replace(/^Vendió /, "Ventas reportadas: ")
+      .replace(" en los últimos 30 días", " en el período de 30 días del reporte")
+      .replace(" en 30 días y solo ", " en el período de 30 días; ")
+      .replace(" creadores lo promueven", " creadores en el reporte")
+      .replace(/^Ganarías ~/, "Comisión estimada: ~"))
     .slice(0, 3);
 
   const goToVideos = () => {
@@ -396,34 +402,34 @@ const OpportunityCard = ({
   if (product.is_hidden_gem)
     badges.push({
       emoji: "💎",
-      label: isEs ? "Joya oculta" : "Hidden gem",
+      label: isEs ? "Menos creadores" : "Fewer creators",
       tooltip: isEs
-        ? "Vende mucho y casi nadie lo promueve todavía."
-        : "Sells a lot and almost nobody promotes it yet.",
+        ? "Combina demanda y menor presencia de creadores según el reporte de su categoría; revisa los videos para valorar si te conviene."
+        : "Combines demand and fewer creators in its category report; review the videos to decide if it fits your content.",
     });
   if (product.is_high_pay)
     badges.push({
       emoji: "💰",
-      label: isEs ? "Paga bien" : "High pay",
+      label: isEs ? "Mayor comisión" : "Higher commission",
       tooltip: isEs
-        ? "Está en el top de ganancia por venta de su categoría."
-        : "Top earnings per sale within its category.",
+        ? "La comisión estimada por venta está entre las más altas de su categoría."
+        : "Estimated commission per sale is among the highest in its category.",
     });
   if (product.is_brand_backed)
     badges.push({
       emoji: "🏷️",
-      label: isEs ? "ROAS alto" : "High ROAS",
+      label: isEs ? "Retorno publicitario alto" : "High ad return",
       tooltip: isEs
-        ? "ROAS reportado superior a 2 y entre los más altos de su categoría; no indica cuánto invierte la marca."
-        : "Reported ROAS above 2 and among the highest in its category; this does not indicate the brand’s ad spend.",
+        ? "El reporte muestra más de 2 pesos en ventas por cada peso invertido en publicidad, entre los valores más altos de su categoría. No indica el presupuesto de la marca."
+        : "The report shows more than 2 units in sales for each unit spent on ads, among the highest in its category. This does not indicate the brand’s budget.",
     });
   if (product.is_saturated)
     badges.push({
       emoji: "⚠️",
-      label: isEs ? "Saturado" : "Saturated",
+      label: isEs ? "Más creadores compitiendo" : "More competing creators",
       tooltip: isEs
-        ? "Vende bien pero ya hay demasiados creadores compitiendo."
-        : "Sells well but too many creators are already competing.",
+        ? "El reporte muestra una mayor presencia de creadores. Revisa sus videos y cómo podrías aportar algo distinto."
+        : "The report shows more creators promoting it. Review their videos and consider what you could do differently.",
       variant: "warning",
     });
 
@@ -469,8 +475,8 @@ const OpportunityCard = ({
               <TooltipContent side="left" className="max-w-[220px]">
                 <p className="text-xs">
                   {isEs
-                    ? "Índice 0-100: demanda, espacio libre, crecimiento, pago por venta e inversión de marca, comparado contra su categoría."
-                    : "0-100 index: demand, free space, growth, pay per sale and brand investment, compared against its category."}
+                    ? "Indicador experimental de 0 a 100: compara demanda, número de creadores, evolución de ventas, comisión y retorno publicitario dentro de su categoría. No garantiza ventas."
+                    : "Experimental score from 0 to 100: compares demand, creator count, sales trends, commission and ad return within the category. It does not guarantee sales."}
                 </p>
               </TooltipContent>
             </Tooltip>

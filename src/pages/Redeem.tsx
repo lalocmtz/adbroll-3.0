@@ -34,10 +34,10 @@ export default function Redeem() {
   return <main className="min-h-[100dvh] flex items-center justify-center bg-background p-4">
     <Card className="w-full max-w-md"><CardHeader className="text-center">
       <Link to="/" className="mx-auto mb-4"><BrandLogo tone="dark" size="lg" /></Link>
-      <CardTitle>Activa tu acceso de creador</CardTitle><CardDescription>Usa el correo verificado de tu solicitud. Este código es personal y no genera cargos.</CardDescription>
+      <CardTitle>Activa tu acceso de creador</CardTitle><CardDescription>Entra con el correo verificado de tu solicitud aprobada y canjea tu código personal. Activarlo no genera cargos.</CardDescription>
     </CardHeader><CardContent className="space-y-4">
       <form onSubmit={redeem} className="space-y-4"><Label htmlFor="grant-code">Código de acceso</Label><Input id="grant-code" required value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="CREATOR-XXXXXX" />
-        {verified ? <Button className="w-full" disabled={loading || !code.trim()}>{loading ? 'Activando…' : 'Activar acceso'}</Button> : <>
+        {verified ? <Button className="w-full" disabled={loading || !code.trim()}>{loading ? 'Activando…' : 'Canjear mi acceso'}</Button> : <>
           <Button className="w-full" asChild><Link to={`/login?redirect=${encodeURIComponent(returnTo)}`}>Iniciar sesión y activar</Link></Button>
           <Button className="w-full" variant="outline" asChild><Link to={`/register?redirect=${encodeURIComponent(returnTo)}`}>Crear cuenta y confirmar correo</Link></Button>
         </>}

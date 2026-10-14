@@ -44,7 +44,7 @@ export default function AuthContinue() {
         <Link to="/" className="inline-flex"><BrandLogo tone="dark" size="lg" /></Link>
         <div className="space-y-2">
           {destination === "/pricing" && <p className="text-xs text-muted-foreground">Cuenta creada · Confirma tu correo · Después, activa Pro</p>}
-          <h1 className="text-2xl font-semibold tracking-tight">{waitingForEmail ? "Tu siguiente paso empieza en tu correo" : "Ya casi estás dentro"}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{waitingForEmail ? "Confirma tu correo para continuar" : "Ya casi estás dentro"}</h1>
           <p role="status" className="text-sm text-muted-foreground">
             {waitingForEmail ? "Confirma tu correo e inicia sesión para continuar." : "Preparando tu cuenta…"}
           </p>
@@ -54,7 +54,7 @@ export default function AuthContinue() {
             <p>Abre el mensaje de TokXray{confirmationEmail ? <> en <strong className="break-all">{confirmationEmail}</strong></> : " en el correo que usaste al registrarte"} y pulsa el enlace de confirmación.</p>
             <p className="text-xs text-muted-foreground">Si no lo ves, revisa spam o promociones. Con Google puedes continuar sin este paso adicional.</p>
           </div>
-          <p className="text-sm">Deja de adivinar. Encuentra referencias y convierte tu próxima idea en un video con intención.</p>
+          <p className="text-sm">Después de confirmar, podrás explorar la vista previa. Con Pro podrás analizar una referencia y adaptar el guion a tu producto y a tu voz.</p>
           <p className="text-xs text-muted-foreground">Crear tu cuenta es gratis. Registrarte no inicia una suscripción ni genera cargos. Pro se activa al completar el pago.</p>
           <Button asChild className="w-full h-11"><Link to={`/login?redirect=${encodeURIComponent(destination)}`}>Ya confirmé, continuar</Link></Button>
           <Link className="inline-block text-xs text-muted-foreground underline" to="/app">Seguir explorando el catálogo</Link>

@@ -46,7 +46,7 @@ interface Variant {
   strategy_note?: string;
 }
 
-// Bloque del guión segmentado por segundos (lo emite transcribe-assemblyai).
+// Bloque del guion segmentado por segundos (lo emite transcribe-assemblyai).
 interface Segment {
   start_ms: number;
   end_ms: number;
@@ -71,8 +71,8 @@ interface HistoryItem {
 
 const PROGRESS_LABELS: Record<string, { es: string; en: string }> = {
   download: { es: "Obteniendo el video…", en: "Fetching the video…" },
-  transcribe: { es: "Transcribiendo el guión…", en: "Transcribing the script…" },
-  analyze: { es: "Analizando por qué funcionó…", en: "Analyzing why it worked…" },
+  transcribe: { es: "Transcribiendo el guion…", en: "Transcribing the script…" },
+  analyze: { es: "Revisando cómo presenta el producto…", en: "Reviewing how it presents the product…" },
   variants: { es: "Generando 3 variantes…", en: "Generating 3 variants…" },
 };
 
@@ -285,8 +285,8 @@ const Tools = () => {
         if (trData.quotaExceeded) {
           throw new Error(
             t(
-              "La cuota del proveedor de transcripción se agotó. Intenta más tarde.",
-              "The transcription provider quota ran out. Try again later."
+              "La transcripción no está disponible en este momento. Intenta más tarde.",
+              "Transcription is unavailable right now. Try again later."
             )
           );
         }
@@ -304,7 +304,7 @@ const Tools = () => {
       }
       setTranscript(tx);
 
-      // Guión segmentado por segundos (aditivo; puede venir vacío o null).
+      // Guion segmentado por segundos (aditivo; puede venir vacío o null).
       const segs: Segment[] = Array.isArray(trData?.segments) ? trData.segments : [];
       setSegments(segs);
 
@@ -316,7 +316,7 @@ const Tools = () => {
         throw new Error(t("El análisis compartido está incompleto. Inténtalo de nuevo.", "Shared analysis is incomplete. Try again."));
       }
       const sharedInsights: Insights = {
-        funcionamiento: `Gancho: ${analysis.hook || ''}`,
+        funcionamiento: `Primeros segundos: ${analysis.hook || ''}`,
         estructura: analysis.body || '',
         ctaLocation: analysis.cta || '',
         angulos: analysis.visual_observations || [],
@@ -434,8 +434,8 @@ const Tools = () => {
             </h1>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
               {t(
-                "Pega el enlace completo de un video público de TikTok. Lo descargamos, analizamos su contenido y guardamos el resultado para reutilizarlo. Hasta 5 videos nuevos al día; algunos enlaces pueden no estar disponibles.",
-                "Paste the full link of a public TikTok video. We download it, analyze its content and save the result for reuse. Up to 5 new videos per day; some links may be unavailable."
+                "Pega el enlace de un video público de TikTok para entender su guion y preparar tu propia versión. Guardamos el análisis para que puedas retomarlo. Hasta 5 videos nuevos al día; algunos enlaces pueden no estar disponibles.",
+                "Paste a public TikTok video link to understand its script and prepare your own version. Your analysis is saved so you can return to it. Up to 5 new videos per day; some links may be unavailable."
               )}
             </p>
           </div>
@@ -609,11 +609,11 @@ const Tools = () => {
                         <TabsList className="h-9 bg-muted/50 p-1 rounded-lg">
                           <TabsTrigger value="script" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
                             <FileText className="h-3.5 w-3.5 mr-1.5" />
-                            {t("Guión", "Script")}
+                            {t("Guion", "Script")}
                           </TabsTrigger>
                           <TabsTrigger value="why" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
                             <Lightbulb className="h-3.5 w-3.5 mr-1.5" />
-                            {t("Por qué funcionó", "Why it worked")}
+                            {t("Análisis", "Analysis")}
                           </TabsTrigger>
                           <TabsTrigger value="variants" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
                             <Sparkles className="h-3.5 w-3.5 mr-1.5" />
@@ -627,8 +627,8 @@ const Tools = () => {
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="text-sm font-medium">
                             {segments.length > 0
-                              ? t("Guión por segundos", "Script by seconds")
-                              : t("Guión transcrito", "Transcribed script")}
+                              ? t("Guion por segundos", "Script by seconds")
+                              : t("Guion transcrito", "Transcribed script")}
                           </h4>
                           <Button
                             onClick={() => copyText(transcript, "script")}
@@ -678,7 +678,7 @@ const Tools = () => {
                               {insights.funcionamiento && (
                                 <div className="p-3 rounded-xl bg-primary/5 border border-primary/15">
                                   <p className="text-xs font-semibold text-primary mb-1">
-                                    {t("Por qué funcionó", "Why it worked")}
+                                    {t("Qué puedes aprender de este video", "What you can learn from this video")}
                                   </p>
                                   <p className="text-sm text-foreground/90 leading-relaxed">
                                     {insights.funcionamiento}
@@ -698,7 +698,7 @@ const Tools = () => {
                                 {insights.ctaLocation && (
                                   <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
                                     <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                                      {t("CTA", "CTA")}
+                                      {t("Invitación a actuar", "Call to action")}
                                     </p>
                                     <p className="text-xs text-foreground/90">{insights.ctaLocation}</p>
                                   </div>
@@ -707,7 +707,7 @@ const Tools = () => {
 
                               {insights.angulos && insights.angulos.length > 0 && (
                                 <BulletBlock
-                                  title={t("Ángulos / ganchos", "Angles / hooks")}
+                                  title={t("Formas de presentar la idea", "Ways to present the idea")}
                                   items={insights.angulos}
                                   tone="default"
                                 />
@@ -754,9 +754,9 @@ const Tools = () => {
                               <TabsContent key={i} value={`v${i}`} className="m-0">
                                 <ScrollArea className="h-[260px] pr-2">
                                   <div className="space-y-3">
-                                    <VariantField label="Hook" text={v.hook} />
+                                    <VariantField label={t("Primeros segundos", "Opening seconds")} text={v.hook} />
                                     <VariantField label={t("Cuerpo", "Body")} text={v.body} />
-                                    <VariantField label="CTA" text={v.cta} />
+                                    <VariantField label={t("Invitación a actuar", "Call to action")} text={v.cta} />
                                     {v.strategy_note && (
                                       <p className="text-[11px] text-muted-foreground italic px-1">
                                         💡 {v.strategy_note}

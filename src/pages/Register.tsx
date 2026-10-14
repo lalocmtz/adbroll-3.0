@@ -127,10 +127,10 @@ const Register = () => {
     } catch (error: any) {
       let message = error.message;
       if (error.message?.includes("already registered")) {
-        message = "Este email ya está registrado. ¿Quieres iniciar sesión?";
+        message = "Este correo ya está registrado. Inicia sesión con tu cuenta.";
       }
       toast({
-        title: "Error al registrarse",
+        title: "No pudimos crear tu cuenta",
         description: message,
         variant: "destructive",
       });
@@ -158,7 +158,7 @@ const Register = () => {
       if (error) throw error;
     } catch (error: any) {
       toast({
-        title: "Error con Google",
+        title: "No pudimos conectar con Google",
         description: error.message,
         variant: "destructive",
       });
@@ -187,14 +187,14 @@ const Register = () => {
             </button>
           </div>
           {destination === "/pricing" && <p className="text-[11px] text-muted-foreground">1. Cuenta · 2. Confirmación · 3. Activar Pro</p>}
-          <CardTitle className="text-xl">Deja de adivinar tu próximo video</CardTitle>
+          <CardTitle className="text-xl">Antes de grabar, encuentra una referencia</CardTitle>
           <CardDescription>
-            Crea tu cuenta y empieza a explorar TikTok Shop con un rumbo claro.
+            Explora la vista previa y descubre un punto de partida para tu próximo video de TikTok Shop.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 px-5 pb-5">
           <p className="rounded-xl bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-            Tu cuenta es gratis. Pro se contrata por separado por US$29/mes. No se cobra nada al registrarte. <Link to="/pricing" className="text-primary underline">Ver plan</Link>
+            Tu cuenta y la vista previa son gratis, sin tarjeta. Los guiones y el análisis con IA requieren Pro: US$29/mes. Registrarte no genera cargos. <Link to="/pricing" className="text-primary underline">Ver qué incluye Pro</Link>
           </p>
           {/* Referral Code Input - Before OAuth for visibility */}
           <div className="space-y-2">
@@ -221,7 +221,7 @@ const Register = () => {
               }`}
             />
             <div id="referral-status" aria-live="polite" className="text-xs">
-              {referralStatus === "valid" && <p className="text-green-700">Código válido: tu recomendación quedará vinculada a ese creador. Pro cuesta US$29/mes desde el inicio, sin descuento por código.</p>}
+              {referralStatus === "valid" && <p className="text-green-700">Código válido: queda registrado quién te invitó. Pro cuesta US$29/mes; el código no cambia el precio.</p>}
               {referralStatus === "pending" && <p className="text-muted-foreground">Verificando tu código…</p>}
               {referralStatus === "invalid" && <p className="text-destructive">Código no válido. Corrígelo o déjalo vacío.</p>}
               {referralStatus === "error" && <p className="text-destructive">No pudimos verificarlo. Vuelve a escribirlo o déjalo vacío.</p>}
@@ -281,7 +281,7 @@ const Register = () => {
               )}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 autoComplete="email"

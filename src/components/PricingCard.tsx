@@ -39,7 +39,7 @@ export const PricingCard = ({
         <SubscriptionPrice compact />
         {hasReferral && (
           <p className="text-sm text-green-600 mt-2 font-medium">
-            🎉 {language === "es" ? "Código registrado; consulta el total en Stripe" : "Referral saved; see the total in Stripe"}
+            🎉 {language === "es" ? "Código registrado. El precio de Pro no cambia." : "Referral code saved. Your Pro price stays the same."}
           </p>
         )}
       </div>
@@ -58,7 +58,7 @@ export const PricingCard = ({
         variant="default"
         onClick={onSelect}
       >
-        {language === "es" ? "Empieza ahora" : "Start now"}
+        {language === "es" ? "Elegir TokXray Pro" : "Choose TokXray Pro"}
       </Button>
     </Card>
   );

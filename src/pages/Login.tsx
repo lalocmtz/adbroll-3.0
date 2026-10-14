@@ -26,7 +26,7 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    
+
     // Validate inputs
     const result = loginSchema.safeParse({ email, password });
     if (!result.success) {
@@ -56,9 +56,9 @@ const Login = () => {
       navigate(`/auth/continue?redirect=${encodeURIComponent(destination)}`);
     } catch (error: any) {
       toast({
-        title: "Error al iniciar sesión",
+        title: "No pudimos iniciar sesión",
         description: error.message === "Invalid login credentials" 
-          ? "Email o contraseña incorrectos" 
+          ? "Revisa tu correo y contraseña e inténtalo de nuevo."
           : error.message,
         variant: "destructive",
       });
@@ -80,7 +80,7 @@ const Login = () => {
       if (error) throw error;
     } catch (error: any) {
       toast({
-        title: "Error con Google",
+        title: "No pudimos conectar con Google",
         description: error.message,
         variant: "destructive",
       });
@@ -110,7 +110,7 @@ const Login = () => {
           </div>
           <CardTitle className="text-xl">Bienvenido de vuelta</CardTitle>
           <CardDescription>
-            Tu próxima idea empieza aquí. Continúa con tus videos, guiones y referidos.
+            Retoma tus referencias y prepara lo que vas a grabar después.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 p-5 pt-0">
@@ -156,7 +156,7 @@ const Login = () => {
 
           <form onSubmit={handleLogin} className="space-y-3">
             <div className="space-y-1">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 autoComplete="email"

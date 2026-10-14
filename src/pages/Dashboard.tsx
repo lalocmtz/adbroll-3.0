@@ -54,16 +54,16 @@ const SORT_OPTIONS = [{
   label: "Ranking actual"
 }, {
   value: "revenue",
-  label: "Más ingresos"
+  label: "Más ventas en pesos"
 }, {
   value: "sales",
-  label: "Más ventas"
+  label: "Más unidades vendidas"
 }, {
   value: "views",
   label: "Más vistas"
 }, {
   value: "earnings",
-  label: "Ganancias estimadas"
+  label: "Comisiones estimadas"
 }];
 const Dashboard = () => {
   const [period, setPeriod] = useState<CatalogPeriod>("30");
@@ -181,7 +181,7 @@ const Dashboard = () => {
         <div className="md:hidden">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-base font-bold text-foreground leading-tight">
-              Videos destacados de TikTok Shop
+              Videos para preparar tu próxima grabación
             </h1>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -194,11 +194,11 @@ const Dashboard = () => {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-bold text-foreground leading-tight">
-                Videos destacados de TikTok Shop
+                Videos para preparar tu próxima grabación
               </h1>
             </div>
             <p className="text-xs text-muted-foreground">
-              TikTok Shop {marketLabel} · Datos del último reporte; no en tiempo real
+              TikTok Shop {marketLabel} · Elige una referencia y revisa sus ventas del periodo
             </p>
           </div>
           {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
@@ -224,10 +224,10 @@ const Dashboard = () => {
               className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${period === option.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/60 text-muted-foreground border-border/50 hover:bg-muted'}`}
             >{option.label}</button>)}
           </div>
-          <span className="text-xs text-muted-foreground">{selectedReport ? `Datos del ${formatReportPeriod(selectedReport.range)}` : 'Sin reporte importado para este periodo'}</span>
+          <span className="text-xs text-muted-foreground">{selectedReport ? `Datos del ${formatReportPeriod(selectedReport.range)}` : 'Este periodo todavía no tiene reporte'}</span>
         </div>
         <p className="text-xs text-muted-foreground mb-3">
-          Ventas del periodo seleccionado, independientemente de cuándo se publicó el video.
+          Ventas reportadas del periodo seleccionado, aunque el video se haya publicado antes. No son cifras en tiempo real.
         </p>
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
           {!isLoggedIn ? <div className="flex gap-1.5 opacity-60 cursor-pointer flex-wrap" onClick={() => {
@@ -276,7 +276,7 @@ const Dashboard = () => {
 
       {videos.length === 0 ? <Card className="p-12 text-center">
           <p className="text-muted-foreground text-lg">
-            {!selectedReport ? `Todavía no hay un reporte de ${period} días importado. Estará disponible cuando se incorpore un reporte de ese periodo.` : productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos descargados con estos filtros. Prueba otra categoría o periodo."}
+            {!selectedReport ? `Todavía no tenemos un reporte de ${period} días. Elige otro periodo para explorar las referencias disponibles.` : productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos disponibles con estos filtros. Prueba otra categoría o periodo."}
           </p>
         </Card> : <>
           {/* Video Grid - 2 columns on mobile */}

@@ -77,7 +77,7 @@ const ProductCard = ({ product, showRelatedVideos = false, ranking }: ProductCar
         {/* Earnings badge */}
         {earningsPerSale > 0 && (
           <span className="absolute bottom-3 left-3 z-10 bg-[#EEF2FF] text-[#6366F1] text-xs font-medium px-2 py-1 rounded-md shadow-sm">
-            💰 Gana {formatCurrency(earningsPerSale)} por venta
+            💰 Comisión estimada: {formatCurrency(earningsPerSale)}/venta
           </span>
         )}
       </div>
@@ -106,7 +106,7 @@ const ProductCard = ({ product, showRelatedVideos = false, ranking }: ProductCar
           <div className="p-2.5 rounded-xl bg-[#ECFDF5] dark:bg-success/10">
             <div className="flex items-center gap-1.5 mb-1">
               <DollarSign className="h-3.5 w-3.5 text-[#475569]" />
-              <span className="text-[11px] text-[#94A3B8]">Ingresos</span>
+              <span className="text-[11px] text-[#94A3B8]">Ventas en pesos</span>
             </div>
             <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
               {formatCurrency(product.total_ingresos_mxn)}
@@ -116,7 +116,7 @@ const ProductCard = ({ product, showRelatedVideos = false, ranking }: ProductCar
           <div className="p-2.5 rounded-xl bg-[#F8FAFC] dark:bg-muted/50">
             <div className="flex items-center gap-1.5 mb-1">
               <ShoppingCart className="h-3.5 w-3.5 text-[#475569]" />
-              <span className="text-[11px] text-[#94A3B8]">Ventas</span>
+              <span className="text-[11px] text-[#94A3B8]">Unidades vendidas</span>
             </div>
             <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
               {formatNumber(product.total_ventas)}
@@ -127,7 +127,7 @@ const ProductCard = ({ product, showRelatedVideos = false, ranking }: ProductCar
             <div className="p-2.5 rounded-xl bg-[#F0F9FF] dark:bg-accent/10 col-span-2">
               <div className="flex items-center gap-1.5 mb-1">
                 <TrendingUp className="h-3.5 w-3.5 text-[#475569]" />
-                <span className="text-[11px] text-[#94A3B8]">ROAS Promedio</span>
+                <span className="text-[11px] text-[#94A3B8]">Retorno publicitario promedio</span>
               </div>
               <p className="text-sm font-bold text-[#0F172A] dark:text-foreground">
                 {product.promedio_roas.toFixed(1)}x

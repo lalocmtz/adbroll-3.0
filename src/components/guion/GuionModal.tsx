@@ -116,7 +116,7 @@ export const GuionModal = ({
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <DialogTitle className="text-base font-semibold leading-tight">
-                Guion listo para grabar
+                Adapta el guion antes de grabar
               </DialogTitle>
               {productName && (
                 <p className="text-xs text-muted-foreground mt-1 truncate">
