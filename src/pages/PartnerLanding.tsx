@@ -1,3 +1,4 @@
+import { MONTHLY_PRICE_USD, DIRECT_RENEWAL_COMMISSION_USD } from "@/lib/pricing";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Play, Check, Clapperboard, ScanLine, Wallet, ArrowRight } from "lucide-react";
@@ -36,7 +37,7 @@ export default function PartnerLanding() {
         <div>
           <p className="partner-eyebrow"><span /> PARA CREADORES DE TIKTOK SHOP MÉXICO</p>
           <h1>Ayuda a otros creadores<br />a <em>dejar de adivinar.</em></h1>
-          <p className="partner-intro">Elegir qué vender y qué decir es más fácil con una referencia. Muestra cómo usas TokXray para revisar ventas reportadas y adaptar un guion. Si un cliente nuevo se suscribe con tu código, recibes <strong>US$10 por su primer pago y 15% de sus renovaciones elegibles</strong>.</p>
+          <p className="partner-intro">Elegir qué vender y qué decir es más fácil con una referencia. Muestra cómo usas TokXray para revisar ventas reportadas y adaptar un guion. Si un cliente nuevo se suscribe con tu código, recibes <strong>US$5 por su primer pago y 15% de sus renovaciones elegibles</strong>.</p>
           <div className="partner-actions"><Link className="partner-button" to={register(leader ? `/affiliates?leader=${leader}` : "/affiliates")}>Quiero recomendar TokXray <ArrowUpRight size={20} /></Link><Link className="partner-text-link" to={register("/pricing")}>Quiero usar la herramienta <ArrowRight size={17} /></Link></div>
           <p className="partner-caption">Tu cuenta y tu código son gratis. El acceso Pro se contrata por separado.</p>
           <div className="mt-6"><CreatorLifetimeCapacity state={lifetimeCapacity} tone="dark" compact /></div>
@@ -47,7 +48,7 @@ export default function PartnerLanding() {
           <div className="partner-ticket-top"><span>TU RECOMENDACIÓN CUENTA</span><ArrowUpRight size={26} /></div>
           <div className="partner-ticket-number">15<span>%</span></div>
           <p>Por renovaciones pagadas.<br />Sin límite de seis meses.</p>
-          <div className="partner-ticket-bottom"><strong>$4.35 USD</strong><span>por cada renovación<br />cobrada de $29 USD</span></div>
+          <div className="partner-ticket-bottom"><strong>$2.25 USD</strong><span>por cada renovación<br />cobrada de $15 USD</span></div>
         </aside>
       </section>
       <section className="partner-video-section partner-wrap" aria-labelledby="presentation-title">
@@ -65,12 +66,12 @@ export default function PartnerLanding() {
         ].map(([number, title, body, icon]) => <article key={String(number)}><div className="partner-step-top"><span>{number}</span>{icon}</div><h3>{title}</h3><p>{body}</p></article>)}</div>
       </section>
       <section className="partner-calculator-band"><div className="partner-wrap partner-calculator">
-        <div><p className="partner-eyebrow">HAZ TUS NÚMEROS</p><h2>Tu recomendación tiene<br />un pago claro.</h2><p>Si un cliente nuevo se suscribe con tu código, paga $29 USD al mes desde el inicio. Recibes US$10 del primer pago elegible y US$4.35 por cada renovación completa de US$29.</p><p>Las comisiones dependen de pagos reales elegibles. Este ejemplo no garantiza resultados.</p></div>
-        <div className="partner-calculator-card"><label htmlFor="referrals">Clientes directos que renuevan <strong>{referrals}</strong></label><input id="referrals" type="range" min="1" max="100" value={referrals} onChange={e => setReferrals(Number(e.target.value))} /><output htmlFor="referrals">${(referrals * 4.35).toFixed(2)}<span> USD / mes</span></output><p>{referrals} renovaciones de $29 USD × 15%. Sin impuestos, reembolsos ni pagos fallidos en este ejemplo.</p><div className="partner-rule"><Check size={17} /> Mínimo de retiro: $50 USD</div><div className="partner-rule"><Check size={17} /> Revisión semanal y transferencia manual</div></div>
+        <div><p className="partner-eyebrow">HAZ TUS NÚMEROS</p><h2>Tu recomendación tiene<br />un pago claro.</h2><p>Si un cliente nuevo se suscribe con tu código, paga $15 USD al mes desde el inicio. Recibes US$5 del primer pago elegible y US$2.25 por cada renovación completa de US$15.</p><p>Las comisiones dependen de pagos reales elegibles. Este ejemplo no garantiza resultados.</p></div>
+        <div className="partner-calculator-card"><label htmlFor="referrals">Clientes directos que renuevan <strong>{referrals}</strong></label><input id="referrals" type="range" min="1" max="100" value={referrals} onChange={e => setReferrals(Number(e.target.value))} /><output htmlFor="referrals">${(referrals * DIRECT_RENEWAL_COMMISSION_USD).toFixed(2)}<span> USD / mes</span></output><p>{referrals} renovaciones de ${MONTHLY_PRICE_USD} USD × 15%. Sin impuestos, reembolsos ni pagos fallidos en este ejemplo.</p><div className="partner-rule"><Check size={17} /> Mínimo de retiro: $50 USD</div><div className="partner-rule"><Check size={17} /> Revisión semanal y transferencia manual</div></div>
       </div></section>
       <section className="partner-wrap partner-how" style={{ paddingTop: 64 }}>
-        <div className="partner-section-head"><p className="partner-eyebrow">SI YA ACOMPAÑAS A OTROS CREADORES</p><h2>Enséñales a elegir.<br />Crezcan recomendando.</h2><p>Ayuda a tu comunidad a entender qué producto explorar y cómo preparar un guion. Cada creador conserva US$10 por cada primer pago directo elegible y 15% de sus renovaciones. Si acepta tu invitación de comunidad antes de generar clientes de pago, tú recibes 5% de las renovaciones elegibles de sus clientes directos: US$1.45 por cada renovación completa de US$29.</p></div>
-        <p className="partner-caption">Ejemplo ilustrativo: 10 renovaciones completas de US$29 generan US$43.50 para el creador y US$14.50 para su líder. El 15% y el 5% se reparten entre dos personas. Solo hay un escalón indirecto: no se paga por incorporar creadores, por niveles más profundos ni por una primera compra indirecta.</p>
+        <div className="partner-section-head"><p className="partner-eyebrow">SI YA ACOMPAÑAS A OTROS CREADORES</p><h2>Enséñales a elegir.<br />Crezcan recomendando.</h2><p>Ayuda a tu comunidad a entender qué producto explorar y cómo preparar un guion. Cada creador conserva US$5 por cada primer pago directo elegible y 15% de sus renovaciones. Si acepta tu invitación de comunidad antes de generar clientes de pago, tú recibes 5% de las renovaciones elegibles de sus clientes directos: US$0.75 por cada renovación completa de US$15.</p></div>
+        <p className="partner-caption">Ejemplo ilustrativo: 10 renovaciones completas de US$15 generan US$22.50 para el creador y US$7.50 para su líder. El 15% y el 5% se reparten entre dos personas. Solo hay un escalón indirecto: no se paga por incorporar creadores, por niveles más profundos ni por una primera compra indirecta.</p>
         <Link className="partner-button" to={register(leader ? `/affiliates?leader=${leader}` : "/affiliates")}>Crear mi comunidad <ArrowUpRight size={20} /></Link>
       </section>
       <section id="acceso-vitalicio" className="partner-wrap partner-how scroll-mt-8">
@@ -81,8 +82,8 @@ export default function PartnerLanding() {
       </section>
       <section className="partner-wrap partner-faq"><div><p className="partner-eyebrow">LAS REGLAS, CLARAS</p><h2>Antes de comenzar.</h2></div><div>{[
         ["¿Tengo que ser un creador experto?", "No. Puedes mostrar un ejemplo sencillo: el producto que elegiste, la referencia que revisaste y cómo adaptaste el guion. No necesitas prometer cuánto va a vender alguien ni cuánto va a ganar."],
-        ["¿Cuánto cuesta usar TokXray?", "$29 USD al mes desde el primer mes, con o sin código. El código reconoce al creador que te invitó; no cambia el precio. La pantalla de pago muestra los impuestos aplicables."],
-        ["¿Durante cuánto tiempo gano comisiones?", "Recibes hasta $10 USD por el primer pago de cada cliente nuevo y 15% de las renovaciones elegibles de tus referidos directos mientras su suscripción continúe pagando. No hay un límite de seis meses. No se generan comisiones por registros gratuitos, pagos fallidos o cobros reembolsados."],
+        ["¿Cuánto cuesta usar TokXray?", "$15 USD al mes desde el primer mes, con o sin código. El código reconoce al creador que te invitó; no cambia el precio. La pantalla de pago muestra los impuestos aplicables."],
+        ["¿Durante cuánto tiempo gano comisiones?", "Recibes hasta $5 USD por el primer pago de cada cliente nuevo y 15% de las renovaciones elegibles de tus referidos directos mientras su suscripción continúe pagando. No hay un límite de seis meses. No se generan comisiones por registros gratuitos, pagos fallidos o cobros reembolsados."],
         ["¿Gano por los referidos de mis referidos?", "Si invitas a un creador y acepta unirse a tu comunidad antes de generar clientes de pago, recibes 5% de las renovaciones elegibles de sus clientes directos. Ese creador conserva su 15%. Es un solo escalón: no ganas por niveles más profundos ni por registros gratuitos."],
         ["¿Cómo recibo mi dinero?", "El equipo de TokXray revisa los saldos semanalmente y te contacta para coordinar una transferencia manual cuando alcanzas $50 USD disponibles. Los depósitos confirmados aparecen en tu historial; no necesitas una cuenta de Stripe."],
         ["¿Los datos se actualizan en tiempo real?", "Actualizamos el catálogo semanalmente con reportes sobre TikTok Shop México. Consulta el periodo de cada ranking: son referencias históricas, no una garantía de ventas futuras. Algunos videos pueden dejar de estar disponibles."],

@@ -194,7 +194,7 @@ const Register = () => {
         </CardHeader>
         <CardContent className="space-y-3 px-5 pb-5">
           <p className="rounded-xl bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-            Tu cuenta y la vista previa son gratis, sin tarjeta. Los guiones y el análisis con IA requieren Pro: US$29/mes. Registrarte no genera cargos. <Link to="/pricing" className="text-primary underline">Ver qué incluye Pro</Link>
+            Tu cuenta y la vista previa son gratis, sin tarjeta. Los guiones y el análisis con IA requieren Pro: US$15/mes. Registrarte no genera cargos. <Link to="/pricing" className="text-primary underline">Ver qué incluye Pro</Link>
           </p>
           {/* Referral Code Input - Before OAuth for visibility */}
           <div className="space-y-2">
@@ -221,7 +221,7 @@ const Register = () => {
               }`}
             />
             <div id="referral-status" aria-live="polite" className="text-xs">
-              {referralStatus === "valid" && <p className="text-green-700">Código válido: queda registrado quién te invitó. Pro cuesta US$29/mes; el código no cambia el precio.</p>}
+              {referralStatus === "valid" && <p className="text-green-700">Código válido: queda registrado quién te invitó. Pro cuesta US$15/mes; el código no cambia el precio.</p>}
               {referralStatus === "pending" && <p className="text-muted-foreground">Verificando tu código…</p>}
               {referralStatus === "invalid" && <p className="text-destructive">Código no válido. Corrígelo o déjalo vacío.</p>}
               {referralStatus === "error" && <p className="text-destructive">No pudimos verificarlo. Vuelve a escribirlo o déjalo vacío.</p>}

@@ -22,10 +22,10 @@ describe("affiliate billing contract", () => {
 });
 
 describe("published monthly price", () => {
-  const price = { active: true, currency: "usd", unit_amount: 2900, recurring: { interval: "month", interval_count: 1 } };
-  it("accepts exactly 29 USD monthly", () => expect(() => validateMonthlyPrice(price)).not.toThrow());
+  const price = { active: true, currency: "usd", unit_amount: 1500, recurring: { interval: "month", interval_count: 1 } };
+  it("accepts exactly 15 USD monthly", () => expect(() => validateMonthlyPrice(price)).not.toThrow());
   it("rejects stale prices and different billing periods", () => {
-    for (const invalid of [{ ...price, unit_amount:2499 },{ ...price,currency:"mxn" },{ ...price,active:false },{ ...price,recurring:{ interval:"year", interval_count:1 } }]) expect(() => validateMonthlyPrice(invalid)).toThrow();
+    for (const invalid of [{ ...price, unit_amount:2900 },{ ...price, unit_amount:2499 },{ ...price,currency:"mxn" },{ ...price,active:false },{ ...price,recurring:{ interval:"year", interval_count:1 } }]) expect(() => validateMonthlyPrice(invalid)).toThrow();
   });
 });
 
@@ -39,9 +39,9 @@ describe("ambiguous payout retries", () => {
 });
 
 describe("new customer referral policy", () => {
-  it("pays ten dollars once and 15 percent of renewals", () => {
-    expect(affiliateCommissionCents(commissionBaseCents({ currency: "usd", amount_paid: 2900 }), true)).toBe(1000);
-    expect(affiliateCommissionCents(commissionBaseCents({ currency: "usd", amount_paid: 2900 }), false)).toBe(435);
+  it("pays five dollars once and 15 percent of renewals", () => {
+    expect(affiliateCommissionCents(commissionBaseCents({ currency: "usd", amount_paid: 1500 }), true)).toBe(500);
+    expect(affiliateCommissionCents(commissionBaseCents({ currency: "usd", amount_paid: 1500 }), false)).toBe(225);
   });
   it("rejects repeating or mismatched coupons", () => {
     const coupon = { valid: true, percent_off: null, amount_off: 1400, currency: "usd", duration: "once" };
@@ -50,10 +50,10 @@ describe("new customer referral policy", () => {
   });
 });
 
-it("caps the initial reward at actual net cash and at ten dollars",()=>{
- expect(affiliateCommissionCents(1000,true)).toBe(1000);
+it("caps the initial reward at actual net cash and at five dollars",()=>{
+ expect(affiliateCommissionCents(1000,true)).toBe(500);
  expect(affiliateCommissionCents(500,true)).toBe(500);
- expect(affiliateCommissionCents(2900,true)).toBe(1000);
+ expect(affiliateCommissionCents(2900,true)).toBe(500);
  expect(affiliateCommissionCents(0,true)).toBe(0);
  expect(affiliateCommissionCents(1500,false)).toBe(225);
 });

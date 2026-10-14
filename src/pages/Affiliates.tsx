@@ -196,17 +196,17 @@ const Affiliates = () => {
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold mb-1">
-              {language === "es" ? "US$10 por el primer pago. 15% por las renovaciones." : "US$10 for the first payment. 15% for renewals."}
+              {language === "es" ? "US$5 por el primer pago. 15% por las renovaciones." : "US$5 for the first payment. 15% for renewals."}
             </h2>
             <p className="text-sm text-muted-foreground mb-2">
               {language === "es"
-                ? "Por cada cliente nuevo que se suscriba con tu código, recibes US$10 por su primer pago elegible y 15% de sus renovaciones. Crear una cuenta gratuita no genera comisión."
-                : "For each new customer who subscribes with your code, you receive US$10 for their first eligible payment and 15% of renewals. Creating a free account does not earn a commission."}
+                ? "Por cada cliente nuevo que se suscriba con tu código, recibes US$5 por su primer pago elegible y 15% de sus renovaciones. Crear una cuenta gratuita no genera comisión."
+                : "For each new customer who subscribes with your code, you receive US$5 for their first eligible payment and 15% of renewals. Creating a free account does not earn a commission."}
             </p>
             <p className="text-sm font-medium text-green-600 mb-4">
               {language === "es"
-                ? "Una renovación completa de US$29 genera US$4.35 para ti."
-                : "A full US$29 renewal earns you US$4.35."}
+                ? "Una renovación completa de US$15 genera US$2.25 para ti."
+                : "A full US$15 renewal earns you US$2.25."}
             </p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="gap-1">
@@ -280,7 +280,7 @@ const Affiliates = () => {
 
       {affiliate ? (
         <div className="space-y-6">
-          <p className="text-sm text-muted-foreground">Para nuevos clientes: hasta $10 USD del primer pago y $4.35 USD de cada renovación completa de $29. Tu cliente paga $29 USD desde el primer mes. Sin límite de seis meses. Retiros desde $50 USD. <a href="/terminos-afiliados" className="underline">Condiciones del programa</a>.</p>
+          <p className="text-sm text-muted-foreground">Para nuevos clientes: hasta $5 USD del primer pago y $2.25 USD de cada renovación completa de $15. Tu cliente paga $15 USD desde el primer mes. Sin límite de seis meses. Retiros desde $50 USD. <a href="/terminos-afiliados" className="underline">Condiciones del programa</a>.</p>
           {/* Share Section — first, so the link is the hero action */}
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">
@@ -565,8 +565,8 @@ const Affiliates = () => {
           </h3>
           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
             {language === "es" 
-              ? "Crea tu código y compártelo al enseñar una referencia o un guion que te haya servido. Recibes hasta US$10 por el primer pago de un cliente nuevo y 15% de sus renovaciones elegibles."
-              : "Create your code and share it when showing a reference or script you found useful. You receive up to US$10 for a new customer's first payment and 15% of eligible renewals."}
+              ? "Crea tu código y compártelo al enseñar una referencia o un guion que te haya servido. Recibes hasta US$5 por el primer pago de un cliente nuevo y 15% de sus renovaciones elegibles."
+              : "Create your code and share it when showing a reference or script you found useful. You receive up to US$5 for a new customer's first payment and 15% of eligible renewals."}
           </p>
           <Button 
             size="lg" 

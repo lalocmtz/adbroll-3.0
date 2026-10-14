@@ -75,8 +75,8 @@ export const ReferralDiscountBanner = () => {
       <p className="text-green-800 font-medium flex items-center gap-2">
         🎉{" "}
         {language === "es"
-          ? "Tu código apoya al creador que te invitó. Pro: US$29/mes."
-          : "Your code supports the creator who invited you. Pro: US$29/month."}
+          ? "Tu código apoya al creador que te invitó. Pro: US$15/mes."
+          : "Your code supports the creator who invited you. Pro: US$15/month."}
       </p>
       <p className="text-green-600 text-sm mt-1">
         {language === "es"

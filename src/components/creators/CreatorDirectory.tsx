@@ -155,7 +155,7 @@ const CreatorDirectory = () => {
               disabled={checkoutLoading}
             >
               <Crown className="h-4 w-4" />
-              {language === "es" ? "Desbloquear por US$29/mes" : "Unlock for US$29/mo"}
+              {language === "es" ? "Desbloquear por US$15/mes" : "Unlock for US$15/mo"}
             </Button>
             {!isLoggedIn && (
               <Button variant="outline" size="lg" onClick={() => window.location.href = "/login"}>

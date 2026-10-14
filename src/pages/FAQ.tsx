@@ -21,7 +21,7 @@ const faqData = {
     },
     {
       question: "¿Cómo funciona la suscripción?",
-      answer: "Pro cuesta US$29 al mes y se renueva automáticamente. Crear tu cuenta es gratis y no genera un cobro. Puedes cancelarla en cualquier momento desde tu panel de usuario. Una vez cancelada, el acceso permanece activo hasta que concluya el periodo ya pagado."
+      answer: "Pro cuesta US$15 al mes y se renueva automáticamente. Crear tu cuenta es gratis y no genera un cobro. Puedes cancelarla en cualquier momento desde tu panel de usuario. Una vez cancelada, el acceso permanece activo hasta que concluya el periodo ya pagado."
     },
     {
       question: "¿Cómo aparecerá el cargo en mi estado de cuenta?",
@@ -50,7 +50,7 @@ const faqData = {
     },
     {
       question: "How does the subscription work?",
-      answer: "Pro costs US$29 per month and renews automatically. Creating an account is free and does not charge you. You can cancel it at any time from your user dashboard. Once canceled, access remains active until the end of the already paid period."
+      answer: "Pro costs US$15 per month and renews automatically. Creating an account is free and does not charge you. You can cancel it at any time from your user dashboard. Once canceled, access remains active until the end of the already paid period."
     },
     {
       question: "How will the charge appear on my statement?",

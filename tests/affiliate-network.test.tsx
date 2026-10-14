@@ -59,6 +59,9 @@ describe("affiliate community", () => {
     expect(screen.getByText(/sus ventas no te generan comisión/)).toBeInTheDocument();
     expect(screen.getByText("CREATOR")).toBeInTheDocument();
     expect(screen.getByText("c***@test.com")).toBeInTheDocument();
+    // Historical earned amounts are server data, not recalculated at today's price.
+    expect(screen.getByText(/1\.45 USD/)).toBeInTheDocument();
+    expect(screen.getByText(/US\$15 × 5% = US\$0\.75/)).toBeInTheDocument();
     expect(screen.getByLabelText("Enlace para invitar creadores a tu comunidad")).toHaveValue("https://tokxray.com/programa-creadores?leader=MYCODE");
   });
   it("does not present failed RPC loads as a zero balance and can retry", async () => {

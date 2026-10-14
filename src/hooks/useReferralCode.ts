@@ -1,3 +1,4 @@
+import { MONTHLY_PRICE_USD } from "@/lib/pricing";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,11 +19,11 @@ export interface ReferralDiscount {
   created_at: string;
 }
 
-// Single plan: TokXray Pro $29/month
+// Single plan: TokXray Pro $15/month
 export const PLANS = {
   free: { name: "Free", price: 0 },
-  creator: { name: "TokXray Pro", price: 29 },
-  studio: { name: "TokXray Pro", price: 29 },
+  creator: { name: "TokXray Pro", price: MONTHLY_PRICE_USD },
+  studio: { name: "TokXray Pro", price: MONTHLY_PRICE_USD },
 } as const;
 
 export type PlanType = keyof typeof PLANS;
@@ -162,12 +163,12 @@ export const useReferralCode = () => {
 
   // Referral codes attribute the creator; new subscriptions have no automatic discount.
   const createDiscount = async (_planType: PlanType): Promise<{ success: boolean; error: string | null }> => ({
-    success: false, error: "El código identifica al creador. Pro cuesta US$29/mes sin descuento automático.",
+    success: false, error: "El código identifica al creador. Pro cuesta US$15/mes sin descuento automático.",
   });
 
   const getPriceForPlan = (planType: PlanType) => {
-    // Always return $29 for paid plans
-    const originalPrice = planType === "free" ? 0 : 29;
+    // Always return $15 for paid plans
+    const originalPrice = planType === "free" ? 0 : MONTHLY_PRICE_USD;
     const hasDiscount = false;
     const discountedPrice = originalPrice;
 

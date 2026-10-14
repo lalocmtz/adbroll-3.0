@@ -14,7 +14,7 @@ CREATE TABLE affiliates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uu
 CREATE TABLE affiliate_payouts(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id_referred uuid,affiliate_code text,month text,amount_paid numeric,commission_affiliate numeric,commission_agency numeric,type text,stripe_invoice_id text,status text,created_at timestamptz DEFAULT now(),commission_reversed numeric NOT NULL DEFAULT 0);
 CREATE UNIQUE INDEX affiliate_payouts_invoice_once ON affiliate_payouts(stripe_invoice_id) WHERE stripe_invoice_id IS NOT NULL;
 CREATE TABLE subscriptions(user_id uuid,stripe_subscription_id text,status text,price_usd numeric);`);
-for(const f of ['20261010040000_launch_commission_policy.sql','20261013050359_affiliate_network_v3.sql'])
+for(const f of ['20261010040000_launch_commission_policy.sql','20261013050359_affiliate_network_v3.sql','20261014163248_affiliate_price15_policy_v4.sql'])
  await db.exec(await readFile(new URL('../supabase/migrations/'+f,import.meta.url),'utf8'));
 const ids=Array.from({length:10},(_,i)=>'00000000-0000-4000-8000-'+String(i+1).padStart(12,'0'));
 const [leader,creator,buyer,ancestor,childCreator,childBuyer,other,legacyBuyer,smallBuyer]=ids;
@@ -105,6 +105,52 @@ await scalar("SELECT reconcile_affiliate_refund('legacy',1500,1500)");
 assert.equal(await balance(creator),beforeLegacyRefund-15);
 assert.equal(Number(await scalar("SELECT count(*) FROM pg_proc p CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl WHERE p.proname IN ('record_affiliate_commission_v3','join_affiliate_network','get_affiliate_network','hold_affiliate_invoice','reconcile_affiliate_refund','update_affiliate_code') AND acl.grantee=0 AND acl.privilege_type='EXECUTE'")),0);
 await as('');await rejects(()=>scalar('SELECT get_affiliate_network()'),/Not authenticated/);
+// New-price policy is additive; historical v3/v2 functions and ledger amounts stay intact.
+const newBuyer='00000000-0000-4000-8000-000000000020';
+const returningBuyer='00000000-0000-4000-8000-000000000021';
+const discountedBuyer='00000000-0000-4000-8000-000000000022';
+await db.query("INSERT INTO profiles(id,referral_code_used) VALUES($1,'CODE1'),($2,'CODE1'),($3,'CODE1')",[newBuyer,returningBuyer,discountedBuyer]);
+const creditV4=(who,invoice,cents=1500,type='recurring')=>scalar("SELECT record_affiliate_commission_v4($1,'CODE1',$2,$3,$4)",[who,invoice,cents,type]);
+const beforeCreator=await balance(creator),beforeLeader=await balance(leader);
+assert.equal(Number(await creditV4(newBuyer,'v4-first',1500,'initial')),5);
+assert.equal(await balance(creator),beforeCreator+5);
+assert.equal(await balance(leader),beforeLeader); // No indirect initial commission.
+assert.equal(await scalar("SELECT commission_policy FROM affiliate_payouts WHERE stripe_invoice_id='v4-first'"),'2026-10-14');
+assert.equal(await scalar("SELECT commission_policy FROM affiliate_payouts WHERE stripe_invoice_id='first'"),'2026-10-13');
+assert.equal(await creditV4(newBuyer,'v4-first',1500,'initial'),null);
+assert.equal(await credit(newBuyer,'CODE1','v4-first',2900,'initial'),null); // Cross-policy invoice deduplication.
+assert.equal(await creditV4(buyer,'first',1500,'initial'),null);
+assert.equal(Number(await creditV4(newBuyer,'v4-renew')),2.25);
+assert.equal(await balance(leader),beforeLeader+0.75);
+assert.equal(await balance(ancestor),0); // No third hop.
+assert.equal(Number(await scalar("SELECT commission_agency FROM affiliate_payouts WHERE stripe_invoice_id='v4-renew'")),0.75);
+assert.equal(Number(await creditV4(returningBuyer,'v4-reactivation',1500,'reactivation')),2.25);
+assert.equal(await balance(leader),beforeLeader+0.75);
+assert.equal(await scalar("SELECT initial_reward FROM affiliate_payouts WHERE stripe_invoice_id='v4-reactivation'"),false);
+assert.equal(Number(await creditV4(buyer,'v4-after-v3-bonus',1500,'initial')),2.25); // Old initial bonus never paid a second time.
+assert.equal(Number(await credit(newBuyer,'CODE1','v3-after-v4-bonus',2900,'initial')),4.35);
+assert.equal(Number(await creditV4(discountedBuyer,'v4-low-cash',250,'initial')),2.5); // No bonus exceeds net cash.
+await scalar("SELECT reconcile_affiliate_refund('v4-renew',750,1500)");
+assert.equal(Number(await scalar("SELECT commission_reversed FROM affiliate_payouts WHERE stripe_invoice_id='v4-renew'")),1.13);
+assert.equal(Number(await scalar("SELECT leader_commission_reversed FROM affiliate_payouts WHERE stripe_invoice_id='v4-renew'")),0.38);
+assert.equal(await scalar("SELECT reconcile_affiliate_refund('v4-renew',750,1500)"),false);
+await scalar("SELECT reconcile_affiliate_refund('v4-renew',1500,1500)");
+assert.equal(await scalar("SELECT reconcile_affiliate_refund('v4-renew',750,1500)"),false);
+assert.equal(await balance(leader),beforeLeader);
+await scalar("SELECT reconcile_affiliate_refund('v4-first',1500,1500)");
+assert.equal(Number(await creditV4(newBuyer,'v4-after-refund',1500,'initial')),2.25);
+assert.equal(await balance(leader),beforeLeader);
+await creditV4(newBuyer,'v4-withdrawn-renew');
+await db.query('UPDATE affiliates SET usd_available=0 WHERE user_id IN($1,$2)',[creator,leader]);
+await scalar("SELECT reconcile_affiliate_refund('v4-withdrawn-renew',1500,1500)");
+assert.equal(await balance(creator),-2.25);assert.equal(await balance(leader),-0.75);
+await scalar("SELECT hold_affiliate_invoice('v4-withdrawn-renew')");
+assert.equal(await scalar('SELECT payout_hold FROM affiliates WHERE user_id=$1',[leader]),true);
+assert.equal(await scalar('SELECT payout_hold FROM affiliates WHERE user_id=$1',[creator]),true);
+assert.equal(await scalar("SELECT has_function_privilege('authenticated','record_affiliate_commission_v4(uuid,text,text,integer,text)','EXECUTE')"),false);
+assert.equal(await scalar("SELECT has_function_privilege('anon','record_affiliate_commission_v4(uuid,text,text,integer,text)','EXECUTE')"),false);
+assert.equal(await scalar("SELECT has_function_privilege('service_role','record_affiliate_commission_v4(uuid,text,text,integer,text)','EXECUTE')"),true);
+console.log('PASS: v4 $15/$5 policy, direct15%+leader5% renewals, no initial/reactivation leader, capped actual cash, cross-policy bonus/invoice deduplication, historical v3 intact, partial/full/reordered refunds both recipients, negative balances after withdrawal, hold and restricted privileges.');
 await db.exec('ROLLBACK');
 assert.equal(Number(await scalar('SELECT count(*) FROM affiliate_network_memberships')),0);
 assert.equal(Number(await scalar('SELECT count(*) FROM affiliate_payouts')),0);

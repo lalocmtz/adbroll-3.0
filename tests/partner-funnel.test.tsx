@@ -40,16 +40,16 @@ describe("creator funnel", () => {
     expect(screen.getByRole("link", { name: /Quiero recomendar/ })).toHaveAttribute("href", "/register?redirect=%2Faffiliates%3Fleader%3DLUIS");
     expect(screen.getByText(/no te vincula automáticamente/)).toBeVisible();
   });
-  it("shows the same US$29 subscription price for referral customers", () => {
+  it("shows the same US$15 subscription price for referral customers", () => {
     render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
-    expect(screen.getByText(/paga \$29 USD al mes desde el inicio/)).toBeInTheDocument();
+    expect(screen.getByText(/paga \$15 USD al mes desde el inicio/)).toBeInTheDocument();
     expect(screen.queryByText(/primer mes de \$15/)).not.toBeInTheDocument();
-    expect(screen.getByText(/US\$1.45 por cada renovación completa/)).toBeInTheDocument();
+    expect(screen.getByText(/US\$0.75 por cada renovación completa/)).toBeInTheDocument();
   });
   it("calculates actual renewal commissions without promising income", () => {
     render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
     fireEvent.change(screen.getByRole("slider"), { target: { value: "20" } });
-    expect(screen.getByText("$87.00")).toBeInTheDocument();
+    expect(screen.getByText("$45.00")).toBeInTheDocument();
     expect(screen.getByText(/no garantiza resultados/)).toBeInTheDocument();
   });
   it("has a useful fallback when the presentation cannot load", () => {

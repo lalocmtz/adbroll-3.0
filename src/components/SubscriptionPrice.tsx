@@ -3,7 +3,7 @@ export function SubscriptionPrice({ compact = false }: { compact?: boolean; firs
   return <div className="space-y-1">
     <p><strong className={compact ? 'text-2xl tracking-tight' : 'text-3xl font-bold tracking-tight'}>US${MONTHLY_PRICE_USD}</strong><span className="ml-1.5 text-sm text-muted-foreground">/ mes</span></p>
     <p className="text-sm text-muted-foreground">≈ ${estimateMxn(MONTHLY_PRICE_USD)} MXN / mes</p>
-    <p className="text-xs text-muted-foreground">US$29 desde el primer mes. El código de creador no cambia el precio.</p>
+    <p className="text-xs text-muted-foreground">US${MONTHLY_PRICE_USD} desde el primer mes. El código de creador no cambia el precio.</p>
   </div>;
 }
 export function CurrencyDisclosure() {

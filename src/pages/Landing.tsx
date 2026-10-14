@@ -1,3 +1,4 @@
+import { MONTHLY_PRICE_USD, estimateMxn } from "@/lib/pricing";
 import { Children, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -105,7 +106,7 @@ const faqs = [
   },
   {
     q: "¿Puedo explorar antes de pagar?",
-    a: "Sí. Puedes explorar la vista previa sin tarjeta y crear tu cuenta gratis. Los datos completos y las herramientas de análisis requieren Pro, por US$29 al mes. Crear una cuenta no inicia una suscripción ni genera un cobro.",
+    a: "Sí. Puedes explorar la vista previa sin tarjeta y crear tu cuenta gratis. Los datos completos y las herramientas de análisis requieren Pro, por US$15 al mes. Crear una cuenta no inicia una suscripción ni genera un cobro.",
   },
   {
     q: "¿Cada cuánto se actualiza?",
@@ -125,7 +126,7 @@ const faqs = [
   },
 ];
 
-const PRICE_USD = 29.00;
+const PRICE_USD = MONTHLY_PRICE_USD;
 
 /* ============================== page ============================== */
 
@@ -632,7 +633,7 @@ const Landing = () => {
                 </div>
                 {market === "mx" && (
                   <p className="text-sm text-brand-mist/55">
-                    Se cobra en USD. Tu banco determina la conversión a pesos.
+                    ≈ ${estimateMxn(PRICE_USD)} MXN al mes a $18 MXN por dólar. Se cobra en USD; el tipo de cambio final lo determina tu banco.
                   </p>
                 )}
                 <ul className="mt-6 space-y-2 text-sm text-brand-mist/80">

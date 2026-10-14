@@ -410,6 +410,8 @@ async function calculateAffiliateCommission(
     return;
   }
 
+  // The immutable checkout policy selects v4 ($15/$5), v3 ($29/$10),
+  // or an older ledger. Never infer commission policy from today's configured price.
   const recorder = commissionRecorder(billingPolicy);
 
   // Insert the invoice and increment balances in ONE database transaction.

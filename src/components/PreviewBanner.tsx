@@ -36,7 +36,7 @@ export const PreviewBanner = () => {
           disabled={checkoutLoading}
           className="text-xs min-h-11 px-3 shrink-0"
         >
-          {isLoggedIn ? "Activar Pro · US$29/mes" : "Continuar con Pro"}
+          {isLoggedIn ? "Activar Pro · US$15/mes" : "Continuar con Pro"}
         </Button>
       </div>
     </div>
