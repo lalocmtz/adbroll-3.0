@@ -1,3 +1,4 @@
+import { isCustomAffiliateCode, normalizeReferralCode } from "@/lib/referral-code";
 import { useState, useEffect } from "react";
 import { AffiliateNetworkPanel } from "@/components/AffiliateNetworkPanel";
 import { Button } from "@/components/ui/button";
@@ -112,14 +113,14 @@ const Affiliates = () => {
   };
 
   const handleSaveCode = async () => {
-    if (!editedCode.trim()) return;
+    if (!isCustomAffiliateCode(editedCode)) return;
     
     setSavingCode(true);
     try {
       // Use the SECURITY DEFINER RPC: validates uniqueness, format and the
       // one-time customization rule (code_customized) atomically server-side.
       const { data, error } = await supabase.rpc("update_affiliate_code", {
-        _new_code: editedCode.trim(),
+        _new_code: normalizeReferralCode(editedCode),
       });
 
       if (error) throw error;
@@ -329,7 +330,7 @@ const Affiliates = () => {
                       <Button
                         variant="outline"
                         onClick={handleSaveCode}
-                        disabled={savingCode}
+                        disabled={savingCode || !isCustomAffiliateCode(editedCode)}
                         className="shrink-0"
                       >
                         {savingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -372,8 +373,8 @@ const Affiliates = () => {
                         ? "Ya personalizaste tu código (solo se puede cambiar una vez)."
                         : "You already customized your code (it can only be changed once).")
                     : (language === "es"
-                        ? "Puedes personalizarlo una vez, antes de recibir referidos o vincular creadores (4–12 letras o números)."
-                        : "Customize once before receiving referrals or adding creators (4–12 letters or numbers).")}
+                        ? "Puedes personalizarlo una vez, antes de recibir referidos o vincular creadores (3–12 letras o números)."
+                        : "Customize once before receiving referrals or adding creators (3–12 letters or numbers).")}
                 </p>
               </div>
             </div>

@@ -4,7 +4,7 @@ export const AFFILIATE_RATE = 0.15;
 export function normalizeReferralCode(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const code = value.trim().toUpperCase();
-  return /^[A-Z0-9]{4,32}$/.test(code) ? code : null;
+  return /^[A-Z0-9]{3,32}$/.test(code) ? code : null;
 }
 
 export function commissionBaseCents(invoice: { currency: string; amount_paid: number; tax?: number | null; total_tax_amounts?: { amount: number }[] }): number {

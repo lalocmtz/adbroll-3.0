@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import * as billing from '../supabase/functions/_shared/billing';
 
 // Execute the real edge handler with boundary mocks: no Stripe calls or charges.
-function checkoutFixture(options: { lifetime?: boolean; confirmed?: boolean; active?: boolean; open?: any[]; priceCents?: number; previous?: any[]; paidInvoices?: any[]; invoicePages?: any[]; linePages?: any[] } = {}) {
+function checkoutFixture(options: { lifetime?: boolean; confirmed?: boolean; active?: boolean; open?: any[]; priceCents?: number; previous?: any[]; paidInvoices?: any[]; invoicePages?: any[]; linePages?: any[]; referralCode?: string } = {}) {
   let handler: (request: Request) => Promise<Response>;
   const create = vi.fn().mockResolvedValue({ url: 'https://checkout.stripe.com/new' });
   const expire = vi.fn().mockResolvedValue({});
@@ -19,8 +19,8 @@ function checkoutFixture(options: { lifetime?: boolean; confirmed?: boolean; act
   const client = {
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'buyer', email: 'buyer@example.com', email_confirmed_at: options.confirmed === false ? null : '2026-10-13' } } }) },
     from: (table: string) => {
-      const data = table === 'profiles' ? { stripe_customer_id: 'cus_buyer', referral_code_used: 'LALO' }
-        : table === 'affiliate_codes' ? { code: 'LALO', user_id: 'creator' }
+      const data = table === 'profiles' ? { stripe_customer_id: 'cus_buyer', referral_code_used: options.referralCode ?? 'LALO' }
+        : table === 'affiliate_codes' ? { code: options.referralCode ?? 'LALO', user_id: 'creator' }
         : table === 'creator_program_applications' ? (options.lifetime ? [{ id: 'grant' }] : []) : null;
       const result = { data, error: null };
       const chain: any = { then: (resolve: any) => Promise.resolve(result).then(resolve) };
@@ -44,6 +44,12 @@ describe('new commercial checkout boundary', () => {
     expect(params.discounts).toBeUndefined();
     expect(params.allow_promotion_codes).toBeUndefined();
     expect(params.subscription_data.metadata).toMatchObject({ billing_policy: '2026-10-14', price_usd: '15', referral_code: 'LALO', first_purchase: 'true' });
+  });
+  it('preserves a three-character creator code in both checkout and subscription metadata', async () => {
+    const test = checkoutFixture({ referralCode: 'GUS' });
+    expect((await test.run()).status).toBe(200);
+    expect(test.create.mock.calls[0][0].metadata.referral_code).toBe('GUS');
+    expect(test.create.mock.calls[0][0].subscription_data.metadata.referral_code).toBe('GUS');
   });
   it.each(['2026-10-10', '2026-10-13'])('expires stale %s TokXray sessions while preserving unrelated products', async policy => {
     const metadata = { supabase_user_id: 'buyer', plan_type: 'pro', referral_code: 'LALO', price_usd: '29', billing_policy: policy };

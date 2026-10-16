@@ -1,3 +1,4 @@
+import { isReferralCode, normalizeReferralCode } from "./referral-code";
 import { z } from 'zod';
 
 // Auth validation schemas
@@ -31,7 +32,8 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, 'Debe contener al menos un número')
     .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Debe contener al menos un carácter especial (!@#$%^&*...)'),
   referralCode: z.string()
-    .max(20, 'Código demasiado largo')
+    .transform(normalizeReferralCode)
+    .refine(code => !code || isReferralCode(code), 'Usa entre 3 y 32 letras o números')
     .optional(),
 });
 

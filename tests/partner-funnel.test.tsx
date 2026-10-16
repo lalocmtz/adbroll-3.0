@@ -35,9 +35,9 @@ describe("creator funnel", () => {
     expect(screen.getByRole("link", { name: /Quiero usar/ })).toHaveAttribute("href", "/register?redirect=%2Fpricing&ref=ALICIA");
   });
   it("preserves a community invite across signup without converting it into purchase attribution", () => {
-    window.history.replaceState({}, "", "/programa-creadores?leader=LUIS");
+    window.history.replaceState({}, "", "/programa-creadores?leader=gus");
     render(<MemoryRouter><PartnerLanding /></MemoryRouter>);
-    expect(screen.getByRole("link", { name: /Quiero recomendar/ })).toHaveAttribute("href", "/register?redirect=%2Faffiliates%3Fleader%3DLUIS");
+    expect(screen.getByRole("link", { name: /Quiero recomendar/ })).toHaveAttribute("href", "/register?redirect=%2Faffiliates%3Fleader%3DGUS");
     expect(screen.getByText(/no te vincula automáticamente/)).toBeVisible();
   });
   it("shows the same US$15 subscription price for referral customers", () => {
@@ -60,9 +60,10 @@ describe("creator funnel", () => {
   it("allows only known local post-auth destinations", () => {
     expect(authDestination("/affiliates")).toBe("/affiliates");
     expect(authDestination("/pricing")).toBe("/pricing");
-    expect(authDestination("/affiliates?leader=Luis")).toBe("/affiliates?leader=LUIS");
+    expect(authDestination("/affiliates?leader=gus")).toBe("/affiliates?leader=GUS");
+    expect(authDestination(`/affiliates?leader=${"A".repeat(32)}`)).toBe(`/affiliates?leader=${"A".repeat(32)}`);
     expect(authDestination("/colaboraciones")).toBe("/colaboraciones");
     expect(authDestination("/canjear?code=creator-abc123")).toBe("/canjear?code=CREATOR-ABC123");
-    for (const path of ["https://evil.test", "//evil.test", "/admin", "/affiliates?leader=LUIS&redirect=https://evil.test", "/affiliates?leader=LUIS%26x", "/canjear?code=CREATOR-ABC&redirect=evil", null]) expect(authDestination(path)).toBe("/app");
+    for (const path of ["https://evil.test", "//evil.test", "/admin", "/affiliates?leader=GU", `/affiliates?leader=${"A".repeat(33)}`, "/affiliates?leader=LUIS&redirect=https://evil.test", "/affiliates?leader=LUIS%26x", "/canjear?code=CREATOR-ABC&redirect=evil", null]) expect(authDestination(path)).toBe("/app");
   });
 });

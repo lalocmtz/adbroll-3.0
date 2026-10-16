@@ -48,8 +48,8 @@ describe("registration onboarding", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continuar con Google" }));
     expect(mocks.signInWithOAuth).not.toHaveBeenCalled();
   });
-  it("keeps validated referral metadata and subscription destination across email confirmation", async () => {
-    openRegister("?ref=LALO&redirect=%2Fpricing");
+  it.each(["GUS", "A".repeat(32)])("keeps validated referral %s across email confirmation", async (code) => {
+    openRegister(`?ref=${code}&redirect=%2Fpricing`);
     await screen.findByText(/Código válido:/);
     fireEvent.click(screen.getByRole("button", { name: "Continuar con correo" }));
     fireEvent.change(screen.getByLabelText("Nombre completo"), { target: { value: "Lalo Corona" } });
@@ -59,16 +59,16 @@ describe("registration onboarding", () => {
     await screen.findByRole("heading", { name: "Confirmación" });
     expect(mocks.signUp).toHaveBeenCalledWith(expect.objectContaining({ options: {
       emailRedirectTo: expect.stringContaining("/auth/continue?redirect=%2Fpricing"),
-      data: { full_name: "Lalo Corona", referral_code: "LALO" },
+      data: { full_name: "Lalo Corona", referral_code: code },
     } }));
-    expect(mocks.persistRefCode).toHaveBeenCalledWith("LALO");
+    expect(mocks.persistRefCode).toHaveBeenCalledWith(code);
   });
   it("preserves the affiliate destination for Google sign-up", async () => {
-    openRegister("?ref=LALO&redirect=%2Faffiliates");
+    openRegister("?ref=gus&redirect=%2Faffiliates%3Fleader%3Dgus");
     await screen.findByText(/Código válido:/);
     fireEvent.click(screen.getByRole("button", { name: "Continuar con Google" }));
-    expect(mocks.signInWithOAuth).toHaveBeenCalledWith({ provider: "google", options: { redirectTo: expect.stringContaining("redirect=%2Faffiliates") } });
-    expect(mocks.persistRefCode).toHaveBeenCalledWith("LALO");
+    expect(mocks.signInWithOAuth).toHaveBeenCalledWith({ provider: "google", options: { redirectTo: expect.stringContaining("redirect=%2Faffiliates%3Fleader%3DGUS") } });
+    expect(mocks.persistRefCode).toHaveBeenCalledWith("GUS");
   });
   it("clears stored attribution when the creator code is explicitly removed", async () => {
     openRegister("?ref=LALO");

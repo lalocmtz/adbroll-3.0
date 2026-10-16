@@ -1,3 +1,4 @@
+import { isReferralCode, normalizeReferralCode } from '@/lib/referral-code';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Check, ArrowRight, Loader2 } from 'lucide-react';
@@ -40,8 +41,9 @@ export function SubscriptionOffer() {
   }, []);
   useEffect(() => {
     let active = true;
-    const normalized = code.trim().toUpperCase();
+    const normalized = normalizeReferralCode(code);
     if (!normalized) { setCodeStatus('empty'); return; }
+    if (!isReferralCode(normalized)) { setCodeStatus('invalid'); return; }
     setCodeStatus('checking');
     const timer = setTimeout(async () => {
       try {
@@ -53,8 +55,8 @@ export function SubscriptionOffer() {
   }, [code]);
   const valid = codeStatus === 'valid';
   async function continueToPayment() {
-    if (valid) persistRefCode(code.trim().toUpperCase()); else clearStoredRefCode();
-    await startWithReferral(valid ? code.trim().toUpperCase() : '');
+    if (valid) persistRefCode(normalizeReferralCode(code)); else clearStoredRefCode();
+    await startWithReferral(valid ? normalizeReferralCode(code) : '');
   }
   return <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm text-slate-950" aria-label="Suscripción TokXray Pro">
     <div className="flex items-center justify-between gap-3 mb-3"><BrandLogo tone="dark" size="sm" /><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium">TokXray Pro</span></div>
@@ -66,7 +68,7 @@ export function SubscriptionOffer() {
       <details className="mb-3 text-xs" open={code ? true : undefined}>
         <summary className="cursor-pointer py-2 font-medium">{savedCode ? 'Tu código de creador registrado' : '¿Tienes un código de creador?'}</summary>
         <label className="sr-only" htmlFor="subscription-referral">Código de creador</label>
-        <Input id="subscription-referral" value={code} disabled={savedCode} autoCapitalize="characters" maxLength={12} placeholder="Ej. LALO" className="h-10 mt-1" onChange={e => {setCode(e.target.value.toUpperCase()); setCodeStatus(e.target.value.trim() ? 'checking' : 'empty');}} />
+        <Input id="subscription-referral" value={code} disabled={savedCode} autoCapitalize="characters" maxLength={32} placeholder="Ej. LALO" className="h-10 mt-1" onChange={e => {setCode(e.target.value.toUpperCase()); setCodeStatus(e.target.value.trim() ? 'checking' : 'empty');}} />
         <p role="status" className={`mt-1 ${codeStatus === 'invalid' || codeStatus === 'error' ? 'text-red-600' : 'text-muted-foreground'}`}>{codeStatus === 'checking' ? 'Comprobando código…' : codeStatus === 'valid' ? 'Código reconocido. Se conservará al crear tu cuenta y al pagar.' : codeStatus === 'invalid' ? 'No encontramos ese código. Corrígelo o bórralo para continuar.' : codeStatus === 'error' ? 'No pudimos comprobar el código. Intenta de nuevo.' : 'El código reconoce al creador que te invitó. Tu precio sigue siendo US$15 al mes.'}</p>
       </details>
       <Button className="w-full h-11 rounded-xl text-sm bg-slate-950 hover:bg-slate-800 text-white" onClick={continueToPayment} disabled={loading || !authReady || accessLoading || ['checking','invalid','error'].includes(codeStatus)}>{loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Abriendo pago…</> : signedIn ? 'Continuar al pago seguro' : 'Crear cuenta y ver Pro'}{!loading && <ArrowRight className="ml-2 h-4 w-4" />}</Button>

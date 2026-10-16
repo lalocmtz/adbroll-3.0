@@ -13,7 +13,7 @@ const network: AffiliateNetwork = {
   members: [{ code: "CREATOR", email_masked: "c***@test.com", joined_at: "2026-10-13", customers: 20, active_customers: 15, leader_earned: 21.75 }],
   indirect_commissions: [{ amount: 1.45, type: "leader_recurring", month: "2026-10", status: "pending", date: "2026-10-13" }],
 };
-function open(path = "/affiliates?leader=LALO") {
+function open(path = "/affiliates?leader=GUS") {
   return render(<MemoryRouter initialEntries={[path]}><AffiliateNetworkPanel code="MYCODE" onJoined={mocks.refresh} /></MemoryRouter>);
 }
 beforeEach(() => {
@@ -24,16 +24,16 @@ describe("affiliate community", () => {
   it("does not link a creator from the invite URL until they explicitly accept", async () => {
     open();
     const button = await screen.findByRole("button", { name: "Aceptar invitación de comunidad" });
-    expect(screen.getByLabelText("Código del líder")).toHaveValue("LALO");
+    expect(screen.getByLabelText("Código del líder")).toHaveValue("GUS");
     expect(button).toBeDisabled();
     expect(mocks.rpc).toHaveBeenCalledTimes(1);
     expect(mocks.rpc).toHaveBeenCalledWith("get_affiliate_network");
     fireEvent.click(screen.getByRole("checkbox"));
     mocks.rpc.mockImplementation(async (name: string) => name === "join_affiliate_network"
       ? { data: { success: true }, error: null }
-      : { data: { ...network, leader: { code: "LALO", joined_at: "2026-10-13" } }, error: null });
+      : { data: { ...network, leader: { code: "GUS", joined_at: "2026-10-13" } }, error: null });
     fireEvent.click(button);
-    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("join_affiliate_network", { p_leader_code: "LALO", p_accept_terms: true }));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith("join_affiliate_network", { p_leader_code: "GUS", p_accept_terms: true }));
     expect(await screen.findByText("Tu comunidad:")).toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(mocks.refresh).toHaveBeenCalledOnce();

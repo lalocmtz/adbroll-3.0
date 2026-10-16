@@ -16,6 +16,10 @@ describe("affiliate billing contract", () => {
   });
   it("validates referral codes before use in billing", () => {
     expect(normalizeReferralCode(' alicia ')).toBe('ALICIA');
+    expect(normalizeReferralCode(' gus ')).toBe('GUS');
+    expect(normalizeReferralCode('A1B')).toBe('A1B');
+    expect(normalizeReferralCode('A'.repeat(32))).toBe('A'.repeat(32));
+    for (const invalid of ['GU', 'G US', 'G-US', 'GÚS', 'A'.repeat(33), '', null]) expect(normalizeReferralCode(invalid)).toBeNull();
     expect(normalizeReferralCode('<script>')).toBeNull();
     expect(normalizeReferralCode({})).toBeNull();
   });

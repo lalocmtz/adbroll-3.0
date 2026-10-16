@@ -1,3 +1,4 @@
+import { isReferralCode, normalizeReferralCode } from "@/lib/referral-code";
 import { authDestination, authCallbackUrl } from "@/lib/auth-destination";
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
@@ -22,9 +23,9 @@ const Register = () => {
   const [referralCode, setReferralCode] = useState(searchParams.get("ref") || getStoredRefCode() || "");
   const [referralCheck, setReferralCheck] = useState<{ code: string; status: "valid" | "invalid" | "error" } | null>(null);
   const [showEmail, setShowEmail] = useState(false);
-  const normalizedCode = referralCode.trim().toUpperCase();
+  const normalizedCode = normalizeReferralCode(referralCode);
   const referralStatus = !normalizedCode ? "empty"
-    : normalizedCode.length < 4 ? "invalid"
+    : !isReferralCode(normalizedCode) ? "invalid"
     : referralCheck?.code === normalizedCode ? referralCheck.status : "pending";
   const referralValid = referralStatus === "valid";
   const referralBlocked = referralStatus !== "empty" && !referralValid;
@@ -44,7 +45,7 @@ const Register = () => {
 
   useEffect(() => {
     let active = true;
-    if (normalizedCode.length < 4) return;
+    if (!isReferralCode(normalizedCode)) return;
     const timeout = setTimeout(async () => {
       try {
         const { data, error } = await supabase.rpc("validate_referral_code", { p_code: normalizedCode });
@@ -207,7 +208,7 @@ const Register = () => {
               value={referralCode}
               onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
               placeholder="Ej. LALO"
-              maxLength={20}
+              maxLength={32}
               autoComplete="off"
               disabled={isLoading || isGoogleLoading}
               aria-describedby="referral-status"

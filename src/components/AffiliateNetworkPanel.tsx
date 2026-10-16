@@ -1,3 +1,4 @@
+import { isReferralCode, normalizeReferralCode } from "@/lib/referral-code";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Copy, Loader2, Users } from "lucide-react";
@@ -52,11 +53,11 @@ export function AffiliateNetworkPanel({ code, onJoined }: { code: string; onJoin
   }, [reload]);
 
   async function join() {
-    if (!accepted || !/^[A-Z0-9]{4,12}$/.test(leaderCode)) return;
+    if (!accepted || !isReferralCode(leaderCode)) return;
     setJoining(true);
     try {
       const { data, error: rpcError } = await supabase.rpc("join_affiliate_network" as never, {
-        p_leader_code: leaderCode, p_accept_terms: true,
+        p_leader_code: normalizeReferralCode(leaderCode), p_accept_terms: true,
       } as never);
       if (rpcError) throw rpcError;
       const result = data as unknown as { success?: boolean; error?: string };
@@ -87,9 +88,9 @@ export function AffiliateNetworkPanel({ code, onJoined }: { code: string; onJoin
       <div className="grid grid-cols-2 gap-3"><div className="rounded-xl border p-3"><p className="font-semibold tabular-nums">{money(network.direct_earned)} USD</p><p className="text-xs text-muted-foreground">Ganado por clientes directos</p></div><div className="rounded-xl border p-3"><p className="font-semibold tabular-nums">{money(network.indirect_earned)} USD</p><p className="text-xs text-muted-foreground">Ganado por renovaciones indirectas (5%)</p></div></div>
       <p className="text-xs text-muted-foreground">Estos conteos miden grupos distintos; no los sumes como si fueran personas únicas. Los creadores invitados por tu comunidad se muestran para seguimiento, pero sus ventas no te generan comisión. No se paga por registros gratuitos ni por una primera compra indirecta. US$15 × 5% = US$0.75 por renovación completa elegible.</p>
       {network.leader ? <div className="rounded-xl border p-4 text-sm"><p>Tu comunidad: <strong>{network.leader.code}</strong></p><p className="text-muted-foreground mt-1">La vinculación está registrada. Conservas US$5 por el primer pago y 15% de las renovaciones de tus clientes directos.</p></div> : network.can_join ? <div className="rounded-xl border p-4 space-y-3">
-        <h4 className="font-medium">¿Un líder te invitó?</h4><label className="text-xs block" htmlFor="leader-code">Código del líder</label><Input id="leader-code" value={leaderCode} onChange={e => { setLeaderCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")); setAccepted(false); }} maxLength={12} placeholder="Ej. LALO" autoCapitalize="characters" />
+        <h4 className="font-medium">¿Un líder te invitó?</h4><label className="text-xs block" htmlFor="leader-code">Código del líder</label><Input id="leader-code" value={leaderCode} onChange={e => { setLeaderCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "")); setAccepted(false); }} maxLength={32} placeholder="Ej. LALO" autoCapitalize="characters" />
         <label className="flex items-start gap-3 text-xs leading-relaxed"><input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)} className="mt-1 shrink-0" />Acepto vincularme a esta comunidad. El líder recibirá 5% de las renovaciones de mis clientes directos, sin reducir mi 15%. No podré cambiar de líder desde mi panel ni atribuir ventas anteriores. He leído las condiciones del programa.</label>
-        <a href="/terminos-afiliados" className="text-xs underline">Leer condiciones</a><Button className="w-full sm:w-auto sm:ml-4" onClick={join} disabled={!accepted || !/^[A-Z0-9]{4,12}$/.test(leaderCode) || joining}>{joining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Aceptar invitación de comunidad</Button>
+        <a href="/terminos-afiliados" className="text-xs underline">Leer condiciones</a><Button className="w-full sm:w-auto sm:ml-4" onClick={join} disabled={!accepted || !isReferralCode(leaderCode) || joining}>{joining && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Aceptar invitación de comunidad</Button>
       </div> : <p className="text-sm text-muted-foreground">La vinculación a un líder debe realizarse antes de generar clientes de pago. Si necesitas ayuda, contacta a soporte.</p>}
       <div className="space-y-3"><h4 className="font-medium">Creadores de tu comunidad directa</h4>{network.members.length ? network.members.map(member => <div className="rounded-xl bg-muted/50 p-3 text-sm flex flex-wrap gap-3 justify-between" key={member.code}><div><p className="font-medium">{member.code}</p><p className="text-xs text-muted-foreground">{member.email_masked}</p></div><div className="text-xs"><p>{member.customers} clientes · {member.active_customers} activos</p><p>{money(member.leader_earned)} USD para ti</p></div></div>) : <p className="text-sm text-muted-foreground">Todavía no hay creadores en tu comunidad. Comparte este enlace con quienes quieras acompañar; aparecerán cuando acepten la invitación.</p>}</div>
       {network.indirect_commissions.length > 0 && <div className="space-y-3"><h4 className="font-medium">Comisiones por renovaciones indirectas</h4>{network.indirect_commissions.map((commission, index) => <div className="rounded-xl bg-muted/50 p-3 text-sm flex justify-between gap-2" key={`${commission.date}-${index}`}><div><p>{new Date(commission.date).toLocaleDateString("es-MX")}</p><p className="text-xs text-muted-foreground">{commission.status === "paid" ? "Pagada" : commission.status === "reversed" ? "Revertida" : "Registrada"}</p></div><strong>{money(commission.amount)} USD</strong></div>)}</div>}

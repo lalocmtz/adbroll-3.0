@@ -1,3 +1,4 @@
+import { isReferralCode, normalizeReferralCode } from "@/lib/referral-code";
 import { MONTHLY_PRICE_USD, DIRECT_RENEWAL_COMMISSION_USD } from "@/lib/pricing";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -16,7 +17,7 @@ export default function PartnerLanding() {
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const params = new URLSearchParams(window.location.search);
-  const leader = /^[a-zA-Z0-9]{4,12}$/.test(params.get("leader") || "") ? params.get("leader")!.toUpperCase() : null;
+  const leader = isReferralCode(params.get("leader") || "") ? normalizeReferralCode(params.get("leader")!) : null;
   const code = leader ? null : params.get("ref") || getStoredRefCode();
   const register = (destination: string) => `/register?redirect=${encodeURIComponent(destination)}${code ? `&ref=${encodeURIComponent(code)}` : ""}`;
   useEffect(() => {
