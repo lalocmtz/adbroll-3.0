@@ -14,7 +14,7 @@ vi.mock('../supabase/functions/_shared/gemini.ts', () => ({
         const q = {eq:()=>q,then:(resolve: (value: unknown) => void)=>resolve({error:null})}; return q;
       }};
     },
-    rpc: async () => ({data:{started:!state.existingStatus, job:{status:state.existingStatus, failure_message:'Descargas pausadas: se agotó el límite de uso del proveedor.'}},error:null}),
+    rpc: async () => ({data:{started:!state.existingStatus, job:{status:state.existingStatus, failure_message:'Descargas pausadas: se agotó la cuota mensual del servicio de descarga.'}},error:null}),
   }}),
 }));
 vi.mock('../supabase/functions/_shared/catalog-posters.ts',()=>({storeCatalogPoster:vi.fn()}));
@@ -31,7 +31,7 @@ describe('provider rejection recovery and privacy',()=>{
     const warning=vi.spyOn(console,'warn').mockImplementation(()=>{});
     const result=await state.handler!(request());
     expect(result.status).toBe(422);
-    expect(await result.json()).toEqual({error:'Descargas pausadas: se agotó el límite de uso del proveedor.'});
+    expect(await result.json()).toEqual({error:'Descargas pausadas: se agotó la cuota mensual del servicio de descarga.'});
     expect(state.updates[0]).toMatchObject({status:'rejected'});
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(warning).toHaveBeenCalledWith('catalog_download_provider',{status,type:'usage-limit-exceeded'});
@@ -47,7 +47,7 @@ describe('provider rejection recovery and privacy',()=>{
   });
   it('identifies disabled provider features without leaking its response',async()=>{
     const error=await apifyResponseError(response(403,'platform-feature-disabled'));
-    expect(error.message).toBe('Descargas pausadas por el proveedor. El equipo debe revisar su plan, saldo o permisos.');
+    expect(error.message).toBe('Descargas pausadas. El equipo debe revisar el plan, saldo o permisos del servicio de descarga.');
     expect(downloadStartFailure(error).status).toBe('rejected');
     expect(error.message).not.toContain('private-test-token');
   });
