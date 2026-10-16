@@ -159,12 +159,12 @@ const Settings = () => {
           </div>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs">{language === "es" ? "Nombre" : "Name"}</Label>
-              <Input value={userName} readOnly className="mt-1 bg-muted h-9" />
+              <Label htmlFor="account-name" className="text-xs">{language === "es" ? "Nombre" : "Name"}</Label>
+              <Input id="account-name" value={userName} readOnly className="mt-1 bg-muted h-9" />
             </div>
             <div>
-              <Label className="text-xs">{language === "es" ? "Correo electrónico" : "Email"}</Label>
-              <Input value={userEmail} readOnly className="mt-1 bg-muted h-9" />
+              <Label htmlFor="account-email" className="text-xs">{language === "es" ? "Correo electrónico" : "Email"}</Label>
+              <Input id="account-email" value={userEmail} readOnly className="mt-1 bg-muted h-9" />
             </div>
             <div className="flex items-center gap-2 pt-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />

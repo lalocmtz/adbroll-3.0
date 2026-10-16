@@ -74,7 +74,7 @@ describe('owned script translation', () => {
     const test = fixture({ response: result });
     const response = await test.run();
     expect(response.status).toBe(502);
-    expect(await response.json()).toEqual({ error: 'Gemini no devolvió una traducción completa. Inténtalo de nuevo.' });
+    expect(await response.json()).toEqual({ error: 'No se pudo completar la traducción. Inténtalo de nuevo.' });
   });
   it('does not expose an incomplete provider response', async () => {
     const test = fixture({ finishReason: 'MAX_TOKENS' });
@@ -88,8 +88,10 @@ describe('owned script translation', () => {
     const test = fixture();
     test.provider.mockRejectedValue(new Error('network error with test-private-key'));
     const response = await test.run();
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ error: 'No se pudo completar la operación. Inténtalo de nuevo.' });
+    expect(response.status).toBe(502);
+    const body = await response.json();
+    expect(body.error).toMatch(/intentarlo/i);
+    expect(JSON.stringify(body)).not.toMatch(/test-private-key|Gemini|network error/i);
   });
   it('reports quota and configuration errors without leaking keys or consuming unconfigured quota', async () => {
     const missing = fixture({ key: '' });

@@ -1,3 +1,4 @@
+import { CatalogHeader, CatalogInfo, CatalogFilterBar } from "@/components/CatalogToolbar";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,8 +20,6 @@ import { openTikTokLink } from "@/lib/tiktokDeepLink";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { format } from "date-fns";
-import { es, enUS } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 interface Creator {
@@ -49,12 +48,12 @@ interface Creator {
 type SortOption = "revenue" | "followers" | "views" | "lives" | "gmv_live" | "gmv_videos";
 
 const SORT_OPTIONS = [
-  { value: "revenue", label: "Más ventas en pesos" },
-  { value: "followers", label: "Más seguidores" },
-  { value: "gmv_videos", label: "Más ventas en videos" },
-  { value: "gmv_live", label: "Más ventas en directos" },
+  { value: "revenue", label: "Ventas" },
+  { value: "followers", label: "Seguidores" },
+  { value: "gmv_videos", label: "Ventas en videos" },
+  { value: "gmv_live", label: "Ventas en directos" },
   { value: "lives", label: "Más transmisiones en vivo" },
-  { value: "views", label: "Más vistas" },
+  { value: "views", label: "Vistas" },
 ];
 
 const ITEMS_PER_PAGE = 20;
@@ -197,23 +196,17 @@ const Creators = () => {
   };
 
   const formatNumber = (num: number | null | undefined): string => {
-    if (num === null || num === undefined || num === 0) return "—";
+    if (num === null || num === undefined) return "—";
     if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
     if (num >= 1000) return (num / 1000).toFixed(1) + "K";
     return new Intl.NumberFormat("es-MX").format(Math.round(num));
   };
 
   const formatCurrency = (amount: number | null | undefined): string => {
-    if (amount === null || amount === undefined || amount === 0) return "—";
+    if (amount === null || amount === undefined) return "—";
     if (amount >= 1000000) return `$${(amount / 1000000).toFixed(2)}M`;
     if (amount >= 1000) return `$${(amount / 1000).toFixed(1)}K`;
     return `$${new Intl.NumberFormat("es-MX").format(Math.round(amount))}`;
-  };
-
-  const calculateEstimatedEarnings = (revenue: number | null): string => {
-    if (!revenue || revenue === 0) return "—";
-    const commission = revenue * 0.08;
-    return formatCurrency(commission);
   };
 
   // Calculate video percentage of total GMV
@@ -294,82 +287,35 @@ const Creators = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[50dvh] flex items-center justify-center bg-background">
         <p className="text-muted-foreground">Cargando creadores...</p>
       </div>
     );
   }
 
-  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: language === 'es' ? es : enUS });
 
   return (
-    <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
-      {/* Header Section */}
-      <div className="mb-3 md:mb-4 py-1 md:py-0">
-        <div className="md:hidden">
-          <h1 className="text-base font-bold text-foreground leading-tight">
-            📊 {language === "es" ? "Creadores para tomar como referencia" : "Creators to learn from"}
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            TikTok Shop {marketLabel} · Reporte importado
-          </p>
-        </div>
-        
-        <div className="hidden md:block">
-          <h1 className="text-lg font-bold text-foreground leading-tight">
-            📊 {language === "es" ? "Creadores para tomar como referencia" : "Creators to learn from"}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            {language === "es" 
-              ? `Explora sus videos y cómo presentan los productos. TikTok Shop ${marketLabel} · Último reporte; no en tiempo real`
-              : `Explore their videos and product presentations. TikTok Shop ${marketLabel} · Latest report; not real-time`}
-          </p>
-        </div>
-      </div>
-
-      {/* Filter Pills */}
-      <div className="mb-4 md:mb-6">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
-          {!isLoggedIn ? (
-            <div 
-              className="flex gap-1.5 flex-wrap"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              {SORT_OPTIONS.map((option, i) => (
-                <span
-                  key={option.value}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 whitespace-nowrap ${
-                    i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
-                  }`}
-                >
-                  <Lock className="h-3 w-3" />
-                  {option.label}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <FilterPills
-              options={SORT_OPTIONS}
-              value={sortBy}
-              onChange={(v) => setSortBy(v as SortOption)}
-            />
-          )}
-        </div>
-        
-        <span className="text-[11px] text-muted-foreground block mt-1.5">
-          {sortedCreators.length} creadores
-        </span>
-      </div>
+    <div className="min-w-0 w-full pt-2 pb-24 md:pb-6 px-3 md:px-6">
+      <CatalogHeader title="Ranking de creadores" count={`${sortedCreators.length} creadores`}>
+        <CatalogInfo>
+          <p className="font-semibold">TikTok Shop {marketLabel}</p>
+          <p>Ventas del último reporte importado; no son cifras en tiempo real. Abre un creador para consultar sus videos disponibles en el catálogo.</p>
+        </CatalogInfo>
+      </CatalogHeader>
+      <CatalogFilterBar>
+        <FilterPills compact options={SORT_OPTIONS} value={sortBy} onChange={(v) => {
+          if (!isLoggedIn) { navigate("/unlock"); return; }
+          setSortBy(v as SortOption);
+        }} />
+      </CatalogFilterBar>
 
       {sortedCreators.length === 0 ? (
-        <div className="bg-card rounded-xl border border-border p-12 text-center">
-          <Users className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
+        <div className="bg-card rounded-xl border border-border px-4 py-8 text-center">
+          <Users className="size-10 text-muted-foreground mb-3 mx-auto" />
           <p className="text-muted-foreground text-lg">
-            No hay creadores disponibles.
+            Todavía no hay creadores en este catálogo.
           </p>
+          <Button variant="outline" className="mt-4" onClick={() => navigate("/app")}>Explorar videos</Button>
         </div>
       ) : (
         <>
@@ -387,12 +333,6 @@ const Creators = () => {
                       <div className="flex items-center justify-end gap-1">
                         <TrendingUp className="h-3 w-3 text-emerald-500" />
                         Ventas reportadas
-                      </div>
-                    </TableHead>
-                    <TableHead className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <ShoppingBag className="h-3 w-3 text-amber-500" />
-                        Comisión estimada
                       </div>
                     </TableHead>
                     <TableHead className="text-right">
@@ -524,13 +464,6 @@ const Creators = () => {
                           </span>
                         </TableCell>
 
-                        {/* Estimated Earnings */}
-                        <TableCell className="text-right">
-                          <span className="text-amber-600 dark:text-amber-400 font-medium">
-                            {isLocked ? "•••" : calculateEstimatedEarnings(creator.total_ingresos_mxn)}
-                          </span>
-                        </TableCell>
-
                         {/* Ventas en videos */}
                         <TableCell className="text-right">
                           <div>
@@ -584,7 +517,7 @@ const Creators = () => {
                               className="h-7 text-xs"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/videos/creator/${creator.id}`);
+                                handleRowClick(creator, isLocked);
                               }}
                             >
                               <Play className="h-3 w-3 mr-1" />
@@ -605,100 +538,37 @@ const Creators = () => {
             </div>
           </div>
 
-          {/* Mobile Table - Enhanced Compact View */}
-          <div className="md:hidden bg-card rounded-xl border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
-                  <TableHead className="w-8 text-center p-2">#</TableHead>
-                  <TableHead className="p-2">Creador</TableHead>
-                  <TableHead className="text-right p-2">Ventas en pesos</TableHead>
-                  <TableHead className="text-right p-2 w-20">Comisión est.</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedCreators.map((creator, pageIndex) => {
-                  const tiktokUrl = getTikTokUrl(creator);
-                  const globalIndex = startIndex + pageIndex;
-                  const ranking = globalIndex + 1;
-                  const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
-
-                  return (
-                    <TableRow 
-                      key={creator.id}
-                      className={cn(
-                        "cursor-pointer transition-colors",
-                        isTop5(globalIndex) && "bg-gradient-to-r from-amber-50/50 to-transparent dark:from-amber-950/20",
-                        isLocked && "opacity-50"
-                      )}
-                      onClick={() => handleRowClick(creator, isLocked)}
-                    >
-                      {/* Ranking */}
-                      <TableCell className="p-2 text-center">
-                        <span className={cn(
-                          "inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold",
-                          isTop5(globalIndex)
-                            ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
-                            : "bg-muted text-foreground"
-                        )}>
-                          {ranking}
-                        </span>
-                      </TableCell>
-
-                      {/* Creator Info */}
-                      <TableCell className="p-2">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8 border border-primary/20 shrink-0">
-                            <AvatarImage 
-                              src={getReliableAvatarUrl(creator)} 
-                              alt={creator.nombre_completo || creator.usuario_creador}
-                              onError={() => handleImageError(creator.id)}
-                            />
-                            <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground font-bold text-[10px]">
-                              {getInitials(creator.nombre_completo, creator.usuario_creador)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-xs truncate text-foreground">
-                              @{creator.creator_handle || creator.usuario_creador}
-                            </p>
-                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                              <Users className="h-2.5 w-2.5" />
-                              {isLocked ? "•••" : formatNumber(creator.seguidores)}
-                              {!isLocked && tiktokUrl && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openTikTokLink(tiktokUrl);
-                                  }}
-                                  className="ml-1 text-primary hover:underline"
-                                >
-                                  Ver cuenta ↗
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* GMV */}
-                      <TableCell className="p-2 text-right">
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">
-                          {isLocked ? "•••" : formatCurrency(creator.total_ingresos_mxn)}
-                        </span>
-                      </TableCell>
-
-                      {/* Estimated Earnings */}
-                      <TableCell className="p-2 text-right">
-                        <span className="text-amber-600 dark:text-amber-400 font-semibold text-[11px]">
-                          {isLocked ? "•••" : calculateEstimatedEarnings(creator.total_ingresos_mxn)}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+          {/* Mobile cards keep the video action in view without sideways scrolling. */}
+          <div className="grid min-w-0 grid-cols-1 gap-3 md:hidden">
+            {paginatedCreators.map((creator, pageIndex) => {
+              const globalIndex = startIndex + pageIndex;
+              const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
+              const handle = (creator.creator_handle || creator.usuario_creador).replace(/^@/, '');
+              return <article key={creator.id} aria-label={`Creador @${handle}`} className="min-w-0 rounded-xl border border-border bg-card p-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums">{globalIndex + 1}</span>
+                  <Avatar className="size-10 shrink-0">
+                    <AvatarImage src={getReliableAvatarUrl(creator)} alt={creator.nombre_completo || handle} onError={() => handleImageError(creator.id)} />
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs">{getInitials(creator.nombre_completo, handle)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="truncate text-sm font-semibold text-foreground">@{handle}</h2>
+                    {creator.nombre_completo && <p className="truncate text-xs text-muted-foreground">{creator.nombre_completo}</p>}
+                  </div>
+                  <Button variant="ghost" size="icon" className="size-11 shrink-0" aria-label={favorites.has(creator.id) ? `Quitar a @${handle} de favoritos` : `Guardar a @${handle}`} onClick={event => toggleFavorite(creator.id, event)}>
+                    <Heart className={cn("size-4", favorites.has(creator.id) && "fill-primary text-primary")} />
+                  </Button>
+                </div>
+                <dl className="grid grid-cols-2 gap-2 my-3 text-xs">
+                  <div className="min-w-0 rounded-lg bg-muted/50 p-2"><dt className="text-muted-foreground">Ventas reportadas</dt><dd className="mt-1 font-semibold tabular-nums">{isLocked ? '•••' : formatCurrency(creator.total_ingresos_mxn)}</dd></div>
+                  <div className="min-w-0 rounded-lg bg-muted/50 p-2"><dt className="text-muted-foreground">Seguidores</dt><dd className="mt-1 font-semibold tabular-nums">{isLocked ? '•••' : formatNumber(creator.seguidores)}</dd></div>
+                </dl>
+                <Button className="w-full min-h-11 text-sm" onClick={() => handleRowClick(creator, isLocked)}>
+                  {!isLoggedIn ? <Lock className="mr-1.5 size-4" /> : <Play className="mr-1.5 size-4" />}
+                  {!isLoggedIn ? "Desbloquear videos" : "Ver videos"}
+                </Button>
+              </article>;
+            })}
           </div>
 
           {totalPages > 1 && (

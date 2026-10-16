@@ -16,7 +16,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       const query: any = {};
       for (const method of ["select", "eq", "order", "limit", "gte"]) query[method] = () => query;
       query.insert = (value: any) => { payload = value; mocks.insert(value); return query; };
-      query.single = async () => ({ data: { id: "history-1", created_at: new Date().toISOString(), ...payload }, error: null });
+      query.single = async () => ({ data: { id: `history-${mocks.insert.mock.calls.length}`, created_at: new Date().toISOString(), ...payload }, error: null });
       query.then = (resolve: any) => resolve({ data: mocks.history, count: 0, error: null });
       return query;
     },
@@ -127,6 +127,67 @@ describe("download and shared analysis flow", () => {
     expect(screen.getByText("Guion guardado que eligió el usuario.")).toBeInTheDocument();
     expect(mocks.invoke).toHaveBeenCalledOnce();
     expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it("accepts legacy base analysis without variants and creates variants only on explicit request", async () => {
+    mocks.invoke
+      .mockResolvedValueOnce({ data: { status: "ready" }, error: null })
+      .mockResolvedValueOnce({ data: { ...sharedAnalysis, analysis: { hook: "Una demostración", body: "Explica el producto", cta: null }, variants: null }, error: null })
+      .mockResolvedValueOnce({ data: { variants: [1, 2, 3].map(n => ({ hook: `Inicio ${n}`, body: `Cuerpo ${n}`, cta: `Acción ${n}`, strategy_note: "Otra forma de contarlo" })) }, error: null });
+    await start();
+    expect(screen.queryByText("No se pudo analizar")).not.toBeInTheDocument();
+    expect(mocks.insert.mock.calls[0][0].result.variants).toEqual([]);
+    expect(mocks.invoke).toHaveBeenCalledTimes(2);
+    await act(async () => { fireEvent.mouseDown(screen.getByRole("tab", { name: "Variantes" }), { button: 0, ctrlKey: false }); });
+    expect(mocks.invoke).toHaveBeenCalledTimes(2);
+    // Editing the input must not reattribute the saved analysis/variants to another video.
+    fireEvent.change(screen.getByRole("textbox", { name: "Enlace completo del video de TikTok" }), { target: { value: "https://www.tiktok.com/@other/video/123456" } });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Generar 3 variantes" })); });
+    expect(mocks.invoke).toHaveBeenLastCalledWith("generate-script-variants", { body: { transcript: sharedAnalysis.transcript, variantCount: 3, changeLevel: "medium" } });
+    expect(screen.getByText("Inicio 1")).toBeInTheDocument();
+    expect(mocks.insert.mock.calls[1][0]).toMatchObject({ video_url: url, result: { variants: [{ hook: "Inicio 1" }, { hook: "Inicio 2" }, { hook: "Inicio 3" }] } });
+  });
+
+  it("does not expose provider details when explicit variant generation fails", async () => {
+    mocks.invoke
+      .mockResolvedValueOnce({ data: { status: "ready" }, error: null })
+      .mockResolvedValueOnce({ data: { ...sharedAnalysis, variants: null }, error: null })
+      .mockResolvedValueOnce({ data: { error: "Gemini rejected API_KEY token" }, error: null });
+    await start();
+    await act(async () => { fireEvent.mouseDown(screen.getByRole("tab", { name: "Variantes" }), { button: 0, ctrlKey: false }); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Generar 3 variantes" })); });
+    expect(screen.getByRole("alert")).toHaveTextContent("No se pudieron crear las variantes. Inténtalo de nuevo.");
+    expect(screen.queryByText(/Gemini|API_KEY/)).not.toBeInTheDocument();
+    expect(mocks.insert).toHaveBeenCalledOnce();
+  });
+
+  it("keeps variant generation Pro-only when opening a saved analysis", async () => {
+    mocks.hasPaid = false;
+    mocks.history = [{ id: "saved-video", video_url: url, created_at: new Date().toISOString(), result: { transcript: "Guion guardado.", insights: null, variants: [] } }];
+    await act(async () => { render(<MemoryRouter><Tools /></MemoryRouter>); });
+    await act(async () => { fireEvent.click(screen.getAllByRole("button", { name: /tiktok.com/ })[0]); });
+    await act(async () => { fireEvent.mouseDown(screen.getByRole("tab", { name: "Variantes" }), { button: 0, ctrlKey: false }); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Generar 3 variantes" })); });
+    expect(mocks.openPaywall).toHaveBeenCalledWith("Variantes de guion");
+    expect(mocks.invoke).not.toHaveBeenCalled();
+  });
+
+  it("discards a late variant result after switching to another saved video", async () => {
+    mocks.history = [{ id: "saved-video", video_url: url, created_at: new Date().toISOString(), result: { transcript: "Otro guion guardado.", insights: null, variants: [] } }];
+    let finishVariants!: (value: unknown) => void;
+    mocks.invoke
+      .mockResolvedValueOnce({ data: { status: "ready" }, error: null })
+      .mockResolvedValueOnce({ data: { ...sharedAnalysis, variants: null }, error: null })
+      .mockImplementationOnce(() => new Promise(resolve => { finishVariants = resolve; }));
+    await start();
+    await act(async () => { fireEvent.mouseDown(screen.getByRole("tab", { name: "Variantes" }), { button: 0, ctrlKey: false }); });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Generar 3 variantes" })); });
+    expect(screen.getByRole("button", { name: "Preparando variantes…" })).toBeDisabled();
+    await act(async () => { fireEvent.click(screen.getAllByRole("button", { name: /tiktok.com/ })[1]); });
+    await act(async () => { finishVariants({ data: { variants: [1, 2, 3].map(n => ({ hook: `Fuera de fecha ${n}`, body: "Cuerpo viejo", cta: "CTA vieja" })) }, error: null }); });
+    expect(screen.getByText("Otro guion guardado.")).toBeInTheDocument();
+    expect(screen.queryByText(/Fuera de fecha/)).not.toBeInTheDocument();
+    expect(mocks.insert).toHaveBeenCalledOnce();
   });
 
 });

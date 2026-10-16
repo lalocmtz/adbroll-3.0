@@ -172,7 +172,7 @@ const Register = () => {
       <Card className="w-full max-w-md card-landing-light relative">
         <button
           onClick={() => navigate("/app")}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition-colors z-10"
+          className="absolute top-2 right-2 h-11 w-11 flex items-center justify-center rounded-full hover:bg-muted transition-colors z-10"
           aria-label="Cerrar"
         >
           <X className="h-5 w-5 text-muted-foreground" />
@@ -188,14 +188,14 @@ const Register = () => {
             </button>
           </div>
           {destination === "/pricing" && <p className="text-[11px] text-muted-foreground">1. Cuenta · 2. Confirmación · 3. Activar Pro</p>}
-          <CardTitle className="text-xl">Antes de grabar, encuentra una referencia</CardTitle>
+          <h1 className="text-xl font-semibold leading-snug">Encuentra qué está vendiendo</h1>
           <CardDescription>
-            Explora la vista previa y descubre un punto de partida para tu próximo video de TikTok Shop.
+            Explora productos y videos de TikTok Shop antes de grabar.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 px-5 pb-5">
           <p className="rounded-xl bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-            Tu cuenta y la vista previa son gratis, sin tarjeta. Los guiones y el análisis con IA requieren Pro: US$15/mes. Registrarte no genera cargos. <Link to="/pricing" className="text-primary underline">Ver qué incluye Pro</Link>
+            Vista previa gratis, sin tarjeta. Guiones y análisis con Pro: US$15/mes, solo si lo activas. <Link to="/pricing" className="text-primary underline">Ver qué incluye Pro</Link>
           </p>
           {/* Referral Code Input - Before OAuth for visibility */}
           <div className="space-y-2">
@@ -233,7 +233,7 @@ const Register = () => {
           <Button
             type="button"
             variant="outline"
-            className="w-full flex items-center justify-center gap-3"
+            className="h-11 w-full flex items-center justify-center gap-3"
             onClick={handleGoogleSignUp}
             disabled={isGoogleLoading || isLoading || referralBlocked}
           >
@@ -258,7 +258,7 @@ const Register = () => {
             {isGoogleLoading ? "Conectando..." : "Continuar con Google"}
           </Button>
 
-          <Button type="button" variant="outline" className="w-full gap-2" onClick={() => setShowEmail(!showEmail)} aria-expanded={showEmail} aria-controls="email-registration" disabled={isLoading || isGoogleLoading}>
+          <Button type="button" variant="outline" className="h-11 w-full gap-2" onClick={() => setShowEmail(!showEmail)} aria-expanded={showEmail} aria-controls="email-registration" disabled={isLoading || isGoogleLoading}>
             <Mail className="h-4 w-4" /> {showEmail ? "Ocultar formulario de correo" : "Continuar con correo"}
           </Button>
 

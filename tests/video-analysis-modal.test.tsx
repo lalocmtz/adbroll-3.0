@@ -3,106 +3,115 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import VideoAnalysisModalOriginal from '@/components/VideoAnalysisModalOriginal';
 
-const mocks = vi.hoisted(() => ({ rpc: vi.fn(), invoke: vi.fn(), toast: vi.fn(), hasPaid: true, openPaywall: vi.fn() }));
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), invoke: vi.fn(), toast: vi.fn(), hasPaid: true, openPaywall: vi.fn(), close: vi.fn() }));
 vi.mock('@/contexts/BlurGateContext', () => ({ useBlurGateContext: () => ({ hasPaid: mocks.hasPaid, openPaywall: mocks.openPaywall }) }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mocks.toast }) }));
-vi.mock('@/lib/checkout', () => ({ useStartCheckout: () => ({ start: vi.fn(), loading: false }) }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {
   rpc: mocks.rpc, functions: { invoke: mocks.invoke },
   auth: { getUser: async () => ({ data: { user: null } }) },
 } }));
-vi.mock('framer-motion', () => ({ motion: { div: ({ children, initial, animate, transition, ...props }: any) => <div {...props}>{children}</div> }, AnimatePresence: ({ children }: any) => children }));
-
-const video = { id: 'video-a', video_url: 'https://www.tiktok.com/@creator/video/1234567890123456789', title: 'Video de prueba' };
-const result = { success: true, transcript: 'Guion real recuperado.', analysis: { hook: 'Inicio', body: 'Demostración', cta: 'Conoce el producto' }, variants: { hooks: ['Uno', 'Dos', 'Tres'], body_variant: 'Cuerpo' } };
-const view = (v = video, isOpen = true) => <MemoryRouter><VideoAnalysisModalOriginal video={v} isOpen={isOpen} onClose={() => {}} /></MemoryRouter>;
-async function open(v = video) {
-  let component: ReturnType<typeof render>;
-  await act(async () => { component = render(view(v)); });
-  return component!;
-}
-async function generate() {
-  await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Generar transcripción' })[0]); });
-}
+const video = { id: 'video-a', video_url: 'https://www.tiktok.com/@creator/video/1234567890123456789', video_mp4_url: 'https://storage.example/video.mp4', title: 'Video de prueba' };
+const transcript = 'Guion real recuperado.';
+const analysis = { hook: 'Inicio', body: 'Demostración', cta: 'Conoce el producto' };
+const view = (v = video, isOpen = true) => <MemoryRouter><VideoAnalysisModalOriginal video={v} isOpen={isOpen} onClose={mocks.close} /></MemoryRouter>;
+async function open(v = video) { let component!: ReturnType<typeof render>; await act(async () => { component = render(view(v)); }); return component; }
+async function tab(name: string) { await act(async () => { fireEvent.mouseDown(screen.getByRole('tab', { name }), { button: 0, ctrlKey: false }); }); }
 beforeEach(() => {
-  vi.clearAllMocks();
-  mocks.hasPaid = true;
+  vi.clearAllMocks(); mocks.hasPaid = true;
   mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript: null }] : null, error: null }));
   vi.spyOn(console, 'error').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
 });
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
-
-describe('active catalog video transcription', () => {
-  it('waits for the deployed downloader and analyzes its ready video ID', async () => {
-    vi.useFakeTimers();
-    mocks.invoke.mockResolvedValueOnce({ data: { status: 'pending', retryAfterSeconds: 3 }, error: null })
-      .mockResolvedValueOnce({ data: { status: 'ready', videoId: 'downloaded-video' }, error: null })
-      .mockResolvedValueOnce({ data: result, error: null });
-    await open(); await generate();
-    expect(mocks.invoke.mock.calls.map(([name]) => name)).toEqual(['catalog-download']);
-    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
-    expect(mocks.invoke.mock.calls.map(([name]) => name)).toEqual(['catalog-download', 'catalog-download', 'transcribe-and-analyze']);
-    expect(mocks.invoke.mock.calls[0][1].body).toEqual({ videoUrl: video.video_url });
-    expect(mocks.invoke.mock.calls[2][1].body).toEqual({ videoId: 'downloaded-video' });
-    expect(screen.getAllByText(result.transcript).length).toBeGreaterThan(0);
-  });
-
-  it('keeps the provider error visible and retries without an empty success state', async () => {
-    mocks.invoke.mockResolvedValueOnce({ data: null, error: { message: 'HTTP error', context: { json: async () => ({ error: 'El servicio está ocupado. Inténtalo de nuevo.' }) } } });
-    await open({ ...video, video_mp4_url: 'https://storage.example/video.mp4' } as typeof video); await generate();
-    expect(screen.getAllByRole('alert')[0]).toHaveTextContent('El servicio está ocupado');
-    expect(screen.getAllByRole('button', { name: 'Reintentar transcripción' })[0]).toBeEnabled();
-    mocks.invoke.mockResolvedValueOnce({ data: result, error: null });
-    await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Reintentar transcripción' })[0]); });
-    expect(screen.queryAllByRole('alert')).toHaveLength(0);
-    expect(screen.getAllByText(result.transcript).length).toBeGreaterThan(0);
-  });
-
-  it('shows RPC loading failures and retries retrieval without charging for a new analysis', async () => {
-    mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'offline' } });
+afterEach(() => { vi.restoreAllMocks(); });
+describe('prepared catalog references', () => {
+  it('opens one responsive player without autoplay or background generation', async () => {
     await open();
-    expect(screen.getAllByRole('alert')[0]).toHaveTextContent('No se pudo cargar el guion guardado');
-    expect(screen.getAllByRole('button', { name: 'Generar transcripción' })[0]).toBeDisabled();
-    mocks.rpc.mockResolvedValueOnce({ data: [{ locked: false, transcript: result.transcript }], error: null });
-    await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Reintentar carga' })[0]); });
-    expect(screen.getAllByText(result.transcript).length).toBeGreaterThan(0);
+    const players = document.querySelectorAll('video');
+    expect(players).toHaveLength(1);
+    expect(players[0]).toHaveAttribute('preload', 'metadata');
+    expect(players[0]).toHaveAttribute('controls');
+    expect(players[0]).toHaveAttribute('src', `${video.video_mp4_url}#t=0.1`);
+    expect(players[0]).toHaveClass('aspect-[9/16]', 'h-[40dvh]');
+    expect(players[0]).not.toHaveAttribute('autoplay');
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+    expect(screen.getByText('Guion en preparación')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Generar transcripción' })).not.toBeInTheDocument();
     expect(mocks.invoke).not.toHaveBeenCalled();
   });
-
-  it('stops download polling when the modal closes', async () => {
-    vi.useFakeTimers();
-    mocks.invoke.mockResolvedValue({ data: { status: 'pending', retryAfterSeconds: 3 }, error: null });
-    const component = await open(); await generate();
-    await act(async () => { component.rerender(view(video, false)); });
-    await act(async () => { await vi.advanceTimersByTimeAsync(90000); });
-    expect(mocks.invoke).toHaveBeenCalledOnce();
+  it('shows saved script and analysis even without previously generated variants', async () => {
+    mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript, variants_json: null }] : analysis, error: null }));
+    await open();
+    expect(screen.getByText(transcript)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Traducir al inglés' })).toBeVisible();
+    await tab('Análisis');
+    expect(screen.getByText('Demostración')).toBeVisible();
+    expect(mocks.invoke).not.toHaveBeenCalled();
   });
-
+  it('shows RPC failures and retries only the saved data retrieval', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'offline' } });
+    await open();
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudo cargar el guion guardado');
+    mocks.rpc.mockResolvedValueOnce({ data: [{ locked: false, transcript }], error: null });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Reintentar carga' })); });
+    expect(screen.getByText(transcript)).toBeVisible();
+    expect(mocks.invoke).not.toHaveBeenCalled();
+  });
   it('does not show a previous video response after switching videos', async () => {
     let resolveOld!: (value: unknown) => void;
     mocks.rpc.mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }));
     const component = await open();
     await act(async () => { component.rerender(view({ ...video, id: 'video-b' })); });
-    await act(async () => { resolveOld({ data: [{ locked: false, transcript: 'Guion del video anterior' }], error: null }); });
-    expect(screen.queryByText('Guion del video anterior')).not.toBeInTheDocument();
+    await act(async () => { resolveOld({ data: [{ locked: false, transcript: 'Guion anterior' }], error: null }); });
+    expect(screen.queryByText('Guion anterior')).not.toBeInTheDocument();
   });
-
-  it('rejects an empty transcript and never calls legacy download', async () => {
-    mocks.invoke.mockResolvedValueOnce({ data: { ...result, transcript: '  ' }, error: null });
-    await open({ ...video, video_mp4_url: 'https://storage.example/video.mp4' } as typeof video); await generate();
-    expect(screen.getAllByRole('alert')[0]).toHaveTextContent('No se detectó voz para transcribir');
-    expect(mocks.invoke.mock.calls.map(([name]) => name)).toEqual(['transcribe-and-analyze']);
+  it('generates variants only after explicit action and preserves the original', async () => {
+    mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript }] : analysis, error: null }));
+    mocks.invoke.mockResolvedValue({ data: { variants: [{ hook: 'Nuevo inicio', body: 'Nuevo cuerpo', cta: 'Nuevo cierre' }] }, error: null });
+    await open(); await tab('Variantes');
+    expect(mocks.invoke).not.toHaveBeenCalled();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Generar variantes' })); });
+    expect(mocks.invoke).toHaveBeenCalledWith('generate-script-variants', expect.objectContaining({ body: expect.objectContaining({ transcript, variantCount: 2 }) }));
+    expect(screen.getByText('Nuevo inicio')).toBeVisible();
+    await tab('Guion'); expect(screen.getByText(transcript)).toBeVisible();
   });
-
-  it('only offers translation to paid users without replacing their original transcript', async () => {
-    mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript: result.transcript }] : null, error: null }));
-    const component = await open();
-    expect(screen.getAllByRole('button', { name: 'Traducir al inglés' }).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(result.transcript).length).toBeGreaterThan(0);
+  it('retains free access gates and never exposes translation to non-Pro users', async () => {
     mocks.hasPaid = false;
-    await act(async () => { component.rerender(view()); });
+    mocks.rpc.mockResolvedValue({ data: [{ locked: true }], error: null });
+    await open();
+    expect(screen.getByRole('button', { name: 'Ver acceso Pro' })).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Traducir al inglés' })).not.toBeInTheDocument();
+    expect(mocks.rpc).not.toHaveBeenCalledWith('get_video_analysis', expect.anything());
+    expect(mocks.invoke).not.toHaveBeenCalled();
+  });
+  it('pauses playback on closing, changing source and unmount', async () => {
+    const component = await open();
+    const element = document.querySelector('video')!;
+    const pause = vi.spyOn(element, 'pause');
+    await act(async () => { component.rerender(view({ ...video, video_mp4_url: 'https://storage.example/other.mp4' })); });
+    expect(pause).toHaveBeenCalled(); pause.mockClear();
+    await act(async () => { component.rerender(view(video, false)); });
+    expect(pause).toHaveBeenCalled();
+    await act(async () => { component.rerender(view()); });
+    const nextPause = vi.spyOn(document.querySelector('video')!, 'pause');
+    component.unmount(); expect(nextPause).toHaveBeenCalled();
+  });
+  it('pauses when the browser is hidden and pauses other players when playback is requested', async () => {
+    await open();
+    const element = document.querySelector('video')!;
+    const pause = vi.spyOn(element, 'pause');
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    fireEvent(document, new Event('visibilitychange'));
+    expect(pause).toHaveBeenCalled();
+    const other = document.createElement('video'); document.body.append(other); const otherPause = vi.spyOn(other, 'pause');
+    fireEvent.play(element); expect(otherPause).toHaveBeenCalled(); other.remove();
+  });
+  it('renders legacy saved analysis with null sections and no audiovisual arrays', async () => {
+    mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript, variants_json: null }] : { hook: 'Gancho histórico', body: null, cta: null }, error: null }));
+    await open(); await tab('Análisis');
+    expect(screen.getByText('Gancho histórico')).toBeVisible();
+    expect(screen.queryByText('Cómo presenta el producto')).not.toBeInTheDocument();
+    expect(screen.queryByText('Qué se ve en el video')).not.toBeInTheDocument();
     expect(mocks.invoke).not.toHaveBeenCalled();
   });
 

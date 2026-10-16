@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, Sparkles, DollarSign, ShoppingCart, Eye, Play, ExternalLink, Lock, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +8,7 @@ import VideoAnalysisModalOriginal from './VideoAnalysisModalOriginal';
 import ProductAssignmentModal from './ProductAssignmentModal';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
 import { cn } from '@/lib/utils';
-import { formatReportPeriod } from '@/lib/catalog-period';
+import { LazyVideoPoster } from '@/components/LazyVideoPoster';
 import { openTikTokLink } from '@/lib/tiktokDeepLink';
 interface Video {
   id: string;
@@ -69,18 +68,12 @@ const formatCurrency = (num: number | null | undefined): string => {
 };
 
 const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardOriginalProps) => {
-  const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [mediaFailed, setMediaFailed] = useState(false);
-  useEffect(() => setMediaFailed(false), [video.video_mp4_url]);
   const [currentProductId, setCurrentProductId] = useState(video.product_id);
   const [currentProductName, setCurrentProductName] = useState(video.product_name);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { hasPaid, isLoggedIn, openPaywall, shouldBlur, shouldBlurPartial, isFounder } = useBlurGateContext();
@@ -104,30 +97,6 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
     setCurrentProductName(productName);
   };
 
-  // Autoplay muted when video enters viewport (works on mobile and desktop)
-  useEffect(() => {
-    if (mediaFailed || !video.video_mp4_url || !containerRef.current) return;
-    
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && videoRef.current) {
-          videoRef.current.muted = true;
-          videoRef.current.play()
-            .then(() => setIsPlaying(true))
-            .catch(() => setIsPlaying(false));
-        } else if (!entry.isIntersecting && videoRef.current) {
-          videoRef.current.pause();
-          setIsPlaying(false);
-        }
-      },
-      { threshold: 0.3 }
-    );
-    
-    observer.observe(containerRef.current);
-    
-    return () => observer.disconnect();
-  }, [video.video_mp4_url, mediaFailed]);
-
   useEffect(() => {
     const checkFavoriteStatus = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -137,30 +106,6 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
     };
     checkFavoriteStatus();
   }, [video.video_url]);
-
-  const handleMouseEnter = useCallback(() => {
-    setIsHovered(true);
-    if (videoRef.current && video.video_mp4_url) {
-      // On hover, try to enable audio
-      videoRef.current.muted = false;
-      videoRef.current.volume = 0.7;
-      videoRef.current.play().catch(() => {
-        // If audio fails, keep muted and continue
-        if (videoRef.current) {
-          videoRef.current.muted = true;
-          videoRef.current.play().catch(() => {});
-        }
-      });
-    }
-  }, [video.video_mp4_url, mediaFailed]);
-
-  const handleMouseLeave = useCallback(() => {
-    setIsHovered(false);
-    if (videoRef.current) {
-      // Keep playing but mute when not hovering
-      videoRef.current.muted = true;
-    }
-  }, []);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -221,21 +166,15 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   const isTop5 = ranking <= 5;
 
   // Do not advertise an unusable card when its stored media is missing or broken.
-  if (!video.video_mp4_url?.trim() || mediaFailed) return null;
+  if (!video.video_mp4_url?.trim()) return null;
 
   return (
     <>
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut", delay: ranking * 0.05 }}
-        whileHover={{ y: -4, transition: { duration: 0.2 } }}
-        className="min-w-0 w-full bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-[#E2E8F0] dark:border-border p-2.5 md:p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-shadow duration-300 group"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+      <div
+        className="min-w-0 w-full bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-[#E2E8F0] dark:border-border p-2.5 md:p-4 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-shadow duration-200 group"
       >
         {/* Video Container - Optimized for more visibility */}
-        <div ref={containerRef} className="relative w-full aspect-[4/5] bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-3">
+        <div className="relative w-full aspect-[4/5] bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-3">
           {/* Top Icons Bar */}
           <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-20 flex items-start justify-between gap-1 pointer-events-none">
             {/* Ranking Badge - smaller on mobile */}
@@ -267,42 +206,13 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             </div>
           </div>
 
-          {/* Video Player - Autoplay muted on scroll */}
-          {video.video_mp4_url ? (
-            <>
-              <video 
-                ref={videoRef}
-                onError={() => setMediaFailed(true)}
-                src={video.video_mp4_url}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                poster={video.thumbnail_url || undefined}
-              />
-              {/* Only show play button if video is NOT playing */}
-              {!isPlaying && !isHovered && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/95 flex items-center justify-center shadow-lg">
-                    <Play className="w-5 h-5 md:w-7 md:h-7 text-[#0F172A] ml-0.5" fill="currentColor" />
-                  </div>
-                </div>
-              )}
-              
-              {earningsPerSale > 0 && (
-                <span className="absolute bottom-2 md:bottom-3 left-2 md:left-3 z-10 bg-[#EEF2FF] text-[#6366F1] text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-md shadow-sm">
-                  💰 {formatCurrency(earningsPerSale)}/venta
-                </span>
-              )}
-            </>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-muted to-muted/80">
-              <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-white/95 flex items-center justify-center">
-                <Play className="w-5 h-5 md:w-7 md:h-7 text-muted-foreground ml-0.5" />
-              </div>
-            </div>
-          )}
+          {/* A static cover or silent frame opens the only interactive player. */}
+          <button type="button" className="absolute inset-0 h-full w-full bg-muted" onClick={handleAnalyzeClick} aria-label={`Ver video y guion de ${video.creator_handle || video.creator_name || 'creador'}`}>
+            <LazyVideoPoster src={video.video_mp4_url} poster={video.thumbnail_url} active={!showModal} />
+            <span className="absolute inset-0 flex items-center justify-center bg-black/10"><span className="flex size-12 items-center justify-center rounded-full bg-white/95 text-slate-950 shadow-sm"><Play className="size-6" fill="currentColor" /></span></span>
+          </button>
+          {earningsPerSale > 0 && <span className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-md bg-background px-2 py-1 text-xs font-medium tabular-nums">{formatCurrency(earningsPerSale)}/venta</span>}
+
         </div>
 
         {/* Content - compact spacing on mobile */}
@@ -315,7 +225,6 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             <p className="text-[11px] md:text-[13px] text-[#94A3B8] mt-0.5 truncate">
               @{video.creator_handle || video.creator_name || 'creator'}
             </p>
-            {video.snapshot_date_range && <p className="text-[10px] text-muted-foreground mt-1">Ventas del {formatReportPeriod(video.snapshot_date_range)}</p>}
           </div>
 
           {/* Product Association - Compact on mobile, full on desktop */}
@@ -423,7 +332,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             <span className="sm:hidden">Ver guion →</span>
           </Button>
         </div>
-      </motion.div>
+      </div>
 
       {showModal && <VideoAnalysisModalOriginal isOpen={showModal} onClose={() => setShowModal(false)} video={video} />}
       

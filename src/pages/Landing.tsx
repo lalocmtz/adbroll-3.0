@@ -289,7 +289,11 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-brand-mist text-brand-ink">
       <GlobalHeader showMenu={false} />
-      <div className="bg-brand-ink text-brand-mist text-center px-4 py-4 text-sm border-b border-white/10 space-y-3"><a href="/programa-creadores" className="inline-flex items-center justify-center rounded-lg bg-brand-pink px-5 py-3 font-semibold text-white hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-cyan">Gana dinero recomendando TokXray →</a><p><a href="/programa-creadores#acceso-vitalicio" className="inline-block py-2 text-brand-cyan underline underline-offset-4">{lifetimeCapacity.capacity ? lifetimeCapacity.capacity.is_open ? `Solo 100 creadores: quedan ${lifetimeCapacity.capacity.remaining} accesos vitalicios por contenido` : 'Los 100 accesos vitalicios ya fueron otorgados · conoce el programa' : 'Oferta para los primeros 100 creadores · consulta disponibilidad'}</a></p></div>
+      <div className="flex min-h-11 items-center justify-center gap-3 border-b border-white/10 bg-brand-ink px-4 text-xs text-brand-mist">
+        <a href="/programa-creadores" className="inline-flex min-h-11 items-center gap-1 font-medium">Gana recomendando <ArrowRight className="size-3" /></a>
+        <span className="text-white/20" aria-hidden="true">|</span>
+        <a href="/programa-creadores#acceso-vitalicio" className="inline-flex min-h-11 items-center text-brand-cyan" aria-label={lifetimeCapacity.capacity ? lifetimeCapacity.capacity.is_open ? `Solo 100 creadores: quedan ${lifetimeCapacity.capacity.remaining} accesos vitalicios por contenido` : 'Los 100 accesos vitalicios ya fueron otorgados · conoce el programa' : 'Oferta para los primeros 100 creadores · consulta disponibilidad'}>{lifetimeCapacity.capacity ? lifetimeCapacity.capacity.is_open ? `${lifetimeCapacity.capacity.remaining} de 100 plazas` : 'Conoce el programa' : 'Primeros 100 creadores'}</a>
+      </div>
 
       {/* ===================== HERO ===================== */}
       <section className="relative overflow-hidden bg-gradient-ink text-brand-mist">
@@ -313,7 +317,7 @@ const Landing = () => {
           }}
         />
 
-        <div className="relative mx-auto max-w-5xl px-[var(--page-pad-x)] pt-16 pb-16 md:pt-24 md:pb-24">
+        <div className="relative mx-auto max-w-5xl px-[var(--page-pad-x)] pt-8 pb-10 md:pt-24 md:pb-24">
           {/* live chip */}
           <div className="mb-6 flex justify-center">
             <span className="inline-flex items-center gap-2 rounded-pill border border-brand-cyan/40 bg-brand-cyan/10 px-4 py-1.5 text-micro text-brand-cyan-200 backdrop-blur">

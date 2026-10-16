@@ -25,7 +25,7 @@ Conserva el significado, tono, emojis, párrafos, nombres de productos y cifras.
 Devuelve un objeto JSON con exactamente este campo: {"translation":"guion traducido completo"}.
 GUION: ${JSON.stringify(text)}` }], 0.2);
     if (typeof data?.translation !== 'string' || !data.translation.trim()) {
-      throw new AIError('Gemini no devolvió una traducción completa. Inténtalo de nuevo.', 502);
+      throw new AIError('No se pudo completar la traducción. Inténtalo de nuevo.', 502);
     }
     return reply({ translation: data.translation.trim() });
   } catch (error) { return failure(error); }

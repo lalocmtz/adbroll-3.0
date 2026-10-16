@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { AIError, parseGeminiResult } from './ai-contracts.ts';
+import { AIError, GeminiProviderError, safeGeminiCode, parseGeminiResult } from './ai-contracts.ts';
 
 export const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 export const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
@@ -7,7 +7,7 @@ export const failure = (error: unknown) => reply({ error: error instanceof AIErr
 export const model = () => Deno.env.get('GEMINI_MODEL') || 'gemini-3.5-flash-lite';
 export function geminiKey() {
   const key = Deno.env.get('GEMINI_API_KEY');
-  if (!key) throw new AIError('El análisis con Gemini está pendiente de configuración.', 503);
+  if (!key) throw new AIError('El análisis está pendiente de configuración.', 503);
   return key;
 }
 export async function authenticatedAI(req: Request) {
@@ -30,15 +30,26 @@ export async function reserve(db: any, userId: string, kind: 'video'|'text') {
 export async function geminiJSON(parts: unknown[], temperature = 0.2) {
   const key = geminiKey();
   const selectedModel = model();
-  if (!/^[a-z0-9.-]+$/.test(selectedModel)) throw new AIError('Modelo de Gemini no configurado correctamente.', 503);
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`, {
+  if (!/^[a-z0-9.-]+$/.test(selectedModel)) throw new AIError('El servicio de análisis no está configurado correctamente.', 503);
+  let response: Response | undefined;
+  for (let attempt=0;attempt<2;attempt++) {
+    try { response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`, {
     method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json', temperature, maxOutputTokens: 8192 } }),
     signal: AbortSignal.timeout(110000),
   });
-  if (!response.ok) throw new AIError(response.status === 429 ? 'Gemini está ocupado o sin cuota. Inténtalo más tarde.' : 'No se pudo obtener el análisis de Gemini.', response.status === 429 ? 429 : 502);
+    } catch { throw new GeminiProviderError(503,'NETWORK_ERROR'); }
+    if (response.ok) break;
+    const payload=await response.json().catch(()=>null);
+    const error=new GeminiProviderError(response.status,safeGeminiCode(payload));
+    // Provider prose may include request details: log only bounded identifiers.
+    console.error('Gemini request failed',JSON.stringify({status:error.providerStatus,code:error.providerCode,attempt:attempt+1}));
+    if (!error.retryable || attempt===1) throw error;
+    await new Promise(resolve=>setTimeout(resolve,1200));
+  }
+  if (!response?.ok) throw new GeminiProviderError(503,'NO_RESPONSE');
   const payload = await response.json();
   const parsed = parseGeminiResult(payload);
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new AIError('Gemini devolvió un formato de análisis inválido.', 502);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new AIError('El servicio devolvió un formato de análisis inválido.', 502);
   return { ...parsed, _provider_usage: payload.usageMetadata || null };
 }

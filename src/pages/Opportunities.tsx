@@ -1,3 +1,6 @@
+import { CatalogProductImage } from "@/components/CatalogProductImage";
+import { CatalogHeader, CatalogInfo, CatalogFilterBar } from "@/components/CatalogToolbar";
+import { FilterPills } from "@/components/FilterPills";
 import { useEffect, useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,8 +40,8 @@ type BadgeFilter = "all" | "gems" | "rising" | "high_pay";
 
 const BADGE_FILTERS: { value: BadgeFilter; labelEs: string; labelEn: string }[] = [
   { value: "all", labelEs: "Todas", labelEn: "All" },
-  { value: "gems", labelEs: "💎 Menos creadores", labelEn: "💎 Fewer creators" },
-  { value: "high_pay", labelEs: "💰 Mayor comisión", labelEn: "💰 Higher commission" },
+  { value: "gems", labelEs: "Menos creadores", labelEn: "Fewer creators" },
+  { value: "high_pay", labelEs: "Mayor comisión", labelEn: "Higher commission" },
 ];
 
 const FREE_PREVIEW_LIMIT = 3;
@@ -131,123 +134,35 @@ const Opportunities = () => {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
-        {/* Hero */}
-        <div className="mb-3 md:mb-4 py-1 md:py-0">
-          <div className="md:hidden">
-            <h1 className="text-base font-bold text-foreground leading-tight">
-              💎 {language === "es" ? "Oportunidades del catálogo" : "Catalog opportunities"}
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {language === "es" ? "Datos de TikTok Shop · Consulta el periodo del reporte" : "TikTok Shop data · Check the report period"}
-            </p>
-          </div>
-          <div className="hidden md:block">
-            <h1 className="text-lg font-bold text-foreground leading-tight">
-              💎 {language === "es" ? "Oportunidades del catálogo" : "Catalog opportunities"}
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              {language === "es"
-                ? "Compara demanda y comisión; revisa los videos antes de elegir qué grabar"
-                : "Compare demand and commission, then review the videos before choosing what to record"}
-            </p>
-          </div>
-        </div>
-
-        {/* Badge filter chips + category */}
-        <div className="mb-4 md:mb-6">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
-            {!isLoggedIn ? (
-              <div
-                className="flex gap-1.5 flex-nowrap"
-                onClick={() => {
-                  navigate("/unlock");
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-              >
-                {BADGE_FILTERS.map((option, i) => (
-                  <span
-                    key={option.value}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium h-11 md:h-8 flex items-center gap-1.5 whitespace-nowrap ${
-                      i === 0
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/60 text-muted-foreground border border-border/50"
-                    }`}
-                  >
-                    <Lock className="h-3 w-3" />
-                    {language === "es" ? option.labelEs : option.labelEn}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <div className="flex gap-1.5 flex-nowrap md:flex-wrap">
-                {BADGE_FILTERS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setBadgeFilter(option.value)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium min-h-[44px] md:min-h-0 md:h-8 flex items-center whitespace-nowrap transition-colors ${
-                      badgeFilter === option.value
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/60 text-muted-foreground border border-border/50 hover:bg-muted"
-                    }`}
-                  >
-                    {language === "es" ? option.labelEs : option.labelEn}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Category dropdown */}
-            {!isLoggedIn ? (
-              <div
-                className="h-11 md:h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap"
-                onClick={() => {
-                  navigate("/unlock");
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-              >
-                <Lock className="h-3 w-3" />
-                {language === "es" ? "Categorías" : "Categories"}
-              </div>
-            ) : (
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-auto h-11 md:h-8 text-xs px-3 rounded-full border-border/50 bg-muted/60">
-                  <SelectValue placeholder={language === "es" ? "Categoría" : "Category"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{language === "es" ? "Todas las categorías" : "All categories"}</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <span className="text-[11px] md:text-xs text-muted-foreground block mt-1.5">
-            {filteredOpportunities.length} {language === "es" ? "oportunidades" : "opportunities"}
-          </span>
-        </div>
-
-        {/* Educational strip */}
-        <div className="bg-gradient-to-r from-primary/5 to-amber-500/5 border border-primary/10 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <Lightbulb className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-            <details className="text-[13px] text-foreground leading-relaxed">
-              <summary className="cursor-pointer font-medium">{language === "es" ? "Cómo calculamos las oportunidades" : "How opportunities are calculated"}</summary>
-              <p className="mt-2">
-              {language === "es"
-                ? "Este indicador compara productos de la misma categoría y mercado; no predice tus ventas. Considera demanda (30%), cantidad de creadores (25%), evolución de ventas en pesos (20%), comisión por venta (15%) y ventas por cada peso invertido en publicidad (10%). Cambia cuando incorporamos un reporte; no se actualiza en tiempo real. La señal de crecimiento todavía requiere validar periodos comparables. Úsalo para elegir qué productos revisar, junto con sus cifras y videos."
-                : "This indicator compares products in the same category and market; it does not predict your sales. It weighs demand (30%), creator count (25%), sales value trends (20%), commission per sale (15%) and sales per unit of advertising spend (10%). It changes with each imported report, not in real time. Growth still needs validation across comparable periods. Use it to choose products to review alongside their numbers and videos."}
-              </p>
-              </details>
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">{language === "es" ? "Índice experimental basado en reportes importados; no predice ni garantiza ventas." : "Experimental index based on imported reports; it does not predict or guarantee sales."}</p>
-        </div>
+      <div className="min-w-0 w-full pt-2 pb-24 md:pb-6 px-3 md:px-6">
+        <CatalogHeader title={language === "es" ? "Oportunidades" : "Opportunities"} count={filteredOpportunities.length}>
+          <CatalogInfo label={language === "es" ? "Cómo se eligen las oportunidades" : "How opportunities are selected"}>
+            <p className="font-semibold">{language === "es" ? "Puntuación experimental" : "Experimental score"}</p>
+            <p>{language === "es" ? "Compara demanda, competencia, comisión y otras señales del reporte importado. Sirve para priorizar productos; no predice ventas ni garantiza resultados." : "Compares demand, competition, commission and other imported report signals. Helps prioritize products; does not predict sales or guarantee results."}</p>
+            <p>{language === "es" ? "Revisa los videos relacionados y la fecha del reporte antes de elegir qué grabar." : "Review related videos and the report period before choosing what to record."}</p>
+          </CatalogInfo>
+        </CatalogHeader>
+        <CatalogFilterBar>
+          <FilterPills compact options={BADGE_FILTERS.map(option => ({ value: option.value, label: language === "es" ? option.labelEs : option.labelEn }))}
+            value={badgeFilter} onChange={value => {
+              if (!isLoggedIn) { navigate("/unlock"); return; }
+              setBadgeFilter(value as BadgeFilter);
+            }} />
+          {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/unlock")}>
+            <Lock className="size-3 mr-1" />{language === "es" ? "Categorías" : "Categories"}
+          </Button> : <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger aria-label={language === "es" ? "Categoría de oportunidades" : "Opportunity category"} className="w-auto max-w-48 h-11 text-xs rounded-full border-border/50 bg-muted/60">
+              <SelectValue placeholder={language === "es" ? "Categorías" : "Categories"} />
+            </SelectTrigger>
+            <SelectContent><SelectItem value="all">{language === "es" ? "Categorías" : "Categories"}</SelectItem>
+              {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+            </SelectContent>
+          </Select>}
+        </CatalogFilterBar>
 
         {filteredOpportunities.length === 0 ? (
           <Card className="p-12 text-center rounded-2xl border-dashed">
-            <Gem className="h-16 w-16 text-muted-foreground/30 mb-4 mx-auto" />
+            <Gem className="size-10 text-muted-foreground/30 mb-3 mx-auto" />
             <p className="text-muted-foreground mb-2">
               {language === "es"
                 ? "No hay oportunidades con este filtro por ahora."
@@ -258,6 +173,7 @@ const Opportunities = () => {
                 ? "Prueba otro filtro o vuelve cuando se incorpore un nuevo reporte."
                 : "Try another filter or return when a new report is added."}
             </p>
+            <Button variant="outline" className="mt-4" onClick={() => { setBadgeFilter("all"); setCategoryFilter("all"); navigate("/products"); }}>{language === "es" ? "Explorar productos" : "Explore products"}</Button>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
@@ -438,17 +354,7 @@ const OpportunityCard = ({
       {/* Header: imagen + nombre + categoría */}
       <div className="flex gap-3 p-3 md:p-4 pb-0 md:pb-0">
         <div className="relative w-20 h-20 md:w-24 md:h-24 flex-shrink-0">
-          {product.imagen_url ? (
-            <img
-              src={product.imagen_url}
-              alt={product.producto_nombre}
-              className="w-full h-full object-cover rounded-lg border border-border/50"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted/30 rounded-lg">
-              <Gem className="h-8 w-8 text-muted-foreground/30" />
-            </div>
-          )}
+          <CatalogProductImage src={product.imagen_url} name={product.producto_nombre} className="rounded-lg border border-border/50" />
           {/* Rank */}
           <Badge
             variant="secondary"

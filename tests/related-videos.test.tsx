@@ -46,7 +46,7 @@ describe("related videos", () => {
     fireEvent.click(screen.getByRole("button", { name: "Página 2", exact: true }));
     await waitFor(() => expect(state.queries.some(q => q.page?.[0] === 20 && q.page?.[1] === 39)).toBe(true));
     await screen.findByText("45 videos disponibles");
-    fireEvent.click(screen.getByRole("button", { name: "Más vistas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Vistas" }));
     await waitFor(() => expect(state.queries.some(q => q.page?.[0] === 0 && q.orders[0]?.[0] === "views")).toBe(true));
     const page = state.queries.find(q => q.page);
     expect(page.filters).toContainEqual(["not", "video_mp4_url", "is", null]);
@@ -56,7 +56,7 @@ describe("related videos", () => {
   it("explains missing files while enforcing exact product/manual links", async () => {
     state.playable = 0; state.identified = 16;
     mount("/products/product-1/videos");
-    expect(await screen.findByText(/Hay 16 videos identificados/)).toBeInTheDocument();
+    expect(await screen.findByText(/Estamos preparando los videos de esta referencia/)).toBeInTheDocument();
     for (const q of state.queries.filter(q => q.table === "videos")) {
       expect(q.filters).toContainEqual(["eq", "product_id", "product-1"]);
       expect(q.filters).toContainEqual(["eq", "country", "mx"]);

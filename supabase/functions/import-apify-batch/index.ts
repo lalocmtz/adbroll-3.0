@@ -2,6 +2,8 @@ import { AIError, ownedVideoUrl } from '../_shared/ai-contracts.ts';
 import { authenticatedAI, failure, headers, reply } from '../_shared/gemini.ts';
 import { apifyId, boundedMP4, verifiedDownload } from '../_shared/download-contracts.ts';
 
+import { storeCatalogPoster } from '../_shared/catalog-posters.ts';
+
 // Import a completed owner-run batch. This endpoint never starts billable runs.
 // Fetch metadata once per 12 records, but hold at most three MP4 transfers at once.
 // A completed group is the resume boundary; unprocessed records stay on the next page.
@@ -59,7 +61,8 @@ Deno.serve(async req => {
         const path = `catalog/${id}.mp4`;
         const uploaded = await db.storage.from('videos').upload(path, bytes, { contentType: 'video/mp4', cacheControl: '31536000', upsert: true });
         if (uploaded.error) throw new AIError('Falló el almacenamiento; reintenta esta página.', 503);
-        const saved = await db.from('videos').update({ video_mp4_url: `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/videos/${path}` }).eq('id', existing.data.id);
+        const posterUrl=await storeCatalogPoster(db,item,id,Deno.env.get('SUPABASE_URL')!);
+        const saved = await db.from('videos').update({ ...(posterUrl?{thumbnail_url:posterUrl}:{}), video_mp4_url: `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/videos/${path}` }).eq('id', existing.data.id);
         if (saved.error) throw new AIError('No se pudo publicar el archivo; reintenta esta página.', 503);
         return { id, status: 'imported', bytes: bytes.byteLength };
       } catch (error) {

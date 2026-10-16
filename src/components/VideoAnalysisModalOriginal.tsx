@@ -1,19 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, DollarSign, ShoppingCart, Percent, Eye, FlaskConical, X, Sparkles, TrendingUp, Save, Play, Volume2, Maximize2, ChevronDown, ChevronUp, Lock, Package } from 'lucide-react';
+import { Heart, ExternalLink, Copy, Check, Loader2, FileText, Brain, Wand2, X, Save, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useNavigate } from 'react-router-dom';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
-import { useStartCheckout } from '@/lib/checkout';
+import { CatalogVideoPlayer } from '@/components/CatalogVideoPlayer';
 import { ScriptTranslation } from '@/components/ScriptTranslation';
 interface GeneratedVariant {
   hook: string;
@@ -95,14 +92,10 @@ const VideoAnalysisModalOriginal = ({
   video
 }: VideoAnalysisModalOriginalProps) => {
   const [activeTab, setActiveTab] = useState('script');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [processingError, setProcessingError] = useState<{ source: 'load' | 'process'; message: string } | null>(null);
+  const [processingError, setProcessingError] = useState<{ source: 'load'; message: string } | null>(null);
   const requestVersion = useRef(0);
   const scriptRequest = useRef(0);
-  const processingRef = useRef(false);
-  const pollingAbort = useRef<AbortController | null>(null);
   const [transcript, setTranscript] = useState(video.transcript || '');
   const [analysis, setAnalysis] = useState<any>(video.analysis_json || null);
   const [variants, setVariants] = useState<any>(video.variants_json || null);
@@ -111,8 +104,6 @@ const VideoAnalysisModalOriginal = ({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isSavingVariant, setIsSavingVariant] = useState(false);
-  const [showVideoExpanded, setShowVideoExpanded] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const {
     toast
   } = useToast();
@@ -121,13 +112,13 @@ const VideoAnalysisModalOriginal = ({
     hasPaid,
     openPaywall
   } = useBlurGateContext();
-  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
 
   // Variant generator controls
   const [variantCount, setVariantCount] = useState<number>(2);
   const [changeLevel, setChangeLevel] = useState<'light' | 'medium' | 'aggressive'>('medium');
   const [generatedVariants, setGeneratedVariants] = useState<GeneratedVariant[]>([]);
-  const [generatorOpen, setGeneratorOpen] = useState(true);
+  const [variantError, setVariantError] = useState<string | null>(null);
+  const variantBusy = useRef(false);
 
   // Calculate earnings - unified formula matching VideoCardOriginal.
   // GLOSARIO: revenue_mxn es GMV ("Ventas reportadas"). La ganancia del creador
@@ -136,8 +127,6 @@ const VideoAnalysisModalOriginal = ({
   const hasCommission = video.product?.commission != null && video.product.commission > 0;
   const commissionRate = video.product?.commission || 0;
   const totalCreatorEarnings = hasCommission ? (video.revenue_mxn || 0) * (commissionRate / 100) : 0;
-  const productPrice = video.product?.price || 0;
-  const earningPerSale = hasCommission ? productPrice * (commissionRate / 100) : 0;
 
   // Handle locked tabs for visitors
   const handleTabChange = (value: string) => {
@@ -209,8 +198,10 @@ const VideoAnalysisModalOriginal = ({
   // Invalidate pending work when access, video or modal visibility changes.
   useEffect(() => {
     requestVersion.current++;
-    processingRef.current = false;
-    setIsProcessing(false);
+    variantBusy.current = false;
+    setIsGeneratingVariants(false);
+    setVariantError(null);
+    setActiveTab('script');
     setProcessingError(null);
     setTranscript('');
     setAnalysis(null);
@@ -220,95 +211,11 @@ const VideoAnalysisModalOriginal = ({
     if (isOpen) loadScript();
     return () => {
       requestVersion.current++;
-      pollingAbort.current?.abort();
+
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, video.id, hasPaid]);
 
-  const processVideo = async () => {
-    if (processingRef.current || isLoadingScript) return;
-    if (!hasPaid) { openPaywall('analizar-video'); return; }
-    const version = requestVersion.current;
-    const isCurrent = () => version === requestVersion.current;
-    const controller = new AbortController();
-    pollingAbort.current?.abort();
-    pollingAbort.current = controller;
-    processingRef.current = true;
-    setIsProcessing(true);
-    setProcessingError(null);
-    try {
-      let analysisVideoId = video.id;
-      if (!video.video_mp4_url) {
-        setStatusMessage('Preparando el video para transcribir...');
-        let ready = false;
-        for (let attempt = 0; attempt < 30; attempt++) {
-          if (!isCurrent()) return;
-          const { data, error } = await supabase.functions.invoke('catalog-download', {
-            body: { videoUrl: video.video_url },
-          });
-          if (!isCurrent()) return;
-          if (error) {
-            const detail = await error.context?.json?.().catch(() => null);
-            throw new Error(detail?.error || 'No se pudo preparar el video. Inténtalo más tarde.');
-          }
-          if (data?.status === 'ready' && typeof data.videoId === 'string' && data.videoId) {
-            analysisVideoId = data.videoId;
-            ready = true;
-            break;
-          }
-          if (data?.status !== 'pending') throw new Error(data?.error || 'No se pudo descargar este video.');
-          if (attempt < 29) await new Promise<void>((resolve, reject) => {
-            const cancel = () => { clearTimeout(timer); reject(new Error('Cancelado')); };
-            const timer = setTimeout(() => {
-              controller.signal.removeEventListener('abort', cancel);
-              resolve();
-            }, Math.min(15, Math.max(3, Number(data.retryAfterSeconds) || 8)) * 1000);
-            controller.signal.addEventListener('abort', cancel, { once: true });
-          });
-        }
-        if (!ready) throw new Error('La descarga sigue en proceso. Vuelve a intentarlo en unos minutos; se usará la misma descarga.');
-      }
-      if (!isCurrent()) return;
-      setStatusMessage('Transcribiendo el audio y analizando las escenas...');
-      const { data: analyzeData, error: analyzeError } = await supabase.functions.invoke('transcribe-and-analyze', {
-        body: { videoId: analysisVideoId },
-      });
-      if (!isCurrent()) return;
-      if (analyzeError) {
-        const detail = await analyzeError.context?.json?.().catch(() => null);
-        throw new Error(detail?.error || analyzeError.message);
-      }
-      if (!analyzeData?.success || !analyzeData.analysis || typeof analyzeData.transcript !== 'string') {
-        throw new Error(analyzeData?.error || 'No se obtuvo una transcripción completa. Inténtalo de nuevo.');
-      }
-      if (!analyzeData.transcript.trim()) {
-        throw new Error('No se detectó voz para transcribir. Si el video no tiene diálogo audible, no habrá un guion hablado que extraer. Prueba otro video con voz.');
-      }
-      setTranscript(analyzeData.transcript);
-      setAnalysis(analyzeData.analysis);
-      setVariants(analyzeData.variants || null);
-      setStatusMessage('¡Análisis completado!');
-    } catch (error: any) {
-      if (!isCurrent()) return;
-      const message = error?.message || 'No se pudo transcribir este video. Vuelve a intentarlo.';
-      setProcessingError({ source: 'process', message });
-      toast({ title: 'No se pudo transcribir', description: message, variant: 'destructive' });
-    } finally {
-      if (isCurrent()) {
-        processingRef.current = false;
-        setIsProcessing(false);
-      }
-    }
-  };
-  const errorNotice = processingError && !isProcessing && (
-    <div role="alert" className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">
-      <p>{processingError.message}</p>
-      <Button variant="outline" size="sm" className="mt-2" disabled={isLoadingScript}
-        onClick={processingError.source === 'load' ? loadScript : processVideo}>
-        Reintentar {processingError.source === 'load' ? 'carga' : 'transcripción'}
-      </Button>
-    </div>
-  );
   const handleToggleFavorite = async () => {
     const {
       data: {
@@ -356,7 +263,10 @@ const VideoAnalysisModalOriginal = ({
     }
   };
   const handleCopy = async (text: string, field: string) => {
-    await navigator.clipboard.writeText(text);
+    try { await navigator.clipboard.writeText(text); } catch {
+      toast({ title: 'No se pudo copiar', description: 'Selecciona el guion y cópialo manualmente.', variant: 'destructive' });
+      return;
+    }
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
     toast({
@@ -371,73 +281,39 @@ const VideoAnalysisModalOriginal = ({
     text: string;
     field: string;
     variant?: 'ghost' | 'outline';
-  }) => <Button size="sm" variant={variant} className="h-8 gap-1.5 text-xs" onClick={() => handleCopy(text, field)}>
+  }) => <Button size="sm" variant={variant} aria-label="Copiar guion" className="h-10 gap-1.5 text-xs" onClick={() => handleCopy(text, field)}>
       {copiedField === field ? <>
           <Check className="h-3.5 w-3.5 text-success" />
-          <span className="hidden sm:inline">Copiado</span>
+          <span className="inline">Copiado</span>
         </> : <>
           <Copy className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Copiar</span>
+          <span className="inline">Copiar</span>
         </>}
     </Button>;
 
-  // Build complete script variants
-  const buildCompleteVariant = (hookIndex: number) => {
-    if (!variants?.hooks || !variants.hooks[hookIndex]) return null;
-    const hook = variants.hooks[hookIndex];
-    const body = variants.body_variant || analysis?.body || '';
-    const cta = analysis?.cta || '';
-    return `${hook}\n\n${body}\n\n${cta}`;
-  };
-
-  // Generate variants using AI edge function
+  // Creating variants is explicit; opening a catalog video only reads saved data.
   const generateVariants = async () => {
-    console.log('Generating variants with:', {
-      variantCount,
-      changeLevel
-    });
+    if (!hasPaid) { openPaywall('Variantes de guion'); return; }
+    if (!transcript.trim() || variantBusy.current) return;
+    const version = requestVersion.current;
+    variantBusy.current = true;
     setIsGeneratingVariants(true);
-    setGeneratedVariants([]);
+    setVariantError(null);
     try {
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('generate-script-variants', {
-        body: {
-          transcript,
-          analysis,
-          product: video.product,
-          variantCount,
-          changeLevel
-        }
+      const { data, error } = await supabase.functions.invoke('generate-script-variants', {
+        body: { transcript, analysis, product: video.product, variantCount, changeLevel },
       });
-      if (error) throw error;
-      if (data?.error) {
-        throw new Error(data.error);
+      if (version !== requestVersion.current) return;
+      if (error) {
+        const detail = await error.context?.json?.().catch(() => null);
+        throw new Error(detail?.error || 'No se pudieron generar las variantes. Inténtalo de nuevo.');
       }
-      if (data?.variants && data.variants.length > 0) {
-        setGeneratedVariants(data.variants);
-        setGeneratorOpen(false); // Auto-collapse generator after generating
-        toast({
-          title: '✅ Variantes generadas',
-          description: `${data.variants.length} variante(s) lista(s) para usar`
-        });
-      } else {
-        toast({
-          title: '⚠️ Sin resultados',
-          description: 'No se pudieron generar variantes. Intenta de nuevo.',
-          variant: 'destructive'
-        });
-      }
+      if (!Array.isArray(data?.variants) || !data.variants.length) throw new Error(data?.error || 'No se recibieron variantes. Inténtalo de nuevo.');
+      setGeneratedVariants(data.variants);
     } catch (error: any) {
-      console.error('Error generating variants:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Error al generar variantes',
-        variant: 'destructive'
-      });
+      if (version === requestVersion.current) setVariantError(error.message || 'No se pudieron generar las variantes.');
     } finally {
-      setIsGeneratingVariants(false);
+      if (version === requestVersion.current) { variantBusy.current = false; setIsGeneratingVariants(false); }
     }
   };
 
@@ -502,936 +378,69 @@ const VideoAnalysisModalOriginal = ({
       setIsSavingVariant(false);
     }
   };
-  return <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* Full-screen on mobile, max-w-6xl on desktop */}
-      <DialogContent className="w-full h-full md:max-w-6xl md:max-h-[92vh] md:h-auto overflow-hidden p-0 gap-0 animate-scale-in [&>button]:hidden rounded-none md:rounded-xl">
-        <DialogTitle className="sr-only">Guion y análisis: {video.title || 'video de TikTok'}</DialogTitle>
-        <DialogDescription className="sr-only">Consulta la transcripción original, el análisis del video y variantes para adaptar a tu producto.</DialogDescription>
-        <div className="flex flex-col h-full md:h-auto md:max-h-[92vh]">
-          
-          {/* Mobile Header - Fixed at top */}
-          <div className="flex items-center gap-3 p-3 border-b border-border bg-background sticky top-0 z-30 md:hidden">
-            <button onClick={onClose} className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-              <X className="h-4 w-4" />
-            </button>
-            
-            {/* Small video thumbnail - clickable to expand */}
-            {video.thumbnail_url && <button onClick={() => setShowVideoExpanded(true)} className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted relative group">
-                <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Play className="h-4 w-4 text-white" fill="white" />
-                </div>
-              </button>}
-            
-            <div className="flex-1 min-w-0">
-              <h2 className="text-sm font-semibold line-clamp-1 text-foreground">
-                {video.title || 'Análisis de Video'}
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                @{video.creator_handle || video.creator_name || 'creator'}
-              </p>
+  const cachedVariants: GeneratedVariant[] = Array.isArray(variants?.hooks)
+    ? variants.hooks.filter((hook: unknown): hook is string => typeof hook === 'string').map((hook: string) => ({ hook, body: variants.body_variant || analysis?.body || '', cta: analysis?.cta || '' }))
+    : [];
+  const shownVariants = generatedVariants.length ? generatedVariants : cachedVariants;
+  const loadingNotice = <p role="status" className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />Cargando guion…</p>;
+  const preparedNotice = <div className="rounded-xl bg-muted/40 p-4 text-sm"><h3 className="font-medium">Guion en preparación</h3><p className="mt-1 text-pretty text-muted-foreground">Estamos preparando esta referencia. Mientras tanto, puedes ver el video original o explorar otro guion del catálogo.</p><Button variant="outline" size="sm" className="mt-3" onClick={onClose}>Explorar otros videos</Button></div>;
+  return <Dialog open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
+    <DialogContent className="flex h-dvh max-h-dvh w-full max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 md:h-[90dvh] md:max-w-5xl md:rounded-2xl [&>button]:hidden">
+      <header className="flex shrink-0 items-center gap-3 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="min-w-0 flex-1"><DialogTitle className="line-clamp-1 text-balance text-sm font-semibold md:text-base">{video.title || 'Guion del video'}</DialogTitle><DialogDescription className="mt-1 truncate text-xs">@{video.creator_handle || video.creator_name || 'creador'} · TikTok Shop México</DialogDescription></div>
+        <Button variant="ghost" size="icon" className="size-11 shrink-0" aria-label={isFavorite ? 'Quitar de favoritos' : 'Guardar en favoritos'} onClick={handleToggleFavorite}><Heart className={isFavorite ? 'size-4 fill-current text-primary' : 'size-4'} /></Button>
+        <Button variant="ghost" size="icon" className="size-11 shrink-0" aria-label="Cerrar video" onClick={onClose}><X className="size-5" /></Button>
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-[minmax(0,320px)_minmax(0,1fr)] md:overflow-hidden">
+        <aside className="min-w-0 space-y-3 border-b p-3 md:overflow-y-auto md:border-b-0 md:border-r md:p-4">
+          {video.video_mp4_url ? <CatalogVideoPlayer key={video.id} src={video.video_mp4_url} poster={video.thumbnail_url} title={`Reproducir video de ${video.creator_handle || video.creator_name || 'creador'}`} active={isOpen} /> : <p className="rounded-xl bg-muted p-4 text-sm">Video en preparación.</p>}
+          <a className="inline-flex min-h-10 items-center gap-1.5 text-xs text-muted-foreground underline" href={video.video_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="size-3.5" />Abrir original en TikTok</a>
+          <dl className="grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-3 text-xs">
+            {[["Ventas reportadas", formatCurrency(video.revenue_mxn)], ["Unidades", formatNumber(video.sales)], ["Vistas", formatNumber(video.views)]].map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold tabular-nums">{value}</dd></div>)}
+          </dl>
+          {hasCommission && <p className="text-xs text-muted-foreground">Comisión estimada: <span className="font-medium tabular-nums">{formatCurrency(totalCreatorEarnings)}</span> · {commissionRate}% del producto</p>}
+          {(video.product || video.product_name) && <button className="flex min-h-12 w-full items-center gap-2 rounded-xl border p-2 text-left" onClick={() => video.product_id ? navigate(`/videos/product/${video.product_id}`) : navigate('/products')}>
+            {video.product?.imagen_url && <img src={video.product.imagen_url} alt="" className="size-10 shrink-0 rounded-lg object-cover" />}<span className="min-w-0 text-xs"><span className="block text-muted-foreground">Ver producto relacionado</span><span className="line-clamp-2 font-medium">{video.product?.producto_nombre || video.product_name}</span></span><ExternalLink className="ml-auto size-4 shrink-0" />
+          </button>}
+        </aside>
+        <main className="min-w-0 md:flex md:min-h-0 md:flex-col">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="flex min-h-0 flex-1 flex-col">
+            <div className="sticky top-0 z-10 border-b bg-background px-3 py-2 md:static md:px-4"><TabsList className="grid h-11 w-full grid-cols-3">
+              <TabsTrigger value="script" className="gap-1.5"><FileText className="size-4" />Guion</TabsTrigger>
+              <TabsTrigger value="analysis" className="gap-1.5">{!hasPaid ? <Lock className="size-3" /> : <Brain className="size-4" />}Análisis</TabsTrigger>
+              <TabsTrigger value="variants" className="gap-1.5">{!hasPaid ? <Lock className="size-3" /> : <Wand2 className="size-4" />}Variantes</TabsTrigger>
+            </TabsList></div>
+            <div className="min-h-0 flex-1 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:overflow-y-auto md:p-4">
+              {processingError && <div role="alert" className="mb-3 rounded-xl border border-destructive/30 p-3 text-sm"><p>{processingError.message}</p><Button variant="outline" size="sm" className="mt-2" disabled={isLoadingScript} onClick={loadScript}>Reintentar carga</Button></div>}
+              <TabsContent value="script" className="m-0 space-y-3">
+                {isLoadingScript ? loadingNotice : scriptLocked ? <div className="rounded-xl border p-4 text-sm"><h3 className="font-medium">Desbloquea este guion con Pro</h3><p className="mt-1 text-muted-foreground">Consulta el guion completo y adáptalo a tu producto.</p><Button className="mt-3" onClick={() => openPaywall('Guion del video')}>Ver acceso Pro</Button></div> : transcript ? <>
+                  <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">Guion original</h3><CopyButton text={transcript} field="transcript" variant="outline" /></div>
+                  <p className="whitespace-pre-wrap break-words rounded-xl bg-muted/30 p-4 text-sm leading-relaxed">{transcript}</p>
+                  {hasPaid && <ScriptTranslation text={transcript} />}
+                </> : !processingError && preparedNotice}
+              </TabsContent>
+              <TabsContent value="analysis" className="m-0 space-y-3">
+                {isLoadingScript ? loadingNotice : analysis ? <>
+                  {[["hook", "Primeros segundos"], ["body", "Cómo presenta el producto"], ["cta", "Invitación a actuar"]].map(([field, label]) => analysis[field] ? <section key={field} className="rounded-xl border p-4"><h3 className="text-sm font-semibold">{label}</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{analysis[field]}</p></section> : null)}
+                  <VisualObservations analysis={analysis} />
+                </> : <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">El análisis de esta referencia está en preparación. Puedes consultar el guion disponible.</p>}
+              </TabsContent>
+              <TabsContent value="variants" className="m-0 space-y-4">
+                {!hasPaid ? <Button onClick={() => openPaywall('Variantes de guion')}>Ver acceso Pro</Button> : !transcript ? preparedNotice : <>
+                  <div className="rounded-xl border p-4 space-y-3"><div><h3 className="text-sm font-semibold">Adapta este guion a tu estilo</h3><p className="mt-1 text-xs text-muted-foreground">Genera variantes cuando quieras probar otra forma de contar la idea.</p></div>
+                    <div className="flex flex-wrap items-center gap-3"><Label htmlFor="variant-count">Cantidad</Label><select id="variant-count" value={variantCount} onChange={event => setVariantCount(Number(event.target.value))} className="h-10 rounded-lg border bg-background px-3 text-sm">{[1, 2, 3].map(value => <option key={value} value={value}>{value}</option>)}</select></div>
+                    <RadioGroup value={changeLevel} onValueChange={value => setChangeLevel(value as typeof changeLevel)} className="flex flex-wrap gap-3" aria-label="Nivel de cambio">{[['light', 'Suave'], ['medium', 'Medio'], ['aggressive', 'Amplio']].map(([value, label]) => <label key={value} className="flex min-h-10 items-center gap-2 text-sm"><RadioGroupItem value={value} />{label}</label>)}</RadioGroup>
+                    <Button className="h-11 w-full" onClick={generateVariants} disabled={isGeneratingVariants}>{isGeneratingVariants ? <><Loader2 className="mr-2 size-4 animate-spin" />Preparando variantes…</> : 'Generar variantes'}</Button>
+                    {variantError && <p role="alert" className="text-sm text-destructive">{variantError}</p>}
+                  </div>
+                  {shownVariants.map((variant, index) => <Card key={index} className="space-y-3 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-semibold">Variante {index + 1}</h4><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => copyVariant(variant, index)}><Copy className="mr-1 size-3.5" />Copiar</Button><Button size="sm" variant="ghost" onClick={() => saveVariantToFavorites(variant, index)} disabled={isSavingVariant}><Save className="mr-1 size-3.5" />Guardar</Button></div></div>{[["Inicio", variant.hook], ["Cuerpo", variant.body], ["Cierre", variant.cta]].map(([label, value]) => <div key={label}><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{value}</p></div>)}{variant.strategy_note && <p className="border-t pt-2 text-xs text-muted-foreground">{variant.strategy_note}</p>}</Card>)}
+                </>}
+              </TabsContent>
             </div>
-            
-            <Button size="icon" variant="ghost" onClick={handleToggleFavorite} className={`h-8 w-8 rounded-full flex-shrink-0 ${isFavorite ? "text-destructive" : ""}`}>
-              <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-            </Button>
-          </div>
-
-          {/* Mobile Value Section - Unified scroll for everything */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            className="md:hidden flex-1 overflow-y-auto"
-          >
-            {/* Results Card */}
-            <div className="p-3 border-b border-border bg-gradient-to-b from-muted/50 to-transparent">
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
-                📊 Resultados del video
-              </div>
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-                className="grid grid-cols-4 gap-2"
-              >
-                <div className="bg-[#ECFDF5] rounded-lg p-2 text-center">
-                  <div className="text-[10px] text-muted-foreground">Ventas reportadas</div>
-                  <div className="text-sm font-bold text-foreground">{formatCurrency(video.revenue_mxn)}</div>
-                </div>
-                <div className="bg-muted rounded-lg p-2 text-center">
-                  <div className="text-[10px] text-muted-foreground">Ventas</div>
-                  <div className="text-sm font-bold text-foreground">{formatNumber(video.sales)}</div>
-                </div>
-                <div className="bg-muted rounded-lg p-2 text-center">
-                  <div className="text-[10px] text-muted-foreground">Vistas</div>
-                  <div className="text-sm font-bold text-foreground">{formatNumber(video.views)}</div>
-                </div>
-                <div className="bg-[#FEF3C7] rounded-lg p-2 text-center">
-                  <div className="text-[10px] text-muted-foreground">$/venta</div>
-                  <div className="text-sm font-bold text-foreground">
-                    {hasCommission ? formatCurrency(earningPerSale) : "—"}
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-            
-            {/* Product Card - Always visible on mobile */}
-            {video.product && <div className="p-3 border-b border-border">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
-                  🏷️ Producto promocionado
-                </div>
-                <div className="flex items-center gap-3 bg-muted/30 rounded-xl p-2.5">
-                  {video.product.imagen_url ? <img src={video.product.imagen_url} alt={video.product.producto_nombre || ''} className="w-14 h-14 rounded-lg object-cover bg-muted flex-shrink-0" /> : <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                      <Package className="h-6 w-6 text-muted-foreground/40" />
-                    </div>}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground line-clamp-1">
-                      {video.product.producto_nombre || video.product_name}
-                    </p>
-                    {hasCommission && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          Comisión: {commissionRate}%
-                        </span>
-                        <span className="text-xs font-semibold text-green-600">
-                          {formatCurrency(earningPerSale)}/venta
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {video.product.producto_url && <Button size="sm" variant="outline" className="h-8 text-xs flex-shrink-0" onClick={() => window.open(video.product?.producto_url || '', '_blank')}>
-                      <ExternalLink className="h-3 w-3" />
-                    </Button>}
-                </div>
-              </div>}
-            
-            {/* Emotional Headline Section - Script Ready - Only show if revenue data exists */}
-            {video.revenue_mxn > 0 && (
-              <div className="p-3 border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
-                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2 flex items-center gap-1.5">
-                  <Sparkles className="h-3 w-3" />
-                  Referencia para tu próximo video
-                </div>
-                
-                {/* Sales highlight (GMV) - all bold black */}
-                <p className="text-sm font-bold text-foreground leading-snug">
-                  Ventas reportadas de este video: {formatCurrency(video.revenue_mxn)}.
-                </p>
-
-                {/* Creator earnings - solo con comisión real del producto */}
-                {hasCommission && (
-                  <p className="text-sm text-foreground mt-1">
-                    Comisión estimada ≈{' '}
-                    <span className="text-lg font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
-                    {' '}<span className="text-xs text-muted-foreground">(comisión {commissionRate}%)</span>
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* SIGUIENTE PASO - Video centered + Instructions below */}
-            <div className="p-3 border-b border-border bg-gradient-to-b from-amber-50 to-transparent dark:from-amber-900/10">
-              {/* Red "Next Step" badge */}
-              <div className="text-[10px] uppercase tracking-wider text-red-500 font-bold mb-3 flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                Siguiente paso
-              </div>
-              
-              {/* Video player - Centered and larger */}
-              {(video.video_mp4_url || video.thumbnail_url) && (
-                <div className="w-full max-w-[160px] mx-auto rounded-xl overflow-hidden bg-black aspect-[9/16] mb-3">
-                  {video.video_mp4_url ? (
-                    <video 
-                      src={video.video_mp4_url}
-                      controls
-                      playsInline
-                      className="w-full h-full object-contain"
-                      poster={video.thumbnail_url || undefined}
-                    />
-                  ) : (
-                    <button 
-                      onClick={() => setShowVideoExpanded(true)}
-                      className="w-full h-full relative group"
-                    >
-                      <img src={video.thumbnail_url || ''} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <Play className="h-6 w-6 text-white" fill="white" />
-                      </div>
-                    </button>
-                  )}
-                </div>
-              )}
-              
-              {/* Instructions text - Below video, centered */}
-              <div className="text-center">
-                <p className="text-sm text-foreground leading-snug">
-                  Observa cómo presenta el producto y <span className="font-semibold">dale tu propia voz</span>.
-                </p>
-                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                  Adapta lo que dice a tu producto y a tu forma de hablar. Revisa los datos antes de grabar.
-                </p>
-              </div>
-            </div>
-
-            {/* Tabs - Now inside unified scroll */}
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col">
-              <div className="sticky top-0 z-20 bg-background px-3 pt-2 pb-1 border-b border-border">
-                <TabsList className="grid grid-cols-3 w-full h-10 p-1 bg-muted/50 rounded-xl">
-                  <TabsTrigger value="script" className="gap-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-[10px] px-1">
-                    <FileText className="h-3.5 w-3.5" />
-                    Guion
-                  </TabsTrigger>
-                  <TabsTrigger value="analysis" className="gap-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-[10px] px-1">
-                    {!hasPaid && <Lock className="h-2.5 w-2.5" />}
-                    <Brain className="h-3.5 w-3.5" />
-                    Análisis
-                  </TabsTrigger>
-                  <TabsTrigger value="variants" className="gap-1 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-[10px] px-1">
-                    {!hasPaid && <Lock className="h-2.5 w-2.5" />}
-                    <Wand2 className="h-3.5 w-3.5" />
-                    Variantes
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <div className="p-3 pb-40 flex-1">
-                {errorNotice}
-                {isProcessing ? (
-                  <div className="flex flex-col items-center justify-center gap-4 py-12">
-                    <div className="relative">
-                      <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      </div>
-                    </div>
-                    <p className="text-muted-foreground text-sm">{statusMessage}</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Script Tab */}
-                    <TabsContent value="script" className="mt-0 animate-fade-in min-h-0">
-                      <div className="card-premium p-4 flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <div className="h-7 w-7 rounded-lg bg-muted flex items-center justify-center">
-                              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                            </div>
-                            <h3 className="font-semibold text-foreground text-sm">Transcripción Original</h3>
-                          </div>
-                          {transcript && !scriptLocked && <CopyButton text={transcript} field="transcript" variant="outline" />}
-                        </div>
-                        {scriptLocked ? (
-                          <div className="text-center py-8 flex flex-col items-center justify-center">
-                            <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
-                              <Lock className="h-5 w-5 text-muted-foreground/70" />
-                            </div>
-                            <p className="text-muted-foreground text-sm mb-4">
-                              Desbloquea el guion completo de este video
-                            </p>
-                            <Button onClick={() => openPaywall('Guion del video')} className="rounded-xl" size="sm">
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Desbloquear guion
-                            </Button>
-                          </div>
-                        ) : transcript ? (
-                          <>
-                            <div className="bg-muted/30 rounded-xl p-3 border border-border/50 min-h-0 flex-shrink-0">
-                              <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed font-mono break-words">
-                                {transcript}
-                              </p>
-                            </div>
-                            {hasPaid && <ScriptTranslation text={transcript} />}
-                            {!hasPaid && !variants && (
-                              <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3 text-center">
-                                <p className="text-xs text-muted-foreground mb-2">
-                                  Con Pro, explora otras formas de contar esta idea y adáptala a tu producto.
-                                </p>
-                                <Button onClick={() => openPaywall('Variantes IA')} size="sm" className="rounded-xl">
-                                  <Wand2 className="h-3.5 w-3.5 mr-2" />
-                                  Desbloquear variantes IA
-                                </Button>
-                              </div>
-                            )}
-                          </>
-                        ) : isLoadingScript ? (
-                          <div className="text-center py-8 flex flex-col items-center justify-center">
-                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mb-2" />
-                            <p className="text-muted-foreground text-sm">Cargando guion...</p>
-                          </div>
-                        ) : (
-                          <div className="text-center py-8 flex flex-col items-center justify-center">
-                            <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
-                              <FileText className="h-5 w-5 text-muted-foreground/50" />
-                            </div>
-                            <p className="text-muted-foreground text-sm mb-3">
-                              No hay transcripción disponible
-                            </p>
-                            {hasPaid && (
-                              <Button onClick={processVideo} disabled={isProcessing || isLoadingScript || processingError?.source === 'load'} className="rounded-xl" size="sm">
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Generar transcripción
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </TabsContent>
-
-                    {/* Analysis Tab */}
-                    <TabsContent value="analysis" className="mt-0 animate-fade-in">
-                      {!hasPaid ? (
-                        <div className="card-premium p-6 text-center">
-                          <Lock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                          <p className="text-sm text-muted-foreground mb-4">Desbloquea el análisis completo</p>
-                          <Button onClick={() => navigate('/unlock')} className="rounded-xl" size="sm">
-                            Desbloquear
-                          </Button>
-                        </div>
-                      ) : analysis ? (
-                        <div className="space-y-3">
-                          <VisualObservations analysis={analysis} />
-                          {analysis.hook && (
-                            <div className="card-premium p-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className="h-6 w-6 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                                  <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-                                </div>
-                                <h4 className="font-semibold text-sm">Primeros segundos</h4>
-                              </div>
-                              <p className="text-sm text-foreground/80">{analysis.hook}</p>
-                            </div>
-                          )}
-                          {analysis.body && (
-                            <div className="card-premium p-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className="h-6 w-6 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                  <FileText className="h-3.5 w-3.5 text-blue-600" />
-                                </div>
-                                <h4 className="font-semibold text-sm">Cuerpo</h4>
-                              </div>
-                              <p className="text-sm text-foreground/80">{analysis.body}</p>
-                            </div>
-                          )}
-                          {analysis.cta && (
-                            <div className="card-premium p-4">
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className="h-6 w-6 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                  <TrendingUp className="h-3.5 w-3.5 text-green-600" />
-                                </div>
-                                <h4 className="font-semibold text-sm">Invitación a actuar</h4>
-                              </div>
-                              <p className="text-sm text-foreground/80">{analysis.cta}</p>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <Brain className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
-                          <p className="text-muted-foreground text-sm mb-3">Sin análisis disponible</p>
-                          <Button onClick={processVideo} disabled={isProcessing || isLoadingScript || processingError?.source === 'load'} className="rounded-xl" size="sm">
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Generar análisis
-                          </Button>
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    {/* Variants Tab - Mobile (matches desktop functionality) */}
-                    <TabsContent value="variants" className="mt-0 animate-fade-in">
-                      {!hasPaid ? (
-                        <div className="card-premium p-6 text-center">
-                          <Lock className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                          <p className="text-sm text-muted-foreground mb-4">Desbloquea las variantes IA</p>
-                          <Button onClick={() => navigate('/unlock')} className="rounded-xl" size="sm">
-                            Desbloquear
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {/* Collapsible Generator Panel - Mobile optimized */}
-                          <Collapsible open={generatorOpen} onOpenChange={setGeneratorOpen}>
-                            <div className="card-premium bg-gradient-to-br from-primary/[0.02] via-background to-accent/[0.02]">
-                              <CollapsibleTrigger asChild>
-                                <button className="w-full p-3 flex items-center justify-between hover:bg-primary/5 transition-colors rounded-xl">
-                                  <div className="flex items-center gap-2">
-                                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
-                                      <FlaskConical className="h-4 w-4 text-white" />
-                                    </div>
-                                    <div className="text-left">
-                                      <h3 className="font-semibold text-xs text-foreground">Generador de Variantes IA</h3>
-                                      <p className="text-[10px] text-muted-foreground">
-                                        {generatedVariants.length > 0 ? `${generatedVariants.length} variante(s) generada(s)` : 'Prepara otras versiones del guion'}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  {generatorOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                                </button>
-                              </CollapsibleTrigger>
-                              <CollapsibleContent>
-                                <div className="px-3 pb-3 space-y-3">
-                                  {/* Quantity Selector */}
-                                  <div>
-                                    <Label className="text-[10px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wider">
-                                      Cantidad
-                                    </Label>
-                                    <div className="flex gap-2">
-                                      {[1, 2, 3].map(num => (
-                                        <Button 
-                                          key={num} 
-                                          size="sm" 
-                                          variant={variantCount === num ? 'default' : 'outline'} 
-                                          className={`flex-1 h-8 rounded-lg text-xs transition-all ${variantCount === num ? 'shadow-sm' : ''}`} 
-                                          onClick={() => setVariantCount(num)}
-                                        >
-                                          {num}
-                                        </Button>
-                                      ))}
-                                    </div>
-                                  </div>
-
-                                  {/* Change Level */}
-                                  <div>
-                                    <Label className="text-[10px] font-medium text-muted-foreground mb-1.5 block uppercase tracking-wider">
-                                      Nivel de cambio
-                                    </Label>
-                                    <RadioGroup value={changeLevel} onValueChange={v => setChangeLevel(v as 'light' | 'medium' | 'aggressive')} className="flex gap-2">
-                                      {[
-                                        { value: 'light', label: 'Suave' }, 
-                                        { value: 'medium', label: 'Medio' }, 
-                                        { value: 'aggressive', label: 'Fuerte' }
-                                      ].map(level => (
-                                        <div key={level.value} className="flex-1">
-                                          <RadioGroupItem value={level.value} id={`mobile-${level.value}`} className="peer sr-only" />
-                                          <Label 
-                                            htmlFor={`mobile-${level.value}`} 
-                                            className={`flex items-center justify-center h-8 px-2 rounded-lg text-xs font-medium cursor-pointer border transition-all ${
-                                              changeLevel === level.value 
-                                                ? 'bg-primary text-primary-foreground border-primary' 
-                                                : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
-                                            }`}
-                                          >
-                                            {level.label}
-                                          </Label>
-                                        </div>
-                                      ))}
-                                    </RadioGroup>
-                                  </div>
-
-                                  {/* Generate Button */}
-                                  <Button 
-                                    className="w-full h-9 rounded-lg gap-2 text-sm" 
-                                    onClick={generateVariants} 
-                                    disabled={isGeneratingVariants || !transcript}
-                                  >
-                                    {isGeneratingVariants ? (
-                                      <>
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        Generando...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Wand2 className="h-4 w-4" />
-                                        Generar Variantes
-                                      </>
-                                    )}
-                                  </Button>
-                                </div>
-                              </CollapsibleContent>
-                            </div>
-                          </Collapsible>
-
-                          {/* Generated Variants List */}
-                          <div className="space-y-3">
-                            {generatedVariants.map((variant, index) => (
-                              <Card key={index} className="p-3 border border-border/50">
-                                <div className="flex items-center justify-between mb-2">
-                                  <h4 className="font-semibold text-xs text-primary">Variante {index + 1}</h4>
-                                  <div className="flex gap-1">
-                                    <Button size="sm" variant="ghost" className="h-7 text-[10px] px-2" onClick={() => copyVariant(variant, index)}>
-                                      <Copy className="h-3 w-3 mr-1" />
-                                      Copiar
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-7 text-[10px] px-2" onClick={() => saveVariantToFavorites(variant, index)} disabled={isSavingVariant}>
-                                      <Save className="h-3 w-3 mr-1" />
-                                      Guardar
-                                    </Button>
-                                  </div>
-                                </div>
-                                
-                                <div className="space-y-2 text-xs">
-                                  <div>
-                                    <span className="font-medium text-primary">🎣 Primeros segundos:</span>
-                                    <p className="text-foreground/80 mt-0.5">{variant.hook}</p>
-                                  </div>
-                                  <div>
-                                    <span className="font-medium text-accent">📝 Cuerpo:</span>
-                                    <p className="text-foreground/80 mt-0.5">{variant.body}</p>
-                                  </div>
-                                  <div>
-                                    <span className="font-medium text-success">🎯 Invitación a actuar:</span>
-                                    <p className="text-foreground/80 mt-0.5">{variant.cta}</p>
-                                  </div>
-                                  {variant.strategy_note && (
-                                    <div className="pt-2 border-t border-border/50">
-                                      <span className="text-[10px] text-muted-foreground">💡 {variant.strategy_note}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </Card>
-                            ))}
-                            
-                            {generatedVariants.length === 0 && !isGeneratingVariants && (
-                              <div className="text-center py-4 text-muted-foreground text-xs">
-                                <Wand2 className="h-6 w-6 mx-auto mb-2 opacity-30" />
-                                <p>Usa el generador para crear variantes</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-
-                  </>
-                )}
-              </div>
-            </Tabs>
-          </motion.div>
-
-          {/* Desktop Layout: Side by side */}
-          <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-            
-            {/* Left: Video Player - Hidden on mobile */}
-            <div className="hidden md:flex w-[380px] bg-muted/20 flex-shrink-0 flex-col border-r border-border p-4 gap-3">
-              {/* Two Cards Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Video Metrics Card */}
-                <div className="card-premium p-3 space-y-2">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                      <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                    </div>
-                    <h4 className="text-xs font-semibold text-foreground">Métricas</h4>
-                  </div>
-                  
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Ventas</span>
-                      <span className="text-xs font-bold tabular-nums">{formatNumber(video.sales)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Vistas</span>
-                      <span className="text-xs font-bold tabular-nums">{formatNumber(video.views)}</span>
-                    </div>
-                    {hasCommission && (
-                      <div className="flex items-center justify-between pt-1 border-t border-border/50">
-                        <span className="text-xs text-muted-foreground">Comisión estimada ≈</span>
-                        <span className="text-xs font-bold text-success tabular-nums">
-                          {formatCurrency(totalCreatorEarnings)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Product Data Card */}
-                <div className="card-premium p-3 space-y-2 bg-gradient-to-br from-primary/[0.02] to-transparent">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <div className="h-6 w-6 rounded-md bg-primary/10 flex items-center justify-center">
-                      <ShoppingCart className="h-3.5 w-3.5 text-primary" />
-                    </div>
-                    <h4 className="text-xs font-semibold text-foreground">Producto</h4>
-                  </div>
-                  
-                  {video.product ? <div className="space-y-1.5">
-                      {hasCommission && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Comisión</span>
-                          <span className="text-xs font-bold tabular-nums">{video.product.commission}%</span>
-                        </div>
-                      )}
-                      {hasCommission && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">$/venta</span>
-                          <span className="text-xs font-bold text-success tabular-nums">
-                            {formatCurrency(earningPerSale)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between pt-1 border-t border-border/50">
-                        <span className="text-xs text-muted-foreground">Ventas de 30 días</span>
-                        <span className="text-xs font-bold tabular-nums">{formatCurrency(video.product.revenue_30d)}</span>
-                      </div>
-                    </div> : <p className="text-xs text-muted-foreground italic text-center py-2">Sin producto</p>}
-                </div>
-              </div>
-
-              {/* Video Card - Centered and Smaller */}
-              <div className="flex-1 flex flex-col items-center justify-center min-h-0">
-                <div className="card-premium overflow-hidden w-full max-w-[280px]">
-                  <div className="relative aspect-[9/16] bg-black rounded-xl overflow-hidden">
-                    {video.video_mp4_url ? <video ref={videoRef} src={video.video_mp4_url} className="w-full h-full object-contain" controls autoPlay loop playsInline poster={video.thumbnail_url || undefined} /> : <div className="w-full h-full flex flex-col items-center justify-center bg-muted gap-2">
-                        <Play className="h-8 w-8 text-muted-foreground/40" />
-                        <p className="text-muted-foreground text-xs">Video no disponible</p>
-                      </div>}
-                  </div>
-                </div>
-              </div>
-
-              {/* TikTok Shop Button - Bottom */}
-              {video.product?.producto_url && <Button variant="default" size="sm" className="w-full gap-2 h-9 rounded-xl font-medium shadow-sm hover:shadow-md transition-all" onClick={() => window.open(video.product?.producto_url || '', '_blank')}>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  Ver en TikTok Shop
-                </Button>}
-
-              {/* Emotional Section - Desktop */}
-              <div className="card-premium p-3 bg-gradient-to-b from-primary/5 to-transparent">
-                <div className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-2 flex items-center gap-1.5">
-                  <Sparkles className="h-3 w-3" />
-                  Referencia para tu próximo video
-                </div>
-                <p className="text-sm font-bold text-foreground leading-snug">
-                  Ventas reportadas de este video: {formatCurrency(video.revenue_mxn)}.
-                </p>
-                {hasCommission && (
-                  <p className="text-sm text-foreground mt-1">
-                    Comisión estimada ≈{' '}
-                    <span className="text-base font-bold text-green-600">{formatCurrency(totalCreatorEarnings)}</span>
-                    {' '}<span className="text-xs text-muted-foreground">(comisión {commissionRate}%)</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Next Step Section - Desktop */}
-              <div className="card-premium p-3 bg-gradient-to-b from-amber-50/50 to-transparent dark:from-amber-900/10">
-                <div className="text-[10px] uppercase tracking-wider text-red-500 font-bold mb-2 flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                  Siguiente paso
-                </div>
-                <p className="text-sm text-foreground leading-snug">
-                  Observa cómo presenta el producto y <span className="font-semibold">dale tu propia voz</span>.
-                </p>
-                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                  Adapta lo que dice a tu producto y a tu forma de hablar. Revisa los datos antes de grabar.
-                </p>
-              </div>
-            </div>
-
-            {/* Right: Analysis Content - Hidden on mobile to avoid duplication */}
-            <div className="hidden md:flex flex-1 flex-col overflow-hidden bg-background">
-              {/* Desktop Header - Hidden on mobile */}
-              <div className="hidden md:flex p-5 border-b border-border items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-semibold line-clamp-2 text-foreground leading-snug pr-2">
-                    {video.title || 'Análisis de Video'}
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    @{video.creator_handle || video.creator_name || 'creator'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button size="icon" variant="outline" onClick={handleToggleFavorite} className={`rounded-xl h-9 w-9 transition-all ${isFavorite ? "bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive hover:text-white" : "hover:border-destructive/30 hover:text-destructive"}`}>
-                    <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={onClose} className="rounded-xl h-9 w-9 hover:bg-muted">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Tabs Content */}
-              <div className="flex-1 overflow-hidden">
-                <Tabs value={activeTab} onValueChange={handleTabChange} className="h-full flex flex-col">
-                  <div className="px-3 md:px-5 pt-3 md:pt-4">
-                    <TabsList className="grid grid-cols-3 w-full h-10 md:h-11 p-1 bg-muted/50 rounded-xl">
-                      <TabsTrigger value="script" className="gap-1.5 md:gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs md:text-sm">
-                        <FileText className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                        Guion
-                      </TabsTrigger>
-                      <TabsTrigger value="analysis" className="gap-1.5 md:gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs md:text-sm">
-                        {!hasPaid && <Lock className="h-3 w-3" />}
-                        <Brain className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                        Análisis
-                      </TabsTrigger>
-                      <TabsTrigger value="variants" className="gap-1.5 md:gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs md:text-sm">
-                        {!hasPaid && <Lock className="h-3 w-3" />}
-                        <Wand2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                        Variantes
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-3 md:p-5 pt-3 md:pt-4">
-                  {errorNotice}
-                  {isProcessing ? <div className="flex flex-col items-center justify-center h-full gap-4 py-12">
-                      <div className="relative">
-                        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
-                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        </div>
-                      </div>
-                      <p className="text-muted-foreground text-sm">{statusMessage}</p>
-                    </div> : <>
-                      {/* Script Tab */}
-                      <TabsContent value="script" className="mt-0 animate-fade-in h-full">
-                        <div className="card-premium p-4 md:p-5 h-full flex flex-col">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-lg bg-muted flex items-center justify-center">
-                                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                              </div>
-                              <h3 className="font-semibold text-foreground text-sm">Transcripción Original</h3>
-                            </div>
-                            {transcript && !scriptLocked && <CopyButton text={transcript} field="transcript" variant="outline" />}
-                          </div>
-                          {scriptLocked ? <div className="text-center py-8 flex-1 flex flex-col items-center justify-center">
-                              <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
-                                <Lock className="h-5 w-5 text-muted-foreground/70" />
-                              </div>
-                              <p className="text-muted-foreground text-sm mb-4">
-                                Desbloquea el guion completo de este video
-                              </p>
-                              <Button onClick={() => openPaywall('Guion del video')} className="rounded-xl" size="sm">
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Desbloquear guion
-                              </Button>
-                            </div> : transcript ? <div className="flex-1 overflow-y-auto flex flex-col gap-3">
-                              <div className="bg-muted/30 rounded-xl p-3 md:p-4 border border-border/50">
-                                <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed font-mono">
-                                  {transcript}
-                                </p>
-                              </div>
-                              {hasPaid && <ScriptTranslation text={transcript} />}
-                              {!hasPaid && !variants && <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center">
-                                  <p className="text-sm text-muted-foreground mb-2">
-                                    Con Pro, explora otras formas de contar esta idea y adáptala a tu producto.
-                                  </p>
-                                  <Button onClick={() => openPaywall('Variantes IA')} size="sm" className="rounded-xl">
-                                    <Wand2 className="h-4 w-4 mr-2" />
-                                    Desbloquear variantes IA
-                                  </Button>
-                                </div>}
-                            </div> : isLoadingScript ? <div className="text-center py-8 flex-1 flex flex-col items-center justify-center">
-                              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mb-2" />
-                              <p className="text-muted-foreground text-sm">Cargando guion...</p>
-                            </div> : <div className="text-center py-8 flex-1 flex flex-col items-center justify-center">
-                              <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
-                                <FileText className="h-5 w-5 text-muted-foreground/50" />
-                              </div>
-                              <p className="text-muted-foreground text-sm mb-3">
-                                No hay transcripción disponible
-                              </p>
-                              {hasPaid && <Button onClick={processVideo} disabled={isProcessing || isLoadingScript || processingError?.source === 'load'} className="rounded-xl" size="sm">
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Generar transcripción
-                              </Button>}
-                            </div>}
-                        </div>
-                      </TabsContent>
-
-                      {/* Analysis Tab */}
-                      <TabsContent value="analysis" className="mt-0 space-y-3 animate-fade-in">
-                        {analysis ? <>
-                            <VisualObservations analysis={analysis} />
-                            {/* Hook */}
-                            {analysis.hook && <div className="card-premium p-4 border-l-4 border-l-primary bg-gradient-to-r from-primary/[0.03] to-transparent">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                                      <span className="text-sm">🎣</span>
-                                    </div>
-                                    <h3 className="font-semibold text-primary text-sm">Primeros segundos</h3>
-                                  </div>
-                                  <CopyButton text={analysis.hook} field="hook" variant="outline" />
-                                </div>
-                                <p className="text-sm text-foreground/80 leading-relaxed pl-9">{analysis.hook}</p>
-                              </div>}
-
-                            {/* Body */}
-                            {analysis.body && <div className="card-premium p-4 border-l-4 border-l-accent bg-gradient-to-r from-accent/[0.03] to-transparent">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className="h-7 w-7 rounded-lg bg-accent/10 flex items-center justify-center">
-                                      <span className="text-sm">📝</span>
-                                    </div>
-                                    <h3 className="font-semibold text-accent text-sm">Cuerpo</h3>
-                                  </div>
-                                  <CopyButton text={analysis.body} field="body" variant="outline" />
-                                </div>
-                                <p className="text-sm text-foreground/80 leading-relaxed pl-9">{analysis.body}</p>
-                              </div>}
-
-                            {/* CTA */}
-                            {analysis.cta && <div className="card-premium p-4 border-l-4 border-l-success bg-gradient-to-r from-success/[0.03] to-transparent">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className="h-7 w-7 rounded-lg bg-success/10 flex items-center justify-center">
-                                      <span className="text-sm">🎯</span>
-                                    </div>
-                                    <h3 className="font-semibold text-success text-sm">Cierre e invitación a actuar</h3>
-                                  </div>
-                                  <CopyButton text={analysis.cta} field="cta" variant="outline" />
-                                </div>
-                                <p className="text-sm text-foreground/80 leading-relaxed pl-9">{analysis.cta}</p>
-                              </div>}
-                          </> : <div className="text-center py-8">
-                            <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-3">
-                              <Brain className="h-5 w-5 text-muted-foreground/50" />
-                            </div>
-                            <p className="text-muted-foreground text-sm mb-3">
-                              No hay análisis disponible
-                            </p>
-                            <Button onClick={processVideo} disabled={isProcessing || isLoadingScript || processingError?.source === 'load'} className="rounded-xl" size="sm">
-                              <Sparkles className="h-4 w-4 mr-2" />
-                              Generar análisis
-                            </Button>
-                          </div>}
-                      </TabsContent>
-
-                      {/* Variants Tab */}
-                      <TabsContent value="variants" className="mt-0 h-full flex flex-col animate-fade-in">
-                        {/* Collapsible Control Panel */}
-                        <Collapsible open={generatorOpen} onOpenChange={setGeneratorOpen} className="mb-3">
-                          <div className="card-premium bg-gradient-to-br from-primary/[0.02] via-background to-accent/[0.02]">
-                            <CollapsibleTrigger asChild>
-                              <button className="w-full p-4 flex items-center justify-between hover:bg-primary/5 transition-colors rounded-xl">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
-                                    <FlaskConical className="h-4 w-4 text-white" />
-                                  </div>
-                                  <div className="text-left">
-                                    <h3 className="font-semibold text-sm text-foreground">Generador de Variantes IA</h3>
-                                    <p className="text-xs text-muted-foreground">
-                                      {generatedVariants.length > 0 ? `${generatedVariants.length} variante(s) generada(s)` : 'Prepara otras versiones del guion'}
-                                    </p>
-                                  </div>
-                                </div>
-                                {generatorOpen ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
-                              </button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <div className="px-4 pb-4">
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                  {/* Quantity Selector */}
-                                  <div>
-                                    <Label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wider">
-                                      Cantidad
-                                    </Label>
-                                    <div className="flex gap-2">
-                                      {[1, 2, 3].map(num => <Button key={num} size="sm" variant={variantCount === num ? 'default' : 'outline'} className={`flex-1 h-9 rounded-xl transition-all ${variantCount === num ? 'shadow-sm' : ''}`} onClick={() => setVariantCount(num)}>
-                                          {num}
-                                        </Button>)}
-                                    </div>
-                                  </div>
-
-                                  {/* Change Level */}
-                                  <div>
-                                    <Label className="text-xs font-medium text-muted-foreground mb-2 block uppercase tracking-wider">
-                                      Nivel de cambio
-                                    </Label>
-                                    <RadioGroup value={changeLevel} onValueChange={v => setChangeLevel(v as any)} className="flex gap-2">
-                                      {[{
-                                      value: 'light',
-                                      label: 'Suave'
-                                    }, {
-                                      value: 'medium',
-                                      label: 'Medio'
-                                    }, {
-                                      value: 'aggressive',
-                                      label: 'Fuerte'
-                                    }].map(level => <div key={level.value} className="flex-1">
-                                          <RadioGroupItem value={level.value} id={level.value} className="peer sr-only" />
-                                          <Label htmlFor={level.value} className={`flex items-center justify-center h-9 px-2 rounded-xl text-xs font-medium cursor-pointer border transition-all ${changeLevel === level.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'}`}>
-                                            {level.label}
-                                          </Label>
-                                        </div>)}
-                                    </RadioGroup>
-                                  </div>
-                                </div>
-
-                                {/* Generate Button */}
-                                <Button className="w-full mt-4 h-10 rounded-xl gap-2" onClick={generateVariants} disabled={isGeneratingVariants || !transcript}>
-                                  {isGeneratingVariants ? <>
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                      Generando...
-                                    </> : <>
-                                      <Wand2 className="h-4 w-4" />
-                                      Generar Variantes
-                                    </>}
-                                </Button>
-                              </div>
-                            </CollapsibleContent>
-                          </div>
-                        </Collapsible>
-
-                        {/* Generated Variants */}
-                        <div className="flex-1 overflow-y-auto space-y-3">
-                          {generatedVariants.map((variant, index) => <Card key={index} className="p-4 border border-border/50">
-                              <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-semibold text-sm">Variante {index + 1}</h4>
-                                <div className="flex gap-1.5">
-                                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => copyVariant(variant, index)}>
-                                    <Copy className="h-3 w-3" />
-                                    Copiar
-                                  </Button>
-                                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => saveVariantToFavorites(variant, index)} disabled={isSavingVariant}>
-                                    <Save className="h-3 w-3" />
-                                    Guardar
-                                  </Button>
-                                </div>
-                              </div>
-                              
-                              <div className="space-y-2.5 text-sm">
-                                <div>
-                                  <span className="font-medium text-primary text-xs">🎣 Primeros segundos:</span>
-                                  <p className="text-foreground/80 mt-0.5">{variant.hook}</p>
-                                </div>
-                                <div>
-                                  <span className="font-medium text-accent text-xs">📝 Cuerpo:</span>
-                                  <p className="text-foreground/80 mt-0.5">{variant.body}</p>
-                                </div>
-                                <div>
-                                  <span className="font-medium text-success text-xs">🎯 Invitación a actuar:</span>
-                                  <p className="text-foreground/80 mt-0.5">{variant.cta}</p>
-                                </div>
-                                {variant.strategy_note && <div className="pt-2 border-t border-border/50">
-                                    <span className="text-xs text-muted-foreground">💡 {variant.strategy_note}</span>
-                                  </div>}
-                              </div>
-                            </Card>)}
-                          
-                          {generatedVariants.length === 0 && !isGeneratingVariants && <div className="text-center py-6 text-muted-foreground text-sm">
-                              <Wand2 className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                              <p>Usa el generador para crear variantes</p>
-                            </div>}
-                        </div>
-                      </TabsContent>
-
-                    </>}
-                  </div>
-                </Tabs>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Mobile Fixed CTA for non-paid users - Always visible */}
-        {!hasPaid && (
-          <div className="md:hidden fixed bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-lg border-t border-border safe-area-bottom z-50">
-            <Button className="w-full h-11 text-sm font-semibold rounded-xl shadow-lg" onClick={startCheckout} disabled={checkoutLoading}>
-              <Sparkles className="h-4 w-4 mr-2" />
-              Desbloquear acceso completo
-            </Button>
-          </div>
-        )}
-
-        {/* Expanded Video Modal */}
-        {showVideoExpanded && video.video_mp4_url && <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center md:hidden" onClick={() => setShowVideoExpanded(false)}>
-            <button className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/20 flex items-center justify-center" onClick={() => setShowVideoExpanded(false)}>
-              <X className="h-5 w-5 text-white" />
-            </button>
-            <video src={video.video_mp4_url} className="max-h-[80vh] max-w-full rounded-xl" controls autoPlay playsInline />
-          </div>}
-      </DialogContent>
-    </Dialog>;
+          </Tabs>
+        </main>
+      </div>
+    </DialogContent>
+  </Dialog>;
 };
 export default VideoAnalysisModalOriginal;

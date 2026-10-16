@@ -1,3 +1,4 @@
+import { CatalogInfo, CatalogFilterBar } from "@/components/CatalogToolbar";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,7 +93,7 @@ interface CreatorInfo {
 const SORT_OPTIONS = [
   { value: "revenue", label: "Más ventas en pesos" },
   { value: "sales", label: "Más unidades vendidas" },
-  { value: "views", label: "Más vistas" },
+  { value: "views", label: "Vistas" },
 ];
 
 const ITEMS_PER_PAGE = 20;
@@ -364,29 +365,29 @@ const RelatedVideos = () => {
   }
 
   return (
-    <div className="min-w-0 w-full pt-3 pb-6 px-4 md:px-6 md:pt-5">
+    <div className="min-w-0 w-full pt-2 pb-6 px-3 md:px-6">
       {/* Back button */}
-      <Button variant="ghost" size="sm" className="mb-2 h-11 text-xs" onClick={() => navigate(-1)}>
+      <Button variant="ghost" size="sm" className="mb-1 h-11 text-xs" onClick={() => navigate(-1)}>
         <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
         Volver
       </Button>
 
       {/* Breadcrumbs */}
-      <div className="mb-3 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="hidden md:flex mb-2 min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
         <Link to="/app" className="hover:text-foreground transition-colors">Videos</Link>
         <ChevronRight className="h-3 w-3 shrink-0" />
         <Link to={isProductView ? "/products" : "/creadores"} className="hover:text-foreground transition-colors">
           {isProductView ? "Productos" : "Creadores"}
         </Link>
         <ChevronRight className="h-3 w-3 shrink-0" />
-        <span className="text-foreground truncate max-w-[150px]">
+        <span className="min-w-0 text-foreground truncate">
           {productInfo?.producto_nombre || creatorInfo?.nombre_completo || creatorInfo?.usuario_creador}
         </span>
       </div>
 
       {/* Product Header */}
       {isProductView && productInfo && (
-        <Card className="min-w-0 p-3 sm:p-4 mb-4 bg-card border-border">
+        <Card className="min-w-0 p-3 sm:p-4 mb-2 bg-card border-border">
           <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 sm:gap-4 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
             {productInfo.imagen_url ? (
               <img src={productInfo.imagen_url} alt={productInfo.producto_nombre} className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-lg object-cover" />
@@ -403,7 +404,7 @@ const RelatedVideos = () => {
                   </Badge>
                 )}
               </div>
-              <h1 className="text-base sm:text-lg font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug">{productInfo.producto_nombre}</h1>
+              <h1 className="text-base sm:text-lg font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug line-clamp-2 text-balance">{productInfo.producto_nombre}</h1>
               <p className="text-xs sm:text-sm text-muted-foreground flex items-start gap-1">
                 <DollarSign className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 {productInfo.total_ingresos_mxn === null ? 'Todavía no hay cifras del producto en el reporte' : `Ventas del reporte: ${formatCurrency(productInfo.total_ingresos_mxn)}`}
@@ -449,7 +450,7 @@ const RelatedVideos = () => {
 
       {/* Creator Header */}
       {isCreatorView && creatorInfo && (
-        <Card className="min-w-0 p-3 sm:p-4 mb-4 bg-card border-border">
+        <Card className="min-w-0 p-3 sm:p-4 mb-2 bg-card border-border">
           <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 sm:gap-4 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
             <Avatar className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 border-2 border-primary/20">
               <AvatarImage 
@@ -460,7 +461,7 @@ const RelatedVideos = () => {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <h1 className="text-base sm:text-lg font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug">
+              <h1 className="text-base sm:text-lg font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug line-clamp-2 text-balance">
                 {creatorInfo.nombre_completo || creatorInfo.usuario_creador}
               </h1>
               <p className="text-xs sm:text-sm text-muted-foreground break-all">@{(creatorInfo.creator_handle || creatorInfo.usuario_creador).trim().replace(/^@/, "")}</p>
@@ -479,32 +480,23 @@ const RelatedVideos = () => {
         </Card>
       )}
 
-      {/* Subtitle and Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-        <p className="text-[11px] text-muted-foreground mb-2">
-          Videos descargados y vinculados · métricas del reporte importado, no en tiempo real
-        </p>
-        <Badge variant="secondary" className="w-fit text-xs">
-          {totalVideos} {totalVideos === 1 ? "video disponible" : "videos disponibles"}
-        </Badge>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <FilterPills
-          options={SORT_OPTIONS}
-          value={sortOrder}
-          onChange={(v) => { setSortOrder(v); setCurrentPage(1); }}
-        />
-      </div>
+      <CatalogFilterBar label="Ordenar videos relacionados">
+        <FilterPills compact options={SORT_OPTIONS} value={sortOrder} onChange={(v) => { setSortOrder(v); setCurrentPage(1); }} />
+        <span className="text-xs tabular-nums text-muted-foreground whitespace-nowrap">{totalVideos} {totalVideos === 1 ? "video disponible" : "videos disponibles"}</span>
+        <CatalogInfo>
+          <p className="font-semibold break-words">{productInfo?.producto_nombre || creatorInfo?.nombre_completo || creatorInfo?.usuario_creador}</p>
+          <p>Videos descargados y vinculados a {isProductView ? "este producto exacto" : "esta cuenta"}. Las métricas corresponden al reporte importado, no son en tiempo real.</p>
+        </CatalogInfo>
+      </CatalogFilterBar>
 
       {/* Linked Videos Grid */}
       {videos.length === 0 ? (
         <Card className="min-w-0 px-4 py-8 sm:p-12 text-center">
-          <p className="text-muted-foreground text-lg">Todavía no hay videos disponibles para {isProductView ? "este producto" : "este creador"}</p>
-          <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
+          <p className="text-muted-foreground text-base text-balance">Todavía no hay videos disponibles para {isProductView ? "este producto" : "este creador"}</p>
+          <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto text-pretty">
             {identifiedVideos > 0
-              ? `Hay ${identifiedVideos} ${identifiedVideos === 1 ? "video identificado" : "videos identificados"} en los reportes. Falta descargar y verificar sus archivos para mostrarlos aquí.`
-              : `Necesitamos importar enlaces de videos ${isProductView ? "con el ID exacto de este producto" : "de esta cuenta"} y descargar sus archivos. El ranking por sí solo no incluye esos videos.`}
+              ? "Estamos preparando los videos de esta referencia. Mientras tanto, puedes explorar otras opciones del catálogo."
+              : `Prueba con otro ${isProductView ? "producto" : "creador"} para encontrar una referencia disponible.`}
           </p>
           <Button variant="outline" className="mt-4" onClick={() => navigate(isProductView ? "/products" : "/creadores")}>
             Volver a {isProductView ? "Productos" : "Creadores"}
@@ -513,7 +505,7 @@ const RelatedVideos = () => {
       ) : (
         <>
           {/* Linked videos */}
-          <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          <div className="grid min-w-0 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {videos.map((video, index) => (
               <div key={video.id} className="relative min-w-0 group">
                 <VideoCardOriginal video={video} ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} />
@@ -544,7 +536,7 @@ const RelatedVideos = () => {
       {/* Candidate Videos Section (Founders only, Product view only) */}
       {isProductView && isFounder && (candidates.length > 0 || candidatesLoading) && (
         <div className="mt-8">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 mb-4">
             <Link2 className="h-5 w-5 text-primary" />
             <h2 className="text-base font-semibold">Videos posiblemente relacionados (sin vincular)</h2>
             {candidatesLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}

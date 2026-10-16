@@ -27,7 +27,7 @@ beforeEach(() => {
 describe("registration onboarding", () => {
   it("distinguishes the free account from paid Pro before choosing email or Google", () => {
     openRegister();
-    expect(screen.getByText(/Tu cuenta y la vista previa son gratis, sin tarjeta/)).toBeVisible();
+    expect(screen.getByText(/Vista previa gratis, sin tarjeta/)).toBeVisible();
     expect(screen.queryByLabelText("Contraseña")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Continuar con correo" }));
     expect(screen.getByLabelText("Contraseña")).toBeVisible();

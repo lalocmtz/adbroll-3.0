@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import VideoAnalysisModalOriginal from "@/components/VideoAnalysisModalOriginal";
 import { useNavigate } from "react-router-dom";
-import { DataSubtitle } from "@/components/FilterPills";
+import { CatalogHeader } from "@/components/CatalogToolbar";
 import { openTikTokLink } from "@/lib/tiktokDeepLink";
 
 interface FavoriteVideo {
@@ -227,32 +227,25 @@ const Favorites = () => {
   const totalFavorites = videos.length + products.length + creators.length + scripts.length;
 
   return (
-    <div className="pt-5 pb-6 px-4 md:px-6">
-      <h1 className="text-lg font-bold mb-2">{t("favorites")}</h1>
-      {/* Minimal header */}
-      <div className="flex items-center gap-2 mb-3">
-        <Heart className="h-4 w-4 text-red-500 fill-current" />
-        <span className="text-xs text-muted-foreground">
-          {totalFavorites === 0 ? t("noFavorites") : `${totalFavorites} ${t("savedItems")}`}
-        </span>
-      </div>
+    <div className="min-w-0 w-full pt-2 pb-6 px-3 md:px-6">
+      <CatalogHeader title={t("favorites")} count={totalFavorites} />
 
       <Tabs defaultValue="videos" className="w-full">
         <TabsList className="grid w-full grid-cols-4 mb-4 h-auto">
-          <TabsTrigger value="videos" className="flex flex-col sm:flex-row min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1">
-            <Video className="h-3.5 w-3.5" />
+          <TabsTrigger value="videos" className="flex min-w-0 min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 tabular-nums">
+            <Video className="hidden sm:block size-3.5 shrink-0" />
             <span>{t("videos")}</span> ({videos.length})
           </TabsTrigger>
-          <TabsTrigger value="productos" className="flex flex-col sm:flex-row min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1">
-            <Package className="h-3.5 w-3.5" />
+          <TabsTrigger value="productos" className="flex min-w-0 min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 tabular-nums">
+            <Package className="hidden sm:block size-3.5 shrink-0" />
             <span>{t("products")}</span> ({products.length})
           </TabsTrigger>
-          <TabsTrigger value="guiones" className="flex flex-col sm:flex-row min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1">
-            <FileText className="h-3.5 w-3.5" />
+          <TabsTrigger value="guiones" className="flex min-w-0 min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 tabular-nums">
+            <FileText className="hidden sm:block size-3.5 shrink-0" />
             <span>Guiones</span> ({scripts.length})
           </TabsTrigger>
-          <TabsTrigger value="creadores" className="flex flex-col sm:flex-row min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1">
-            <Users className="h-3.5 w-3.5" />
+          <TabsTrigger value="creadores" className="flex min-w-0 min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 tabular-nums">
+            <Users className="hidden sm:block size-3.5 shrink-0" />
             <span>{t("creators")}</span> ({creators.length})
           </TabsTrigger>
         </TabsList>
@@ -260,15 +253,17 @@ const Favorites = () => {
         {/* VIDEOS TAB */}
         <TabsContent value="videos" className="mt-4">
           {videos.length === 0 ? (
-            <Card className="p-12 text-center">
+            <Card className="px-4 py-8 text-center">
               <Video className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">{t("noSavedVideos")}</p>
+              <p className="text-muted-foreground text-pretty">{t("noSavedVideos")}</p>
+              <Button variant="outline" className="mt-4" onClick={() => navigate("/app")}>Explorar videos</Button>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid min-w-0 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4 [&>*]:min-w-0">
               {videos.map((fav, index) => {
                 const video = fav.video_data;
-                const commissionEstimated = (video.revenue_mxn || video.ingresos_mxn || 0) * 0.06;
+                const commissionRate = video.product?.commission ?? video.commission;
+                const commissionEstimated = typeof commissionRate === "number" && commissionRate >= 0 && commissionRate <= 100 ? (video.revenue_mxn ?? video.ingresos_mxn ?? 0) * commissionRate / 100 : null;
                 
                 return (
                   <Card key={fav.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
@@ -317,7 +312,7 @@ const Favorites = () => {
                         <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight min-h-[2rem]">
                           {video.title || video.descripcion_video || "Video TikTok Shop"}
                         </h3>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                           @{video.creator_handle || video.creador || "creator"}
                         </p>
                       </div>
@@ -347,7 +342,7 @@ const Favorites = () => {
                             <span className="text-[9px] text-muted-foreground">Comisión estimada</span>
                           </div>
                           <p className="text-xs font-bold text-amber-600">
-                            {formatCurrency(commissionEstimated)}
+                            {commissionEstimated === null ? "Sin dato" : formatCurrency(commissionEstimated)}
                           </p>
                         </div>
                         <div className="p-1.5 rounded-md bg-muted">
@@ -379,18 +374,19 @@ const Favorites = () => {
         {/* PRODUCTS TAB */}
         <TabsContent value="productos" className="mt-4">
           {products.length === 0 ? (
-            <Card className="p-12 text-center">
+            <Card className="px-4 py-8 text-center">
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">{t("noSavedProducts")}</p>
+              <p className="text-muted-foreground text-pretty">{t("noSavedProducts")}</p>
+              <Button variant="outline" className="mt-4" onClick={() => navigate("/products")}>Explorar productos</Button>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid min-w-0 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4 [&>*]:min-w-0">
               {products.map((fav, index) => {
                 const product = fav.product_data;
                 const revenue = product.revenue_30d || product.total_ingresos_mxn;
                 const sales = product.sales_7d || product.total_ventas;
                 const price = product.price || product.precio_mxn;
-                const commission = product.commission || 6;
+                const commission = product.commission;
                 
                 return (
                   <Card key={fav.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
@@ -486,7 +482,7 @@ const Favorites = () => {
                             <span className="text-[9px] text-muted-foreground">Comisión</span>
                           </div>
                           <p className="text-xs font-bold text-amber-600">
-                            {commission}%
+                            {commission == null ? "Sin dato" : `${commission}%`}
                           </p>
                         </div>
                       </div>
@@ -509,12 +505,13 @@ const Favorites = () => {
         {/* SCRIPTS TAB */}
         <TabsContent value="guiones" className="mt-4">
           {scripts.length === 0 ? (
-            <Card className="p-12 text-center">
+            <Card className="px-4 py-8 text-center">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground">No tienes guiones guardados</p>
               <p className="text-xs text-muted-foreground/70 mt-2">
-                Abre el análisis de un video y guarda el guion con el corazón para retomarlo aquí.
+                Abre el análisis de un video y guarda el guion para retomarlo aquí.
               </p>
+              <Button variant="outline" className="mt-4" onClick={() => navigate("/app")}>Explorar videos</Button>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -534,7 +531,7 @@ const Favorites = () => {
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                               {script.variant_type || "Guion"}
                             </Badge>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                               #{index + 1}
                             </p>
                           </div>
@@ -570,7 +567,7 @@ const Favorites = () => {
                       )}
 
                       <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
-                        <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed">
                           {previewText}
                         </p>
                       </div>
@@ -604,12 +601,13 @@ const Favorites = () => {
         {/* CREATORS TAB */}
         <TabsContent value="creadores" className="mt-4">
           {creators.length === 0 ? (
-            <Card className="p-12 text-center">
+            <Card className="px-4 py-8 text-center">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">{t("noSavedCreators")}</p>
+              <p className="text-muted-foreground text-pretty">{t("noSavedCreators")}</p>
+              <Button variant="outline" className="mt-4" onClick={() => navigate("/creadores")}>Explorar creadores</Button>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid min-w-0 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4 [&>*]:min-w-0">
               {creators.map((creator, index) => (
                 <Card key={creator.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
                   <CardContent className="p-3">

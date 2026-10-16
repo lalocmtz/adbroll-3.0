@@ -1,6 +1,7 @@
 import { AIError, ownedVideoUrl } from '../_shared/ai-contracts.ts';
 import { authenticatedAI, failure, headers, reply } from '../_shared/gemini.ts';
 import { apifyId, boundedMP4, canonicalTikTok, verifiedDownload } from '../_shared/download-contracts.ts';
+import { storeCatalogPoster } from '../_shared/catalog-posters.ts';
 const pending = () => reply({ status: 'pending', retryAfterSeconds: 8 }, 202);
 async function provider(path: string, key: string, init: RequestInit = {}) {
   const response = await fetch(`https://api.apify.com/v2/${path}`, {
@@ -78,7 +79,8 @@ Deno.serve(async req => {
       // Recheck after download: a concurrent catalogue import may have added this ID.
       const current = await db.from('videos').select('id').eq('tiktok_video_id',source.id).limit(1).maybeSingle();
       if (current.error) throw new AIError('No se pudo actualizar el catálogo.',503);
-      const mediaFields = {video_mp4_url:mediaUrl};
+      const posterUrl=await storeCatalogPoster(db,item,source.id,Deno.env.get('SUPABASE_URL')!);
+      const mediaFields = {video_mp4_url:mediaUrl,...(posterUrl?{thumbnail_url:posterUrl}:{})};
       let saved;
       if (current.data) saved = await db.from('videos').update(mediaFields).eq('id',current.data.id).select('id').single();
       else {

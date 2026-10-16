@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { CatalogHeader, CatalogInfo, CatalogFilterBar } from "@/components/CatalogToolbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -8,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
-import { FilterPills, DataSubtitle } from "@/components/FilterPills";
+import { FilterPills } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lock, Sparkles } from "lucide-react";
@@ -51,19 +52,19 @@ interface Video {
 }
 const SORT_OPTIONS = [{
   value: "rank",
-  label: "Ranking actual"
+  label: "Ranking"
 }, {
   value: "revenue",
-  label: "Más ventas en pesos"
+  label: "Ventas"
 }, {
   value: "sales",
-  label: "Más unidades vendidas"
+  label: "Unidades"
 }, {
   value: "views",
-  label: "Más vistas"
+  label: "Vistas"
 }, {
   value: "earnings",
-  label: "Comisiones estimadas"
+  label: "Comisión"
 }];
 const Dashboard = () => {
   const [period, setPeriod] = useState<CatalogPeriod>("30");
@@ -160,7 +161,7 @@ const Dashboard = () => {
     }
   };
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">
+    return <div className="min-h-[50dvh] flex items-center justify-center">
         <p className="text-muted-foreground">{t("loadingVideos")}</p>
       </div>;
   }
@@ -175,112 +176,50 @@ const Dashboard = () => {
   };
   const marketLabel = market === 'mx' ? 'México' : 'Estados Unidos';
   
-  return <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
-      {/* Compact mobile catalogue header */}
-      <div className="mb-3 md:mb-4 py-1 md:py-0">
-        <div className="md:hidden">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-base font-bold text-foreground leading-tight">
-              Videos para preparar tu próxima grabación
-            </h1>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            TikTok Shop {marketLabel} · Datos del último reporte
-          </p>
+  return <div className="min-w-0 w-full pt-2 pb-24 md:pb-6 px-3 md:px-6">
+      <CatalogHeader title="Videos que están vendiendo" count={`${totalCount} videos`}>
+        <CatalogInfo>
+          <p className="font-semibold">TikTok Shop {marketLabel}</p>
+          <p>{selectedReport ? `Datos del ${formatReportPeriod(selectedReport.range)}` : 'Este periodo todavía no tiene reporte'}</p>
+          <p>Ventas reportadas del periodo seleccionado, aunque el video se haya publicado antes. No son cifras en tiempo real.</p>
+          <p>Los importes están en pesos mexicanos (MXN). La comisión es una estimación según la tasa disponible del producto.</p>
+        </CatalogInfo>
+      </CatalogHeader>
+      {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-9 mb-1">← Ver todos</Button>}
+      <CatalogFilterBar label="Periodo y orden de videos">
+        <div role="group" aria-label="Periodo de ventas" className="flex gap-1.5">
+          {CATALOG_PERIODS.map(option => <button
+            key={option.value} type="button" aria-label={option.label} aria-pressed={period === option.value}
+            onClick={() => { setCurrentPage(1); setPeriod(option.value); }}
+            className={`min-h-11 rounded-full px-3 py-1.5 text-xs font-medium border whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset ${period === option.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/60 text-muted-foreground border-border/50 hover:bg-muted'}`}
+          >{option.value} días</button>)}
         </div>
+        <span className="h-5 border-l border-border" aria-hidden="true" />
+        <FilterPills compact options={SORT_OPTIONS} value={sortOrder} onChange={(value) => {
+          if (!isLoggedIn) { navigate("/unlock"); return; }
+          setSortOrder(value);
+        }} />
+        {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/unlock")}>
+          <Lock className="size-3 mr-1" />Categorías
+        </Button> : <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger aria-label="Categoría de videos" className="h-11 w-auto max-w-48 text-xs rounded-full border-border/50 bg-muted/60">
+            <SelectValue placeholder="Categorías" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Categorías</SelectItem>
+            {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+          </SelectContent>
+        </Select>}
+      </CatalogFilterBar>
 
-        {/* Desktop minimal header */}
-        <div className="hidden md:flex md:items-center md:justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg font-bold text-foreground leading-tight">
-                Videos para preparar tu próxima grabación
-              </h1>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              TikTok Shop {marketLabel} · Elige una referencia y revisa sus ventas del periodo
-            </p>
-          </div>
-          {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7">
-              ← Ver todos
-            </Button>}
-        </div>
-        
-        {/* Mobile back button */}
-        {(productFilter || creatorFilter) && <Button variant="ghost" size="sm" onClick={() => navigate("/app")} className="text-xs h-7 md:hidden">
-            ← Ver todos
-          </Button>}
-      </div>
-
-      {/* Filter Pills - Compact horizontal scrollable on mobile */}
-      <div className="mb-4 md:mb-6">
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <div role="group" aria-label="Periodo de ventas" className="flex gap-2">
-            {CATALOG_PERIODS.map(option => <button
-              key={option.value}
-              type="button"
-              aria-pressed={period === option.value}
-              onClick={() => { setCurrentPage(1); setPeriod(option.value); }}
-              className={`rounded-full px-4 py-2 text-xs font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${period === option.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/60 text-muted-foreground border-border/50 hover:bg-muted'}`}
-            >{option.label}</button>)}
-          </div>
-          <span className="text-xs text-muted-foreground">{selectedReport ? `Datos del ${formatReportPeriod(selectedReport.range)}` : 'Este periodo todavía no tiene reporte'}</span>
-        </div>
-        <p className="text-xs text-muted-foreground mb-3">
-          Ventas reportadas del periodo seleccionado, aunque el video se haya publicado antes. No son cifras en tiempo real.
-        </p>
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
-          {!isLoggedIn ? <div className="flex gap-1.5 opacity-60 cursor-pointer flex-wrap" onClick={() => {
-          navigate("/unlock");
-          window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-          });
-        }}>
-              {SORT_OPTIONS.map((option, i) => <span key={option.value} className={`px-2.5 md:px-3 py-1 md:py-1.5 rounded-full text-[11px] md:text-xs font-medium h-7 md:h-8 flex items-center gap-1 whitespace-nowrap ${i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"}`}>
-                  <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
-                  {option.label}
-                </span>)}
-            </div> : <FilterPills options={SORT_OPTIONS} value={sortOrder} onChange={setSortOrder} />}
-          
-          {/* Category Dropdown - Locked for visitors */}
-          {!isLoggedIn ? <div className="h-7 md:h-8 px-2.5 md:px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1 text-[11px] md:text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap flex-shrink-0" onClick={() => {
-          navigate("/unlock");
-          window.scrollTo({
-            top: 0,
-            behavior: 'smooth'
-          });
-        }}>
-              <Lock className="h-2.5 w-2.5 md:h-3 md:w-3" />
-              Categorías
-            </div> : <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="h-7 md:h-8 w-auto min-w-[100px] md:min-w-[120px] text-[11px] md:text-xs rounded-full border-border/50 bg-muted/60 flex-shrink-0">
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Categorías</SelectItem>
-                {categories.map(cat => <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>)}
-              </SelectContent>
-            </Select>}
-        </div>
-        
-        <span className="text-[11px] text-muted-foreground block mt-1.5 md:hidden">
-          {totalCount} videos
-        </span>
-        <span className="text-xs text-muted-foreground hidden md:block mt-2">
-          {totalCount} videos
-        </span>
-      </div>
-
-      {videos.length === 0 ? <Card className="p-12 text-center">
-          <p className="text-muted-foreground text-lg">
+      {videos.length === 0 ? <Card className="px-4 py-8 text-center">
+          <p className="text-muted-foreground text-sm text-pretty">
             {!selectedReport ? `Todavía no tenemos un reporte de ${period} días. Elige otro periodo para explorar las referencias disponibles.` : productFilter ? `No se encontraron videos relacionados con "${productFilter}"` : creatorFilter ? `No se encontraron videos de @${creatorFilter}` : "No hay videos disponibles con estos filtros. Prueba otra categoría o periodo."}
           </p>
+          <Button variant="outline" className="mt-4" onClick={() => { setSelectedCategory("all"); setPeriod(period === "7" ? "30" : "7"); setCurrentPage(1); }}>Explorar otro periodo</Button>
         </Card> : <>
           {/* Video Grid - 2 columns on mobile */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-5 [&>*]:min-w-0">
             {videos.map((video, index) => {
           const globalIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
           const isFreePreview = !isLoggedIn && globalIndex < FREE_PREVIEW_LIMIT;

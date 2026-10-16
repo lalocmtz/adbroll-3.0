@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const services = [
-  { name: "Gemini · análisis audiovisual", cost: "Según tokens de entrada y salida", note: "Se analiza bajo demanda y se comparte el resultado guardado. Reabrir un análisis no genera otra llamada.", url: "https://aistudio.google.com/usage" },
+  { name: "Gemini · análisis audiovisual", cost: "Según tokens de entrada y salida", note: "El catálogo prepara el guion y análisis en segundo plano. Reabrirlos no genera otra llamada; las variantes se solicitan por separado.", url: "https://aistudio.google.com/usage" },
   { name: "Apify · descarga de TikTok", cost: "Piloto del 10/oct/2026: US$0.42", note: "100 enlaces solicitados; 89 MP4 publicados. Consulta el costo y los resultados de cada lote antes de ampliarlo.", url: "https://console.apify.com/actors/runs" },
   { name: "Supabase · datos y archivos", cost: "Plan, almacenamiento y transferencia", note: "El tráfico de reproducción también consume transferencia. Las cuotas se comparten dentro de la organización.", url: "https://supabase.com/dashboard" },
   { name: "Stripe · cobros", cost: "Comisiones según la cuenta y el pago", note: "Consulta las comisiones reales en cada transacción; no se presupone una tarifa estadounidense.", url: "https://dashboard.stripe.com" },

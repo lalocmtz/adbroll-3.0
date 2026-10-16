@@ -1,3 +1,4 @@
+import { AdminCatalogProcessing } from "@/components/admin/AdminCatalogProcessing";
 import { UserAffiliateOverview } from "@/components/admin/UserAffiliateOverview";
 import ApifyBatchImport from "@/components/admin/ApifyBatchImport";
 import CreatorPresentationUploader from "@/components/admin/CreatorPresentationUploader";
@@ -215,6 +216,7 @@ const Admin = () => {
 
           {/* Import Tab */}
           <TabsContent value="import" className="space-y-6">
+        <AdminCatalogProcessing />
         <ApifyBatchImport />
         {/* Last Sync & Refresh */}
         <div className="flex items-center justify-between mb-4">
@@ -307,7 +309,7 @@ const Admin = () => {
           <p className="font-semibold">Cómo alimentar el catálogo</p>
           <p>1. Importa el Excel: conserva ventas, fechas e IDs originales.</p>
           <p>2. Ejecuta un lote en Apify con los enlaces y la descarga de MP4 activada. Importa el ID del lote terminado en el panel de arriba.</p>
-          <p>3. El análisis con Gemini se genera cuando un usuario lo solicita y se reutiliza para los siguientes usuarios.</p>
+          <p>3. Los guiones y análisis se preparan en segundo plano y quedan disponibles para todos los usuarios con acceso. Las variantes se generan solo cuando el usuario las solicita.</p>
           <p className="text-muted-foreground">Los contadores incluyen todo el histórico. Un video sin MP4 no aparece en las listas públicas; un ID de producto ausente requiere su Excel de productos o una asignación manual verificada.</p>
         </CardContent></Card>
 

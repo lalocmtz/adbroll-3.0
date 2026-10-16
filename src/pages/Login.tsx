@@ -17,6 +17,7 @@ const Login = () => {
   const destination = authDestination(searchParams.get("redirect"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -26,6 +27,7 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setAuthError(null);
 
     // Validate inputs
     const result = loginSchema.safeParse({ email, password });
@@ -55,13 +57,11 @@ const Login = () => {
 
       navigate(`/auth/continue?redirect=${encodeURIComponent(destination)}`);
     } catch (error: any) {
-      toast({
-        title: "No pudimos iniciar sesión",
-        description: error.message === "Invalid login credentials" 
-          ? "Revisa tu correo y contraseña e inténtalo de nuevo."
-          : error.message,
-        variant: "destructive",
-      });
+      setAuthError(error.message === "Invalid login credentials"
+        ? "Revisa tu correo y contraseña. Si creaste tu cuenta con Google, usa Continuar con Google."
+        : error.message === "Email not confirmed"
+        ? "Confirma tu correo con el enlace que te enviamos antes de entrar."
+        : "No pudimos iniciar sesión. Inténtalo de nuevo o recupera tu contraseña.");
     } finally {
       setIsLoading(false);
     }
@@ -69,6 +69,7 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
+    setAuthError(null);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -79,11 +80,7 @@ const Login = () => {
 
       if (error) throw error;
     } catch (error: any) {
-      toast({
-        title: "No pudimos conectar con Google",
-        description: error.message,
-        variant: "destructive",
-      });
+      setAuthError("No pudimos conectar con Google. Inténtalo de nuevo o entra con tu correo.");
       setIsGoogleLoading(false);
     }
   };
@@ -93,7 +90,7 @@ const Login = () => {
       <Card className="w-full max-w-md card-landing-light relative">
         <button
           onClick={() => navigate("/app")}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition-colors z-10"
+          className="absolute top-2 right-2 h-11 w-11 flex items-center justify-center rounded-full hover:bg-muted transition-colors z-10"
           aria-label="Cerrar"
         >
           <X className="h-5 w-5 text-muted-foreground" />
@@ -108,17 +105,18 @@ const Login = () => {
               <BrandLogo tone="dark" size="lg" />
             </button>
           </div>
-          <CardTitle className="text-xl">Bienvenido de vuelta</CardTitle>
+          <h1 className="text-xl font-semibold leading-snug">Bienvenido de vuelta</h1>
           <CardDescription>
-            Retoma tus referencias y prepara lo que vas a grabar después.
+            Vuelve a los videos, productos y guiones que te interesan.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 p-5 pt-0">
+          {authError && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{authError}</div>}
           {/* Google OAuth Button */}
           <Button
             type="button"
             variant="outline"
-            className="w-full flex items-center justify-center gap-3"
+            className="h-11 w-full flex items-center justify-center gap-3"
             onClick={handleGoogleLogin}
             disabled={isGoogleLoading || isLoading}
           >

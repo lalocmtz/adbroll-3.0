@@ -1,3 +1,4 @@
+import { CatalogHeader, CatalogInfo } from "@/components/CatalogToolbar";
 import { ScriptTranslation } from '@/components/ScriptTranslation';
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +17,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const DAILY_LIMIT = 5;
 const HISTORY_LIMIT = 20;
 
 // Full canonical links allow strict host/ID validation on both client and server.
@@ -119,11 +119,14 @@ const Tools = () => {
 
   const activeRequest = useRef(0);
   const analysisBusy = useRef(false);
+  const variantBusy = useRef(false);
+  const [generatingVariants, setGeneratingVariants] = useState(false);
+  const [variantError, setVariantError] = useState<string | null>(null);
   useEffect(() => () => { activeRequest.current++; }, []);
   const [videoUrl, setVideoUrl] = useState("");
+  const [analyzedVideoUrl, setAnalyzedVideoUrl] = useState("");
   const [step, setStep] = useState<Step>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [limitReached, setLimitReached] = useState(false);
 
   // Resultados
   const [transcript, setTranscript] = useState("");
@@ -143,7 +146,7 @@ const Tools = () => {
   const isEs = language === "es";
 
   const isBusy = ["download", "transcribe", "analyze", "variants"].includes(step);
-  const hasResult = (step === "done" || step === "error") && !!transcript;
+  const hasResult = (step === "done" || step === "error") && (!!transcript || !!insights);
 
   // Carga el histórico del usuario logueado (no re-llama APIs, solo lee la tabla).
   const loadHistory = useCallback(async () => {
@@ -170,9 +173,11 @@ const Tools = () => {
   const resetAll = () => {
     activeRequest.current++;
     analysisBusy.current = false;
+    variantBusy.current = false;
+    setGeneratingVariants(false);
+    setVariantError(null);
     setStep("idle");
     setErrorMsg(null);
-    setLimitReached(false);
     setTranscript("");
     setSegments([]);
     setInsights(null);
@@ -180,17 +185,21 @@ const Tools = () => {
     setThumbnail(null);
     setActiveTab("script");
     setActiveHistoryId(null);
+    setAnalyzedVideoUrl("");
   };
 
   // Re-renderiza un análisis guardado SIN volver a llamar las APIs.
   const openFromHistory = (item: HistoryItem) => {
     const requestId = ++activeRequest.current;
     analysisBusy.current = false;
+    variantBusy.current = false;
+    setGeneratingVariants(false);
+    setVariantError(null);
     const r = item.result || ({} as AnalysisResult);
     setStep("done");
     setErrorMsg(null);
-    setLimitReached(false);
     setVideoUrl(item.video_url);
+    setAnalyzedVideoUrl(item.video_url);
     setTranscript(r.transcript || "");
     setSegments(Array.isArray(r.segments) ? r.segments : []);
     setInsights(r.insights ?? null);
@@ -214,10 +223,54 @@ const Tools = () => {
     toast({ title: t("✓ Copiado", "✓ Copied") });
   };
 
+  const friendlyError = (message: unknown, fallback: string): string => {
+    if (typeof message !== 'string') return fallback;
+    if (/cuota|quota|límite|rate.limit|429/i.test(message)) return t("Llegaste al límite disponible. Inténtalo más tarde; tu análisis guardado sigue disponible.", "The available limit has been reached. Try again later; your saved analysis is still available.");
+    if (/gemini|apify|supabase|assemblyai|provider|proveedor|api[_ -]?key|jwt|https?:|json|fetch|function|[_]{1}/i.test(message)) return fallback;
+    return message;
+  };
+
+  const generateVariants = async () => {
+    if (!hasPaid) { openPaywall("Variantes de guion"); return; }
+    if (!transcript.trim() || variantBusy.current || analysisBusy.current) return;
+    const version = activeRequest.current;
+    variantBusy.current = true;
+    setGeneratingVariants(true);
+    setVariantError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-script-variants", {
+        body: { transcript, variantCount: 3, changeLevel: "medium" },
+      });
+      if (version !== activeRequest.current) return;
+      if (error) {
+        const detail = await error.context?.json?.().catch(() => null);
+        throw new Error(detail?.error || t("No se pudieron crear las variantes. Inténtalo de nuevo.", "Could not create variants. Try again."));
+      }
+      if (!Array.isArray(data?.variants) || data.variants.length !== 3 || !data.variants.every((variant: any) => ['hook','body','cta'].every(key => typeof variant?.[key] === 'string' && variant[key].trim()))) {
+        throw new Error(data?.error || t("Las variantes llegaron incompletas. Inténtalo de nuevo.", "The variants were incomplete. Try again."));
+      }
+      setVariants(data.variants);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (version !== activeRequest.current) return;
+      if (!user) throw new Error(t("Las variantes están listas, pero debes iniciar sesión para guardarlas.", "The variants are ready, but sign in to save them."));
+      const { data: inserted, error: saveError } = await supabase.from("tool_analyses").insert({
+        user_id: user.id, video_url: analyzedVideoUrl,
+        result: { transcript, segments, insights, variants: data.variants } as unknown as Json,
+      }).select("id, video_url, created_at, result").single();
+      if (version !== activeRequest.current) return;
+      if (saveError || !inserted) throw new Error(t("Las variantes están listas, pero no se pudieron guardar en el historial. Cópialas para conservarlas.", "The variants are ready but could not be saved to history. Copy them to keep them."));
+      setHistory(previous => [inserted as unknown as HistoryItem, ...previous].slice(0, HISTORY_LIMIT));
+      setActiveHistoryId(inserted.id);
+    } catch (error: any) {
+      if (version === activeRequest.current) setVariantError(friendlyError(error?.message, t("No se pudieron crear las variantes. Inténtalo de nuevo.", "Could not create variants. Try again.")));
+    } finally {
+      if (version === activeRequest.current) { variantBusy.current = false; setGeneratingVariants(false); }
+    }
+  };
+
   const handleAnalyze = async () => {
     if (analysisBusy.current) return;
     setErrorMsg(null);
-    setLimitReached(false);
     setActiveHistoryId(null);
 
     if (!isValidTikTokUrl(videoUrl)) {
@@ -237,6 +290,9 @@ const Tools = () => {
 
     const requestId = ++activeRequest.current;
     analysisBusy.current = true;
+    variantBusy.current = false;
+    setGeneratingVariants(false);
+    setVariantError(null);
     setStep("download");
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -304,40 +360,32 @@ const Tools = () => {
         throw new Error(trData.error);
       }
 
-      const tx: string = trData?.transcript?.trim() || "";
-      if (!tx) {
-        throw new Error(
-          t(
-            "No se pudo transcribir este video. Puede ser privado o no tener audio.",
-            "Could not transcribe this video. It may be private or have no audio."
-          )
-        );
+      const tx = typeof trData?.transcript === "string" ? trData.transcript.trim() : "";
+      const analysis = trData?.analysis;
+      const strings = (value: unknown): string[] => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && !!item.trim()) : [];
+      const visualObservations = strings(analysis?.visual_observations);
+      if (!analysis || (!tx && !visualObservations.length)) {
+        throw new Error(t("No hay contenido disponible para analizar en este video.", "There is no content available to analyze in this video."));
       }
       setTranscript(tx);
-
-      // Guion segmentado por segundos (aditivo; puede venir vacío o null).
-      const segs: Segment[] = Array.isArray(trData?.segments) ? trData.segments : [];
+      setAnalyzedVideoUrl(url);
+      const segs: Segment[] = Array.isArray(trData?.segments) ? trData.segments.filter((seg: any) => typeof seg?.text === 'string' && Number.isFinite(seg.start_ms) && Number.isFinite(seg.end_ms)) : [];
       setSegments(segs);
 
-      // The audiovisual analysis and base variants are already shared and cached.
-      // Do not charge two extra text generations every time someone opens it.
-      const analysis = trData?.analysis;
-      const sharedVariants = trData?.variants;
-      if (!analysis || !Array.isArray(sharedVariants?.hooks) || sharedVariants.hooks.length !== 3) {
-        throw new Error(t("El análisis compartido está incompleto. Inténtalo de nuevo.", "Shared analysis is incomplete. Try again."));
-      }
+      // Legacy hook/body/cta results are usable without creative variants.
       const sharedInsights: Insights = {
-        funcionamiento: `Primeros segundos: ${analysis.hook || ''}`,
-        estructura: analysis.body || '',
-        ctaLocation: analysis.cta || '',
-        angulos: analysis.visual_observations || [],
-        fortalezas: analysis.beginner_takeaways || [],
-        debilidades: analysis.uncertainties || [],
+        funcionamiento: typeof analysis.hook === 'string' ? analysis.hook : undefined,
+        estructura: typeof analysis.body === 'string' ? analysis.body : undefined,
+        ctaLocation: typeof analysis.cta === 'string' ? analysis.cta : undefined,
+        angulos: visualObservations,
+        fortalezas: strings(analysis.beginner_takeaways),
+        debilidades: strings(analysis.uncertainties),
       };
       setInsights(sharedInsights);
-      const vList: Variant[] = sharedVariants.hooks.map((hook: string) => ({
-        hook, body: sharedVariants.body_variant || '', cta: analysis.cta || '',
-        strategy_note: 'Gancho alternativo con un cuerpo compartido; adapta los detalles a tu producto.',
+      const sharedVariants = trData?.variants;
+      const vList: Variant[] = strings(sharedVariants?.hooks).map((hook: string) => ({
+        hook, body: typeof sharedVariants.body_variant === 'string' ? sharedVariants.body_variant : '',
+        cta: typeof analysis.cta === 'string' ? analysis.cta : '',
       }));
       setVariants(vList);
 
@@ -378,25 +426,13 @@ const Tools = () => {
       if (requestId !== activeRequest.current) return;
       console.error("Analyze error:", err);
       setStep("error");
-      setErrorMsg(
-        err?.message ||
-          t(
-            "No fue posible analizar el video. Intenta con otro link.",
-            "Could not analyze the video. Try another link."
-          )
-      );
+      setErrorMsg(friendlyError(err?.message, t("No fue posible analizar el video. Intenta de nuevo.", "Could not analyze the video. Try again.")));
     } finally {
       if (requestId === activeRequest.current) analysisBusy.current = false;
     }
   };
 
   const currentLabel = isBusy ? PROGRESS_LABELS[step] : null;
-  const progressPct =
-    step === "download" ? 15 :
-    step === "transcribe" ? 40 :
-    step === "analyze" ? 65 :
-    step === "variants" ? 90 : 0;
-
   const showHistory = isLoggedIn && history.length > 0;
 
   // Panel del histórico (reutilizado en móvil colapsable y en columna desktop).
@@ -434,25 +470,17 @@ const Tools = () => {
   );
 
   return (
-    <div className="pt-6 pb-10 px-4 md:px-6 max-w-6xl mx-auto">
+    <div className="min-w-0 w-full pt-2 pb-10 px-3 md:px-6 max-w-6xl mx-auto">
       <div className="lg:flex lg:gap-6">
         {/* Columna principal */}
-        <div className="flex-1 min-w-0 space-y-6 max-w-3xl mx-auto lg:mx-0">
-          {/* Encabezado */}
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-1">
-              <Wand2 className="h-6 w-6 text-primary" />
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              {t("Analizar video", "Analyze video")}
-            </h1>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              {t(
-                "Pega el enlace de un video público de TikTok para entender su guion y preparar tu propia versión. Guardamos el análisis para que puedas retomarlo. Hasta 5 videos nuevos al día; algunos enlaces pueden no estar disponibles.",
-                "Paste a public TikTok video link to understand its script and prepare your own version. Your analysis is saved so you can return to it. Up to 5 new videos per day; some links may be unavailable."
-              )}
-            </p>
-          </div>
+        <div className="flex-1 min-w-0 space-y-3 max-w-3xl mx-auto lg:mx-0">
+          <CatalogHeader title={t("Analizar video", "Analyze video")}>
+            <CatalogInfo label={t("Cómo funciona el análisis", "How analysis works")}>
+              <p>{t("Hasta 5 videos nuevos al día. Los análisis guardados se reutilizan; algunos enlaces públicos pueden no estar disponibles.", "Up to 5 new videos per day. Saved analyses are reused; some public links may be unavailable.")}</p>
+              <p>{t("Las variantes se crean solo cuando las solicitas. Adapta sus detalles a tu producto.", "Variants are created only when you request them. Adapt their details to your product.")}</p>
+            </CatalogInfo>
+          </CatalogHeader>
+          <p className="text-sm text-muted-foreground text-pretty">{t("Pega un enlace de TikTok para consultar su guion y preparar tu versión.", "Paste a TikTok link to review its script and prepare your version.")}</p>
 
           {/* Histórico colapsable (móvil): arriba, debajo del encabezado */}
           {showHistory && (
@@ -480,11 +508,13 @@ const Tools = () => {
           )}
 
           {/* Input + boton */}
-          <Card className="p-4 md:p-5 border-border/50 shadow-sm">
+          <Card className="p-3 border-border/50 shadow-sm">
             <div className="flex flex-col sm:flex-row gap-2.5">
               <div className="relative flex-1">
                 <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
                 <Input
+                  aria-label={t("Enlace completo del video de TikTok", "Full TikTok video link")}
+                  type="url" inputMode="url" autoCapitalize="none" spellCheck={false}
                   placeholder={t(
                     "https://tiktok.com/@usuario/video/...",
                     "https://tiktok.com/@user/video/..."
@@ -493,8 +523,7 @@ const Tools = () => {
                   onChange={(e) => {
                     setVideoUrl(e.target.value);
                     setErrorMsg(null);
-                    setLimitReached(false);
-                  }}
+                                  }}
                   onKeyDown={(e) => e.key === "Enter" && !isBusy && handleAnalyze()}
                   disabled={isBusy}
                   className="h-12 pl-10 rounded-xl border-border/60"
@@ -524,19 +553,6 @@ const Tools = () => {
               </div>
             )}
 
-            {/* Limite diario */}
-            {limitReached && (
-              <div className="flex items-start gap-2 mt-3 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-                <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                <span>
-                  {t(
-                    `Llegaste a tu límite diario de ${DAILY_LIMIT} análisis. Vuelve mañana para seguir analizando videos.`,
-                    `You reached your daily limit of ${DAILY_LIMIT} analyses. Come back tomorrow to keep analyzing videos.`
-                  )}
-                </span>
-              </div>
-            )}
-
             {/* Aviso premium para no pagadores (informativo) */}
             {!hasPaid && step === "idle" && !errorMsg && (
               <p className="mt-3 text-[11px] text-muted-foreground flex items-center gap-1.5">
@@ -551,33 +567,12 @@ const Tools = () => {
 
           {/* Progreso por paso */}
           {isBusy && (
-            <Card className="p-6 border-border/50 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
+            <Card className="p-4 border-border/50 shadow-sm">
+              <div className="flex items-center gap-3">
                 <Loader2 className="h-5 w-5 text-primary animate-spin shrink-0" />
                 <p className="text-sm font-medium text-foreground">
                   {currentLabel ? t(currentLabel.es, currentLabel.en) : ""}
                 </p>
-              </div>
-              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all duration-500"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <div className="grid grid-cols-4 gap-1 mt-3 text-[10px] text-muted-foreground">
-                {(["download", "transcribe", "analyze", "variants"] as const).map((s) => (
-                  <span
-                    key={s}
-                    className={
-                      progressPct >=
-                      (s === "download" ? 15 : s === "transcribe" ? 40 : s === "analyze" ? 65 : 90)
-                        ? "text-primary font-medium"
-                        : ""
-                    }
-                  >
-                    {t(PROGRESS_LABELS[s].es, PROGRESS_LABELS[s].en).replace("…", "")}
-                  </span>
-                ))}
               </div>
             </Card>
           )}
@@ -606,7 +601,7 @@ const Tools = () => {
               <Card className="overflow-hidden border-border/50 shadow-sm">
                 <div className="flex flex-col lg:flex-row">
                   {/* Thumbnail */}
-                  <div className="lg:w-60 bg-muted/30 p-4 border-b lg:border-b-0 lg:border-r border-border/50 shrink-0">
+                  <div className="hidden lg:block lg:w-48 bg-muted/30 p-3 border-r border-border/50 shrink-0">
                     <div className="aspect-[9/16] max-h-[260px] bg-black rounded-xl overflow-hidden flex items-center justify-center mx-auto">
                       {thumbnail ? (
                         <img src={thumbnail} alt="" className="w-full h-full object-cover" />
@@ -619,8 +614,8 @@ const Tools = () => {
                   {/* Tabs */}
                   <div className="flex-1 min-w-0">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
-                      <div className="px-4 pt-3 border-b border-border/50">
-                        <TabsList className="h-9 bg-muted/50 p-1 rounded-lg">
+                      <div className="px-3 pt-3 pb-2 border-b border-border/50">
+                        <TabsList className="grid grid-cols-3 h-11 w-full bg-muted/50 p-1 rounded-lg">
                           <TabsTrigger value="script" className="text-xs rounded-md px-3 data-[state=active]:bg-background">
                             <FileText className="h-3.5 w-3.5 mr-1.5" />
                             {t("Guion", "Script")}
@@ -658,7 +653,7 @@ const Tools = () => {
                             {copied === "script" ? t("Copiado", "Copied") : t("Copiar", "Copy")}
                           </Button>
                         </div>
-                        <ScrollArea className="h-[280px] rounded-xl bg-muted/30 border border-border/50">
+                        <ScrollArea className="h-64 rounded-xl bg-muted/30 border border-border/50">
                           {segments.length > 0 ? (
                             // Timeline segmentada: "0:00–0:04 texto…"
                             <ul className="p-3 space-y-2">
@@ -677,12 +672,12 @@ const Tools = () => {
                               ))}
                             </ul>
                           ) : (
-                            <p className="p-4 text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
-                              {transcript}
+                            <p className="p-4 text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                              {transcript || t("No hay voz transcribible. Consulta el análisis visual de este video.", "There is no transcribable speech. Review this video's visual analysis.")}
                             </p>
                           )}
                         </ScrollArea>
-                        {hasPaid && <ScriptTranslation text={transcript} locale={isEs ? 'es' : 'en'} />}
+                        {hasPaid && !!transcript && <ScriptTranslation text={transcript} locale={isEs ? 'es' : 'en'} />}
                       </TabsContent>
 
                       {/* Por que funciono */}
@@ -701,10 +696,10 @@ const Tools = () => {
                                 </div>
                               )}
 
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {insights.estructura && (
                                   <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">
                                       {t("Estructura", "Structure")}
                                     </p>
                                     <p className="text-xs text-foreground/90">{insights.estructura}</p>
@@ -712,7 +707,7 @@ const Tools = () => {
                                 )}
                                 {insights.ctaLocation && (
                                   <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">
                                       {t("Invitación a actuar", "Call to action")}
                                     </p>
                                     <p className="text-xs text-foreground/90">{insights.ctaLocation}</p>
@@ -751,7 +746,12 @@ const Tools = () => {
                       </TabsContent>
 
                       {/* Variantes */}
-                      <TabsContent value="variants" className="m-0 p-4">
+                      <TabsContent value="variants" className="m-0 p-4 space-y-3">
+                        <Button onClick={generateVariants} disabled={generatingVariants || !transcript.trim()} className="w-full min-h-11">
+                          {generatingVariants ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}
+                          {generatingVariants ? t("Preparando variantes…", "Preparing variants…") : t("Generar 3 variantes", "Generate 3 variants")}
+                        </Button>
+                        {variantError && <p role="alert" className="text-sm text-destructive text-pretty">{variantError}</p>}
                         {variants.length > 0 ? (
                           <Tabs defaultValue="v0" className="flex flex-col">
                             <TabsList className="h-8 bg-muted/50 p-1 rounded-lg mb-3 w-fit">
@@ -798,8 +798,8 @@ const Tools = () => {
                             ))}
                           </Tabs>
                         ) : (
-                          <p className="text-sm text-muted-foreground text-center py-8">
-                            {t("No se pudieron generar variantes.", "Could not generate variants.")}
+                          <p className="text-sm text-muted-foreground text-pretty">
+                            {t("Tu guion ya está listo. Crea variantes cuando quieras probar otra forma de contar la idea.", "Your script is ready. Create variants when you want to try another way to tell the story.")}
                           </p>
                         )}
                       </TabsContent>
@@ -852,7 +852,7 @@ const BulletBlock = ({
     tone === "positive" ? "bg-emerald-500" : tone === "warning" ? "bg-amber-500" : "bg-primary";
   return (
     <div>
-      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+      <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1.5">
         {title}
       </p>
       <ul className="space-y-1.5">
@@ -869,7 +869,7 @@ const BulletBlock = ({
 
 const VariantField = ({ label, text }: { label: string; text: string }) => (
   <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
-    <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-1">{label}</p>
+    <p className="text-[10px] font-semibold text-primary uppercase mb-1">{label}</p>
     <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{text}</p>
   </div>
 );

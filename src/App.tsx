@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,37 +12,37 @@ import { BlurGateProvider } from "@/contexts/BlurGateContext";
 import { Events, track, trackPageView } from "@/lib/analytics";
 import { captureAttribution } from "@/lib/attribution";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import PasswordRecovery from "./pages/PasswordRecovery";
-import Register from "./pages/Register";
-import Unlock from "./pages/Unlock";
-import Dashboard from "./pages/Dashboard";
-import Products from "./pages/Products";
-import Creators from "./pages/Creators";
-import Favorites from "./pages/Favorites";
-import Settings from "./pages/Settings";
-import Support from "./pages/Support";
-import Admin from "./pages/Admin";
-import RelatedVideos from "./pages/RelatedVideos";
-import Opportunities from "./pages/Opportunities";
-import Tools from "./pages/Tools";
-import Affiliates from "./pages/Affiliates";
-import FAQ from "./pages/FAQ";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import RefundPolicy from "./pages/RefundPolicy";
-import About from "./pages/About";
-import Pricing from "./pages/Pricing";
-import CheckoutSuccess from "./pages/CheckoutSuccess";
-import CheckoutCancel from "./pages/CheckoutCancel";
-import NotFound from "./pages/NotFound";
-import CreatorProgram from "./pages/CreatorProgram";
-import PartnerLanding from "./pages/PartnerLanding";
-import AffiliateTerms from "./pages/AffiliateTerms";
-import AuthContinue from "./pages/AuthContinue";
-import Redeem from "./pages/Redeem";
-import VideoAttribution from "./pages/admin/VideoAttribution";
+const Landing = lazy(() => import("./pages/Landing"));
+const Login = lazy(() => import("./pages/Login"));
+const PasswordRecovery = lazy(() => import("./pages/PasswordRecovery"));
+const Register = lazy(() => import("./pages/Register"));
+const Unlock = lazy(() => import("./pages/Unlock"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Products = lazy(() => import("./pages/Products"));
+const Creators = lazy(() => import("./pages/Creators"));
+const Favorites = lazy(() => import("./pages/Favorites"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Support = lazy(() => import("./pages/Support"));
+const Admin = lazy(() => import("./pages/Admin"));
+const RelatedVideos = lazy(() => import("./pages/RelatedVideos"));
+const Opportunities = lazy(() => import("./pages/Opportunities"));
+const Tools = lazy(() => import("./pages/Tools"));
+const Affiliates = lazy(() => import("./pages/Affiliates"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const About = lazy(() => import("./pages/About"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const CheckoutSuccess = lazy(() => import("./pages/CheckoutSuccess"));
+const CheckoutCancel = lazy(() => import("./pages/CheckoutCancel"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const CreatorProgram = lazy(() => import("./pages/CreatorProgram"));
+const PartnerLanding = lazy(() => import("./pages/PartnerLanding"));
+const AffiliateTerms = lazy(() => import("./pages/AffiliateTerms"));
+const AuthContinue = lazy(() => import("./pages/AuthContinue"));
+const Redeem = lazy(() => import("./pages/Redeem"));
+const VideoAttribution = lazy(() => import("./pages/admin/VideoAttribution"));
 
 const queryClient = new QueryClient();
 
@@ -55,6 +55,10 @@ const PageTracker = () => {
   // skip the very first effect run to avoid double-counting; fire on every
   // subsequent SPA navigation instead.
   const firstPixelView = useRef(true);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [location.pathname]);
 
   useEffect(() => {
     trackPageView(location.pathname + location.search);
@@ -108,9 +112,9 @@ const AppRoute = ({
   session: Session | null;
   requiresAuth?: boolean;
 }) => {
-  // Admin routes require auth
+  const location = useLocation();
   if (requiresAuth && !session) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   }
   
   return (
@@ -157,6 +161,7 @@ const App = () => {
               <BrowserRouter>
                 <PageTracker />
                 <BlurGateProvider>
+                <Suspense fallback={<div role="status" className="flex min-h-[70dvh] items-center justify-center px-4 text-sm text-muted-foreground">Cargando TokXray…</div>}>
                 <Routes>
                   {/* Public marketing landing (Variante E) */}
                   <Route path="/" element={<Landing />} />
@@ -223,7 +228,7 @@ const App = () => {
                   <Route
                     path="/settings"
                     element={
-                      <AppRoute session={session}>
+                      <AppRoute session={session} requiresAuth>
                         <Settings />
                       </AppRoute>
                     }
@@ -301,6 +306,7 @@ const App = () => {
                   
                 <Route path="*" element={<NotFound />} />
                 </Routes>
+                </Suspense>
                 </BlurGateProvider>
               </BrowserRouter>
           </LanguageProvider>
