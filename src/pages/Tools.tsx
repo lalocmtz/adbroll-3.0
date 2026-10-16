@@ -1,6 +1,6 @@
 import { CatalogHeader, CatalogInfo } from "@/components/CatalogToolbar";
 import { ScriptTranslation } from '@/components/ScriptTranslation';
-import { VideoInsights, validScriptSegments } from '@/components/VideoInsights';
+import { ScriptTranscript, VideoInsights, validScriptSegments } from '@/components/VideoInsights';
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -636,9 +636,7 @@ const Tools = () => {
                       <TabsContent value="script" className="m-0 p-4">
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="text-sm font-medium">
-                            {segments.length > 0
-                              ? t("Guion por segundos", "Script by seconds")
-                              : t("Guion transcrito", "Transcribed script")}
+                            {t("Guion transcrito", "Transcribed script")}
                           </h4>
                           <Button
                             onClick={() => copyText(transcript, "script")}
@@ -654,30 +652,12 @@ const Tools = () => {
                             {copied === "script" ? t("Copiado", "Copied") : t("Copiar", "Copy")}
                           </Button>
                         </div>
-                        <ScrollArea className="h-64 rounded-xl bg-muted/30 border border-border/50">
-                          {segments.length > 0 ? (
-                            // Timeline segmentada: "0:00–0:04 texto…"
-                            <ul className="p-3 space-y-2">
-                              {segments.map((seg, i) => (
-                                <li
-                                  key={i}
-                                  className="flex gap-3 p-2 rounded-lg bg-background/60 border border-border/40"
-                                >
-                                  <span className="shrink-0 text-[11px] font-semibold text-primary tabular-nums mt-0.5 whitespace-nowrap">
-                                    {msToClock(seg.start_ms)}–{msToClock(seg.end_ms)}
-                                  </span>
-                                  <span className="text-sm text-foreground/90 leading-relaxed">
-                                    {seg.text}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="p-4 text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                              {transcript || t("No hay voz transcribible. Consulta el análisis visual de este video.", "There is no transcribable speech. Review this video's visual analysis.")}
-                            </p>
-                          )}
-                        </ScrollArea>
+                        {/* No media duration has been verified in this view. Preserve the
+                            complete transcript without showing model-generated timecodes. */}
+                        <ScriptTranscript
+                          locale={isEs ? 'es' : 'en'}
+                          transcript={transcript || t("No hay voz transcribible. Consulta el análisis visual de este video.", "There is no transcribable speech. Review this video's visual analysis.")}
+                        />
                         {hasPaid && !!transcript && <ScriptTranslation text={transcript} locale={isEs ? 'es' : 'en'} />}
                       </TabsContent>
 
@@ -686,7 +666,6 @@ const Tools = () => {
                         {insights ? <VideoInsights
                           locale={isEs ? 'es' : 'en'}
                           analysis={{ hook: insights.funcionamiento, body: insights.estructura, cta: insights.ctaLocation, visual_observations: insights.angulos, beginner_takeaways: insights.fortalezas }}
-                          segments={segments}
                           onExploreVariants={transcript ? () => setActiveTab('variants') : undefined}
                         /> : <p className="py-8 text-center text-sm text-muted-foreground">{t("El análisis aún no está disponible.", "The analysis is not available yet.")}</p>}
                       </TabsContent>

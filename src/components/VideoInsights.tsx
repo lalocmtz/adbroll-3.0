@@ -2,7 +2,7 @@ import { ArrowRight, Eye, Lightbulb, Target, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export interface ScriptSegment { start_ms: number; end_ms: number; text: string }
-export function validScriptSegments(value: unknown): ScriptSegment[] {
+export function validScriptSegments(value: unknown, durationSeconds?: number): ScriptSegment[] {
   if (!Array.isArray(value)) return [];
   const milliseconds = (start: unknown, end: unknown, multiplier: number) => {
     if (typeof start !== 'number' || typeof end !== 'number' || !Number.isFinite(start) || !Number.isFinite(end) ||
@@ -11,7 +11,7 @@ export function validScriptSegments(value: unknown): ScriptSegment[] {
     const end_ms = Math.round(end * multiplier);
     return end_ms > start_ms ? { start_ms, end_ms } : null;
   };
-  return value.flatMap((segment): ScriptSegment[] => {
+  const segments = value.flatMap((segment): ScriptSegment[] => {
     if (!segment || typeof segment !== 'object' || typeof segment.text !== 'string' || !segment.text.trim()) return [];
     // Current stored analyses use seconds; older transcripts use milliseconds.
     // Validate each pair together, never combine different units or coerce strings.
@@ -19,6 +19,11 @@ export function validScriptSegments(value: unknown): ScriptSegment[] {
       ?? milliseconds(segment.start_ms, segment.end_ms, 1);
     return time ? [{ ...time, text: segment.text }] : [];
   }).sort((a, b) => a.start_ms - b.start_ms);
+  // Duration comes from the actual media element, never model output. One
+  // impossible timestamp makes this timeline unreliable; keep untimed text.
+  if (typeof durationSeconds === 'number' && Number.isFinite(durationSeconds) && durationSeconds > 0 &&
+    segments.some(segment => segment.end_ms > durationSeconds * 1000)) return [];
+  return segments;
 }
 const clock = (ms: number) => {
   const seconds = Math.floor(ms / 1000);
@@ -29,8 +34,8 @@ const text = (value: unknown) => typeof value === 'string' ? value.trim() : '';
 const list = (value: unknown): string[] => Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && !!item.trim()) : [];
 
 /** Only source timestamps are displayed. Legacy transcripts remain untimed. */
-export function ScriptTranscript({ transcript, segments, locale = 'es' }: { transcript: string; segments?: unknown; locale?: 'es' | 'en' }) {
-  const timed = validScriptSegments(segments);
+export function ScriptTranscript({ transcript, segments, durationSeconds, locale = 'es' }: { transcript: string; segments?: unknown; durationSeconds?: number; locale?: 'es' | 'en' }) {
+  const timed = validScriptSegments(segments, durationSeconds);
   if (!timed.length) return <p className="whitespace-pre-wrap break-words rounded-xl border border-border/60 bg-muted/20 p-4 text-sm leading-relaxed [overflow-wrap:anywhere]">{transcript}</p>;
   const normalizedText = (value: string) => value.normalize('NFC').replace(/\s+/g, ' ').trim();
   const coversTranscript = normalizedText(timed.map(segment => segment.text).join(' ')) === normalizedText(transcript);
@@ -48,9 +53,10 @@ export function ScriptTranscript({ transcript, segments, locale = 'es' }: { tran
 }
 
 /** Presentation only: saved evidence, no requests, scores or inferred timecodes. */
-export function VideoInsights({ analysis, segments, locale = 'es', onExploreVariants }: {
+export function VideoInsights({ analysis, segments, durationSeconds, locale = 'es', onExploreVariants }: {
   analysis: Record<string, unknown>;
   segments?: unknown;
+  durationSeconds?: number;
   locale?: 'es' | 'en';
   onExploreVariants?: () => void;
 }) {
@@ -61,7 +67,7 @@ export function VideoInsights({ analysis, segments, locale = 'es', onExploreVari
   const cta = text(analysis.cta);
   const visuals = list(analysis.visual_observations);
   const takeaways = list(analysis.beginner_takeaways);
-  const first = validScriptSegments(segments ?? analysis.segments)[0];
+  const first = validScriptSegments(segments ?? analysis.segments, durationSeconds)[0];
   return <div className="space-y-4">
     <section className="overflow-hidden rounded-2xl border border-brand-pink-200 bg-brand-pink-50 text-brand-ink">
       <div className="flex items-center gap-2 border-b border-brand-pink-200 px-4 py-3 text-brand-pink-700"><Target className="size-4" aria-hidden="true" /><h3 className="text-sm font-semibold">{t('El gancho · primeros segundos', 'The hook · opening seconds')}</h3></div>

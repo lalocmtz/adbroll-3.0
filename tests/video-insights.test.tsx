@@ -81,4 +81,26 @@ describe('saved video insights', () => {
     expect(screen.queryByText('Guion original completo')).not.toBeInTheDocument();
   });
 
+  it('drops impossible model timecodes beyond the measured85second file without altering text', () => {
+    const segments = [{ start_seconds: 0, end_seconds: 5, text: 'Inicio' }, { start_seconds: 66, end_seconds: 121, text: 'Cierre' }];
+    expect(validScriptSegments(segments, 85.166667)).toEqual([]);
+    render(<ScriptTranscript transcript="Inicio y cierre completos" segments={segments} durationSeconds={85.166667} />);
+    expect(screen.getByText('Inicio y cierre completos')).toBeVisible();
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.queryByText(/2:01/)).not.toBeInTheDocument();
+    expect(segments[1].end_seconds).toBe(121);
+  });
+  it('keeps times within the media duration and uses no invented bounds when duration is unavailable', () => {
+    const segments = [{ start_ms: 0, end_ms: 85166, text: 'Todo' }];
+    expect(validScriptSegments(segments, 85.166667)).toEqual(segments);
+    expect(validScriptSegments(segments)).toEqual(segments);
+    expect(validScriptSegments(segments, Infinity)).toEqual(segments);
+    expect(validScriptSegments(segments, 0)).toEqual(segments);
+  });
+  it('omits unreliable hook timestamps while retaining saved analysis', () => {
+    render(<VideoInsights analysis={{ hook: 'Abre con una pregunta', segments: [{ start_seconds: 66, end_seconds: 121, text: 'Fuera del archivo' }] }} durationSeconds={85.166667} />);
+    expect(screen.getByText('Abre con una pregunta')).toBeVisible();
+    expect(screen.queryByText(/Primera frase transcrita/)).not.toBeInTheDocument();
+  });
+
 });

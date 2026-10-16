@@ -75,6 +75,8 @@ const VideoAnalysisModalOriginal = ({
   video
 }: VideoAnalysisModalOriginalProps) => {
   const [activeTab, setActiveTab] = useState('script');
+  const [measuredMedia, setMeasuredMedia] = useState<{ source: string; seconds?: number } | null>(null);
+  const durationSeconds = measuredMedia?.source === video.video_mp4_url ? measuredMedia.seconds : undefined;
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
   const [processingError, setProcessingError] = useState<{ source: 'load'; message: string } | null>(null);
   const requestVersion = useRef(0);
@@ -361,6 +363,9 @@ const VideoAnalysisModalOriginal = ({
       setIsSavingVariant(false);
     }
   };
+  const timedSegments = durationSeconds && durationSeconds > 0
+    ? validScriptSegments(analysis?.segments, durationSeconds)
+    : [];
   const cachedVariants: GeneratedVariant[] = Array.isArray(variants?.hooks)
     ? variants.hooks.filter((hook: unknown): hook is string => typeof hook === 'string').map((hook: string) => ({ hook, body: variants.body_variant || analysis?.body || '', cta: analysis?.cta || '' }))
     : [];
@@ -376,7 +381,7 @@ const VideoAnalysisModalOriginal = ({
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-[minmax(0,320px)_minmax(0,1fr)] md:overflow-hidden">
         <aside className="min-w-0 space-y-3 border-b p-3 md:overflow-y-auto md:border-b-0 md:border-r md:p-4">
-          {video.video_mp4_url ? <CatalogVideoPlayer key={video.id} src={video.video_mp4_url} poster={video.thumbnail_url} title={`Reproducir video de ${video.creator_handle || video.creator_name || 'creador'}`} active={isOpen} /> : <p className="rounded-xl bg-muted p-4 text-sm">Video en preparación.</p>}
+          {video.video_mp4_url ? <CatalogVideoPlayer key={video.id} src={video.video_mp4_url} poster={video.thumbnail_url} title={`Reproducir video de ${video.creator_handle || video.creator_name || 'creador'}`} active={isOpen} onDurationChange={seconds => setMeasuredMedia({ source: video.video_mp4_url!, seconds })} /> : <p className="rounded-xl bg-muted p-4 text-sm">Video en preparación.</p>}
           <a className="inline-flex min-h-10 items-center gap-1.5 text-xs text-muted-foreground underline" href={video.video_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="size-3.5" />Abrir original en TikTok</a>
           <dl className="grid grid-cols-3 gap-2 rounded-xl border border-brand-cyan-200 bg-brand-cyan-50 p-3 text-xs text-brand-ink">
             {[["Ventas reportadas", formatCurrency(video.revenue_mxn)], ["Unidades", formatNumber(video.sales)], ["Vistas", formatNumber(video.views)]].map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold tabular-nums">{value}</dd></div>)}
@@ -397,13 +402,13 @@ const VideoAnalysisModalOriginal = ({
               {processingError && <div role="alert" className="mb-3 rounded-xl border border-destructive/30 p-3 text-sm"><p>{processingError.message}</p><Button variant="outline" size="sm" className="mt-2" disabled={isLoadingScript} onClick={loadScript}>Reintentar carga</Button></div>}
               <TabsContent value="script" className="m-0 space-y-3">
                 {isLoadingScript ? loadingNotice : scriptLocked ? <div className="rounded-xl border p-4 text-sm"><h3 className="font-medium">Descubre cómo este video vende</h3><p className="mt-1 text-muted-foreground">Accede al guion completo, estudia su gancho y adapta la estructura a tu producto.</p><Button className="mt-3" onClick={() => openPaywall('Guion del video')}>Desbloquear guion y análisis</Button></div> : transcript ? <>
-                  <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">{validScriptSegments(analysis?.segments).length ? "Guion por segundos" : "Guion original"}</h3><CopyButton text={transcript} field="transcript" variant="outline" /></div>
-                  <ScriptTranscript transcript={transcript} segments={analysis?.segments} />
+                  <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">{timedSegments.length ? "Guion por segundos" : "Guion original"}</h3><CopyButton text={transcript} field="transcript" variant="outline" /></div>
+                  <ScriptTranscript transcript={transcript} segments={timedSegments} durationSeconds={durationSeconds} />
                   {hasPaid && <ScriptTranslation text={transcript} />}
                 </> : !processingError && preparedNotice}
               </TabsContent>
               <TabsContent value="analysis" className="m-0 space-y-3">
-                {isLoadingScript ? loadingNotice : analysis ? <VideoInsights analysis={analysis} onExploreVariants={transcript ? () => handleTabChange('variants') : undefined} /> : <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">El análisis de esta referencia está en preparación. Puedes consultar el guion disponible.</p>}
+                {isLoadingScript ? loadingNotice : analysis ? <VideoInsights analysis={analysis} segments={timedSegments} durationSeconds={durationSeconds} onExploreVariants={transcript ? () => handleTabChange('variants') : undefined} /> : <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">El análisis de esta referencia está en preparación. Puedes consultar el guion disponible.</p>}
               </TabsContent>
               <TabsContent value="variants" className="m-0 space-y-4">
                 {!hasPaid ? <Button onClick={() => openPaywall('Variantes de guion')}>Ver acceso Pro</Button> : !transcript ? preparedNotice : <>

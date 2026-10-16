@@ -110,6 +110,11 @@ describe('prepared catalog references', () => {
     const savedAnalysis = { ...analysis, segments: [{ start_seconds: 0, end_seconds: 4.2, text: 'Una primera frase real' }], uncertainties: ['No mostrar en cliente'] };
     mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript }] : savedAnalysis, error: null }));
     await open();
+    expect(screen.queryByRole('list', { name: 'Guion por segundos' })).not.toBeInTheDocument();
+    expect(screen.getByText(transcript)).toBeVisible();
+    const player = document.querySelector('video')!;
+    Object.defineProperty(player, 'duration', { configurable: true, value: 85.166667 });
+    fireEvent.loadedMetadata(player);
     expect(screen.getByRole('list', { name: 'Guion por segundos' })).toHaveTextContent('0:00–0:04');
     await tab('Análisis');
     expect(screen.queryByText('No mostrar en cliente')).not.toBeInTheDocument();
@@ -124,6 +129,30 @@ describe('prepared catalog references', () => {
     expect(screen.getByText('Ventas reportadas').nextElementSibling).toHaveTextContent('—');
     expect(screen.getByText('Unidades').nextElementSibling).toHaveTextContent('—');
     expect(screen.getByText('Vistas').nextElementSibling).toHaveTextContent('—');
+  });
+  it('uses real player metadata to remove impossible timing and restores untimed full transcript', async () => {
+    const saved = { ...analysis, segments: [{ start_seconds: 0, end_seconds: 5, text: 'Inicio' }, { start_seconds: 66, end_seconds: 121, text: 'Cierre' }] };
+    mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript }] : saved, error: null }));
+    const component = await open();
+    expect(screen.queryByRole('list', { name: 'Guion por segundos' })).not.toBeInTheDocument();
+    expect(screen.getByText(transcript)).toBeVisible();
+    const player = document.querySelector('video')!;
+    Object.defineProperty(player, 'duration', { configurable: true, value: 85.166667 });
+    fireEvent.loadedMetadata(player);
+    expect(screen.queryByRole('list', { name: 'Guion por segundos' })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Guion original' })).toBeVisible();
+    expect(screen.getByText(transcript)).toBeVisible();
+    await tab('Análisis');
+    expect(screen.queryByText(/Primera frase transcrita/)).not.toBeInTheDocument();
+    expect(screen.getByText('Demostración')).toBeVisible();
+    await act(async () => { component.rerender(view({ ...video, id: 'video-longer', video_mp4_url: 'https://storage.example/longer.mp4' })); });
+    expect(screen.queryByRole('list', { name: 'Guion por segundos' })).not.toBeInTheDocument();
+    const nextPlayer = document.querySelector('video')!;
+    Object.defineProperty(nextPlayer, 'duration', { configurable: true, value: 122 });
+    fireEvent.loadedMetadata(nextPlayer);
+    expect(screen.getByRole('list', { name: 'Guion por segundos' })).toBeVisible();
+    expect(document.querySelectorAll('video')).toHaveLength(1);
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
   });
   it('renders legacy saved analysis with null sections and no audiovisual arrays', async () => {
     mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript, variants_json: null }] : { hook: 'Gancho histórico', body: null, cta: null }, error: null }));

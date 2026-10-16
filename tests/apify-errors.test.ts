@@ -45,6 +45,12 @@ describe('provider rejection recovery and privacy',()=>{
     expect(state.updates[0]).toMatchObject({status:'unknown'});
     expect(await result.text()).toContain('Contacta a soporte');
   });
+  it('identifies disabled provider features without leaking its response',async()=>{
+    const error=await apifyResponseError(response(403,'platform-feature-disabled'));
+    expect(error.message).toBe('Descargas pausadas por el proveedor. El equipo debe revisar su plan, saldo o permisos.');
+    expect(downloadStartFailure(error).status).toBe('rejected');
+    expect(error.message).not.toContain('private-test-token');
+  });
   it('does not restart a request whose network response was lost',async()=>{
     const fetch=vi.fn().mockRejectedValue(new Error('timeout token=private-test-token')); vi.stubGlobal('fetch',fetch);
     const warning=vi.spyOn(console,'warn').mockImplementation(()=>{});

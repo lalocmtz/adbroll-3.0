@@ -15,7 +15,9 @@ export class ApifyProviderError extends AIError {
   constructor(public readonly providerStatus: number, providerType: string) {
     super(providerStatus === 402 || billingTypes.has(providerType)
       ? 'Descargas pausadas: se agotó el límite de uso del proveedor.'
-      : 'El servicio de descarga no pudo aceptar la solicitud. Inténtalo más tarde.', 503);
+      : providerType === 'platform-feature-disabled'
+        ? 'Descargas pausadas por el proveedor. El equipo debe revisar su plan, saldo o permisos.'
+        : 'El servicio de descarga no pudo aceptar la solicitud. Inténtalo más tarde.', 503);
     this.providerType = safeTypes.has(providerType) ? providerType : 'unknown';
     this.definitive = providerStatus >= 400 && providerStatus < 500 && providerStatus !== 408;
   }

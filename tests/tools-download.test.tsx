@@ -190,4 +190,18 @@ describe("download and shared analysis flow", () => {
     expect(mocks.insert).toHaveBeenCalledOnce();
   });
 
+  it("keeps the complete transcript and hides unverified timing in Tools", async () => {
+    mocks.invoke
+      .mockResolvedValueOnce({ data: { status: "ready" }, error: null })
+      .mockResolvedValueOnce({ data: { ...sharedAnalysis, segments: [{ start_seconds: 66, end_seconds: 121, text: "Solo un fragmento" }] }, error: null });
+    await start();
+    expect(screen.getByText(sharedAnalysis.transcript)).toBeVisible();
+    expect(screen.queryByRole('list', { name: 'Guion por segundos' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/2:01/)).not.toBeInTheDocument();
+    await act(async () => { fireEvent.mouseDown(screen.getByRole('tab', { name: 'Análisis' }), { button: 0, ctrlKey: false }); });
+    expect(screen.queryByText(/Primera frase transcrita/)).not.toBeInTheDocument();
+    expect(screen.getByText('Abre con una demostración')).toBeVisible();
+    expect(document.querySelectorAll('video')).toHaveLength(0);
+  });
+
 });
