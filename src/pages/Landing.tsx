@@ -615,6 +615,28 @@ const Landing = () => {
   );
 };
 
+function LandingVideo({ video, label, className, onError }: { video: LiveVideo; label: string; className: string; onError: () => void }) {
+  const player = useRef<HTMLVideoElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const element = player.current;
+    if (!element) return;
+    const pauseWhenHidden = () => { if (document.visibilityState !== 'visible') element.pause(); };
+    const observer = new IntersectionObserver(entries => {
+      const inView = entries.some(entry => entry.isIntersecting);
+      setVisible(inView);
+      if (!inView) element.pause();
+    }, { threshold: 0.01 });
+    observer.observe(element);
+    document.addEventListener('visibilitychange', pauseWhenHidden);
+    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', pauseWhenHidden); element.pause(); };
+  }, [video.video_mp4_url]);
+  const source = video.thumbnail_url ? video.video_mp4_url! : `${video.video_mp4_url!.split('#')[0]}#t=0.1`;
+  return <video ref={player} src={source} poster={video.thumbnail_url || undefined} controls playsInline
+    preload={visible ? 'metadata' : 'none'} aria-label={label} className={className} onError={onError}
+    onPlay={event => { document.querySelectorAll('video').forEach(other => { if (other !== event.currentTarget) other.pause(); }); }} />;
+}
+
 function LandingProof({ video, loading, formatMoney, onExplore }: { video?: LiveVideo; loading: boolean; formatMoney: (n: number | null | undefined) => string; onExplore: () => void }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [video?.video_mp4_url]);
@@ -624,7 +646,7 @@ function LandingProof({ video, loading, formatMoney, onExplore }: { video?: Live
     <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-xs"><span className="font-semibold text-brand-cyan">CASO REAL DEL CATÁLOGO</span><span className="text-brand-mist/50">TikTok Shop México</span></div>
     <div className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
       <div className="aspect-[9/16] bg-black min-w-0">
-        {!failed && video.video_mp4_url ? <video key={video.id} src={video.video_mp4_url} poster={video.thumbnail_url || undefined} controls playsInline preload="none" aria-label={`Video de ${video.creator_handle || video.creator_name || 'TikTok Shop'}`} className="h-full w-full object-contain" onError={() => setFailed(true)} /> : <div className="flex h-full items-center justify-center p-3 text-center text-xs text-brand-mist/50">Video no disponible en este momento</div>}
+        {!failed && video.video_mp4_url ? <LandingVideo key={video.id} video={video} label={`Video de ${video.creator_handle || video.creator_name || 'TikTok Shop'}`} className="h-full w-full object-contain" onError={() => setFailed(true)} /> : <div className="flex h-full items-center justify-center p-3 text-center text-xs text-brand-mist/50">Video no disponible en este momento</div>}
       </div>
       <div className="min-w-0 p-4 sm:p-5 flex flex-col justify-center">
         <p className="text-[11px] text-brand-mist/55">Este video generó ventas por</p>
@@ -824,15 +846,11 @@ const VideoCard = ({
     >
       <div className="relative aspect-[9/13] w-full overflow-hidden bg-brand-ink-800">
         {video.video_mp4_url ? (
-          // Reproducción a petición para no descargar todo el carrusel al abrir.
-          <video
-            src={video.video_mp4_url}
+          // Solo las tarjetas visibles preparan un fotograma; reproducir requiere un clic.
+          <LandingVideo
+            video={video}
             onError={() => setMediaFailed(true)}
-            poster={video.thumbnail_url || undefined}
-            controls
-            playsInline
-            preload="none"
-            aria-label={`Reproducir video de ${handle}`}
+            label={`Reproducir video de ${handle}`}
             className="h-full w-full object-cover"
           />
         ) : video.thumbnail_url ? (

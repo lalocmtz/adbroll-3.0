@@ -54,7 +54,7 @@ describe("Mexico launch landing",()=>{
     expect(within(proof).getByLabelText("Video de ana")).toHaveAttribute("controls");
     expect(within(proof).getByLabelText("Video de ana")).not.toHaveAttribute("autoplay");
     fireEvent.click(screen.getByRole("button", {name:"Ver ejemplo real 2"}));
-    expect(within(proof).getByLabelText("Video de luis")).toHaveAttribute("src", "https://media.example/second.mp4");
+    expect(new URL(within(proof).getByLabelText("Video de luis").getAttribute("src")!).pathname).toBe("/second.mp4");
     expect(within(proof).getByText("$4200")).toBeInTheDocument();
     expect(within(proof).queryByText("$12500")).not.toBeInTheDocument();
     fireEvent.error(within(proof).getByLabelText("Video de luis"));
