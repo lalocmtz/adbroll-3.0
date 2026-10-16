@@ -42,6 +42,7 @@ Revisión visual y de ancho a 390 × 844, más comprobaciones a 360 × 780 y esc
 ## Límites y seguimiento
 
 - El lote histórico está en proceso; no se afirma que todos los guiones ya estén listos. Estado y fallos finales en Administración. Preparación/reintentos continúan sin mantener el navegador abierto.
+- El filtro de 7 días muestra un estado vacío porque no existe un reporte semanal importado. Se comprobó el retorno a 30 días. Hace falta cargar ese reporte; no se interpolaron ventas semanales desde cifras mensuales.
 - Chrome con viewport móvil no sustituye una prueba física de Safari en iPhone. El código corrige la duplicación observada y contempla `playsInline`, `dvh` y safe-area; resta confirmar en el dispositivo del reporte.
 - No se efectuó un cargo real ni se modificaron precio, comisiones o credenciales en esta revisión.
 - La pantalla de Google aún puede mostrar el dominio técnico de Supabase. Personalizar esa pantalla es una configuración de OAuth/dominio aparte; no se cambió la identidad ni los permisos de las cuentas.
@@ -49,4 +50,16 @@ Revisión visual y de ancho a 390 × 844, más comprobaciones a 360 × 780 y esc
 
 ## Publicación y comprobación final
 
-Se registrarán abajo el despliegue y las pruebas reales posteriores a la publicación.
+Publicado en **https://tokxray.com**. Vercel `dpl_8UCKcwxKmJS9ps3FmPnbocAa8BCy`, estado READY, commit `c264a19215b8c9b79a857a18cb932698e4f242ce`. Dominio raíz y www asociados al despliegue.
+
+Comprobaciones reales después de publicar:
+
+- Abrir el video de @srachave: un solo reproductor interactivo, pausado, sin autoplay; guion original y análisis disponibles. Pulsar Play inicia únicamente ese video. Cerrar elimina el reproductor y deja **cero videos con audio reproduciéndose**.
+- Guion de @emiliocampos244: traducción completa al inglés correcta; generación explícita de **2 variantes nuevas**; guion original conservado.
+- Botón del producto → consola M15, UUID correcto, **5 videos relacionados**. Ranking → @emiliocampos244, **13 videos**. Ambas vistas a 390 px sin desbordamiento horizontal.
+- Analizar por enlace → resultado existente con guion por segundos; no volvió a transcribir el archivo ni exigió variantes para mostrarlo.
+- Configuración cargó los datos y acceso administrador; panel de afiliados mostró las condiciones vigentes de US$5 + 15%, líder 5%, retiro mínimo US$50.
+- Panel de preparación visible al fundador, cola activa y cero fallos finales. Último corte de base a **18:24 UTC: 3,024 listos y 1,224 pendientes**, costo acumulado estimado US$0.1219069 de esta cola; los 2,981 resultados previos reutilizados no se vuelven a cobrar por abrirlos.
+- Producción comprobada a **390 × 844 y 1440 × 900**, sin desbordamiento del documento, un solo reproductor del modal y sin reproducción espontánea. Se restauró el tamaño normal del navegador y se dejó abierto el catálogo.
+
+Evidencias principales: `produccion-catalogo-390.png`, `produccion-guion-390.png`, `produccion-guion-1440.png`, `produccion-traduccion-390.png`, `produccion-variantes-390.png`, `produccion-producto-videos-390.png`, `produccion-tools-390.png`, `produccion-cola-390.png`, en el directorio de capturas mencionado arriba.
