@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import RelatedVideos, { creatorVideoFilter } from "@/pages/RelatedVideos";
+import RelatedVideos from "@/pages/RelatedVideos";
 
-const state = vi.hoisted(() => ({ queries: [] as any[], playable: 45, identified: 50, productId: "1736327955572163659" as string | null }));
+const state = vi.hoisted(() => ({ queries: [] as any[], rpc: vi.fn(), playable: 45, identified: 50, productId: "1736327955572163659" as string | null }));
 vi.mock("@/contexts/BlurGateContext", () => ({ useBlurGateContext: () => ({ isFounder: false }) }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/components/VideoCardOriginal", () => ({ default: ({ video }: any) => <div>{video.title}</div> }));
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: (table: string) => {
+  supabase: { rpc: state.rpc, from: (table: string) => {
     const query: any = { table, filters: [], orders: [] };
     state.queries.push(query);
     query.select = (_: string, opts: any = {}) => { query.options = opts; return query; };
@@ -28,29 +28,32 @@ const mount = (url = "/creadores/creator-1/videos") => render(<MemoryRouter init
 </Routes></MemoryRouter>);
 
 beforeEach(() => {
+  state.rpc.mockReset();
+  state.rpc.mockImplementation(async () => ({ data: { rows: state.playable ? [{ id: 'v1', title: 'Video disponible' }] : [], count: Math.min(50, state.playable), total_available: state.playable, identified_count: state.identified }, error: null }));
   state.queries = []; state.playable = 45; state.identified = 50; state.productId = "1736327955572163659";
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
 
 describe("related videos", () => {
-  it("matches exact normalized handles without treating underscores as wildcards", () => {
-    expect(creatorVideoFilter({ id: "creator-1", creator_handle: " @Kals_Alex ", usuario_creador: "" }))
-      .toBe("creator_id.eq.creator-1,creator_handle.ilike.kals\\_alex,creator_handle.ilike.@kals\\_alex");
-    expect(creatorVideoFilter({ id: "creator-1", creator_handle: "bad,filter%", usuario_creador: "" }))
-      .toBe("creator_id.eq.creator-1");
+  it("uses exact creator RPC, caps selection at50 and resets sorting to page one", async () => {
+    state.playable = 80;
+    mount();
+    expect(await screen.findByText("Top 50 de 80 videos disponibles")).toBeInTheDocument();
+    expect(state.rpc).toHaveBeenCalledWith('get_creator_catalog_videos', { p_creator_id: 'creator-1', p_sort: 'revenue', p_offset: 0 });
+    fireEvent.click(screen.getByRole("button", { name: "Página 2", exact: true }));
+    await waitFor(() => expect(state.rpc).toHaveBeenCalledWith('get_creator_catalog_videos', expect.objectContaining({ p_offset: 20 })));
+    await screen.findByText("Top 50 de 80 videos disponibles");
+    fireEvent.click(screen.getByRole("button", { name: "Vistas" }));
+    await waitFor(() => expect(state.rpc).toHaveBeenCalledWith('get_creator_catalog_videos', { p_creator_id: 'creator-1', p_sort: 'views', p_offset: 0 }));
+    expect(state.queries.filter(q => q.table === 'videos')).toHaveLength(0);
+    expect(screen.queryByRole('button', { name: 'Página 4', exact: true })).not.toBeInTheDocument();
   });
 
-  it("uses the full server count and requests the next page, then resets sorting to page one", async () => {
+  it("shows an honest empty state for a stale creator link without downloaded files", async () => {
+    state.playable = 0; state.identified = 12;
     mount();
-    expect(await screen.findByText("45 videos disponibles")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Página 2", exact: true }));
-    await waitFor(() => expect(state.queries.some(q => q.page?.[0] === 20 && q.page?.[1] === 39)).toBe(true));
-    await screen.findByText("45 videos disponibles");
-    fireEvent.click(screen.getByRole("button", { name: "Vistas" }));
-    await waitFor(() => expect(state.queries.some(q => q.page?.[0] === 0 && q.orders[0]?.[0] === "views")).toBe(true));
-    const page = state.queries.find(q => q.page);
-    expect(page.filters).toContainEqual(["not", "video_mp4_url", "is", null]);
-    expect(page.filters).toContainEqual(["neq", "video_mp4_url", ""]);
+    expect(await screen.findByText('0 videos disponibles')).toBeInTheDocument();
+    expect(screen.getByText(/Estamos preparando los videos de esta referencia/)).toBeInTheDocument();
   });
 
   it("explains missing files while enforcing exact product/manual links", async () => {

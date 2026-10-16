@@ -79,7 +79,7 @@ describe('prepared catalog references', () => {
     mocks.hasPaid = false;
     mocks.rpc.mockResolvedValue({ data: [{ locked: true }], error: null });
     await open();
-    expect(screen.getByRole('button', { name: 'Ver acceso Pro' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Desbloquear guion y análisis' })).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Traducir al inglés' })).not.toBeInTheDocument();
     expect(mocks.rpc).not.toHaveBeenCalledWith('get_video_analysis', expect.anything());
     expect(mocks.invoke).not.toHaveBeenCalled();
@@ -105,6 +105,25 @@ describe('prepared catalog references', () => {
     expect(pause).toHaveBeenCalled();
     const other = document.createElement('video'); document.body.append(other); const otherPause = vi.spyOn(other, 'pause');
     fireEvent.play(element); expect(otherPause).toHaveBeenCalled(); other.remove();
+  });
+  it('shows saved timing and opens variant controls without generating until requested', async () => {
+    const savedAnalysis = { ...analysis, segments: [{ start_seconds: 0, end_seconds: 4.2, text: 'Una primera frase real' }], uncertainties: ['No mostrar en cliente'] };
+    mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript }] : savedAnalysis, error: null }));
+    await open();
+    expect(screen.getByRole('list', { name: 'Guion por segundos' })).toHaveTextContent('0:00–0:04');
+    await tab('Análisis');
+    expect(screen.queryByText('No mostrar en cliente')).not.toBeInTheDocument();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Probar otros hooks y guiones' })); });
+    expect(screen.getByRole('button', { name: 'Generar variantes' })).toBeVisible();
+    expect(mocks.invoke).not.toHaveBeenCalled();
+    expect(document.querySelectorAll('video')).toHaveLength(1);
+    expect(document.querySelector('video')).not.toHaveAttribute('autoplay');
+  });
+  it('does not turn missing performance data into zero sales', async () => {
+    await open();
+    expect(screen.getByText('Ventas reportadas').nextElementSibling).toHaveTextContent('—');
+    expect(screen.getByText('Unidades').nextElementSibling).toHaveTextContent('—');
+    expect(screen.getByText('Vistas').nextElementSibling).toHaveTextContent('—');
   });
   it('renders legacy saved analysis with null sections and no audiovisual arrays', async () => {
     mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript, variants_json: null }] : { hook: 'Gancho histórico', body: null, cta: null }, error: null }));

@@ -149,6 +149,11 @@ const Settings = () => {
       </div>
 
       <div className="space-y-5">
+        {isFounder && <Card className="border-primary/20 bg-primary/5 p-5">
+          <h2 className="font-semibold">Control de TokXray</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Suscriptores, afiliados, almacenamiento, consumo de IA y avance de los guiones.</p>
+          <Button className="mt-4 min-h-11" onClick={() => navigate('/admin')}>Abrir mi panel de control</Button>
+        </Card>}
         {/* Profile Section */}
         <Card className="p-5">
           <div className="flex items-center gap-3 mb-4">

@@ -1,15 +1,21 @@
+import { apifyErrorLog, apifyResponseError, downloadStartFailure } from '../_shared/apify-errors.ts';
 import { AIError, ownedVideoUrl } from '../_shared/ai-contracts.ts';
 import { authenticatedAI, failure, headers, reply } from '../_shared/gemini.ts';
 import { apifyId, boundedMP4, canonicalTikTok, verifiedDownload } from '../_shared/download-contracts.ts';
 import { storeCatalogPoster } from '../_shared/catalog-posters.ts';
 const pending = () => reply({ status: 'pending', retryAfterSeconds: 8 }, 202);
 async function provider(path: string, key: string, init: RequestInit = {}) {
-  const response = await fetch(`https://api.apify.com/v2/${path}`, {
-    ...init, headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    redirect: 'error', signal: AbortSignal.timeout(20000),
-  });
-  if (!response.ok) throw new AIError(response.status === 402 ? 'El servicio de descarga necesita saldo. Contacta a soporte.' : 'No se pudo consultar el servicio de descarga. Inténtalo más tarde.', 503);
-  return response.json();
+  try {
+    const response = await fetch(`https://api.apify.com/v2/${path}`, {
+      ...init, headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      redirect: 'error', signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) throw await apifyResponseError(response);
+    return await response.json();
+  } catch (error) {
+    console.warn('catalog_download_provider', apifyErrorLog(error));
+    throw error;
+  }
 }
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response(null, { headers });
@@ -42,12 +48,14 @@ Deno.serve(async req => {
         if (saved.error) throw new AIError('No se pudo guardar el estado de descarga.',503);
         return pending();
       } catch (error) {
-        // Never reissue a paid start after an ambiguous network/provider response.
-        await db.from('catalog_download_jobs').update({status:'unknown',failure_message:'No se pudo confirmar el inicio de la descarga. Contacta a soporte para revisarla.',updated_at:new Date().toISOString()}).eq('tiktok_video_id',source.id).eq('status','starting');
-        throw error;
+        // Only definite HTTP rejections can later retry; lost responses stay reserved.
+        const failedStart = downloadStartFailure(error);
+        const saved = await db.from('catalog_download_jobs').update({...failedStart,updated_at:new Date().toISOString()}).eq('tiktok_video_id',source.id).eq('status','starting');
+        if (saved.error) throw new AIError('No se pudo guardar el estado de descarga. Contacta a soporte.',503);
+        throw new AIError(failedStart.failure_message, failedStart.status === 'rejected' ? 422 : 503);
       }
     }
-    if (job.status === 'failed' || job.status === 'unknown') throw new AIError(job.failure_message || 'Este video no se pudo descargar. Prueba con otro video público.',422);
+    if (job.status === 'failed' || job.status === 'unknown' || job.status === 'rejected') throw new AIError(job.failure_message || 'Este video no se pudo descargar. Prueba con otro video público.',422);
     if (job.status === 'starting') {
       if (Date.now()-new Date(job.created_at).getTime()>90000) throw new AIError('La descarga necesita revisión de soporte antes de reintentarse.',503);
       return pending();

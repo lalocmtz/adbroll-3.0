@@ -11,7 +11,7 @@ No afirmes que vende bien sin datos. Distingue observaciones de hipótesis y no 
 Responde JSON: {"insights":{"funcionamiento":"hipótesis de por qué podría funcionar","angulos":["ángulo"],"ctaLocation":"ubicación o ausente","estructura":"estructura observada","fortalezas":["fortaleza"],"debilidades":["debilidad"]}}.
 GUION: ${JSON.stringify(script)}` }]);
     const insights = data?.insights;
-    if (!insights || !['funcionamiento','ctaLocation','estructura'].every(k => typeof insights[k] === 'string' && insights[k].trim()) || !['angulos','fortalezas','debilidades'].every(k => Array.isArray(insights[k]) && insights[k].every((x: unknown) => typeof x === 'string'))) throw new AIError('Gemini no devolvió un análisis completo.', 502);
+    if (!insights || !['funcionamiento','ctaLocation','estructura'].every(k => typeof insights[k] === 'string' && insights[k].trim()) || !['angulos','fortalezas','debilidades'].every(k => Array.isArray(insights[k]) && insights[k].every((x: unknown) => typeof x === 'string'))) throw new AIError('No se pudo completar el análisis. Inténtalo de nuevo.', 502);
     return reply({ insights });
   } catch (error) { return failure(error); }
 });

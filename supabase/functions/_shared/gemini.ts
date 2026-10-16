@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { recordAIUsage } from './ai-usage.ts';
 import { AIError, GeminiProviderError, safeGeminiCode, parseGeminiResult } from './ai-contracts.ts';
 
 export const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
@@ -31,25 +32,41 @@ export async function geminiJSON(parts: unknown[], temperature = 0.2) {
   const key = geminiKey();
   const selectedModel = model();
   if (!/^[a-z0-9.-]+$/.test(selectedModel)) throw new AIError('El servicio de análisis no está configurado correctamente.', 503);
-  let response: Response | undefined;
-  for (let attempt=0;attempt<2;attempt++) {
-    try { response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`, {
-    method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json', temperature, maxOutputTokens: 8192 } }),
-    signal: AbortSignal.timeout(110000),
-  });
-    } catch { throw new GeminiProviderError(503,'NETWORK_ERROR'); }
-    if (response.ok) break;
-    const payload=await response.json().catch(()=>null);
-    const error=new GeminiProviderError(response.status,safeGeminiCode(payload));
-    // Provider prose may include request details: log only bounded identifiers.
-    console.error('Gemini request failed',JSON.stringify({status:error.providerStatus,code:error.providerCode,attempt:attempt+1}));
-    if (!error.retryable || attempt===1) throw error;
-    await new Promise(resolve=>setTimeout(resolve,1200));
+  const requestId = crypto.randomUUID();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const startedAt = Date.now();
+    const context = { requestId, attempt: attempt + 1, model: selectedModel, startedAt };
+    let response: Response;
+    try {
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`, {
+        method: 'POST', headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseMimeType: 'application/json', temperature, maxOutputTokens: 8192 } }),
+        signal: AbortSignal.timeout(110000),
+      });
+    } catch {
+      await recordAIUsage({ ...context, httpStatus: null, succeeded: false, errorCode: 'NETWORK_ERROR' });
+      throw new GeminiProviderError(503, 'NETWORK_ERROR');
+    }
+    const payload = await response.json().catch(() => null);
+    const metering = { ...context, httpStatus: response.status, usage: payload?.usageMetadata };
+    if (!response.ok) {
+      const error = new GeminiProviderError(response.status, safeGeminiCode(payload));
+      await recordAIUsage({ ...metering, succeeded: false, errorCode: error.providerCode });
+      console.error('Gemini request failed', JSON.stringify({ status: error.providerStatus, code: error.providerCode, attempt: attempt + 1 }));
+      if (!error.retryable || attempt === 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      continue;
+    }
+    let parsed;
+    try {
+      parsed = parseGeminiResult(payload);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new AIError('El servicio devolvió un formato de análisis inválido.', 502);
+    } catch (error) {
+      await recordAIUsage({ ...metering, succeeded: false, errorCode: 'INVALID_PROVIDER_RESPONSE' });
+      throw error;
+    }
+    await recordAIUsage({ ...metering, succeeded: true });
+    return { ...parsed, _provider_usage: payload.usageMetadata || null };
   }
-  if (!response?.ok) throw new GeminiProviderError(503,'NO_RESPONSE');
-  const payload = await response.json();
-  const parsed = parseGeminiResult(payload);
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new AIError('El servicio devolvió un formato de análisis inválido.', 502);
-  return { ...parsed, _provider_usage: payload.usageMetadata || null };
+  throw new GeminiProviderError(503, 'NO_RESPONSE');
 }

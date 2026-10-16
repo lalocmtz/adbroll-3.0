@@ -46,6 +46,29 @@ const BADGE_FILTERS: { value: BadgeFilter; labelEs: string; labelEn: string }[] 
 
 const FREE_PREVIEW_LIMIT = 3;
 
+export const OpportunityGuide = ({ language }: { language: string }) => {
+  const es = language === 'es';
+  const factors = [
+    { weight: 30, name: es ? 'Ventas reportadas' : 'Reported sales' },
+    { weight: 25, name: es ? 'Menos creadores' : 'Fewer creators' },
+    { weight: 20, name: es ? 'Impulso de ventas' : 'Sales momentum' },
+    { weight: 15, name: es ? 'Comisión por venta' : 'Commission per sale' },
+    { weight: 10, name: es ? 'Retorno publicitario' : 'Ad return' },
+  ];
+  return <section className="mb-4 overflow-hidden rounded-2xl border border-brand-ink-700 bg-brand-ink p-4 text-white md:p-5" aria-label={es ? 'Cómo funciona el indicador' : 'How the score works'}>
+    <div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-cyan text-brand-ink"><Lightbulb className="size-5" aria-hidden="true" /></div><div className="min-w-0"><h2 className="text-balance text-base font-semibold md:text-lg">{es ? 'Encuentra qué producto vale la pena explorar' : 'Find a product worth exploring'}</h2><p className="mt-1 max-w-3xl text-pretty text-sm leading-relaxed text-white/75">{es ? 'Buscamos ventas reportadas, menos creadores compitiendo y una comisión atractiva. Elige un producto y estudia sus videos antes de decidir qué grabar.' : 'Look for reported sales, fewer competing creators and attractive commissions. Choose a product and study its videos before deciding what to record.'}</p></div></div>
+    <details className="mt-3 border-t border-white/15 pt-1">
+      <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium text-brand-cyan">{es ? 'Cómo se calcula la puntuación de 0 a 100' : 'How the 0–100 score is calculated'}<span className="ml-auto text-xl" aria-hidden="true">+</span></summary>
+      <p className="mb-3 text-sm leading-relaxed text-white/75">{es ? 'Compara la posición de cada producto dentro de su mercado y categoría. Estos son los pesos de cada señal:' : 'Compares each product with others in its market and category. Each signal has the following weight:'}</p>
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-5">{factors.map(factor => <div key={factor.weight} className="rounded-xl border border-white/15 p-3"><dd className="font-semibold tabular-nums text-brand-cyan">{factor.weight}%</dd><dt className="mt-1 text-xs leading-relaxed text-white/80">{factor.name}</dt></div>)}</dl>
+      <div className="mt-3 space-y-2 text-xs leading-relaxed text-white/65">
+        <p>{es ? 'El impulso usa cambios entre reportes guardados o, si no existen, la proporción de ventas de 7 y 30 días. Las ventas usan el dato de 30 días disponible o el total reportado; no equivalen siempre a los últimos 30 días.' : 'Momentum uses changes between saved reports or, when unavailable, the ratio of 7-day to 30-day sales. Sales use available 30-day data or the reported total; they do not always represent the latest 30 days.'}</p>
+        <p>{es ? 'Los datos faltantes pueden contar como cero y alterar el orden. Es una guía experimental para comparar, no una probabilidad de éxito ni una predicción de ventas.' : 'Missing data may count as zero and affect the order. This is an experimental comparison guide, not a success probability or sales forecast.'}</p>
+      </div>
+    </details>
+  </section>;
+};
+
 const Opportunities = () => {
   const { toast } = useToast();
   const { language, formatMoney } = useLanguage();
@@ -142,6 +165,7 @@ const Opportunities = () => {
             <p>{language === "es" ? "Revisa los videos relacionados y la fecha del reporte antes de elegir qué grabar." : "Review related videos and the report period before choosing what to record."}</p>
           </CatalogInfo>
         </CatalogHeader>
+        <OpportunityGuide language={language} />
         <CatalogFilterBar>
           <FilterPills compact options={BADGE_FILTERS.map(option => ({ value: option.value, label: language === "es" ? option.labelEs : option.labelEn }))}
             value={badgeFilter} onChange={value => {
@@ -299,8 +323,8 @@ const OpportunityCard = ({
     .filter((reason) => !reason.startsWith("Crecimiento"))
     .map((reason) => reason
       .replace(/^Vendió /, "Ventas reportadas: ")
-      .replace(" en los últimos 30 días", " en el período de 30 días del reporte")
-      .replace(" en 30 días y solo ", " en el período de 30 días; ")
+      .replace(" en los últimos 30 días", " en el reporte")
+      .replace(" en 30 días y solo ", " en el reporte; ")
       .replace(" creadores lo promueven", " creadores en el reporte")
       .replace(/^Ganarías ~/, "Comisión estimada: ~"))
     .slice(0, 3);
@@ -350,7 +374,7 @@ const OpportunityCard = ({
     });
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-200 bg-card rounded-xl border border-border/60 shadow-sm flex flex-col">
+    <Card className="overflow-hidden bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col">
       {/* Header: imagen + nombre + categoría */}
       <div className="flex gap-3 p-3 md:p-4 pb-0 md:pb-0">
         <div className="relative w-20 h-20 md:w-24 md:h-24 flex-shrink-0">
@@ -373,9 +397,9 @@ const OpportunityCard = ({
             </h3>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 flex-shrink-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm cursor-help">
+                <span className="inline-flex items-center gap-1 flex-shrink-0 bg-brand-ink text-brand-cyan rounded-lg px-2 py-1 text-xs font-semibold tabular-nums cursor-help">
                   <TrendingUp className="h-3 w-3" />
-                  {product.opportunity_index ?? 0}<span className="sr-only"> / 100 · Indicador experimental</span>
+                  {product.opportunity_index ?? "—"}<span className="text-[10px] text-white/65">/100</span><span className="sr-only"> · Indicador experimental</span>
                 </span>
               </TooltipTrigger>
               <TooltipContent side="left" className="max-w-[220px]">
@@ -404,7 +428,7 @@ const OpportunityCard = ({
       <div className="p-3 md:p-4 flex flex-col flex-1 gap-3">
         {/* El PORQUÉ con números — lo más importante de la tarjeta */}
         {reasons.length > 0 && (
-          <ul className="space-y-1.5 bg-muted/30 rounded-lg p-2.5">
+          <ul className="space-y-1.5 border-l-2 border-brand-cyan bg-muted/20 rounded-r-lg p-3">
             {reasons.map((reason, i) => (
               <li key={i} className="flex items-start gap-2 text-[12px] md:text-[13px] text-foreground leading-snug">
                 <span className="text-primary text-[8px] mt-1.5">●</span>

@@ -4,7 +4,7 @@ import ts from 'typescript';
 import { describe, expect, it, vi } from 'vitest';
 import * as contracts from '../supabase/functions/_shared/ai-contracts';
 
-// Real handler/auth/quota/JSON validation; only Supabase and Gemini boundaries are mocked.
+// Real handler/auth/quota/JSON validation; Supabase, Gemini and metering I/O are mocked.
 function fixture(options: { paid?: boolean; expired?: boolean; limit?: boolean; key?: string; response?: unknown; providerStatus?: number; finishReason?: string } = {}) {
   let handler: (req: Request) => Promise<Response>;
   const rpc = vi.fn(async (name: string, _args?: Record<string, unknown>) => ({ data: name === 'is_paid_user' ? options.paid !== false : options.limit !== true, error: null }));
@@ -12,12 +12,14 @@ function fixture(options: { paid?: boolean; expired?: boolean; limit?: boolean; 
   const provider = vi.fn(async (_url: string, _options: RequestInit) => new Response(JSON.stringify({ candidates: [{ finishReason: options.finishReason ?? 'STOP', content: { parts: [{ text: JSON.stringify(options.response === undefined ? { translation: '  Hello, try this product.  ' } : options.response) }] } }] }), { status: options.providerStatus ?? 200 }));
   const env = { get: (key: string) => key === 'GEMINI_API_KEY' ? options.key ?? 'test-private-key' : key === 'GEMINI_MODEL' ? 'gemini-3.5-flash-lite' : 'test' };
   const compile = (file: string) => ts.transpileModule(readFileSync(new URL(file, import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/^export /gm, ''), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
-  const helperScope = { ...contracts, createClient: () => ({ auth: { getUser }, rpc }), Deno: { env }, fetch: provider };
+  // Imports are stripped by this fixture, so inject the metering boundary explicitly.
+  const recordAIUsage = vi.fn(async (_event: Record<string, unknown>) => {});
+  const helperScope = { ...contracts, recordAIUsage, createClient: () => ({ auth: { getUser }, rpc }), Deno: { env }, fetch: provider };
   const helper = new Function(...Object.keys(helperScope), compile('../supabase/functions/_shared/gemini.ts') + '\nreturn { authenticatedAI, failure, geminiJSON, geminiKey, headers, reply, reserve };')(...Object.values(helperScope));
   const handlerScope = { ...contracts, ...helper, Deno: { serve: (fn: typeof handler) => { handler = fn; } } };
   new Function(...Object.keys(handlerScope), compile('../supabase/functions/translate-script/index.ts'))(...Object.values(handlerScope));
   return {
-    rpc, getUser, provider,
+    rpc, getUser, provider, recordAIUsage,
     run: (body: unknown = { text: 'Hola, prueba este producto.', targetLanguage: 'en' }, method = 'POST', auth = 'Bearer token') => handler!(new Request('https://test/translate-script', {
       method, headers: auth ? { Authorization: auth } : {}, ...(method === 'POST' ? { body: typeof body === 'string' ? body : JSON.stringify(body) } : {}),
     })),
@@ -34,12 +36,16 @@ describe('owned script translation', () => {
     const prompt = JSON.parse(test.provider.mock.calls[0][1].body as string).contents[0].parts[0].text;
     expect(prompt).toContain(targetLanguage === 'es' ? 'español latinoamericano' : 'inglés');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
+    expect(test.recordAIUsage).toHaveBeenCalledOnce();
+    expect(test.recordAIUsage.mock.calls[0][0]).toMatchObject({model:'gemini-3.5-flash-lite',attempt:1,httpStatus:200,succeeded:true});
+    expect(JSON.stringify(test.recordAIUsage.mock.calls)).not.toMatch(/Hola|Hello|test-private-key/);
   });
   it.each([undefined, null, 'fr', 'EN', {}, ['es']])('rejects invalid target %j before consuming quota or calling Gemini', async targetLanguage => {
     const test = fixture();
     expect((await test.run({ text: 'Hola', targetLanguage })).status).toBe(400);
     expect(test.rpc).toHaveBeenCalledTimes(1);
     expect(test.provider).not.toHaveBeenCalled();
+    expect(test.recordAIUsage).not.toHaveBeenCalled();
   });
   it.each(['', '  ', 123, null, 'x'.repeat(30001)])('rejects an empty, invalid or oversized script', async text => {
     const test = fixture();
@@ -92,6 +98,7 @@ describe('owned script translation', () => {
     const body = await response.json();
     expect(body.error).toMatch(/intentarlo/i);
     expect(JSON.stringify(body)).not.toMatch(/test-private-key|Gemini|network error/i);
+    expect(test.recordAIUsage.mock.calls[0][0]).toMatchObject({httpStatus:null,succeeded:false,errorCode:'NETWORK_ERROR'});
   });
   it('reports quota and configuration errors without leaking keys or consuming unconfigured quota', async () => {
     const missing = fixture({ key: '' });
@@ -101,6 +108,8 @@ describe('owned script translation', () => {
     const response = await limited.run();
     expect(response.status).toBe(429);
     expect(await response.text()).not.toContain('test-private-key');
+    expect(limited.recordAIUsage).toHaveBeenCalledTimes(2);
+    expect(limited.recordAIUsage.mock.calls.map(call=>call[0].attempt)).toEqual([1,2]);
   });
   it('delimits the original as JSON data, instructs translation without execution, and never stores or mutates it', async () => {
     const test = fixture();

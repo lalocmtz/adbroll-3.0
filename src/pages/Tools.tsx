@@ -1,5 +1,6 @@
 import { CatalogHeader, CatalogInfo } from "@/components/CatalogToolbar";
 import { ScriptTranslation } from '@/components/ScriptTranslation';
+import { VideoInsights, validScriptSegments } from '@/components/VideoInsights';
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -369,7 +370,7 @@ const Tools = () => {
       }
       setTranscript(tx);
       setAnalyzedVideoUrl(url);
-      const segs: Segment[] = Array.isArray(trData?.segments) ? trData.segments.filter((seg: any) => typeof seg?.text === 'string' && Number.isFinite(seg.start_ms) && Number.isFinite(seg.end_ms)) : [];
+      const segs: Segment[] = validScriptSegments(trData?.segments);
       setSegments(segs);
 
       // Legacy hook/body/cta results are usable without creative variants.
@@ -682,72 +683,17 @@ const Tools = () => {
 
                       {/* Por que funciono */}
                       <TabsContent value="why" className="m-0 p-4">
-                        <ScrollArea className="h-[316px] pr-2">
-                          {insights ? (
-                            <div className="space-y-4">
-                              {insights.funcionamiento && (
-                                <div className="p-3 rounded-xl bg-primary/5 border border-primary/15">
-                                  <p className="text-xs font-semibold text-primary mb-1">
-                                    {t("Qué puedes aprender de este video", "What you can learn from this video")}
-                                  </p>
-                                  <p className="text-sm text-foreground/90 leading-relaxed">
-                                    {insights.funcionamiento}
-                                  </p>
-                                </div>
-                              )}
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {insights.estructura && (
-                                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">
-                                      {t("Estructura", "Structure")}
-                                    </p>
-                                    <p className="text-xs text-foreground/90">{insights.estructura}</p>
-                                  </div>
-                                )}
-                                {insights.ctaLocation && (
-                                  <div className="p-3 rounded-xl bg-muted/30 border border-border/50">
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">
-                                      {t("Invitación a actuar", "Call to action")}
-                                    </p>
-                                    <p className="text-xs text-foreground/90">{insights.ctaLocation}</p>
-                                  </div>
-                                )}
-                              </div>
-
-                              {insights.angulos && insights.angulos.length > 0 && (
-                                <BulletBlock
-                                  title={t("Formas de presentar la idea", "Ways to present the idea")}
-                                  items={insights.angulos}
-                                  tone="default"
-                                />
-                              )}
-                              {insights.fortalezas && insights.fortalezas.length > 0 && (
-                                <BulletBlock
-                                  title={t("Fortalezas", "Strengths")}
-                                  items={insights.fortalezas}
-                                  tone="positive"
-                                />
-                              )}
-                              {insights.debilidades && insights.debilidades.length > 0 && (
-                                <BulletBlock
-                                  title={t("Qué mejorar", "What to improve")}
-                                  items={insights.debilidades}
-                                  tone="warning"
-                                />
-                              )}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground text-center py-8">
-                              {t("No se pudo generar el análisis.", "Could not generate the analysis.")}
-                            </p>
-                          )}
-                        </ScrollArea>
+                        {insights ? <VideoInsights
+                          locale={isEs ? 'es' : 'en'}
+                          analysis={{ hook: insights.funcionamiento, body: insights.estructura, cta: insights.ctaLocation, visual_observations: insights.angulos, beginner_takeaways: insights.fortalezas }}
+                          segments={segments}
+                          onExploreVariants={transcript ? () => setActiveTab('variants') : undefined}
+                        /> : <p className="py-8 text-center text-sm text-muted-foreground">{t("El análisis aún no está disponible.", "The analysis is not available yet.")}</p>}
                       </TabsContent>
 
                       {/* Variantes */}
                       <TabsContent value="variants" className="m-0 p-4 space-y-3">
-                        <Button onClick={generateVariants} disabled={generatingVariants || !transcript.trim()} className="w-full min-h-11">
+                        <Button onClick={generateVariants} disabled={generatingVariants || !transcript.trim()} className="w-full min-h-11 bg-brand-pink-600 text-white hover:bg-brand-pink-700">
                           {generatingVariants ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Sparkles className="mr-2 size-4" />}
                           {generatingVariants ? t("Preparando variantes…", "Preparing variants…") : t("Generar 3 variantes", "Generate 3 variants")}
                         </Button>

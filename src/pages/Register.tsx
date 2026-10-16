@@ -168,8 +168,8 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] flex items-start sm:items-center justify-center landing-light px-4 py-5">
-      <Card className="w-full max-w-md card-landing-light relative">
+    <div className="min-h-[100dvh] flex items-start sm:items-center justify-center bg-brand-ink px-4 py-5">
+      <Card className="w-full max-w-md card-landing-light relative border-white/10 shadow-2xl">
         <button
           onClick={() => navigate("/app")}
           className="absolute top-2 right-2 h-11 w-11 flex items-center justify-center rounded-full hover:bg-muted transition-colors z-10"
@@ -188,14 +188,14 @@ const Register = () => {
             </button>
           </div>
           {destination === "/pricing" && <p className="text-[11px] text-muted-foreground">1. Cuenta · 2. Confirmación · 3. Activar Pro</p>}
-          <h1 className="text-xl font-semibold leading-snug">Encuentra qué está vendiendo</h1>
+          <h1 className="text-xl font-semibold leading-snug">Deja de grabar a ciegas.</h1>
           <CardDescription>
-            Explora productos y videos de TikTok Shop antes de grabar.
+            Encuentra productos con ventas y videos de los que puedes aprender. Empieza a elegir con más intención.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 px-5 pb-5">
           <p className="rounded-xl bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-            Vista previa gratis, sin tarjeta. Guiones y análisis con Pro: US$15/mes, solo si lo activas. <Link to="/pricing" className="text-primary underline">Ver qué incluye Pro</Link>
+            Vista previa gratis, sin tarjeta. Explora primero. Activa guiones y análisis con Pro por US$15/mes cuando tú decidas. <Link to="/pricing" className="text-primary underline">Ver qué incluye Pro</Link>
           </p>
           {/* Referral Code Input - Before OAuth for visibility */}
           <div className="space-y-2">
@@ -323,7 +323,7 @@ const Register = () => {
               </p>
             </div>
 
-            <Button type="submit" className="w-full h-11 font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading || isGoogleLoading || referralBlocked}>
+            <Button type="submit" className="w-full h-11 font-semibold bg-brand-pink hover:bg-brand-pink/90 text-white" disabled={isLoading || isGoogleLoading || referralBlocked}>
               {isLoading ? "Creando cuenta..." : "Crear cuenta gratis"}
             </Button>
           </form>}

@@ -98,18 +98,6 @@ const SORT_OPTIONS = [
 
 const ITEMS_PER_PAGE = 20;
 
-// TikTok handles are exact identities, never a fuzzy name/title search.
-export const creatorVideoFilter = (creator: Pick<CreatorInfo, "id" | "creator_handle" | "usuario_creador">) => {
-  const handle = (creator.creator_handle || creator.usuario_creador || "").trim().replace(/^@/, "").toLowerCase();
-  const clauses = [`creator_id.eq.${creator.id}`];
-  if (/^[a-z0-9._]+$/.test(handle)) {
-    // ilike is case-insensitive; escape underscores so they cannot match another creator.
-    const exactHandle = handle.replace(/_/g, "\\_");
-    clauses.push(`creator_handle.ilike.${exactHandle}`, `creator_handle.ilike.@${exactHandle}`);
-  }
-  return clauses.join(",");
-};
-
 const SORT_COLUMNS: Record<string, "revenue_mxn" | "sales" | "views"> = {
   revenue: "revenue_mxn", sales: "sales", views: "views",
 };
@@ -141,6 +129,7 @@ const RelatedVideos = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalVideos, setTotalVideos] = useState(0);
+  const [availableCreatorVideos, setAvailableCreatorVideos] = useState(0);
   const [identifiedVideos, setIdentifiedVideos] = useState(0);
   const requestVersion = useRef(0);
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
@@ -183,6 +172,7 @@ const RelatedVideos = () => {
       setVideos([]);
       setTotalVideos(0);
       setIdentifiedVideos(0);
+      setAvailableCreatorVideos(0);
       const from = (currentPage - 1) * ITEMS_PER_PAGE;
       const loadVideos = async (scope: (query: any) => any) => {
         const [page, identified] = await Promise.all([
@@ -241,9 +231,15 @@ const RelatedVideos = () => {
         if (version !== requestVersion.current) return;
         setCreatorInfo(creator);
 
-        await loadVideos(query => query
-          .or(creatorVideoFilter(creator))
-          .eq("country", creator.country || "mx"));
+        const { data, error } = await supabase.rpc('get_creator_catalog_videos', { p_creator_id: creatorId, p_sort: sortOrder, p_offset: from });
+        if (version !== requestVersion.current) return;
+        if (error) throw error;
+        const result = data as unknown as { rows: Video[]; count: number; total_available: number; identified_count: number };
+        if (!Array.isArray(result?.rows)) throw new Error('No se pudieron recuperar los videos del creador.');
+        setVideos(result.rows);
+        setTotalVideos(result.count);
+        setIdentifiedVideos(result.identified_count);
+        setAvailableCreatorVideos(result.total_available);
       }
     } catch (error: any) {
       if (version !== requestVersion.current) return;
@@ -482,10 +478,11 @@ const RelatedVideos = () => {
 
       <CatalogFilterBar label="Ordenar videos relacionados">
         <FilterPills compact options={SORT_OPTIONS} value={sortOrder} onChange={(v) => { setSortOrder(v); setCurrentPage(1); }} />
-        <span className="text-xs tabular-nums text-muted-foreground whitespace-nowrap">{totalVideos} {totalVideos === 1 ? "video disponible" : "videos disponibles"}</span>
+        <span className="text-xs tabular-nums text-muted-foreground">{isCreatorView && availableCreatorVideos > 50 ? `Top 50 de ${availableCreatorVideos} videos disponibles` : `${totalVideos} ${totalVideos === 1 ? "video disponible" : "videos disponibles"}`}</span>
         <CatalogInfo>
           <p className="font-semibold break-words">{productInfo?.producto_nombre || creatorInfo?.nombre_completo || creatorInfo?.usuario_creador}</p>
           <p>Videos descargados y vinculados a {isProductView ? "este producto exacto" : "esta cuenta"}. Las métricas corresponden al reporte importado, no son en tiempo real.</p>
+          {isCreatorView && <p>Se muestran hasta 50 videos según el orden seleccionado, vinculados por cuenta exacta y del mismo mercado.</p>}
         </CatalogInfo>
       </CatalogFilterBar>
 

@@ -20,6 +20,7 @@ import {
   Lock,
   LogOut,
   Wand2,
+  LayoutDashboard,
 } from "lucide-react";
 import MarketSwitcher from "@/components/MarketSwitcher";
 import { BrandLogo } from "@/components/brand/BrandLogo";
@@ -58,6 +59,7 @@ const exploreItems: NavItem[] = [
 
 // TU CENTRO - Work tools
 const workspaceItems: NavItem[] = [
+  { to: "/admin", labelEs: "Control de TokXray", labelEn: "TokXray operations", icon: LayoutDashboard, lockedForVisitor: true, founderOnly: true },
   { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
   { to: "/affiliates", labelEs: "Gana recomendando", labelEn: "Earn by referring", icon: Coins, lockedForVisitor: false },
 ];

@@ -2366,6 +2366,9 @@ export type Database = {
       }
     }
     Functions: {
+      get_creator_catalog_ranking: { Args: { p_country?: string }; Returns: Json }
+      get_creator_catalog_videos: { Args: { p_creator_id: string; p_sort?: string; p_offset?: number }; Returns: Json }
+
       get_creator_lifetime_capacity: {
         Args: Record<PropertyKey, never>
         Returns: Json

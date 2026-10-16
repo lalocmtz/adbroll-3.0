@@ -86,8 +86,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center landing-light p-4">
-      <Card className="w-full max-w-md card-landing-light relative">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-brand-ink p-4">
+      <Card className="w-full max-w-md card-landing-light relative border-white/10 shadow-2xl">
         <button
           onClick={() => navigate("/app")}
           className="absolute top-2 right-2 h-11 w-11 flex items-center justify-center rounded-full hover:bg-muted transition-colors z-10"
@@ -107,7 +107,7 @@ const Login = () => {
           </div>
           <h1 className="text-xl font-semibold leading-snug">Bienvenido de vuelta</h1>
           <CardDescription>
-            Vuelve a los videos, productos y guiones que te interesan.
+            Vuelve a encontrar qué vende y cómo contarlo. Tu próxima idea empieza aquí.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 p-5 pt-0">
@@ -192,7 +192,7 @@ const Login = () => {
               )}
             </div>
             <Link to="/recuperar-cuenta" className="block text-sm text-primary hover:underline">¿Olvidaste tu contraseña?</Link>
-            <Button type="submit" className="w-full h-11 font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading || isGoogleLoading}>
+            <Button type="submit" className="w-full h-11 font-semibold bg-brand-pink hover:bg-brand-pink/90 text-white" disabled={isLoading || isGoogleLoading}>
               {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
             </Button>
             <p className="text-sm text-center text-muted-foreground">

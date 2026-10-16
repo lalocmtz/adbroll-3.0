@@ -72,29 +72,6 @@ interface LiveOpportunity {
 
 /* ----------------------------- copy --------------------------------- */
 
-type GuionVariant = "transcrito" | "ia_optimizado" | "ia_agresivo";
-
-const guionVariants: Record<
-  GuionVariant,
-  { label: string; tone: string; body: string }
-> = {
-  transcrito: {
-    label: "Referencia",
-    tone: "Ejemplo didáctico: problema, demostración y siguiente paso",
-    body: '¿Tu escritorio también termina así? Mira cómo uso este organizador para separar los cables y dejar a mano lo que necesito. Te muestro cómo queda y las medidas para que veas si cabe en tu espacio.',
-  },
-  ia_optimizado: {
-    label: "Tu versión",
-    tone: "Conserva la estructura. Cambia el producto y cuenta tu experiencia real",
-    body: '¿Te pasa [PROBLEMA CONCRETO]? Así uso [TU PRODUCTO] para [USO QUE PUEDES DEMOSTRAR]. Te enseño el antes, cómo funciona y qué revisaría antes de comprarlo. Mira los detalles en la ficha.',
-  },
-  ia_agresivo: {
-    label: "Otro inicio",
-    tone: "Prueba un comienzo distinto sin inventar resultados ni urgencia",
-    body: 'Antes de comprar [TU PRODUCTO], revisa esto: [DETALLE IMPORTANTE]. Aquí puedes ver cómo funciona en [SITUACIÓN REAL]. Si buscas [USO ESPECÍFICO], compara las medidas y características en la ficha.',
-  },
-};
-
 const faqs = [
   {
     q: "¿Qué voy a poder hacer con TokXray?",
@@ -141,8 +118,6 @@ const Landing = () => {
   const [videosLoading, setVideosLoading] = useState(true);
   const [oppsLoading, setOppsLoading] = useState(true);
 
-  const [guionVariant, setGuionVariant] = useState<GuionVariant>("ia_optimizado");
-  const [copied, setCopied] = useState(false);
 
   const pricingRef = useRef<HTMLDivElement | null>(null);
   const footerRef = useRef<HTMLElement | null>(null);
@@ -254,30 +229,6 @@ const Landing = () => {
     navigate("/login");
   };
 
-  const onSelectVariant = (variant: GuionVariant) => {
-    setGuionVariant(variant);
-    track(Events.GuionVariantSelected, { variant });
-    if (variant !== "transcrito") mark("guion.demo.opened");
-  };
-
-  const onCopyGuion = async () => {
-    const body = guionVariants[guionVariant].body;
-    try {
-      await navigator.clipboard.writeText(body);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-      const time_to_copy_ms = measureSince("guion.demo.opened");
-      clearMark("guion.demo.opened");
-      track(Events.GuionCopied, {
-        variant: guionVariant,
-        product_id: "landing_demo",
-        time_to_copy_ms,
-      });
-    } catch {
-      /* clipboard blocked — silent */
-    }
-  };
-
   const onFaqOpen = (index: number) => {
     track(Events.LandingFaqOpened, { question_index: index });
   };
@@ -285,9 +236,11 @@ const Landing = () => {
   // Charged in USD; the headline shows the canonical USD price. For MX we
   // additionally surface an approximate MXN equivalent below it.
   const priceLabel = `$${PRICE_USD.toFixed(2)} USD`;
+  const [featuredVideoId, setFeaturedVideoId] = useState<string | null>(null);
+  const featuredVideo = videos.find(video => video.id === featuredVideoId) || videos[0];
 
   return (
-    <div className="min-h-screen bg-brand-mist text-brand-ink">
+    <div className="min-h-dvh bg-brand-mist text-brand-ink">
       <GlobalHeader showMenu={false} />
       <div className="flex min-h-11 items-center justify-center gap-3 border-b border-white/10 bg-brand-ink px-4 text-xs text-brand-mist">
         <a href="/programa-creadores" className="inline-flex min-h-11 items-center gap-1 font-medium">Gana recomendando <ArrowRight className="size-3" /></a>
@@ -295,88 +248,34 @@ const Landing = () => {
         <a href="/programa-creadores#acceso-vitalicio" className="inline-flex min-h-11 items-center text-brand-cyan" aria-label={lifetimeCapacity.capacity ? lifetimeCapacity.capacity.is_open ? `Solo 100 creadores: quedan ${lifetimeCapacity.capacity.remaining} accesos vitalicios por contenido` : 'Los 100 accesos vitalicios ya fueron otorgados · conoce el programa' : 'Oferta para los primeros 100 creadores · consulta disponibilidad'}>{lifetimeCapacity.capacity ? lifetimeCapacity.capacity.is_open ? `${lifetimeCapacity.capacity.remaining} de 100 plazas` : 'Conoce el programa' : 'Primeros 100 creadores'}</a>
       </div>
 
-      {/* ===================== HERO ===================== */}
-      <section className="relative overflow-hidden bg-gradient-ink text-brand-mist">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-30"
-          style={{
-            backgroundImage:
-              "radial-gradient(60rem 30rem at 20% 0%, rgba(254,44,85,0.35), transparent 60%), radial-gradient(50rem 25rem at 85% 20%, rgba(37,244,238,0.22), transparent 60%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.07]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-            maskImage:
-              "linear-gradient(to bottom, black 0%, black 50%, transparent 100%)",
-          }}
-        />
-
-        <div className="relative mx-auto max-w-5xl px-[var(--page-pad-x)] pt-8 pb-10 md:pt-24 md:pb-24">
-          {/* live chip */}
-          <div className="mb-6 flex justify-center">
-            <span className="inline-flex items-center gap-2 rounded-pill border border-brand-cyan/40 bg-brand-cyan/10 px-4 py-1.5 text-micro text-brand-cyan-200 backdrop-blur">
-              <span className="relative inline-flex size-2">
-                <span className="absolute inset-0 rounded-full bg-brand-cyan animate-ping motion-reduce:animate-none" />
-                <span className="relative size-2 rounded-full bg-brand-cyan" />
-              </span>
-              Descubre qué vende en TikTok Shop México
-            </span>
+      {/* Real catalogue evidence sits beside the promise, with its report period. */}
+      <section className="bg-brand-ink text-brand-mist border-b border-white/10">
+        <div className="mx-auto grid max-w-6xl gap-10 px-[var(--page-pad-x)] pt-9 pb-12 md:grid-cols-[1.15fr_1fr] md:items-center md:gap-12 md:py-16">
+          <div className="min-w-0">
+            <p className="mb-5 inline-flex items-center gap-2 text-xs font-semibold text-brand-cyan"><TrendingUp className="size-4" />Para creadores que quieren vender más en TikTok Shop</p>
+            <h1 className="max-w-xl text-[2.75rem] leading-[1.03] sm:text-6xl font-display font-extrabold text-balance">
+              Graba para <span className="text-brand-pink">vender.</span><br />No para probar suerte.
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-brand-mist/75 text-pretty">
+              Encuentra productos con ventas, estudia los videos que las generaron y adapta sus guiones a tu voz. Menos horas adivinando. Más enfoque en tu próxima comisión.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Button variant="brand" size="brand-xl" onClick={() => goApp("hero")} className="w-full sm:w-auto">Ver qué está vendiendo <ArrowRight className="ml-1 size-5" /></Button>
+              <Button variant="ghost-dark" size="brand-xl" onClick={() => navigate("/pricing")} className="w-full sm:w-auto">Quiero acceso Pro</Button>
+            </div>
+            <p className="mt-4 text-xs leading-relaxed text-brand-mist/55">Explora gratis, sin tarjeta. Pro: US$15/mes. Tú decides cuándo dar el siguiente paso.</p>
+            <div className="mt-7 grid grid-cols-3 border-t border-white/15 pt-5 gap-4 text-xs">
+              <div><span className="block font-semibold text-brand-mist">Qué vende</span><span className="block mt-1 text-brand-mist/50">Ventas reportadas</span></div>
+              <div><span className="block font-semibold text-brand-mist">Qué decir</span><span className="block mt-1 text-brand-mist/50">Guiones + variantes</span></div>
+              <div><span className="block font-semibold text-brand-mist">Dónde entrar</span><span className="block mt-1 text-brand-mist/50">Demanda y competencia</span></div>
+            </div>
           </div>
-
-          {/* concept-first H1 */}
-          <h1 className="text-center text-display-lg md:text-display-xl font-display font-extrabold tracking-tight text-balance max-w-3xl mx-auto leading-[1.05]">
-            Deja de <span className="text-brand-pink">grabar a ciegas.</span>{" "}
-            Ve qué vende y prepara{" "}
-            <span className="text-brand-cyan">tu próximo guion.</span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-xl text-center text-base md:text-xl leading-relaxed text-brand-mist/75">
-            Ya le dedicas tiempo a grabar. Elige tu próximo video con una referencia:
-            qué producto vendió, cuánto generó según el reporte y qué dijo el creador.
-            Adapta el guion a tu voz y a tu producto.
-          </p>
-
-          {/* CTA row */}
-          <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <Button
-              variant="brand"
-              size="brand-xl"
-              onClick={() => goApp("hero")}
-              className="w-full sm:w-auto"
-            >
-              Explorar videos gratis
-              <ArrowRight className="ml-1 h-5 w-5" />
-            </Button>
-            <Button
-              variant="ghost-dark"
-              size="brand-xl"
-              onClick={() => goLogin("hero")}
-              className="w-full sm:w-auto"
-            >
-              Ya tengo cuenta
-            </Button>
-          </div>
-
-          {/* trust line */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-brand-mist/60">
-            <span className="inline-flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-brand-cyan" />
-              TikTok Shop México · Actualización semanal
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Eye className="h-3.5 w-3.5 text-brand-cyan" />
-              Vista previa sin tarjeta
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Copy className="h-3.5 w-3.5 text-brand-cyan" />
-              Guiones para hacer tu versión
-            </span>
+          <div className="min-w-0">
+            <LandingProof video={featuredVideo} loading={videosLoading} formatMoney={formatMoney} onExplore={() => goApp("real_proof")} />
+            {videos.length > 1 && <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Elegir ejemplo real">
+              <span className="text-xs text-brand-mist/50 mr-1">Mira otro caso</span>
+              {videos.slice(0, 3).map((video, index) => <button type="button" key={video.id} aria-label={`Ver ejemplo real ${index + 1}`} aria-pressed={featuredVideo?.id === video.id} onClick={() => setFeaturedVideoId(video.id)} className={cn("min-h-11 min-w-11 rounded-full border px-3 text-xs font-semibold", featuredVideo?.id === video.id ? "bg-brand-cyan text-brand-ink border-brand-cyan" : "border-white/20 text-brand-mist/70 hover:bg-white/10")}>{index + 1}</button>)}
+            </div>}
           </div>
         </div>
       </section>
@@ -391,14 +290,14 @@ const Landing = () => {
                 Referencias con ventas reportadas · México
               </span>
               <h2 className="mt-2 text-display-md font-display font-extrabold tracking-tight">
-                Antes de grabar, mira qué vendió
+                Las vistas llaman la atención. Las ventas cambian la decisión.
               </h2>
             </div>
           </div>
 
           <HScroll
             ariaLabel="Videos que más venden"
-            animate={!videosLoading}
+            animate={false}
             direction="left"
           >
             {videosLoading
@@ -427,19 +326,18 @@ const Landing = () => {
       <section className="bg-brand-mist border-b border-brand-ink/5">
         <div className="mx-auto max-w-5xl px-[var(--page-pad-x)] py-14 md:py-20">
           <h2 className="text-center text-display-md font-display font-extrabold text-brand-ink">
-            De «¿qué grabo?» a una idea que puedes probar
+            De perseguir tendencias a buscar ventas con intención.
           </h2>
           <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-brand-ink/60">
-            Si ya vendiste y quieres encontrar qué repetir, empieza por entender la referencia.
-            Si vas comenzando, sigue estos mismos tres pasos.
+            Tu siguiente comisión empieza antes de encender la cámara: en el producto que eliges y en cómo lo vendes.
           </p>
           <div className="grid gap-4 md:grid-cols-3">
-            <PillarCard icon={<Eye className="h-5 w-5" />} title="1. Elige una referencia"
-              body="Busca un producto que puedas mostrar y revisa sus videos, ventas y período del reporte." />
-            <PillarCard icon={<Copy className="h-5 w-5" />} title="2. Haz tuyo el guion" accent="cyan"
-              body="Entiende los primeros segundos y la demostración. Adapta las ideas a tu experiencia real." />
-            <PillarCard icon={<PlayCircle className="h-5 w-5" />} title="3. Graba y prueba"
-              body="Publica tu versión. Observa qué funciona con tu audiencia y decide qué ajustar después." />
+            <PillarCard icon={<Eye className="h-5 w-5" />} title="01 · Encuentra demanda"
+              body="No elijas solo por la muestra gratis. Compara qué se ha vendido y qué producto vale tu tiempo." />
+            <PillarCard icon={<Copy className="h-5 w-5" />} title="02 · Descifra la venta" accent="cyan"
+              body="Estudia el inicio, la demostración y la invitación a comprar. Deja de pelearte con la hoja en blanco." />
+            <PillarCard icon={<PlayCircle className="h-5 w-5" />} title="03 · Hazlo a tu manera"
+              body="Crea tus variantes, graba con tu voz y prueba con tu audiencia. La estrategia se aprende; el resultado se trabaja." />
           </div>
         </div>
       </section>
@@ -453,18 +351,17 @@ const Landing = () => {
               Productos con oportunidad · México
             </span>
             <h2 className="mt-2 text-display-md font-display font-extrabold tracking-tight text-brand-ink">
-              Elige el producto antes de invertir tu tiempo
+              Busca tu espacio antes de que todos graben lo mismo.
             </h2>
             <p className="mt-2 max-w-xl text-brand-ink/60">
-              Compara ventas, creadores y comisión disponible. Encuentra un producto
-              que puedas demostrar bien y revisa sus señales antes de elegirlo.
+              Cruza demanda, creadores y comisión para detectar productos que merecen una mirada. Busca dónde competir antes de seguir otra tendencia a ciegas.
             </p>
           </div>
 
           <HScroll
             ariaLabel="Productos con oportunidad"
             tone="light"
-            animate={!oppsLoading}
+            animate={false}
             direction="right"
           >
             {oppsLoading
@@ -485,84 +382,28 @@ const Landing = () => {
 
           <div className="mt-6 flex justify-center">
             <Button variant="brand" size="brand-md" onClick={() => goApp("opp_carousel_cta")}>
-              Explorar el catálogo
+              Encontrar mi próxima oportunidad
               <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
         </div>
       </section>
 
-      {/* ===================== GUION DEMO ===================== */}
-      <section className="bg-brand-ink text-brand-mist">
-        <div className="mx-auto max-w-4xl px-[var(--page-pad-x)] py-16 md:py-24">
-          <div className="mb-10 text-center">
-            <span className="text-micro uppercase text-brand-cyan">De la referencia a tu voz</span>
-            <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight">
-              Ya elegiste el producto. Ahora, ¿qué dices?
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-brand-mist/60">
-              Entiende cómo abre el video, cómo presenta el producto y cómo invita a comprar. Usa esa estructura como punto de partida para tu propio guion.
-            </p>
+      <section className="bg-brand-ink text-brand-mist border-y border-white/10">
+        <div className="mx-auto grid max-w-5xl gap-8 px-[var(--page-pad-x)] py-12 md:py-16 md:grid-cols-[1fr_1.1fr] md:items-center">
+          <div>
+            <p className="text-xs font-semibold text-brand-cyan">DE LA VENTA AL GUION</p>
+            <h2 className="mt-3 text-display-md font-display font-extrabold text-balance">No te faltan ganas.<br />Te falta saber qué decir.</h2>
+            <p className="mt-4 text-brand-mist/65 leading-relaxed text-pretty">Abre un video del catálogo, consulta su guion y estudia cómo presenta el producto. Después crea tus variantes. Tu voz, tu experiencia y una razón más clara para comprar.</p>
+            <Button variant="brand" size="brand-lg" className="mt-6" onClick={() => goApp("script_demo")}>Encontrar un video para analizar <ArrowRight className="ml-1 size-4" /></Button>
           </div>
-
-          <div className="rounded-card border border-white/10 bg-white/[0.03] p-6 md:p-8">
-            <div className="mb-6 flex flex-wrap gap-2" role="tablist">
-              {(Object.keys(guionVariants) as GuionVariant[]).map((key) => {
-                const active = guionVariant === key;
-                return (
-                  <button
-                    key={key}
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => onSelectVariant(key)}
-                    className={cn(
-                      "rounded-button px-4 py-2 text-sm font-semibold transition-colors min-h-touch",
-                      active
-                        ? "bg-brand-pink text-white shadow-brand-glow-pink"
-                        : "bg-white/5 text-brand-mist/70 hover:bg-white/10",
-                    )}
-                  >
-                    {guionVariants[key].label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <p className="mb-4 text-xs uppercase tracking-wide text-brand-mist/40">
-              {guionVariants[guionVariant].tone}
-            </p>
-
-            <div
-              role="tabpanel"
-              className="rounded-button border border-white/10 bg-brand-ink-800 p-5 text-sm leading-relaxed text-brand-mist/90 animate-fade-in-up motion-reduce:animate-none"
-              key={guionVariant}
-            >
-              {guionVariants[guionVariant].body}
-            </div>
-
-            <div className="mt-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-xs text-brand-mist/50">
-                <Sparkles className="h-3.5 w-3.5 text-brand-cyan" />
-                Ejemplo didáctico, no transcripción real
-              </div>
-              <Button
-                variant={copied ? "cyber" : "brand-outline"}
-                size="brand-md"
-                onClick={onCopyGuion}
-              >
-                {copied ? (
-                  <>
-                    <Check className="mr-1 h-4 w-4" />
-                    Copiado
-                  </>
-                ) : (
-                  <>
-                    <Copy className="mr-1 h-4 w-4" />
-                    Copiar ejemplo
-                  </>
-                )}
-              </Button>
-            </div>
+          <div className="border-l-2 border-brand-pink pl-5 space-y-6">
+            {[
+              ['01', 'Detén el scroll', 'Estudia las primeras palabras y lo que se ve al empezar.'],
+              ['02', 'Dale una razón para quererlo', 'Observa cómo demuestra el uso y resuelve una duda.'],
+              ['03', 'Lleva la intención a la compra', 'Revisa cómo invita a actuar y escribe tu propia versión.'],
+            ].map(([number, title, body]) => <div key={number} className="flex gap-4"><span className="font-mono text-sm text-brand-pink pt-1">{number}</span><div><h3 className="font-semibold text-lg">{title}</h3><p className="mt-1 text-sm text-brand-mist/60 text-pretty">{body}</p></div></div>)}
+            <p className="text-xs text-brand-mist/40">Guiones, análisis y variantes disponibles con Pro. El contenido generado se revisa y adapta antes de publicarlo.</p>
           </div>
         </div>
       </section>
@@ -575,11 +416,10 @@ const Landing = () => {
               Señales para decidir
             </span>
             <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-brand-ink">
-              No elijas solo por la comisión
+              Una gran comisión no sirve si el producto no se vende.
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-brand-ink/60">
-              Un producto necesita contexto. El indicador combina estas señales del reporte
-              para ayudarte a comparar; no predice cuánto vas a vender.
+              Pon a trabajar las tres señales juntas. Busca demanda, mide la competencia y calcula si la comisión justifica tu esfuerzo.
             </p>
           </div>
 
@@ -592,7 +432,7 @@ const Landing = () => {
             <PillarCard
               icon={<ShoppingBag className="h-5 w-5" />}
               title="Creadores que lo muestran"
-              body="Compara cuántos creadores aparecen en el reporte. No es una garantía de que el producto esté libre de competencia."
+              body="Localiza productos con menor presencia de creadores en el reporte. Investiga si aún hay espacio para tu propuesta."
               accent="cyan"
             />
             <PillarCard
@@ -610,7 +450,7 @@ const Landing = () => {
           <div className="mb-10 text-center">
             <span className="text-micro uppercase text-brand-pink">Precio</span>
             <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-brand-ink">
-              Tu próximo video empieza con una decisión
+              Invierte en elegir mejor. No en más horas a ciegas.
             </h2>
           </div>
 
@@ -643,19 +483,19 @@ const Landing = () => {
                 <ul className="mt-6 space-y-2 text-sm text-brand-mist/80">
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Compara videos por ventas reportadas
+                    Encuentra videos que generaron ventas, no solo vistas
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Consulta el guion y prepara variantes con IA
+                    Pasa del guion en blanco a variantes para vender con tu voz
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Elige productos con señales para comparar
+                    Busca productos con demanda y menor competencia
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
-                    Entiende la estructura de los videos disponibles
+                    Estudia cómo presentan el producto los creadores del catálogo
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-brand-cyan" />
@@ -664,8 +504,9 @@ const Landing = () => {
                 </ul>
               </div>
               <div className="flex flex-col gap-3">
+                <Button variant="brand" size="brand-xl" onClick={() => { track(Events.LandingCtaClicked, { location: "pricing", destination: "pricing" }); navigate("/pricing"); }} className="w-full">Activar TokXray Pro <ArrowRight className="ml-1 h-5 w-5" /></Button>
                 <Button
-                  variant="brand"
+                  variant="ghost-dark"
                   size="brand-xl"
                   onClick={() => goApp("pricing")}
                   className="w-full"
@@ -719,11 +560,10 @@ const Landing = () => {
             />
             <div className="relative">
               <h2 className="mx-auto max-w-2xl text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-balance">
-                Que tu próximo video tenga un punto de partida.
+                Tu tiempo vale más que seguir adivinando.
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-white/85">
-                No necesitas otra idea al azar. Explora las referencias, elige qué vale
-                la pena probar y prepara un guion que suene a ti.
+                Quieres que el esfuerzo de grabar se convierta en ventas. Empieza por ver qué se vende, cómo lo presentan y dónde puedes aportar algo distinto.
               </p>
               <div className="mt-8 flex justify-center">
                 <Button
@@ -732,7 +572,7 @@ const Landing = () => {
                   onClick={() => goApp("final_cta")}
                 >
                   <PlayCircle className="mr-1.5 h-5 w-5" />
-                  Explorar videos gratis
+                  Ver qué está vendiendo
                 </Button>
               </div>
             </div>
@@ -747,7 +587,7 @@ const Landing = () => {
             <div className="flex flex-col items-center md:items-start gap-1">
               <BrandLogo tone="dark" />
               <p className="text-sm text-brand-ink/50">
-                Menos adivinar. Más claridad antes de grabar.
+                Deja de adivinar. Encuentra qué vender y cómo contarlo.
               </p>
             </div>
             <div className="flex items-center gap-6 text-sm text-brand-ink/55">
@@ -774,6 +614,29 @@ const Landing = () => {
     </div>
   );
 };
+
+function LandingProof({ video, loading, formatMoney, onExplore }: { video?: LiveVideo; loading: boolean; formatMoney: (n: number | null | undefined) => string; onExplore: () => void }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [video?.video_mp4_url]);
+  if (loading) return <div className="h-96 rounded-2xl border border-white/15 bg-white/5 flex items-center justify-center text-sm text-brand-mist/50" role="status">Cargando un caso del catálogo…</div>;
+  if (!video) return <div className="rounded-2xl border border-white/15 p-7"><p className="text-xs font-semibold text-brand-cyan">MIRA LOS DATOS POR TI MISMO</p><h2 className="mt-3 text-2xl font-bold text-balance">Las decisiones empiezan con evidencia.</h2><p className="mt-3 text-sm text-brand-mist/60">Explora los videos disponibles y consulta las ventas y el periodo de cada reporte.</p><Button variant="brand-outline" className="mt-5" onClick={onExplore}>Abrir el catálogo</Button></div>;
+  return <article className="overflow-hidden rounded-2xl border border-white/20 bg-white/[0.04]" aria-label="Caso real del catálogo">
+    <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 text-xs"><span className="font-semibold text-brand-cyan">CASO REAL DEL CATÁLOGO</span><span className="text-brand-mist/50">TikTok Shop México</span></div>
+    <div className="grid grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
+      <div className="aspect-[9/16] bg-black min-w-0">
+        {!failed && video.video_mp4_url ? <video key={video.id} src={video.video_mp4_url} poster={video.thumbnail_url || undefined} controls playsInline preload="none" aria-label={`Video de ${video.creator_handle || video.creator_name || 'TikTok Shop'}`} className="h-full w-full object-contain" onError={() => setFailed(true)} /> : <div className="flex h-full items-center justify-center p-3 text-center text-xs text-brand-mist/50">Video no disponible en este momento</div>}
+      </div>
+      <div className="min-w-0 p-4 sm:p-5 flex flex-col justify-center">
+        <p className="text-[11px] text-brand-mist/55">Este video generó ventas por</p>
+        <p className="mt-2 font-mono text-2xl sm:text-3xl font-bold tabular-nums text-brand-cyan break-words">{video.revenue_mxn == null ? 'Sin dato' : formatMoney(video.revenue_mxn)}</p>
+        <p className="mt-2 text-[10px] leading-relaxed text-brand-mist/50">MXN · según el reporte<br />{video.snapshot_date_range ? formatReportPeriod(video.snapshot_date_range) : 'Consulta el periodo en el catálogo'}</p>
+        <div className="mt-5 border-t border-white/10 pt-4"><p className="text-xs font-semibold line-clamp-2">{video.product_name || video.title || 'Video de TikTok Shop'}</p><p className="mt-2 text-[11px] text-brand-mist/50 truncate">@{(video.creator_handle || video.creator_name || 'creador').replace(/^@/, '')}</p></div>
+        {video.sales != null && <p className="mt-3 text-xs text-brand-mist/70"><strong className="tabular-nums text-brand-mist">{video.sales.toLocaleString('es-MX')}</strong> unidades reportadas</p>}
+      </div>
+    </div>
+    <button type="button" onClick={onExplore} className="flex min-h-12 w-full items-center justify-between gap-3 border-t border-white/10 px-4 py-3 text-left text-xs font-semibold text-brand-mist hover:bg-white/5">Mira el video. Estudia la venta. Haz tu versión.<ArrowRight className="size-4 shrink-0 text-brand-pink" /></button>
+  </article>;
+}
 
 /* ============================== atoms ============================== */
 
@@ -961,18 +824,16 @@ const VideoCard = ({
     >
       <div className="relative aspect-[9/13] w-full overflow-hidden bg-brand-ink-800">
         {video.video_mp4_url ? (
-          // El video real se reproduce solo (muted/loop). pointer-events-none:
-          // tocarlo NO abre nada; el gesto pasa al carrusel que se frena al tocar.
+          // Reproducción a petición para no descargar todo el carrusel al abrir.
           <video
             src={video.video_mp4_url}
             onError={() => setMediaFailed(true)}
             poster={video.thumbnail_url || undefined}
-            autoPlay
-            muted
-            loop
+            controls
             playsInline
-            preload="metadata"
-            className="pointer-events-none h-full w-full object-cover"
+            preload="none"
+            aria-label={`Reproducir video de ${handle}`}
+            className="h-full w-full object-cover"
           />
         ) : video.thumbnail_url ? (
           <img
@@ -984,8 +845,8 @@ const VideoCard = ({
         ) : (
           <div className="h-full w-full bg-brand-ink-800" />
         )}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 to-transparent" />
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 p-3">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-t from-black/85 to-transparent" />
+        <div className="pointer-events-none absolute top-0 left-0 right-0 p-3">
           <p className="truncate text-xs font-semibold text-white">{handle}</p>
           {video.product_name && (
             <p className="truncate text-[11px] text-white/60">{video.product_name}</p>

@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
 import { CatalogVideoPlayer } from '@/components/CatalogVideoPlayer';
 import { ScriptTranslation } from '@/components/ScriptTranslation';
+import { ScriptTranscript, VideoInsights, validScriptSegments } from '@/components/VideoInsights';
 interface GeneratedVariant {
   hook: string;
   body: string;
@@ -53,32 +54,14 @@ interface VideoAnalysisModalOriginalProps {
   onClose: () => void;
   video: Video;
 }
-const VisualObservations = ({ analysis }: { analysis: Record<string, unknown> }) => (
-  <>
-    {[
-      ['visual_observations', 'Qué se ve en el video'],
-      ['beginner_takeaways', 'Ideas para tu siguiente video'],
-      ['uncertainties', 'Qué falta comprobar'],
-    ].map(([key, title]) => {
-      const items = analysis[key];
-      if (!Array.isArray(items) || !items.length) return null;
-      return <div key={key} className="card-premium p-4">
-        <h4 className="font-semibold text-sm mb-2">{title}</h4>
-        <ul className="list-disc pl-5 space-y-1 text-sm text-foreground/80">
-          {items.filter((item): item is string => typeof item === 'string').map((item, i) => <li key={i}>{item}</li>)}
-        </ul>
-      </div>;
-    })}
-  </>
-);
 const formatNumber = (num: number | null | undefined): string => {
-  if (!num) return '0';
+  if (num == null || !Number.isFinite(num)) return '—';
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return num.toLocaleString('es-MX');
 };
 const formatCurrency = (num: number | null | undefined): string => {
-  if (!num) return '$0';
+  if (num == null || !Number.isFinite(num)) return '—';
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
@@ -386,7 +369,7 @@ const VideoAnalysisModalOriginal = ({
   const preparedNotice = <div className="rounded-xl bg-muted/40 p-4 text-sm"><h3 className="font-medium">Guion en preparación</h3><p className="mt-1 text-pretty text-muted-foreground">Estamos preparando esta referencia. Mientras tanto, puedes ver el video original o explorar otro guion del catálogo.</p><Button variant="outline" size="sm" className="mt-3" onClick={onClose}>Explorar otros videos</Button></div>;
   return <Dialog open={isOpen} onOpenChange={open => { if (!open) onClose(); }}>
     <DialogContent className="flex h-dvh max-h-dvh w-full max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 md:h-[90dvh] md:max-w-5xl md:rounded-2xl [&>button]:hidden">
-      <header className="flex shrink-0 items-center gap-3 border-b px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <header className="flex shrink-0 items-center gap-3 border-b border-t-2 border-t-brand-pink px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="min-w-0 flex-1"><DialogTitle className="line-clamp-1 text-balance text-sm font-semibold md:text-base">{video.title || 'Guion del video'}</DialogTitle><DialogDescription className="mt-1 truncate text-xs">@{video.creator_handle || video.creator_name || 'creador'} · TikTok Shop México</DialogDescription></div>
         <Button variant="ghost" size="icon" className="size-11 shrink-0" aria-label={isFavorite ? 'Quitar de favoritos' : 'Guardar en favoritos'} onClick={handleToggleFavorite}><Heart className={isFavorite ? 'size-4 fill-current text-primary' : 'size-4'} /></Button>
         <Button variant="ghost" size="icon" className="size-11 shrink-0" aria-label="Cerrar video" onClick={onClose}><X className="size-5" /></Button>
@@ -395,10 +378,10 @@ const VideoAnalysisModalOriginal = ({
         <aside className="min-w-0 space-y-3 border-b p-3 md:overflow-y-auto md:border-b-0 md:border-r md:p-4">
           {video.video_mp4_url ? <CatalogVideoPlayer key={video.id} src={video.video_mp4_url} poster={video.thumbnail_url} title={`Reproducir video de ${video.creator_handle || video.creator_name || 'creador'}`} active={isOpen} /> : <p className="rounded-xl bg-muted p-4 text-sm">Video en preparación.</p>}
           <a className="inline-flex min-h-10 items-center gap-1.5 text-xs text-muted-foreground underline" href={video.video_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="size-3.5" />Abrir original en TikTok</a>
-          <dl className="grid grid-cols-3 gap-2 rounded-xl bg-muted/40 p-3 text-xs">
+          <dl className="grid grid-cols-3 gap-2 rounded-xl border border-brand-cyan-200 bg-brand-cyan-50 p-3 text-xs text-brand-ink">
             {[["Ventas reportadas", formatCurrency(video.revenue_mxn)], ["Unidades", formatNumber(video.sales)], ["Vistas", formatNumber(video.views)]].map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-muted-foreground">{label}</dt><dd className="mt-1 font-semibold tabular-nums">{value}</dd></div>)}
           </dl>
-          {hasCommission && <p className="text-xs text-muted-foreground">Comisión estimada: <span className="font-medium tabular-nums">{formatCurrency(totalCreatorEarnings)}</span> · {commissionRate}% del producto</p>}
+          {hasCommission && video.revenue_mxn != null && <p className="text-xs text-muted-foreground">Comisión estimada: <span className="font-medium tabular-nums">{formatCurrency(totalCreatorEarnings)}</span> · {commissionRate}% del producto</p>}
           {(video.product || video.product_name) && <button className="flex min-h-12 w-full items-center gap-2 rounded-xl border p-2 text-left" onClick={() => video.product_id ? navigate(`/videos/product/${video.product_id}`) : navigate('/products')}>
             {video.product?.imagen_url && <img src={video.product.imagen_url} alt="" className="size-10 shrink-0 rounded-lg object-cover" />}<span className="min-w-0 text-xs"><span className="block text-muted-foreground">Ver producto relacionado</span><span className="line-clamp-2 font-medium">{video.product?.producto_nombre || video.product_name}</span></span><ExternalLink className="ml-auto size-4 shrink-0" />
           </button>}
@@ -413,27 +396,24 @@ const VideoAnalysisModalOriginal = ({
             <div className="min-h-0 flex-1 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] md:overflow-y-auto md:p-4">
               {processingError && <div role="alert" className="mb-3 rounded-xl border border-destructive/30 p-3 text-sm"><p>{processingError.message}</p><Button variant="outline" size="sm" className="mt-2" disabled={isLoadingScript} onClick={loadScript}>Reintentar carga</Button></div>}
               <TabsContent value="script" className="m-0 space-y-3">
-                {isLoadingScript ? loadingNotice : scriptLocked ? <div className="rounded-xl border p-4 text-sm"><h3 className="font-medium">Desbloquea este guion con Pro</h3><p className="mt-1 text-muted-foreground">Consulta el guion completo y adáptalo a tu producto.</p><Button className="mt-3" onClick={() => openPaywall('Guion del video')}>Ver acceso Pro</Button></div> : transcript ? <>
-                  <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">Guion original</h3><CopyButton text={transcript} field="transcript" variant="outline" /></div>
-                  <p className="whitespace-pre-wrap break-words rounded-xl bg-muted/30 p-4 text-sm leading-relaxed">{transcript}</p>
+                {isLoadingScript ? loadingNotice : scriptLocked ? <div className="rounded-xl border p-4 text-sm"><h3 className="font-medium">Descubre cómo este video vende</h3><p className="mt-1 text-muted-foreground">Accede al guion completo, estudia su gancho y adapta la estructura a tu producto.</p><Button className="mt-3" onClick={() => openPaywall('Guion del video')}>Desbloquear guion y análisis</Button></div> : transcript ? <>
+                  <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">{validScriptSegments(analysis?.segments).length ? "Guion por segundos" : "Guion original"}</h3><CopyButton text={transcript} field="transcript" variant="outline" /></div>
+                  <ScriptTranscript transcript={transcript} segments={analysis?.segments} />
                   {hasPaid && <ScriptTranslation text={transcript} />}
                 </> : !processingError && preparedNotice}
               </TabsContent>
               <TabsContent value="analysis" className="m-0 space-y-3">
-                {isLoadingScript ? loadingNotice : analysis ? <>
-                  {[["hook", "Primeros segundos"], ["body", "Cómo presenta el producto"], ["cta", "Invitación a actuar"]].map(([field, label]) => analysis[field] ? <section key={field} className="rounded-xl border p-4"><h3 className="text-sm font-semibold">{label}</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{analysis[field]}</p></section> : null)}
-                  <VisualObservations analysis={analysis} />
-                </> : <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">El análisis de esta referencia está en preparación. Puedes consultar el guion disponible.</p>}
+                {isLoadingScript ? loadingNotice : analysis ? <VideoInsights analysis={analysis} onExploreVariants={transcript ? () => handleTabChange('variants') : undefined} /> : <p className="rounded-xl bg-muted/40 p-4 text-sm text-muted-foreground">El análisis de esta referencia está en preparación. Puedes consultar el guion disponible.</p>}
               </TabsContent>
               <TabsContent value="variants" className="m-0 space-y-4">
                 {!hasPaid ? <Button onClick={() => openPaywall('Variantes de guion')}>Ver acceso Pro</Button> : !transcript ? preparedNotice : <>
-                  <div className="rounded-xl border p-4 space-y-3"><div><h3 className="text-sm font-semibold">Adapta este guion a tu estilo</h3><p className="mt-1 text-xs text-muted-foreground">Genera variantes cuando quieras probar otra forma de contar la idea.</p></div>
+                  <div className="rounded-2xl border border-brand-pink-200 bg-brand-pink-50 p-4 text-brand-ink space-y-3"><div><h3 className="text-sm font-semibold">Adapta este guion a tu estilo</h3><p className="mt-1 text-xs text-muted-foreground">Prueba otros primeros segundos, otra presentación y un cierre distinto. Tú decides qué grabar.</p></div>
                     <div className="flex flex-wrap items-center gap-3"><Label htmlFor="variant-count">Cantidad</Label><select id="variant-count" value={variantCount} onChange={event => setVariantCount(Number(event.target.value))} className="h-10 rounded-lg border bg-background px-3 text-sm">{[1, 2, 3].map(value => <option key={value} value={value}>{value}</option>)}</select></div>
                     <RadioGroup value={changeLevel} onValueChange={value => setChangeLevel(value as typeof changeLevel)} className="flex flex-wrap gap-3" aria-label="Nivel de cambio">{[['light', 'Suave'], ['medium', 'Medio'], ['aggressive', 'Amplio']].map(([value, label]) => <label key={value} className="flex min-h-10 items-center gap-2 text-sm"><RadioGroupItem value={value} />{label}</label>)}</RadioGroup>
-                    <Button className="h-11 w-full" onClick={generateVariants} disabled={isGeneratingVariants}>{isGeneratingVariants ? <><Loader2 className="mr-2 size-4 animate-spin" />Preparando variantes…</> : 'Generar variantes'}</Button>
+                    <Button className="h-11 w-full bg-brand-pink-600 text-white hover:bg-brand-pink-700" onClick={generateVariants} disabled={isGeneratingVariants}>{isGeneratingVariants ? <><Loader2 className="mr-2 size-4 animate-spin" />Preparando variantes…</> : 'Generar variantes'}</Button>
                     {variantError && <p role="alert" className="text-sm text-destructive">{variantError}</p>}
                   </div>
-                  {shownVariants.map((variant, index) => <Card key={index} className="space-y-3 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-semibold">Variante {index + 1}</h4><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => copyVariant(variant, index)}><Copy className="mr-1 size-3.5" />Copiar</Button><Button size="sm" variant="ghost" onClick={() => saveVariantToFavorites(variant, index)} disabled={isSavingVariant}><Save className="mr-1 size-3.5" />Guardar</Button></div></div>{[["Inicio", variant.hook], ["Cuerpo", variant.body], ["Cierre", variant.cta]].map(([label, value]) => <div key={label}><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{value}</p></div>)}{variant.strategy_note && <p className="border-t pt-2 text-xs text-muted-foreground">{variant.strategy_note}</p>}</Card>)}
+                  {shownVariants.map((variant, index) => <Card key={index} className="space-y-3 border-t-2 border-t-brand-cyan p-4"><div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-semibold">Variante {index + 1}</h4><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => copyVariant(variant, index)}><Copy className="mr-1 size-3.5" />Copiar</Button><Button size="sm" variant="ghost" onClick={() => saveVariantToFavorites(variant, index)} disabled={isSavingVariant}><Save className="mr-1 size-3.5" />Guardar</Button></div></div>{[["Inicio", variant.hook], ["Cuerpo", variant.body], ["Cierre", variant.cta]].map(([label, value]) => <div key={label}><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{value}</p></div>)}{variant.strategy_note && <p className="border-t pt-2 text-xs text-muted-foreground">{variant.strategy_note}</p>}</Card>)}
                 </>}
               </TabsContent>
             </div>

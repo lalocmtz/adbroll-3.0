@@ -1,5 +1,5 @@
 import { CatalogHeader, CatalogInfo, CatalogFilterBar } from "@/components/CatalogToolbar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 
 interface Creator {
+  available_video_count: number;
   id: string;
   usuario_creador: string;
   nombre_completo: string | null;
@@ -48,11 +49,8 @@ interface Creator {
 type SortOption = "revenue" | "followers" | "views" | "lives" | "gmv_live" | "gmv_videos";
 
 const SORT_OPTIONS = [
-  { value: "revenue", label: "Ventas" },
-  { value: "followers", label: "Seguidores" },
   { value: "gmv_videos", label: "Ventas en videos" },
-  { value: "gmv_live", label: "Ventas en directos" },
-  { value: "lives", label: "Más transmisiones en vivo" },
+  { value: "followers", label: "Seguidores" },
   { value: "views", label: "Vistas" },
 ];
 
@@ -65,10 +63,12 @@ const Creators = () => {
   const { isLoggedIn } = useBlurGateContext();
   const { market, marketLabel } = useMarket();
   const { language } = useLanguage();
+  const requestVersion = useRef(0);
+  const [loadError, setLoadError] = useState(false);
   const [creators, setCreators] = useState<Creator[]>([]);
   const [sortedCreators, setSortedCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<SortOption>("revenue");
+  const [sortBy, setSortBy] = useState<SortOption>("gmv_videos");
   const [currentPage, setCurrentPage] = useState(1);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
@@ -80,6 +80,7 @@ const Creators = () => {
   useEffect(() => {
     fetchCreators();
     fetchFavorites();
+    return () => { requestVersion.current++; };
   }, [market]);
 
   useEffect(() => {
@@ -88,27 +89,23 @@ const Creators = () => {
   }, [creators, sortBy]);
 
   const fetchCreators = async () => {
+    const version = ++requestVersion.current;
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("creators")
-        .select("*")
-        .eq("country", market)
-        .not("last_imported_from_kalodata_at", "is", null)
-        .order("total_ingresos_mxn", { ascending: false })
-        .limit(100);
-
+      setLoadError(false);
+      const { data, error } = await supabase.rpc('get_creator_catalog_ranking', { p_country: market });
+      if (version !== requestVersion.current) return;
       if (error) throw error;
-      
-      setCreators(data || []);
+      const result = data as { rows?: Creator[] } | null;
+      if (!Array.isArray(result?.rows)) throw new Error('No se pudo recuperar el ranking disponible.');
+      setCreators(result.rows.filter(creator => creator.available_video_count > 0).slice(0, 20));
     } catch (error: any) {
-      toast({
-        title: "Error al cargar creadores",
-        description: error.message,
-        variant: "destructive"
-      });
+      if (version !== requestVersion.current) return;
+      setCreators([]);
+      setLoadError(true);
+      toast({ title: "Error al cargar creadores", description: "No se pudo cargar el ranking. Inténtalo de nuevo.", variant: "destructive" });
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   };
 
@@ -277,6 +274,7 @@ const Creators = () => {
   };
 
   const handleRowClick = (creator: Creator, isLocked: boolean) => {
+    if (!(creator.available_video_count > 0)) return;
     if (isLocked || !isLoggedIn) {
       navigate("/unlock");
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -302,6 +300,10 @@ const Creators = () => {
           <p>Ventas del último reporte importado; no son cifras en tiempo real. Abre un creador para consultar sus videos disponibles en el catálogo.</p>
         </CatalogInfo>
       </CatalogHeader>
+      <div className="mb-3 rounded-xl border border-brand-cyan-200 bg-brand-cyan-50 p-3 text-brand-ink">
+        <h2 className="text-sm font-semibold">Top 20 con videos disponibles</h2>
+        <p className="mt-1 text-xs leading-relaxed">Seleccionamos hasta 20 creadores por sus ventas en videos del reporte, entre quienes tienen referencias descargadas. No es el ranking completo de TikTok Shop. Los filtros reordenan esta selección.</p>
+      </div>
       <CatalogFilterBar>
         <FilterPills compact options={SORT_OPTIONS} value={sortBy} onChange={(v) => {
           if (!isLoggedIn) { navigate("/unlock"); return; }
@@ -313,9 +315,9 @@ const Creators = () => {
         <div className="bg-card rounded-xl border border-border px-4 py-8 text-center">
           <Users className="size-10 text-muted-foreground mb-3 mx-auto" />
           <p className="text-muted-foreground text-lg">
-            Todavía no hay creadores en este catálogo.
+            {loadError ? "No pudimos cargar los creadores." : "Todavía no hay creadores con videos disponibles en este catálogo."}
           </p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate("/app")}>Explorar videos</Button>
+          <Button variant="outline" className="mt-4" onClick={loadError ? fetchCreators : () => navigate("/app")}>{loadError ? "Reintentar" : "Explorar videos"}</Button>
         </div>
       ) : (
         <>
@@ -521,7 +523,7 @@ const Creators = () => {
                               }}
                             >
                               <Play className="h-3 w-3 mr-1" />
-                              Ver mejores videos
+                              Ver videos ({creator.available_video_count})
                             </Button>
                           ) : (
                             <Button size="sm" variant="outline" className="h-7 text-xs">
@@ -560,9 +562,10 @@ const Creators = () => {
                   </Button>
                 </div>
                 <dl className="grid grid-cols-2 gap-2 my-3 text-xs">
-                  <div className="min-w-0 rounded-lg bg-muted/50 p-2"><dt className="text-muted-foreground">Ventas reportadas</dt><dd className="mt-1 font-semibold tabular-nums">{isLocked ? '•••' : formatCurrency(creator.total_ingresos_mxn)}</dd></div>
+                  <div className="min-w-0 rounded-lg bg-muted/50 p-2"><dt className="text-muted-foreground">Ventas en videos</dt><dd className="mt-1 font-semibold tabular-nums">{isLocked ? '•••' : formatCurrency(creator.revenue_videos)}</dd></div>
                   <div className="min-w-0 rounded-lg bg-muted/50 p-2"><dt className="text-muted-foreground">Seguidores</dt><dd className="mt-1 font-semibold tabular-nums">{isLocked ? '•••' : formatNumber(creator.seguidores)}</dd></div>
                 </dl>
+                <p className="mb-2 w-fit rounded-full bg-brand-cyan-50 px-2.5 py-1 text-xs tabular-nums text-brand-ink">{creator.available_video_count} {creator.available_video_count === 1 ? "video disponible" : "videos disponibles"}</p>
                 <Button className="w-full min-h-11 text-sm" onClick={() => handleRowClick(creator, isLocked)}>
                   {!isLoggedIn ? <Lock className="mr-1.5 size-4" /> : <Play className="mr-1.5 size-4" />}
                   {!isLoggedIn ? "Desbloquear videos" : "Ver videos"}

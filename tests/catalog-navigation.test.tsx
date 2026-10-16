@@ -29,6 +29,7 @@ beforeEach(() => {
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   mocks.rpc.mockImplementation(async (name: string) => name === "get_catalog_report_periods"
     ? { data: [{ snapshot_date_range: "2026-09-10~2026-10-09" }, { snapshot_date_range: "2026-10-03~2026-10-09" }], error: null }
+    : name === "get_creator_catalog_ranking" ? { data: { rows: [{ id: "exact-creator-uuid", usuario_creador: "creador_real", creator_handle: "creador_real", nombre_completo: "Creador real", revenue_videos: null, total_ingresos_mxn: 900000, seguidores: 0, available_video_count: 7 }] }, error: null }
     : { data: { rows: [{ id: "v1", title: "Referencia real" }], count: 41 }, error: null });
 });
 
@@ -71,6 +72,9 @@ describe("compact catalogue navigation", () => {
     const card = await screen.findByRole("article", { name: "Creador @creador_real" });
     expect(within(card).getByText("—")).toBeInTheDocument();
     expect(within(card).getByText("0")).toBeInTheDocument();
+    expect(within(card).getByText("7 videos disponibles")).toBeInTheDocument();
+    expect(screen.getByText("Top 20 con videos disponibles")).toBeInTheDocument();
+    expect(mocks.rpc).toHaveBeenCalledWith("get_creator_catalog_ranking", { p_country: "mx" });
     expect(within(card).queryByText(/comisión/i)).not.toBeInTheDocument();
     fireEvent.click(within(card).getByRole("button", { name: "Ver videos" }));
     expect(await screen.findByText("/videos/creator/exact-creator-uuid")).toBeInTheDocument();
@@ -82,6 +86,13 @@ describe("compact catalogue navigation", () => {
     const card = await screen.findByRole("article", { name: "Creador @creador_real" });
     fireEvent.click(within(card).getByRole("button", { name: "Desbloquear videos" }));
     expect(await screen.findByText("/unlock")).toBeInTheDocument();
+  });
+
+  it("does not expose empty creator routes when coverage is zero", async () => {
+    mocks.rpc.mockResolvedValue({ data: { rows: [{ id: 'empty', usuario_creador: 'sinvideos', available_video_count: 0 }] }, error: null });
+    render(<MemoryRouter><Creators /></MemoryRouter>);
+    expect(await screen.findByText('Todavía no hay creadores con videos disponibles en este catálogo.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver videos' })).not.toBeInTheDocument();
   });
 
   it("replaces failed product photos with a labelled fallback and recovers on a new source", () => {

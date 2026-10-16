@@ -1,3 +1,4 @@
+import { AdminOperationsOverview } from "@/components/admin/AdminOperationsOverview";
 import { AdminCatalogProcessing } from "@/components/admin/AdminCatalogProcessing";
 import { UserAffiliateOverview } from "@/components/admin/UserAffiliateOverview";
 import ApifyBatchImport from "@/components/admin/ApifyBatchImport";
@@ -32,7 +33,7 @@ type Market = "mx" | "us";
 const Admin = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedTab = ["users", "analytics", "leads", "campaigns", "creators", "import"].includes(searchParams.get("tab") || "") ? searchParams.get("tab")! : "users";
+  const selectedTab = ["operations", "users", "analytics", "leads", "campaigns", "creators", "import"].includes(searchParams.get("tab") || "") ? searchParams.get("tab")! : "operations";
   const selectedMarket: Market = "mx";
   const [isFounder, setIsFounder] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -142,6 +143,7 @@ const Admin = () => {
         <Tabs value={selectedTab} onValueChange={tab => setSearchParams({ tab }, { replace: true })} className="space-y-6">
           <div className="overflow-x-auto">
           <TabsList className="inline-flex min-w-max justify-start">
+            <TabsTrigger value="operations" className="flex items-center gap-2"><BarChart3 className="h-4 w-4" />Operación</TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <UserPlus className="h-4 w-4" />Usuarios y afiliados
             </TabsTrigger>
@@ -167,6 +169,8 @@ const Admin = () => {
             </TabsTrigger>
           </TabsList>
           </div>
+
+          <TabsContent value="operations" className="space-y-6"><AdminOperationsOverview /><AdminCatalogProcessing /></TabsContent>
 
           <TabsContent value="users" className="space-y-6">
             <UserAffiliateOverview />
