@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useNavigate } from 'react-router-dom';
 import { useBlurGateContext } from '@/contexts/BlurGateContext';
 import { useStartCheckout } from '@/lib/checkout';
+import { ScriptTranslation } from '@/components/ScriptTranslation';
 interface GeneratedVariant {
   hook: string;
   body: string;
@@ -97,6 +98,11 @@ const VideoAnalysisModalOriginal = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+  const [processingError, setProcessingError] = useState<{ source: 'load' | 'process'; message: string } | null>(null);
+  const requestVersion = useRef(0);
+  const scriptRequest = useRef(0);
+  const processingRef = useRef(false);
+  const pollingAbort = useRef<AbortController | null>(null);
   const [transcript, setTranscript] = useState(video.transcript || '');
   const [analysis, setAnalysis] = useState<any>(video.analysis_json || null);
   const [variants, setVariants] = useState<any>(video.variants_json || null);
@@ -165,14 +171,18 @@ const VideoAnalysisModalOriginal = ({
   //   - free user, rank > 5  -> locked = true
   const loadScript = async () => {
     if (!video.id) return;
+    const version = requestVersion.current;
+    const scriptVersion = ++scriptRequest.current;
+    const isCurrent = () => version === requestVersion.current && scriptVersion === scriptRequest.current;
     setIsLoadingScript(true);
+    setProcessingError(null);
     try {
-      const { data, error } = await supabase.rpc('get_video_script', {
-        _video_id: video.id,
-      });
+      const { data, error } = await supabase.rpc('get_video_script', { _video_id: video.id });
+      if (!isCurrent()) return;
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
-      if (!row || row.locked) {
+      if (!row) throw new Error('No se pudo recuperar el guion de este video. Vuelve a intentarlo.');
+      if (row.locked) {
         setScriptLocked(true);
         setTranscript('');
         setVariants(null);
@@ -183,80 +193,122 @@ const VideoAnalysisModalOriginal = ({
       setVariants(row.variants_json ?? null);
       if (hasPaid) {
         const saved = await supabase.rpc('get_video_analysis', { _video_id: video.id });
+        if (!isCurrent()) return;
         if (saved.error) throw saved.error;
         setAnalysis(saved.data);
       }
     } catch (error: any) {
+      if (!isCurrent()) return;
       console.error('Error loading script via RPC:', error);
+      setProcessingError({ source: 'load', message: 'No se pudo cargar el guion guardado. Revisa tu conexión y vuelve a intentarlo.' });
     } finally {
-      setIsLoadingScript(false);
+      if (isCurrent()) setIsLoadingScript(false);
     }
   };
 
-  // Fetch the gated script whenever the modal opens.
+  // Invalidate pending work when access, video or modal visibility changes.
   useEffect(() => {
-    if (isOpen) {
-      setAnalysis(null);
-      loadScript();
-    }
+    requestVersion.current++;
+    processingRef.current = false;
+    setIsProcessing(false);
+    setProcessingError(null);
+    setTranscript('');
+    setAnalysis(null);
+    setVariants(null);
+    setGeneratedVariants([]);
+    setScriptLocked(false);
+    if (isOpen) loadScript();
+    return () => {
+      requestVersion.current++;
+      pollingAbort.current?.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, video.id, hasPaid]);
+
   const processVideo = async () => {
+    if (processingRef.current || isLoadingScript) return;
+    if (!hasPaid) { openPaywall('analizar-video'); return; }
+    const version = requestVersion.current;
+    const isCurrent = () => version === requestVersion.current;
+    const controller = new AbortController();
+    pollingAbort.current?.abort();
+    pollingAbort.current = controller;
+    processingRef.current = true;
     setIsProcessing(true);
+    setProcessingError(null);
     try {
-      if (video.transcript && video.analysis_json) {
-        setTranscript(video.transcript);
-        setAnalysis(video.analysis_json);
-        setVariants(video.variants_json);
-        setIsProcessing(false);
-        return;
-      }
+      let analysisVideoId = video.id;
       if (!video.video_mp4_url) {
-        setStatusMessage('Descargando video...');
-        const {
-          data: downloadData,
-          error: downloadError
-        } = await supabase.functions.invoke('download-tiktok-video', {
-          body: {
-            videoId: video.id,
-            tiktokUrl: video.video_url
+        setStatusMessage('Preparando el video para transcribir...');
+        let ready = false;
+        for (let attempt = 0; attempt < 30; attempt++) {
+          if (!isCurrent()) return;
+          const { data, error } = await supabase.functions.invoke('catalog-download', {
+            body: { videoUrl: video.video_url },
+          });
+          if (!isCurrent()) return;
+          if (error) {
+            const detail = await error.context?.json?.().catch(() => null);
+            throw new Error(detail?.error || 'No se pudo preparar el video. Inténtalo más tarde.');
           }
-        });
-        if (downloadError) throw downloadError;
-        console.log('Download result:', downloadData);
-      }
-      setStatusMessage('Analizando audio y escenas con Gemini...');
-      const {
-        data: analyzeData,
-        error: analyzeError
-      } = await supabase.functions.invoke('transcribe-and-analyze', {
-        body: {
-          videoId: video.id
+          if (data?.status === 'ready' && typeof data.videoId === 'string' && data.videoId) {
+            analysisVideoId = data.videoId;
+            ready = true;
+            break;
+          }
+          if (data?.status !== 'pending') throw new Error(data?.error || 'No se pudo descargar este video.');
+          if (attempt < 29) await new Promise<void>((resolve, reject) => {
+            const cancel = () => { clearTimeout(timer); reject(new Error('Cancelado')); };
+            const timer = setTimeout(() => {
+              controller.signal.removeEventListener('abort', cancel);
+              resolve();
+            }, Math.min(15, Math.max(3, Number(data.retryAfterSeconds) || 8)) * 1000);
+            controller.signal.addEventListener('abort', cancel, { once: true });
+          });
         }
+        if (!ready) throw new Error('La descarga sigue en proceso. Vuelve a intentarlo en unos minutos; se usará la misma descarga.');
+      }
+      if (!isCurrent()) return;
+      setStatusMessage('Transcribiendo el audio y analizando las escenas...');
+      const { data: analyzeData, error: analyzeError } = await supabase.functions.invoke('transcribe-and-analyze', {
+        body: { videoId: analysisVideoId },
       });
+      if (!isCurrent()) return;
       if (analyzeError) {
         const detail = await analyzeError.context?.json?.().catch(() => null);
         throw new Error(detail?.error || analyzeError.message);
       }
       if (!analyzeData?.success || !analyzeData.analysis || typeof analyzeData.transcript !== 'string') {
-        throw new Error(analyzeData?.error || 'El análisis no está completo. Inténtalo de nuevo.');
+        throw new Error(analyzeData?.error || 'No se obtuvo una transcripción completa. Inténtalo de nuevo.');
+      }
+      if (!analyzeData.transcript.trim()) {
+        throw new Error('No se detectó voz para transcribir. Si el video no tiene diálogo audible, no habrá un guion hablado que extraer. Prueba otro video con voz.');
       }
       setTranscript(analyzeData.transcript);
       setAnalysis(analyzeData.analysis);
       setVariants(analyzeData.variants || null);
       setStatusMessage('¡Análisis completado!');
     } catch (error: any) {
-      console.error('Processing error:', error);
-      setStatusMessage(`Error: ${error.message}`);
-      toast({
-        title: 'Error al procesar',
-        description: error.message,
-        variant: 'destructive'
-      });
+      if (!isCurrent()) return;
+      const message = error?.message || 'No se pudo transcribir este video. Vuelve a intentarlo.';
+      setProcessingError({ source: 'process', message });
+      toast({ title: 'No se pudo transcribir', description: message, variant: 'destructive' });
     } finally {
-      setIsProcessing(false);
+      if (isCurrent()) {
+        processingRef.current = false;
+        setIsProcessing(false);
+      }
     }
   };
+  const errorNotice = processingError && !isProcessing && (
+    <div role="alert" className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm">
+      <p>{processingError.message}</p>
+      <Button variant="outline" size="sm" className="mt-2" disabled={isLoadingScript}
+        onClick={processingError.source === 'load' ? loadScript : processVideo}>
+        Reintentar {processingError.source === 'load' ? 'carga' : 'transcripción'}
+      </Button>
+    </div>
+  );
   const handleToggleFavorite = async () => {
     const {
       data: {
@@ -453,6 +505,8 @@ const VideoAnalysisModalOriginal = ({
   return <Dialog open={isOpen} onOpenChange={onClose}>
       {/* Full-screen on mobile, max-w-6xl on desktop */}
       <DialogContent className="w-full h-full md:max-w-6xl md:max-h-[92vh] md:h-auto overflow-hidden p-0 gap-0 animate-scale-in [&>button]:hidden rounded-none md:rounded-xl">
+        <DialogTitle className="sr-only">Guion y análisis: {video.title || 'video de TikTok'}</DialogTitle>
+        <DialogDescription className="sr-only">Consulta la transcripción original, el análisis del video y variantes para adaptar a tu producto.</DialogDescription>
         <div className="flex flex-col h-full md:h-auto md:max-h-[92vh]">
           
           {/* Mobile Header - Fixed at top */}
@@ -642,6 +696,7 @@ const VideoAnalysisModalOriginal = ({
               </div>
 
               <div className="p-3 pb-40 flex-1">
+                {errorNotice}
                 {isProcessing ? (
                   <div className="flex flex-col items-center justify-center gap-4 py-12">
                     <div className="relative">
@@ -685,6 +740,7 @@ const VideoAnalysisModalOriginal = ({
                                 {transcript}
                               </p>
                             </div>
+                            {hasPaid && <ScriptTranslation text={transcript} />}
                             {!hasPaid && !variants && (
                               <div className="mt-3 rounded-xl border border-primary/30 bg-primary/5 p-3 text-center">
                                 <p className="text-xs text-muted-foreground mb-2">
@@ -711,7 +767,7 @@ const VideoAnalysisModalOriginal = ({
                               No hay transcripción disponible
                             </p>
                             {hasPaid && (
-                              <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl" size="sm">
+                              <Button onClick={processVideo} disabled={isProcessing || isLoadingScript || processingError?.source === 'load'} className="rounded-xl" size="sm">
                                 <Sparkles className="h-4 w-4 mr-2" />
                                 Generar transcripción
                               </Button>
@@ -772,7 +828,7 @@ const VideoAnalysisModalOriginal = ({
                         <div className="text-center py-8">
                           <Brain className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
                           <p className="text-muted-foreground text-sm mb-3">Sin análisis disponible</p>
-                          <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl" size="sm">
+                          <Button onClick={processVideo} disabled={isProcessing || isLoadingScript || processingError?.source === 'load'} className="rounded-xl" size="sm">
                             <Sparkles className="h-4 w-4 mr-2" />
                             Generar análisis
                           </Button>
@@ -1105,6 +1161,7 @@ const VideoAnalysisModalOriginal = ({
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-3 md:p-5 pt-3 md:pt-4">
+                  {errorNotice}
                   {isProcessing ? <div className="flex flex-col items-center justify-center h-full gap-4 py-12">
                       <div className="relative">
                         <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
@@ -1142,6 +1199,7 @@ const VideoAnalysisModalOriginal = ({
                                   {transcript}
                                 </p>
                               </div>
+                              {hasPaid && <ScriptTranslation text={transcript} />}
                               {!hasPaid && !variants && <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center">
                                   <p className="text-sm text-muted-foreground mb-2">
                                     Con Pro, explora otras formas de contar esta idea y adáptala a tu producto.
@@ -1161,7 +1219,7 @@ const VideoAnalysisModalOriginal = ({
                               <p className="text-muted-foreground text-sm mb-3">
                                 No hay transcripción disponible
                               </p>
-                              {hasPaid && <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl" size="sm">
+                              {hasPaid && <Button onClick={processVideo} disabled={isProcessing || isLoadingScript || processingError?.source === 'load'} className="rounded-xl" size="sm">
                                 <Sparkles className="h-4 w-4 mr-2" />
                                 Generar transcripción
                               </Button>}
@@ -1221,7 +1279,7 @@ const VideoAnalysisModalOriginal = ({
                             <p className="text-muted-foreground text-sm mb-3">
                               No hay análisis disponible
                             </p>
-                            <Button onClick={processVideo} disabled={isProcessing} className="rounded-xl" size="sm">
+                            <Button onClick={processVideo} disabled={isProcessing || isLoadingScript || processingError?.source === 'load'} className="rounded-xl" size="sm">
                               <Sparkles className="h-4 w-4 mr-2" />
                               Generar análisis
                             </Button>

@@ -3,13 +3,13 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import Tools from "@/pages/Tools";
 
-const mocks = vi.hoisted(() => ({ invoke: vi.fn(), insert: vi.fn(), toast: vi.fn(), hasPaid: true, openPaywall: vi.fn() }));
+const mocks = vi.hoisted(() => ({ invoke: vi.fn(), insert: vi.fn(), toast: vi.fn(), hasPaid: true, openPaywall: vi.fn(), getUser: vi.fn(), history: [] as any[] }));
 vi.mock("@/contexts/LanguageContext", () => ({ useLanguage: () => ({ language: "es" }) }));
 vi.mock("@/contexts/BlurGateContext", () => ({ useBlurGateContext: () => ({ hasPaid: mocks.hasPaid, isLoggedIn: true, openPaywall: mocks.openPaywall }) }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mocks.toast }) }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    auth: { getUser: async () => ({ data: { user: { id: "paid-user" } } }) },
+    auth: { getUser: mocks.getUser },
     functions: { invoke: mocks.invoke },
     from: () => {
       let payload: any;
@@ -17,7 +17,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       for (const method of ["select", "eq", "order", "limit", "gte"]) query[method] = () => query;
       query.insert = (value: any) => { payload = value; mocks.insert(value); return query; };
       query.single = async () => ({ data: { id: "history-1", created_at: new Date().toISOString(), ...payload }, error: null });
-      query.then = (resolve: any) => resolve({ data: [], count: 0, error: null });
+      query.then = (resolve: any) => resolve({ data: mocks.history, count: 0, error: null });
       return query;
     },
   },
@@ -46,6 +46,8 @@ async function start() {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.hasPaid = true;
+  mocks.history = [];
+  mocks.getUser.mockResolvedValue({ data: { user: { id: "paid-user" } }, error: null });
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -104,4 +106,27 @@ describe("download and shared analysis flow", () => {
     expect(mocks.invoke).not.toHaveBeenCalled();
     expect(mocks.insert).not.toHaveBeenCalled();
   });
+
+  it("reports a session failure without starting a paid provider request", async () => {
+    mocks.getUser.mockRejectedValue(new Error("No se pudo verificar la sesión."));
+    await start();
+    expect(screen.getByText("No se pudo verificar la sesión.")).toBeInTheDocument();
+    expect(mocks.invoke).not.toHaveBeenCalled();
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it("keeps the selected history item when a previous download finishes", async () => {
+    mocks.history = [{ id: "saved-video", video_url: url, created_at: new Date().toISOString(), result: {
+      transcript: "Guion guardado que eligió el usuario.", segments: [], insights: null, variants: [],
+    } }];
+    let resolveDownload!: (value: unknown) => void;
+    mocks.invoke.mockImplementationOnce(() => new Promise(resolve => { resolveDownload = resolve; }));
+    await start();
+    await act(async () => { fireEvent.click(screen.getAllByRole("button", { name: /tiktok.com/ })[0]); });
+    await act(async () => { resolveDownload({ data: { status: "ready" }, error: null }); });
+    expect(screen.getByText("Guion guardado que eligió el usuario.")).toBeInTheDocument();
+    expect(mocks.invoke).toHaveBeenCalledOnce();
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
 });

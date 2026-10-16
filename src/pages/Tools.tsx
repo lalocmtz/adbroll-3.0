@@ -1,3 +1,4 @@
+import { ScriptTranslation } from '@/components/ScriptTranslation';
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -117,6 +118,7 @@ const Tools = () => {
   const navigate = useNavigate();
 
   const activeRequest = useRef(0);
+  const analysisBusy = useRef(false);
   useEffect(() => () => { activeRequest.current++; }, []);
   const [videoUrl, setVideoUrl] = useState("");
   const [step, setStep] = useState<Step>("idle");
@@ -162,10 +164,12 @@ const Tools = () => {
 
   useEffect(() => {
     // Solo cargamos histórico si hay sesión (respeta el gating premium existente).
-    if (isLoggedIn) loadHistory();
+    if (isLoggedIn) loadHistory().catch(error => console.error("No se pudo cargar el histórico:", error));
   }, [isLoggedIn, loadHistory]);
 
   const resetAll = () => {
+    activeRequest.current++;
+    analysisBusy.current = false;
     setStep("idle");
     setErrorMsg(null);
     setLimitReached(false);
@@ -180,6 +184,8 @@ const Tools = () => {
 
   // Re-renderiza un análisis guardado SIN volver a llamar las APIs.
   const openFromHistory = (item: HistoryItem) => {
+    const requestId = ++activeRequest.current;
+    analysisBusy.current = false;
     const r = item.result || ({} as AnalysisResult);
     setStep("done");
     setErrorMsg(null);
@@ -197,7 +203,7 @@ const Tools = () => {
     // Thumbnail no bloqueante (oEmbed) para el item del histórico.
     fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(item.video_url)}`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => data?.thumbnail_url && setThumbnail(data.thumbnail_url))
+      .then((data) => requestId === activeRequest.current && data?.thumbnail_url && setThumbnail(data.thumbnail_url))
       .catch(() => {});
   };
 
@@ -209,6 +215,7 @@ const Tools = () => {
   };
 
   const handleAnalyze = async () => {
+    if (analysisBusy.current) return;
     setErrorMsg(null);
     setLimitReached(false);
     setActiveHistoryId(null);
@@ -228,35 +235,39 @@ const Tools = () => {
       return;
     }
 
-    // Identificar usuario y verificar limite diario.
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/unlock");
-      return;
-    }
-
-    // Reset de resultados previos.
-    setTranscript("");
-    setSegments([]);
-    setInsights(null);
-    setVariants([]);
-    setThumbnail(null);
-
-    const url = videoUrl.trim();
-
-    // Thumbnail no bloqueante via oEmbed.
-    fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => data?.thumbnail_url && setThumbnail(data.thumbnail_url))
-      .catch(() => {});
-
     const requestId = ++activeRequest.current;
+    analysisBusy.current = true;
+    setStep("download");
     try {
-      setStep("download");
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (requestId !== activeRequest.current) return;
+      if (authError) throw new Error(t("No se pudo verificar tu sesión. Vuelve a iniciar sesión.", "Could not verify your session. Please sign in again."));
+      if (!user) {
+        setStep("idle");
+        navigate("/unlock");
+        return;
+      }
+
+      // Reset de resultados previos.
+      setTranscript("");
+      setSegments([]);
+      setInsights(null);
+      setVariants([]);
+      setThumbnail(null);
+
+      const url = videoUrl.trim();
+
+      // Thumbnail no bloqueante via oEmbed.
+      fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => requestId === activeRequest.current && data?.thumbnail_url && setThumbnail(data.thumbnail_url))
+        .catch(() => {});
+
       let mediaReady = false;
       for (let attempt = 0; attempt < 30; attempt++) {
         if (requestId !== activeRequest.current) return;
         const { data, error } = await supabase.functions.invoke("catalog-download", { body: { videoUrl: url } });
+        if (requestId !== activeRequest.current) return;
         if (error) {
           const detail = await error.context?.json?.().catch(() => null);
           throw new Error(detail?.error || "No se pudo preparar el video. Inténtalo más tarde.");
@@ -347,6 +358,7 @@ const Tools = () => {
         .select("id, video_url, created_at, result")
         .single();
 
+      if (requestId !== activeRequest.current) return;
       if (saveError || !inserted) throw new Error(t("El análisis está en pantalla, pero no se pudo guardar. No aparecerá en tu historial.", "Analysis is on screen but could not be saved to your history."));
 
       // Optimistic: agregar al tope del histórico.
@@ -373,6 +385,8 @@ const Tools = () => {
             "Could not analyze the video. Try another link."
           )
       );
+    } finally {
+      if (requestId === activeRequest.current) analysisBusy.current = false;
     }
   };
 
@@ -668,6 +682,7 @@ const Tools = () => {
                             </p>
                           )}
                         </ScrollArea>
+                        {hasPaid && <ScriptTranslation text={transcript} locale={isEs ? 'es' : 'en'} />}
                       </TabsContent>
 
                       {/* Por que funciono */}
