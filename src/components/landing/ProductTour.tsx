@@ -1,6 +1,7 @@
 import { ArrowRight, Check, ScanText, TrendingUp, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProductDemo } from "@/components/landing/ProductDemo";
 
 type TourProps = { onExplore: (section: string) => void };
 
@@ -20,6 +21,8 @@ export function ProductTour({ onExplore }: TourProps) {
         <h2 id="tour-title" className="mt-3 font-display text-3xl font-extrabold text-balance md:text-5xl">Menos apuestas.<br />Más razones para vender.</h2>
         <p className="mt-4 max-w-xl leading-relaxed text-brand-mist/70">No necesitas otra lista de ideas. Necesitas saber qué producto merece tu tiempo y qué mensaje puede acercarte a la siguiente comisión.</p>
       </div>
+
+      <ProductDemo />
 
       <article className="grid items-center gap-8 border-b border-white/10 pb-12 md:grid-cols-2 md:gap-14 md:pb-16">
         <div className="md:order-2">

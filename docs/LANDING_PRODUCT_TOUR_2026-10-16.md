@@ -1,5 +1,13 @@
 # Landing y recorrido Pro — 16 de octubre de 2026
 
+## Video demostrativo incorporado
+
+- Video proporcionado por el fundador, 34.30 segundos, 1920 × 1080 a 30 fps, sin pista de audio. MP4 H.264 con fast start; conserva el encuadre y se difuminó la identidad del perfil en la esquina inferior izquierda.
+- Reproductor en la introducción de «Así se ve por dentro», antes de las capturas: controles nativos, pantalla completa, reproducción inline en móvil, póster y `preload="none"`. Sin reproducción automática. Texto alternativo explica el recorrido de videos, guiones, variantes y comparación de oportunidades.
+- Assets importados desde Vite: URLs con hash bajo `/assets/`, servidas por el CDN existente; no dependen del servicio de análisis ni de Apify.
+- Verificación: 16 pruebas existentes de landing aprobadas, build y lint de componentes. TypeScript aprobado con tipos explícitos `vite/client,node,react,react-dom`; el comando sin esa lista encuentra carpetas duplicadas de tipos (`react 3`, etc.) preexistentes en el `node_modules` local.
+- Reproducción local comprobada a 1920 × 1080; vista de 390 px sin desbordamiento horizontal. Evidencia en `output/landing-demo-2026-10-16/`.
+
 ## Publicación completada
 Producción confirmada en https://tokxray.com/ con el commit `330cd381da1276fea0e9d1073dca8d4e99181009` y despliegue Vercel `dpl_gTuVPrzgJJiMv5EHdu4DmJ2LP4Mm` en estado READY. Capturas de comprobación: `output/landing-tour-2026-10-16/published-hero.png` y `published-product-tour.png`.
 
