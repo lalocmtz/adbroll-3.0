@@ -17,6 +17,8 @@ El propietario confirmó que el error 400 ocurrió en un simulador o vista móvi
 
 La propiedad de Search Console fue verificada por el propietario mediante HTML a las 18:40. El archivo sigue publicado. Esto no equivale a aprobación de la marca OAuth. La consola había indicado esperar 24 horas antes de repetir la revisión. Si vuelve a rechazar propiedad, la documentación actual de Google pide verificar una **propiedad de dominio mediante DNS**, desde la cuenta propietaria del proyecto. No se contrató un dominio personalizado de Supabase ni se alteró DNS en esta entrega.
 
+Después del despliegue se probó `Continuar con Google` en Chrome normal, con la cuenta existente del propietario: selector de Google → selección de cuenta → retorno correcto a `/app`. No apareció el 400 en esa prueba. El selector todavía mostró `tnqvvfpzkjwgllwdwvte.supabase.co`; no se afirma que la marca OAuth ya esté aprobada ni que se haya probado el alta de un usuario nuevo.
+
 Fuentes oficiales: [marca y acceso con Google en Supabase](https://supabase.com/docs/guides/auth/social-login/auth-google), [verificación de dominio para OAuth](https://support.google.com/cloud/answer/13804266).
 
 ## Bloqueo real de enlaces nuevos
@@ -54,6 +56,10 @@ El comparador implementado aporta interacción útil sin llamadas nuevas a IA. U
 - Comparador probado con datos reales: meta de $1,000 MXN, comisiones de $159.70 y $24.90 → 7 y 41 ventas, respectivamente.
 - Navegación móvil de 390 × 844 y escritorio comprobadas en Chrome. Esto no equivale a una prueba física de iPhone/Safari.
 - Evidencias en `output/launch-fixes-2026-10-16/`.
+- Publicado el commit `d2a5ef826e3261fb7932b69ac99aaf644748e7e9` mediante `dpl_4j9mEZn4M71ospwZK8krGiy2PPXB`, estado READY, asociado a `tokxray.com` y `www.tokxray.com`.
+- Pruebas posteriores a publicación: landing sin franja en escritorio y 390 px, ancho de documento 390 px sin desbordamiento, videos pausados sin autoplay, Google completo con cuenta existente y comparador con meta de $2,000 MXN → 13 y 81 ventas.
+- El enlace nuevo reportado sigue mostrando la pausa de descargas; el enlace almacenado devuelve transcripción correctamente. La pausa externa no está resuelta.
+- El archivo de verificación de Google conserva contenido exacto y HTTP 200 después del despliegue. El último ajuste de foco del comparador pasó sus 17 pruebas, TypeScript y compilación.
 
 ## Pendientes concretos
 
