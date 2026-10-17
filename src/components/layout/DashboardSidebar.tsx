@@ -133,7 +133,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
         <button
           key={item.to}
           onClick={() => {
-            navigate("/unlock");
+            navigate("/pricing");
             handleNavClick();
           }}
           className={cn(

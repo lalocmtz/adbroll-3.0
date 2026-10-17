@@ -57,7 +57,7 @@ describe("comparison access", () => {
   it("allows only the three guest previews to be selected and keeps video navigation gated", async () => {
     mocks.loggedIn = false;
     const Location = () => <p>{useLocation().pathname}</p>;
-    render(<MemoryRouter initialEntries={["/oportunidades"]}><Routes><Route path="/oportunidades" element={<Opportunities />} /><Route path="/unlock" element={<Location />} /></Routes></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/oportunidades"]}><Routes><Route path="/oportunidades" element={<Opportunities />} /><Route path="/pricing" element={<Location />} /></Routes></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: "Comparar: Producto Uno" }));
     expect(screen.queryByRole("button", { name: "Comparar: Producto Cuatro" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Comparar: Producto Dos" }));
@@ -65,7 +65,7 @@ describe("comparison access", () => {
     expect(within(dialog).getByText("Producto Uno")).toBeInTheDocument();
     expect(within(dialog).queryByText("Producto Cuatro")).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "Ver videos de A" }));
-    expect(await screen.findByText("/unlock")).toBeInTheDocument();
+    expect(await screen.findByText("/pricing")).toBeInTheDocument();
   });
 
   it("updates the scenario immediately, explains report periods and prevents adding a third product", async () => {

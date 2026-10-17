@@ -45,8 +45,8 @@ export function isReusableBase(video: any, source: string): boolean {
   catch { return false; }
 }
 export class GeminiProviderError extends AIError {
-  constructor(public providerStatus: number, public providerCode: string) {
-    super(providerStatus===429 ? 'El servicio de análisis alcanzó su cuota temporal. Volveremos a intentarlo.' :
+  constructor(public providerStatus: number, public providerCode: string, public retryAfterSeconds: number | null = null, public quotaWindow: 'day'|'minute'|'unknown' = 'unknown') {
+    super(providerStatus===429 ? 'El servicio de análisis alcanzó su cuota temporal. Inténtalo de nuevo más tarde.' :
       providerStatus===401 || providerStatus===403 ? 'El servicio de análisis necesita una revisión de acceso por el administrador.' :
       providerStatus===400 || providerStatus===404 ? 'No se pudo procesar este archivo con la configuración actual.' :
       'El análisis tuvo un fallo temporal. Vuelve a intentarlo en unos minutos.', providerStatus===429?429:502);
@@ -56,4 +56,27 @@ export class GeminiProviderError extends AIError {
 export function safeGeminiCode(payload: any): string {
   const code=payload?.error?.status;
   return typeof code==='string' && /^[A-Z_]{3,40}$/.test(code)?code:'UNKNOWN';
+}
+
+/** Only bounded retry timing and a closed quota category may leave the provider response. */
+export function safeGeminiRetry(payload: any, retryAfter: string | null, now = Date.now()) {
+  const waits: number[] = [];
+  const add = (seconds: number) => { if (Number.isFinite(seconds) && seconds >= 0 && seconds <= 604800) waits.push(Math.ceil(seconds)); };
+  if (retryAfter) {
+    if (/^\d+(?:\.\d+)?$/.test(retryAfter)) add(Number(retryAfter));
+    else { const date = Date.parse(retryAfter); if (Number.isFinite(date)) add((date-now)/1000); }
+  }
+  let quotaWindow: 'day'|'minute'|'unknown' = 'unknown';
+  for (const detail of Array.isArray(payload?.error?.details) ? payload.error.details : []) {
+    if (detail?.['@type'] === 'type.googleapis.com/google.rpc.RetryInfo' && typeof detail.retryDelay === 'string' && /^\d+(?:\.\d+)?s$/.test(detail.retryDelay)) add(Number(detail.retryDelay.slice(0,-1)));
+    if (detail?.['@type'] === 'type.googleapis.com/google.rpc.QuotaFailure') {
+      for (const violation of Array.isArray(detail.violations) ? detail.violations : []) {
+        // Do not log identifiers/dimensions: they can include project information.
+        if (typeof violation?.quotaId !== 'string') continue;
+        if (/PerDay/.test(violation.quotaId)) quotaWindow = 'day';
+        else if (/PerMinute/.test(violation.quotaId) && quotaWindow !== 'day') quotaWindow = 'minute';
+      }
+    }
+  }
+  return { retryAfterSeconds: waits.length ? Math.max(...waits) : null, quotaWindow };
 }

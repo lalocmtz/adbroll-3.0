@@ -22,7 +22,7 @@ describe('owned AI analysis boundaries', () => {
   });
 });
 
-import { GeminiProviderError, isReusableBase, safeGeminiCode } from '../supabase/functions/_shared/ai-contracts';
+import { GeminiProviderError, isReusableBase, safeGeminiCode, safeGeminiRetry } from '../supabase/functions/_shared/ai-contracts';
 describe('shared base analysis and safe provider errors',()=>{
  it('reuses legacy base without variants and refuses changed media',()=>{
   const video={transcript:'Guion real',analysis_json:{hook:'Gancho',body:'Cuerpo',cta:null},variants_json:null};
@@ -42,5 +42,11 @@ describe('shared base analysis and safe provider errors',()=>{
   expect(new GeminiProviderError(403,'PERMISSION_DENIED').retryable).toBe(false);
   expect(safeGeminiCode({error:{status:'INVALID_ARGUMENT',message:'secret request'}})).toBe('INVALID_ARGUMENT');
   expect(safeGeminiCode({error:{status:'secret/token:abc'}})).toBe('UNKNOWN');
+ });
+ it('keeps only bounded retry timing and quota categories, never response prose or project IDs',()=>{
+  const details=[{'@type':'type.googleapis.com/google.rpc.RetryInfo',retryDelay:'3.2s'},{'@type':'type.googleapis.com/google.rpc.QuotaFailure',violations:[{quotaId:'GenerateRequestsPerMinute',quotaDimensions:{project:'PRIVATE'}},{quotaId:'GenerateRequestsPerDay'}]}];
+  expect(safeGeminiRetry({error:{details,message:'SECRET'}},'8')).toEqual({retryAfterSeconds:8,quotaWindow:'day'});
+  expect(safeGeminiRetry({error:{details:[]}},'Thu, 01 Jan 2026 00:00:10 GMT',Date.parse('2026-01-01T00:00:00Z'))).toEqual({retryAfterSeconds:10,quotaWindow:'unknown'});
+  expect(safeGeminiRetry({error:{details:[{'@type':'type.googleapis.com/google.rpc.RetryInfo',retryDelay:'999999999999s'}]}},'garbage')).toEqual({retryAfterSeconds:null,quotaWindow:'unknown'});
  });
 });

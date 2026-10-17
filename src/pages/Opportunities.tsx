@@ -14,7 +14,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { useNavigate } from "react-router-dom";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
-import { useStartCheckout } from "@/lib/checkout";
+import { useProOffer } from "@/hooks/useProOffer";
 import { ProductComparison } from "@/components/opportunities/ProductComparison";
 import { getComparisonProducts } from "@/lib/opportunity-comparison";
 
@@ -77,7 +77,7 @@ const Opportunities = () => {
   const { market } = useMarket();
   const navigate = useNavigate();
   const { isLoggedIn } = useBlurGateContext();
-  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
+  const openProOffer = useProOffer();
   const [opportunities, setOpportunities] = useState<OpportunityProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [badgeFilter, setBadgeFilter] = useState<BadgeFilter>("all");
@@ -184,10 +184,10 @@ const Opportunities = () => {
         <CatalogFilterBar>
           <FilterPills compact options={BADGE_FILTERS.map(option => ({ value: option.value, label: language === "es" ? option.labelEs : option.labelEn }))}
             value={badgeFilter} onChange={value => {
-              if (!isLoggedIn) { navigate("/unlock"); return; }
+              if (!isLoggedIn) { navigate("/pricing"); return; }
               setBadgeFilter(value as BadgeFilter);
             }} />
-          {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/unlock")}>
+          {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/pricing")}>
             <Lock className="size-3 mr-1" />{language === "es" ? "Categorías" : "Categories"}
           </Button> : <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger aria-label={language === "es" ? "Categoría de oportunidades" : "Opportunity category"} className="w-auto max-w-48 h-11 text-xs rounded-full border-border/50 bg-muted/60">
@@ -205,7 +205,7 @@ const Opportunities = () => {
           open={comparisonOpen}
           onOpenChange={setComparisonOpen}
           onClear={() => { setComparisonIds([]); setComparisonOpen(false); }}
-          onViewProduct={id => navigate(isLoggedIn ? `/videos/product/${id}` : "/unlock")}
+          onViewProduct={id => navigate(isLoggedIn ? `/videos/product/${id}` : "/pricing")}
         />}
 
         {filteredOpportunities.length === 0 ? (
@@ -234,7 +234,7 @@ const Opportunities = () => {
                     key={product.id}
                     className="relative cursor-pointer group"
                     onClick={() => {
-                      navigate("/unlock");
+                      navigate("/pricing");
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                   >
@@ -281,8 +281,7 @@ const Opportunities = () => {
           <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
             <Button
               className="w-full h-12 text-sm font-semibold shadow-lg"
-              onClick={startCheckout}
-              disabled={checkoutLoading}
+              onClick={openProOffer}
             >
               <Sparkles className="h-4 w-4 mr-2" />
               {language === "es" ? "Desbloquear acceso completo" : "Unlock full access"}
@@ -364,7 +363,7 @@ const OpportunityCard = ({
 
   const goToVideos = () => {
     if (!isLoggedIn) {
-      navigate("/unlock");
+      navigate("/pricing");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }

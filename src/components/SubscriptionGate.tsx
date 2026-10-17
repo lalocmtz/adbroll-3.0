@@ -1,7 +1,9 @@
 import { useSubscription } from '@/hooks/useSubscription';
-import { SubscriptionOffer } from '@/components/SubscriptionOffer';
+import { Navigate, useLocation } from 'react-router-dom';
+import { proReturnTo } from '@/hooks/useProOffer';
 export const SubscriptionGate = ({children}: {children:React.ReactNode}) => {
   const {isPro,loading} = useSubscription();
+  const location = useLocation();
   if (loading) return <p role="status" className="p-8 text-center">Comprobando tu acceso…</p>;
-  return isPro ? <>{children}</> : <div className="max-w-md mx-auto p-4"><SubscriptionOffer /></div>;
+  return isPro ? <>{children}</> : <Navigate to="/pricing" replace state={{ returnTo: proReturnTo(location.pathname + location.search) }} />;
 };

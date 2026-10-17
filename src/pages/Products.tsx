@@ -12,7 +12,7 @@ import { CompactPagination } from "@/components/CompactPagination";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useStartCheckout } from "@/lib/checkout";
+import { useProOffer } from "@/hooks/useProOffer";
 
 interface Product {
   id: string;
@@ -51,7 +51,7 @@ const Products = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isLoggedIn } = useBlurGateContext();
-  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
+  const openProOffer = useProOffer();
   const { market, marketLabel } = useMarket();
   const { language, formatMoney } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
@@ -247,10 +247,10 @@ const Products = () => {
       </CatalogHeader>
       <CatalogFilterBar>
         <FilterPills compact options={SORT_OPTIONS} value={sortBy} onChange={(v) => {
-          if (!isLoggedIn) { navigate("/unlock"); return; }
+          if (!isLoggedIn) { navigate("/pricing"); return; }
           setSortBy(v as SortOption);
         }} />
-        {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/unlock")}>
+        {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/pricing")}>
           <Lock className="size-3 mr-1" />Categorías
         </Button> : <Select value={categoryFilter} onValueChange={setCategoryFilter}>
           <SelectTrigger aria-label="Categoría de productos" className="w-auto max-w-48 h-11 text-xs rounded-full border-border/50 bg-muted/60">
@@ -293,7 +293,7 @@ const Products = () => {
                     key={product.id}
                     className="relative cursor-pointer group"
                     onClick={() => {
-                      navigate("/unlock");
+                      navigate("/pricing");
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
@@ -364,7 +364,7 @@ const Products = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!isLoggedIn) {
-                                navigate("/unlock");
+                                navigate("/pricing");
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                                 return;
                               }
@@ -380,7 +380,7 @@ const Products = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!isLoggedIn) {
-                              navigate("/unlock");
+                              navigate("/pricing");
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                               return;
                             }
@@ -473,7 +473,7 @@ const Products = () => {
                       className="w-full h-11 text-xs md:text-sm"
                       onClick={() => {
                         if (!isLoggedIn) {
-                          navigate("/unlock");
+                          navigate("/pricing");
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                           return;
                         }
@@ -495,7 +495,7 @@ const Products = () => {
                 <div 
                   className="flex items-center justify-center gap-2 opacity-60 cursor-pointer"
                   onClick={() => {
-                    navigate("/unlock");
+                    navigate("/pricing");
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
@@ -519,8 +519,7 @@ const Products = () => {
         <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
           <Button
             className="w-full h-12 text-sm font-semibold shadow-lg"
-            onClick={startCheckout}
-            disabled={checkoutLoading}
+            onClick={openProOffer}
           >
             <Sparkles className="h-4 w-4 mr-2" />
             Desbloquear acceso completo

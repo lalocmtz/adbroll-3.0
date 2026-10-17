@@ -1,12 +1,15 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { proReturnTo } from '@/hooks/useProOffer';
 import { ArrowLeft } from 'lucide-react';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { SubscriptionOffer } from '@/components/SubscriptionOffer';
 
 export default function Pricing() {
+  const location = useLocation();
+  const returnTo = proReturnTo(location.state?.returnTo);
   return <div className="min-h-[100svh] bg-brand-ink text-brand-mist">
     <header className="mx-auto flex max-w-4xl items-center justify-between px-4 h-14">
-      <Link to="/app" className="inline-flex min-h-11 items-center gap-1 text-xs text-brand-mist/65"><ArrowLeft className="h-4 w-4" />Explorar</Link>
+      <Link to={returnTo} className="inline-flex min-h-11 items-center gap-1 text-xs text-brand-mist/65"><ArrowLeft className="h-4 w-4" />Volver al catálogo</Link>
       <Link to="/" aria-label="TokXray, inicio"><BrandLogo tone="light" size="sm" /></Link>
       <Link to="/login?redirect=%2Fpricing" className="inline-flex min-h-11 items-center text-xs text-brand-mist/65">Mi cuenta</Link>
     </header>

@@ -18,7 +18,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("@/contexts/LanguageContext", () => ({ useLanguage: () => ({language:"es",formatMoney:(n:number)=>`$${n}`}) }));
 async function renderLanding() {
   render(<MemoryRouter><MarketProvider><Landing /></MarketProvider></MemoryRouter>);
-  await waitFor(()=>expect(screen.getByRole("button",{name:"Explorar antes de suscribirme"})).toBeInTheDocument());
+  await waitFor(()=>expect(screen.getByRole("heading",{level:1})).toBeInTheDocument());
 }
 describe("Mexico launch landing",()=>{
   beforeEach(() => { catalogue.videos = []; });
@@ -35,6 +35,8 @@ describe("Mexico launch landing",()=>{
   it("shows the 15 USD monthly plan without outdated promotions",async()=>{
     await renderLanding();
     expect(screen.getByText("$15.00 USD")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Quiero acceso Pro" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Ver qué está vendiendo" }).length).toBeGreaterThan(0);
     expect(screen.queryByText(/24\.99|50 % OFF|Antes \$499/)).not.toBeInTheDocument();
   });
   it("explains manual snapshot updates rather than promising live sales",async()=>{

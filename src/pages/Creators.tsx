@@ -276,7 +276,7 @@ const Creators = () => {
   const handleRowClick = (creator: Creator, isLocked: boolean) => {
     if (!(creator.available_video_count > 0)) return;
     if (isLocked || !isLoggedIn) {
-      navigate("/unlock");
+      navigate("/pricing");
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -306,7 +306,7 @@ const Creators = () => {
       </div>
       <CatalogFilterBar>
         <FilterPills compact options={SORT_OPTIONS} value={sortBy} onChange={(v) => {
-          if (!isLoggedIn) { navigate("/unlock"); return; }
+          if (!isLoggedIn) { navigate("/pricing"); return; }
           setSortBy(v as SortOption);
         }} />
       </CatalogFilterBar>
@@ -402,7 +402,7 @@ const Creators = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isLocked || !isLoggedIn) {
-                                navigate("/unlock");
+                                navigate("/pricing");
                                 return;
                               }
                               toggleFavorite(creator.id, e);
@@ -580,7 +580,7 @@ const Creators = () => {
                 <div 
                   className="flex items-center justify-center gap-2 opacity-60 cursor-pointer"
                   onClick={() => {
-                    navigate("/unlock");
+                    navigate("/pricing");
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
@@ -605,7 +605,7 @@ const Creators = () => {
           <Button 
             className="w-full h-12 text-sm font-semibold shadow-lg" 
             onClick={() => {
-              navigate("/unlock");
+              navigate("/pricing");
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           >

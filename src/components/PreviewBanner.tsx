@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
 import { useBlurGate } from "@/hooks/useBlurGate";
-import { useStartCheckout } from "@/lib/checkout";
+import { useProOffer } from "@/hooks/useProOffer";
 
 export const PreviewBanner = () => {
   const { isLoggedIn, hasPaid, loading } = useBlurGate();
-  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
+  const openProOffer = useProOffer();
 
   if (loading || hasPaid) return null;
 
@@ -32,8 +32,7 @@ export const PreviewBanner = () => {
         <Button
           size="sm"
           variant="default"
-          onClick={() => startCheckout()}
-          disabled={checkoutLoading}
+          onClick={openProOffer}
           className="text-xs min-h-11 px-3 shrink-0"
         >
           {isLoggedIn ? "Activar Pro · US$15/mes" : "Continuar con Pro"}

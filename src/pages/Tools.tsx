@@ -293,18 +293,10 @@ const Tools = () => {
     setDownloadIssue(null);
     setActiveHistoryId(null);
 
+    if (!hasPaid) { openPaywall("analizar-video"); return; }
+
     if (!isValidTikTokUrl(videoUrl)) {
       setErrorMsg(t("Pega el enlace completo: https://www.tiktok.com/@creador/video/123…", "Paste the full link: https://www.tiktok.com/@creator/video/123…"));
-      return;
-    }
-
-    // Gating premium: si no paga, abrir paywall y no procesar.
-    if (!hasPaid) {
-      if (!isLoggedIn) {
-        navigate("/unlock");
-      } else {
-        openPaywall("analizar-video");
-      }
       return;
     }
 
@@ -320,7 +312,7 @@ const Tools = () => {
       if (authError) throw new Error(t("No se pudo verificar tu sesión. Vuelve a iniciar sesión.", "Could not verify your session. Please sign in again."));
       if (!user) {
         setStep("idle");
-        navigate("/unlock");
+        navigate("/pricing");
         return;
       }
 

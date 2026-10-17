@@ -22,6 +22,21 @@ describe('all Gemini attempts are metered',()=>{
   expect(a).toMatchObject({attempt:1,httpStatus:503,succeeded:false,errorCode:'UNAVAILABLE'});expect(b).toMatchObject({attempt:2,succeeded:true});
   expect(a.requestId).toBe(b.requestId);expect(JSON.stringify(record.mock.calls)).not.toContain('PRIVATE');
  });
+ it.each([
+  {details:[]},
+  {details:[{'@type':'type.googleapis.com/google.rpc.RetryInfo',retryDelay:'60s'}]},
+  {details:[{'@type':'type.googleapis.com/google.rpc.QuotaFailure',violations:[{quotaId:'GenerateRequestsPerDayPerProjectPerModel-FreeTier'}]},{'@type':'type.googleapis.com/google.rpc.RetryInfo',retryDelay:'2s'}]},
+ ])('does not immediately retry unknown, long or daily quota refusals',async({details})=>{
+  const fetch=vi.fn().mockResolvedValue(Response.json({error:{status:'RESOURCE_EXHAUSTED',message:'PRIVATE TOKEN',details}},{status:429}));vi.stubGlobal('fetch',fetch);
+  await expect(geminiJSON([])).rejects.toMatchObject({providerStatus:429});
+  expect(fetch).toHaveBeenCalledOnce();expect(record).toHaveBeenCalledOnce();
+  expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toMatch(/PRIVATE TOKEN|GenerateRequests/);
+ });
+ it('honors a short RetryInfo delay before one bounded retry',async()=>{
+  vi.useFakeTimers();const fetch=vi.fn().mockResolvedValueOnce(Response.json({error:{status:'RESOURCE_EXHAUSTED',details:[{'@type':'type.googleapis.com/google.rpc.RetryInfo',retryDelay:'3.2s'}]}},{status:429})).mockResolvedValueOnce(Response.json(good));vi.stubGlobal('fetch',fetch);
+  const result=geminiJSON([]);await vi.advanceTimersByTimeAsync(3999);expect(fetch).toHaveBeenCalledOnce();
+  await vi.advanceTimersByTimeAsync(1);expect(await result).toMatchObject({ok:true});expect(fetch).toHaveBeenCalledTimes(2);
+ });
  it.each([null,{usageMetadata:usage,candidates:[{finishReason:'STOP',content:{parts:[{text:'not-json'}]}}]}])('records HTTP200 invalid payload before returning error',async payload=>{
   vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json(payload)));
   await expect(geminiJSON([])).rejects.toThrow();

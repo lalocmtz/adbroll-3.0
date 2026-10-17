@@ -83,6 +83,9 @@ describe('prepared catalog references', () => {
     expect(screen.queryByRole('button', { name: 'Traducir al inglés' })).not.toBeInTheDocument();
     expect(mocks.rpc).not.toHaveBeenCalledWith('get_video_analysis', expect.anything());
     expect(mocks.invoke).not.toHaveBeenCalled();
+    await tab('Análisis');
+    expect(mocks.openPaywall).toHaveBeenCalledWith('Guion y análisis del video');
+    expect(mocks.rpc).not.toHaveBeenCalledWith('get_video_analysis', expect.anything());
   });
   it('pauses playback on closing, changing source and unmount', async () => {
     const component = await open();

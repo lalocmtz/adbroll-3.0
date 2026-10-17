@@ -108,8 +108,10 @@ describe('owned script translation', () => {
     const response = await limited.run();
     expect(response.status).toBe(429);
     expect(await response.text()).not.toContain('test-private-key');
-    expect(limited.recordAIUsage).toHaveBeenCalledTimes(2);
-    expect(limited.recordAIUsage.mock.calls.map(call=>call[0].attempt)).toEqual([1,2]);
+    // An unknown quota refusal has no safe short retry window.
+    expect(limited.provider).toHaveBeenCalledOnce();
+    expect(limited.recordAIUsage).toHaveBeenCalledOnce();
+    expect(limited.recordAIUsage.mock.calls[0][0].attempt).toBe(1);
   });
   it('delimits the original as JSON data, instructs translation without execution, and never stores or mutates it', async () => {
     const test = fixture();

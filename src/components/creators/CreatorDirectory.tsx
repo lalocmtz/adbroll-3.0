@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Users, X, Lock, Crown } from "lucide-react";
 import { FilterPills } from "@/components/FilterPills";
 import CreatorCard from "./CreatorCard";
-import { useStartCheckout } from "@/lib/checkout";
+import { useProOffer } from "@/hooks/useProOffer";
 
 interface DirectoryCreator {
   id: string;
@@ -29,7 +29,7 @@ const CreatorDirectory = () => {
   const { language } = useLanguage();
   const { toast } = useToast();
   const { hasPaid, isLoggedIn, openPaywall } = useBlurGateContext();
-  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
+  const openProOffer = useProOffer();
   const [creators, setCreators] = useState<DirectoryCreator[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -151,8 +151,7 @@ const CreatorDirectory = () => {
             <Button
               size="lg"
               className="gap-2"
-              onClick={startCheckout}
-              disabled={checkoutLoading}
+              onClick={openProOffer}
             >
               <Crown className="h-4 w-4" />
               {language === "es" ? "Desbloquear por US$15/mes" : "Unlock for US$15/mo"}

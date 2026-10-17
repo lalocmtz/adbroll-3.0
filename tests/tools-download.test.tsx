@@ -54,6 +54,14 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("download and shared analysis flow", () => {
+  it("opens the sales offer for an unpaid creator before requiring a video URL", async () => {
+    mocks.hasPaid = false;
+    await act(async () => { render(<MemoryRouter><Tools /></MemoryRouter>); });
+    fireEvent.click(screen.getByRole("button", { name: "Analizar", exact: true }));
+    expect(mocks.openPaywall).toHaveBeenCalledWith("analizar-video");
+    expect(mocks.invoke).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Pega el enlace completo/)).not.toBeInTheDocument();
+  });
   it("waits for pending media before analysis, then saves the shared result without extra AI calls", async () => {
     vi.useFakeTimers();
     mocks.invoke

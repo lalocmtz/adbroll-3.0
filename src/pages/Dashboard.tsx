@@ -14,7 +14,7 @@ import { CompactPagination } from "@/components/CompactPagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Lock, Sparkles } from "lucide-react";
 import { CATALOG_PERIODS, CatalogPeriod, selectReportPeriod, formatReportPeriod } from "@/lib/catalog-period";
-import { useStartCheckout } from "@/lib/checkout";
+import { useProOffer } from "@/hooks/useProOffer";
 
 interface Video {
   id: string;
@@ -92,7 +92,7 @@ const Dashboard = () => {
   const {
     isLoggedIn
   } = useBlurGateContext();
-  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
+  const openProOffer = useProOffer();
   const [searchParams] = useSearchParams();
   const productFilter = searchParams.get("productName");
   const creatorFilter = searchParams.get("creator");
@@ -196,10 +196,10 @@ const Dashboard = () => {
         </div>
         <span className="h-5 border-l border-border" aria-hidden="true" />
         <FilterPills compact options={SORT_OPTIONS} value={sortOrder} onChange={(value) => {
-          if (!isLoggedIn) { navigate("/unlock"); return; }
+          if (!isLoggedIn) { navigate("/pricing"); return; }
           setSortOrder(value);
         }} />
-        {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/unlock")}>
+        {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/pricing")}>
           <Lock className="size-3 mr-1" />Categorías
         </Button> : <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger aria-label="Categoría de videos" className="h-11 w-auto max-w-48 text-xs rounded-full border-border/50 bg-muted/60">
@@ -226,7 +226,7 @@ const Dashboard = () => {
           const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
           if (isLocked) {
             return <div key={video.id} className="relative cursor-pointer group" onClick={() => {
-              navigate("/unlock");
+              navigate("/pricing");
               window.scrollTo({
                 top: 0,
                 behavior: 'smooth'
@@ -250,7 +250,7 @@ const Dashboard = () => {
           {/* Pagination */}
           {totalPages > 1 && <div className="mt-6 mb-16 md:mb-0">
               {!isLoggedIn ? <div className="flex items-center justify-center gap-2 opacity-60 cursor-pointer" onClick={() => {
-          navigate("/unlock");
+          navigate("/pricing");
           window.scrollTo({
             top: 0,
             behavior: 'smooth'
@@ -264,7 +264,7 @@ const Dashboard = () => {
 
       {/* Sticky CTA for visitors - Mobile only */}
       {!isLoggedIn && <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
-          <Button className="w-full h-12 text-sm font-semibold shadow-lg" onClick={startCheckout} disabled={checkoutLoading}>
+          <Button className="w-full h-12 text-sm font-semibold shadow-lg" onClick={openProOffer}>
             <Sparkles className="h-4 w-4 mr-2" />
             Desbloquear acceso completo
           </Button>

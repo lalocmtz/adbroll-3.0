@@ -53,9 +53,9 @@ describe("compact catalogue navigation", () => {
 
   it("continues gating visitor sorting rather than issuing a premium sort", async () => {
     mocks.loggedIn = false;
-    render(<MemoryRouter initialEntries={["/app"]}><Routes><Route path="/app" element={<Dashboard />} /><Route path="/unlock" element={<Location />} /></Routes></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/app"]}><Routes><Route path="/app" element={<Dashboard />} /><Route path="/pricing" element={<Location />} /></Routes></MemoryRouter>);
     fireEvent.click(await screen.findByRole("button", { name: "Ventas", exact: true }));
-    expect(await screen.findByText("/unlock")).toBeInTheDocument();
+    expect(await screen.findByText("/pricing")).toBeInTheDocument();
     expect(mocks.rpc.mock.calls.filter(([name]) => name === "get_catalog_videos").every(([, args]) => args.p_sort === "rank")).toBe(true);
   });
 
@@ -82,10 +82,10 @@ describe("compact catalogue navigation", () => {
 
   it("keeps creator video actions gated for visitors, including preview creators", async () => {
     mocks.loggedIn = false;
-    render(<MemoryRouter initialEntries={["/creadores"]}><Routes><Route path="/creadores" element={<Creators />} /><Route path="/unlock" element={<Location />} /></Routes></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/creadores"]}><Routes><Route path="/creadores" element={<Creators />} /><Route path="/pricing" element={<Location />} /></Routes></MemoryRouter>);
     const card = await screen.findByRole("article", { name: "Creador @creador_real" });
     fireEvent.click(within(card).getByRole("button", { name: "Desbloquear videos" }));
-    expect(await screen.findByText("/unlock")).toBeInTheDocument();
+    expect(await screen.findByText("/pricing")).toBeInTheDocument();
   });
 
   it("does not expose empty creator routes when coverage is zero", async () => {

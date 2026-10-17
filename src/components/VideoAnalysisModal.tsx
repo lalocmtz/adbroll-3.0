@@ -406,7 +406,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                     if (!isLoggedIn) {
                       e.preventDefault();
                       onClose();
-                      navigate("/unlock");
+                      navigate("/pricing");
                     }
                   }}
                 >
@@ -422,7 +422,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                     if (!isLoggedIn) {
                       e.preventDefault();
                       onClose();
-                      navigate("/unlock");
+                      navigate("/pricing");
                     } else {
                       generateVariants();
                     }
@@ -658,7 +658,7 @@ const VideoAnalysisModal = ({ isOpen, onClose, video }: VideoAnalysisModalProps)
                 <Button 
                   onClick={() => {
                     onClose();
-                    navigate("/unlock");
+                    navigate("/pricing");
                   }}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-11"
                 >

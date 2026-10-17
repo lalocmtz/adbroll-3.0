@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { recordAIUsage } from './ai-usage.ts';
-import { AIError, GeminiProviderError, safeGeminiCode, parseGeminiResult } from './ai-contracts.ts';
+import { AIError, GeminiProviderError, safeGeminiCode, safeGeminiRetry, parseGeminiResult } from './ai-contracts.ts';
 
 export const headers = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 export const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
@@ -50,11 +50,15 @@ export async function geminiJSON(parts: unknown[], temperature = 0.2) {
     const payload = await response.json().catch(() => null);
     const metering = { ...context, httpStatus: response.status, usage: payload?.usageMetadata };
     if (!response.ok) {
-      const error = new GeminiProviderError(response.status, safeGeminiCode(payload));
+      const retry = safeGeminiRetry(payload, response.headers.get('retry-after'));
+      const error = new GeminiProviderError(response.status, safeGeminiCode(payload), retry.retryAfterSeconds, retry.quotaWindow);
       await recordAIUsage({ ...metering, succeeded: false, errorCode: error.providerCode });
-      console.error('Gemini request failed', JSON.stringify({ status: error.providerStatus, code: error.providerCode, attempt: attempt + 1 }));
-      if (!error.retryable || attempt === 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      console.error('Gemini request failed', JSON.stringify({ status: error.providerStatus, code: error.providerCode, attempt: attempt + 1, ...retry }));
+      // A daily/unknown quota cannot be fixed by immediately sending the same
+      // request. Only a short, explicit rate-limit delay can retry in this call.
+      const waitMs = retry.retryAfterSeconds === null ? (response.status === 429 ? 60000 : 1200) : Math.max(1200, retry.retryAfterSeconds * 1000);
+      if (!error.retryable || attempt === 1 || retry.quotaWindow === 'day' || waitMs > 10000) throw error;
+      await new Promise(resolve => setTimeout(resolve, waitMs));
       continue;
     }
     let parsed;

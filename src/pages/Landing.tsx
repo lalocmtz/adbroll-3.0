@@ -6,7 +6,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Copy,
   Eye,
   Flame,
   Gem,
@@ -14,12 +13,13 @@ import {
   ShoppingBag,
   Sparkles,
   TrendingUp,
-  Wallet,
   Zap,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import GlobalHeader from "@/components/GlobalHeader";
+import { ProductTour, CreatorScenarios } from "@/components/landing/ProductTour";
+import { SalesCase, estimateCaseCommission } from "@/components/landing/SalesCase";
 import { BrandContactLinks, BRAND_CONTACT } from "@/components/BrandContactLinks";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { formatReportPeriod } from "@/lib/catalog-period";
 import { useCreatorLifetimeCapacity } from "@/hooks/useCreatorLifetimeCapacity";
 
-/* Landing: dejar de grabar a ciegas → elegir una referencia → adaptar el guion.
+/* Landing: evidencia de ventas → demostración del producto → explorar el catálogo.
  * Las cifras corresponden al reporte importado, no a ventas en tiempo real.
  * Los CTA de exploración llevan a la vista previa de /app. */
 
@@ -96,6 +96,10 @@ const faqs = [
   {
     q: "¿Esto garantiza que voy a vender?",
     a: "No. Las ventas de otra persona no garantizan las tuyas. Las oportunidades comparan señales del reporte: ventas, creadores y comisión disponible. Son un punto de partida para elegir y probar, no una promesa de ingresos ni de poca competencia futura.",
+  },
+  {
+    q: "¿Las variantes y el análisis tienen límites?",
+    a: "Sí. La generación con IA tiene límites de uso y disponibilidad. Si se alcanza una cuota temporal, la plataforma te lo indica para intentarlo más tarde. Los guiones y análisis que ya están guardados en el catálogo siguen disponibles con tu acceso Pro.",
   },
   {
     q: "¿Puedo cancelar cuando quiera?",
@@ -224,11 +228,6 @@ const Landing = () => {
     navigate("/app");
   };
 
-  const goLogin = (location: string) => {
-    track(Events.LandingCtaClicked, { location, destination: "login" });
-    navigate("/login");
-  };
-
   const onFaqOpen = (index: number) => {
     track(Events.LandingFaqOpened, { question_index: index });
   };
@@ -261,7 +260,6 @@ const Landing = () => {
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Button variant="brand" size="brand-xl" onClick={() => goApp("hero")} className="w-full sm:w-auto">Ver qué está vendiendo <ArrowRight className="ml-1 size-5" /></Button>
-              <Button variant="ghost-dark" size="brand-xl" onClick={() => navigate("/pricing")} className="w-full sm:w-auto">Quiero acceso Pro</Button>
             </div>
             <p className="mt-4 text-xs leading-relaxed text-brand-mist/55">Explora gratis, sin tarjeta. Pro: US$15/mes. Tú decides cuándo dar el siguiente paso.</p>
             <div className="mt-7 grid grid-cols-3 border-t border-white/15 pt-5 gap-4 text-xs">
@@ -279,6 +277,9 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      <SalesCase video={featuredVideo} onExplore={() => goApp("sales_case")} />
+      <ProductTour onExplore={goApp} />
 
       {/* ===================== LIVE VIDEOS CAROUSEL ===================== */}
       <section className="bg-brand-ink text-brand-mist border-b border-white/5">
@@ -319,25 +320,6 @@ const Landing = () => {
               Explorar el ranking
               <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-brand-mist border-b border-brand-ink/5">
-        <div className="mx-auto max-w-5xl px-[var(--page-pad-x)] py-14 md:py-20">
-          <h2 className="text-center text-display-md font-display font-extrabold text-brand-ink">
-            De perseguir tendencias a buscar ventas con intención.
-          </h2>
-          <p className="mx-auto mt-3 mb-8 max-w-xl text-center text-brand-ink/60">
-            Tu siguiente comisión empieza antes de encender la cámara: en el producto que eliges y en cómo lo vendes.
-          </p>
-          <div className="grid gap-4 md:grid-cols-3">
-            <PillarCard icon={<Eye className="h-5 w-5" />} title="01 · Encuentra demanda"
-              body="No elijas solo por la muestra gratis. Compara qué se ha vendido y qué producto vale tu tiempo." />
-            <PillarCard icon={<Copy className="h-5 w-5" />} title="02 · Descifra la venta" accent="cyan"
-              body="Estudia el inicio, la demostración y la invitación a comprar. Deja de pelearte con la hoja en blanco." />
-            <PillarCard icon={<PlayCircle className="h-5 w-5" />} title="03 · Hazlo a tu manera"
-              body="Crea tus variantes, graba con tu voz y prueba con tu audiencia. La estrategia se aprende; el resultado se trabaja." />
           </div>
         </div>
       </section>
@@ -389,60 +371,7 @@ const Landing = () => {
         </div>
       </section>
 
-      <section className="bg-brand-ink text-brand-mist border-y border-white/10">
-        <div className="mx-auto grid max-w-5xl gap-8 px-[var(--page-pad-x)] py-12 md:py-16 md:grid-cols-[1fr_1.1fr] md:items-center">
-          <div>
-            <p className="text-xs font-semibold text-brand-cyan">DE LA VENTA AL GUION</p>
-            <h2 className="mt-3 text-display-md font-display font-extrabold text-balance">No te faltan ganas.<br />Te falta saber qué decir.</h2>
-            <p className="mt-4 text-brand-mist/65 leading-relaxed text-pretty">Abre un video del catálogo, consulta su guion y estudia cómo presenta el producto. Después crea tus variantes. Tu voz, tu experiencia y una razón más clara para comprar.</p>
-            <Button variant="brand" size="brand-lg" className="mt-6" onClick={() => goApp("script_demo")}>Encontrar un video para analizar <ArrowRight className="ml-1 size-4" /></Button>
-          </div>
-          <div className="border-l-2 border-brand-pink pl-5 space-y-6">
-            {[
-              ['01', 'Detén el scroll', 'Estudia las primeras palabras y lo que se ve al empezar.'],
-              ['02', 'Dale una razón para quererlo', 'Observa cómo demuestra el uso y resuelve una duda.'],
-              ['03', 'Lleva la intención a la compra', 'Revisa cómo invita a actuar y escribe tu propia versión.'],
-            ].map(([number, title, body]) => <div key={number} className="flex gap-4"><span className="font-mono text-sm text-brand-pink pt-1">{number}</span><div><h3 className="font-semibold text-lg">{title}</h3><p className="mt-1 text-sm text-brand-mist/60 text-pretty">{body}</p></div></div>)}
-            <p className="text-xs text-brand-mist/40">Guiones, análisis y variantes disponibles con Pro. El contenido generado se revisa y adapta antes de publicarlo.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ===================== HOW OPPORTUNITIES WORK ===================== */}
-      <section className="bg-brand-mist border-y border-brand-ink/5">
-        <div className="mx-auto max-w-5xl px-[var(--page-pad-x)] py-16 md:py-24">
-          <div className="mb-10 text-center">
-            <span className="text-micro uppercase text-brand-pink">
-              Señales para decidir
-            </span>
-            <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-brand-ink">
-              Una gran comisión no sirve si el producto no se vende.
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-brand-ink/60">
-              Pon a trabajar las tres señales juntas. Busca demanda, mide la competencia y calcula si la comisión justifica tu esfuerzo.
-            </p>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <PillarCard
-              icon={<TrendingUp className="h-5 w-5" />}
-              title="Ventas reportadas"
-              body="Revisa cuánto vendió el producto y en qué período. Popularidad y ventas no son lo mismo."
-            />
-            <PillarCard
-              icon={<ShoppingBag className="h-5 w-5" />}
-              title="Creadores que lo muestran"
-              body="Localiza productos con menor presencia de creadores en el reporte. Investiga si aún hay espacio para tu propuesta."
-              accent="cyan"
-            />
-            <PillarCard
-              icon={<Wallet className="h-5 w-5" />}
-              title="Comisión disponible"
-              body="Estima lo que podrías recibir por una venta y confirma la oferta vigente en TikTok Shop."
-            />
-          </div>
-        </div>
-      </section>
+      <CreatorScenarios onExplore={goApp} />
 
       {/* ===================== PRICING ===================== */}
       <section ref={pricingRef} className="bg-brand-mist">
@@ -450,7 +379,7 @@ const Landing = () => {
           <div className="mb-10 text-center">
             <span className="text-micro uppercase text-brand-pink">Precio</span>
             <h2 className="mt-3 text-display-md md:text-display-lg font-display font-extrabold tracking-tight text-brand-ink">
-              Invierte en elegir mejor. No en más horas a ciegas.
+              Tómate en serio tu próxima comisión.
             </h2>
           </div>
 
@@ -504,16 +433,7 @@ const Landing = () => {
                 </ul>
               </div>
               <div className="flex flex-col gap-3">
-                <Button variant="brand" size="brand-xl" onClick={() => { track(Events.LandingCtaClicked, { location: "pricing", destination: "pricing" }); navigate("/pricing"); }} className="w-full">Activar TokXray Pro <ArrowRight className="ml-1 h-5 w-5" /></Button>
-                <Button
-                  variant="ghost-dark"
-                  size="brand-xl"
-                  onClick={() => goApp("pricing")}
-                  className="w-full"
-                >
-                  Explorar antes de suscribirme
-                  <ArrowRight className="ml-1 h-5 w-5" />
-                </Button>
+                <Button variant="brand" size="brand-xl" onClick={() => goApp("pricing")} className="w-full">Ver qué está vendiendo <ArrowRight className="ml-1 h-5 w-5" /></Button>
                 <p className="text-center text-xs text-brand-mist/45">
                   La vista previa es gratis. Pro se contrata por separado y se renueva cada mes.
                 </p>
@@ -639,6 +559,7 @@ function LandingVideo({ video, label, className, onError }: { video: LiveVideo; 
 
 function LandingProof({ video, loading, formatMoney, onExplore }: { video?: LiveVideo; loading: boolean; formatMoney: (n: number | null | undefined) => string; onExplore: () => void }) {
   const [failed, setFailed] = useState(false);
+  const commissionEstimate = estimateCaseCommission(video?.revenue_mxn, video?.product?.commission);
   useEffect(() => setFailed(false), [video?.video_mp4_url]);
   if (loading) return <div className="h-96 rounded-2xl border border-white/15 bg-white/5 flex items-center justify-center text-sm text-brand-mist/50" role="status">Cargando un caso del catálogo…</div>;
   if (!video) return <div className="rounded-2xl border border-white/15 p-7"><p className="text-xs font-semibold text-brand-cyan">MIRA LOS DATOS POR TI MISMO</p><h2 className="mt-3 text-2xl font-bold text-balance">Las decisiones empiezan con evidencia.</h2><p className="mt-3 text-sm text-brand-mist/60">Explora los videos disponibles y consulta las ventas y el periodo de cada reporte.</p><Button variant="brand-outline" className="mt-5" onClick={onExplore}>Abrir el catálogo</Button></div>;
@@ -653,6 +574,7 @@ function LandingProof({ video, loading, formatMoney, onExplore }: { video?: Live
         <p className="mt-2 font-mono text-2xl sm:text-3xl font-bold tabular-nums text-brand-cyan break-words">{video.revenue_mxn == null ? 'Sin dato' : formatMoney(video.revenue_mxn)}</p>
         <p className="mt-2 text-[10px] leading-relaxed text-brand-mist/50">MXN · según el reporte<br />{video.snapshot_date_range ? formatReportPeriod(video.snapshot_date_range) : 'Consulta el periodo en el catálogo'}</p>
         <div className="mt-5 border-t border-white/10 pt-4"><p className="text-xs font-semibold line-clamp-2">{video.product_name || video.title || 'Video de TikTok Shop'}</p><p className="mt-2 text-[11px] text-brand-mist/50 truncate">@{(video.creator_handle || video.creator_name || 'creador').replace(/^@/, '')}</p></div>
+        {commissionEstimate != null && <p className="mt-3 text-xs leading-relaxed text-brand-cyan">Comisión estimada ≈ <strong>{formatMoney(commissionEstimate)}</strong><br /><span className="text-brand-mist/55">Con {video.product?.commission}% del producto</span></p>}
         {video.sales != null && <p className="mt-3 text-xs text-brand-mist/70"><strong className="tabular-nums text-brand-mist">{video.sales.toLocaleString('es-MX')}</strong> unidades reportadas</p>}
       </div>
     </div>
@@ -981,33 +903,6 @@ const OppSkeleton = () => (
       <div className="h-3 w-2/3 animate-pulse rounded bg-brand-ink/10" />
       <div className="h-4 w-1/2 animate-pulse rounded bg-brand-ink/10" />
     </div>
-  </div>
-);
-
-const PillarCard = ({
-  icon,
-  title,
-  body,
-  accent = "pink",
-}: {
-  icon: React.ReactNode;
-  title: string;
-  body: string;
-  accent?: "pink" | "cyan";
-}) => (
-  <div className="rounded-card border border-brand-ink/10 bg-white p-6 shadow-card-tactile">
-    <div
-      className={cn(
-        "mb-4 inline-flex size-11 items-center justify-center rounded-button",
-        accent === "cyan"
-          ? "bg-brand-cyan/15 text-brand-cyan-700"
-          : "bg-brand-pink/10 text-brand-pink",
-      )}
-    >
-      {icon}
-    </div>
-    <h3 className="mb-1.5 text-lg font-display font-bold text-brand-ink">{title}</h3>
-    <p className="text-sm leading-relaxed text-brand-ink/60">{body}</p>
   </div>
 );
 

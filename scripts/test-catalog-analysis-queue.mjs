@@ -14,6 +14,7 @@ create table videos(id uuid primary key default gen_random_uuid(),video_mp4_url 
 `);
 const migration=(await readFile(new URL('../supabase/migrations/20261016190000_catalog_analysis_queue.sql',import.meta.url),'utf8')).replace(/^create extension.*;$/gm,'');
 await db.exec(migration);
+await db.exec(await readFile(new URL('../supabase/migrations/20261017020000_gemini_quota_backoff.sql',import.meta.url),'utf8'));
 const src=id=>`https://tnqvvfpzkjwgllwdwvte.supabase.co/storage/v1/object/public/videos/${id}.mp4`;
 const vid='00000000-0000-4000-8000-000000000001',legacy='00000000-0000-4000-8000-000000000002';
 await db.query('insert into videos(id,video_mp4_url,rank,snapshot_date_range) values($1,$2,1,$3)',[vid,src(vid),'2026-10-03~2026-10-09']);
@@ -58,6 +59,21 @@ assert.equal((await one('select dispatch_catalog_analysis() n')).n,0);
 await db.query('update videos set video_mp4_url=$2 where id=$1',[legacy,src(legacy)+'new']);
 assert.equal((await one('select analysis_ready from videos where id=$1',[legacy])).analysis_ready,false);
 assert.equal((await one('select transcript from videos where id=$1',[legacy])).transcript,'Real script');
+// Shared provider quota must cool down the batch without exhausting this video's attempts.
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,1);
+job=(await db.query('select body from net.requests')).rows.at(-1).body;
+await one('select claim_catalog_analysis_job($1,$2)',[legacy,job.token]);
+assert.equal((await one("select finish_catalog_analysis_job($1,$2,false,true,'GEMINI_429_RESOURCE_EXHAUSTED') ok",[legacy,'0'.repeat(64)])).ok,false);
+assert.equal((await one('select cooldown_until from catalog_analysis_settings')).cooldown_until,null);
+assert.equal((await one("select finish_catalog_analysis_job($1,$2,false,true,'GEMINI_429_RESOURCE_EXHAUSTED') ok",[legacy,job.token])).ok,true);
+assert.deepEqual(await one('select status,attempts from catalog_analysis_jobs where video_id=$1',[legacy]),{status:'pending',attempts:0});
+assert.equal((await one('select cooldown_until>now() paused from catalog_analysis_settings')).paused,true);
+await db.exec("update catalog_analysis_jobs set next_attempt_at=now()-interval '1 second' where status='pending'");
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,0);
+await db.exec("update catalog_analysis_settings set cooldown_until=now()-interval '1 second',enabled=false");
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,0); // cooldown cannot undo an administrative pause
+await db.exec('update catalog_analysis_settings set enabled=true');
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,1);
 await db.exec('set role authenticated');
 await assert.rejects(()=>db.query('select * from catalog_analysis_jobs'),/permission denied/);
 await assert.rejects(()=>db.query('select dispatch_catalog_analysis()'),/permission denied/);
@@ -66,5 +82,5 @@ await db.exec('reset role');
 await db.query("insert into user_roles values($1,'founder')",[vid]);
 await db.query("select set_config('test.uid',$1,false)",[vid]);
 assert.ok((await one('select get_catalog_processing_status() s')).s.counts.failed);
-console.log('PASS: disabled-by-default, seed/trigger, base reuse, source invalidation, single-use token, accounting, daily cap, 3-attempt stop, role protection');
+console.log('PASS: disabled-by-default, base reuse, source invalidation, single-use token, accounting, daily cap, 3-attempt stop, quota cooldown/recovery, administrative pause, role protection');
 await db.close();

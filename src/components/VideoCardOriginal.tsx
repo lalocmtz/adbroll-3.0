@@ -139,7 +139,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   };
 
   const handleAnalyzeClick = () => {
-    // Free preview videos can open modal (but with limited tabs)
+    if (!hasPaid) { openPaywall("Guion del video"); return; }
     setShowModal(true);
   };
 
@@ -152,7 +152,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
     e.stopPropagation();
     // For non-logged-in users, redirect to unlock page
     if (!isLoggedIn) {
-      navigate("/unlock");
+      navigate("/pricing");
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -207,7 +207,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
           </div>
 
           {/* A static cover or silent frame opens the only interactive player. */}
-          <button type="button" className="absolute inset-0 h-full w-full bg-muted" onClick={handleAnalyzeClick} aria-label={`Ver video y guion de ${video.creator_handle || video.creator_name || 'creador'}`}>
+          <button type="button" className="absolute inset-0 h-full w-full bg-muted" onClick={() => setShowModal(true)} aria-label={`Ver video y guion de ${video.creator_handle || video.creator_name || 'creador'}`}>
             <LazyVideoPoster src={video.video_mp4_url} poster={video.thumbnail_url} active={!showModal} />
             <span className="absolute inset-0 flex items-center justify-center bg-black/10"><span className="flex size-12 items-center justify-center rounded-full bg-white/95 text-slate-950 shadow-sm"><Play className="size-6" fill="currentColor" /></span></span>
           </button>

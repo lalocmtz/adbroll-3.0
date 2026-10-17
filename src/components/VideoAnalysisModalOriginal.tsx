@@ -115,8 +115,8 @@ const VideoAnalysisModalOriginal = ({
 
   // Handle locked tabs for visitors
   const handleTabChange = (value: string) => {
-    if (!hasPaid && (value === 'analysis' || value === 'variants')) {
-      navigate('/unlock');
+    if (!hasPaid) {
+      openPaywall('Guion y análisis del video');
       return;
     }
     setActiveTab(value);
