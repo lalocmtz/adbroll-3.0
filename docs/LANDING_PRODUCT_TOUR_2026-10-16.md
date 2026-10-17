@@ -2,6 +2,7 @@
 
 ## Video demostrativo incorporado
 
+- Publicado en https://tokxray.com/ con el commit `a8c5a00d1e06cd8d06fd5c6e01cfbdbc1407b9ca`, despliegue `dpl_8rhawxRy1fXRwu71eUwV9yquCVNG` READY y dominio asignado. Reproducción pública confirmada; MP4 servido con `Content-Type: video/mp4`, rangos HTTP 206 y caché inmutable.
 - Video proporcionado por el fundador, 34.30 segundos, 1920 × 1080 a 30 fps, sin pista de audio. MP4 H.264 con fast start; conserva el encuadre y se difuminó la identidad del perfil en la esquina inferior izquierda.
 - Reproductor en la introducción de «Así se ve por dentro», antes de las capturas: controles nativos, pantalla completa, reproducción inline en móvil, póster y `preload="none"`. Sin reproducción automática. Texto alternativo explica el recorrido de videos, guiones, variantes y comparación de oportunidades.
 - Assets importados desde Vite: URLs con hash bajo `/assets/`, servidas por el CDN existente; no dependen del servicio de análisis ni de Apify.
