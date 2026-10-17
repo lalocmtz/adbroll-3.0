@@ -44,6 +44,10 @@ Comprobado en producción: inicio de sesión con Google, transcripción existent
 
 ## Siguiente export para alimentar creadores
 
+### Actualización de la verificación de Google
+
+El propietario proporcionó el archivo y pidió ayuda para publicarlo. Se añadió a `public/google7d93f65f29c74801.html` y se excluyó esa ruta de la redirección interna a la aplicación. Publicado con el commit `0c1e4602f9e8afcb184d96cb55b843a9ec6daa29`, despliegue `dpl_tuZDqmV18CvdmFLQkG6mixEX2hxR` (READY). `https://tokxray.com/google7d93f65f29c74801.html` responde HTTP 200 sin autenticación y coincide byte por byte con el archivo entregado. Esto sustituye el estado anterior de archivo todavía sin publicar. Falta pulsar «Verificar» en Search Console; la propiedad y la marca aún no se consideran verificadas.
+
 Archivo de cobertura: `output/product-review-2026-10-16/top20-creator-coverage.csv`.
 
 Exportar México, para los 20 perfiles, los mejores 50 videos por ventas de video (no ingresos de lives). Entregar reportes separados de últimos 7 y últimos 30 días, con inicio y final de período. Campos: ID y URL del video, usuario del creador, ID y URL del producto, nombre, ventas en MXN, unidades, vistas, comisión si existe y fecha de publicación. Mantener los IDs como texto para evitar que Excel los redondee.
