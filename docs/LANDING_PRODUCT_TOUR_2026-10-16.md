@@ -1,6 +1,8 @@
 # Landing y recorrido Pro — 16 de octubre de 2026
 
-## Publicación preparada
+## Publicación completada
+Producción confirmada en https://tokxray.com/ con el commit `330cd381da1276fea0e9d1073dca8d4e99181009` y despliegue Vercel `dpl_gTuVPrzgJJiMv5EHdu4DmJ2LP4Mm` en estado READY. Capturas de comprobación: `output/landing-tour-2026-10-16/published-hero.png` y `published-product-tour.png`.
+
 - Hero con un único CTA principal: Ver qué está vendiendo → /app.
 - Tres demostraciones del producto con capturas reales: catálogo, guion/análisis y comparador de oportunidades. Imágenes WebP (aprox. 224 KiB en total), carga diferida y enlace para ampliar.
 - Caso sincronizado con el video elegido: ventas reportadas × comisión del producto. El ingreso calculado se etiqueta como estimación, no como pago confirmado al creador.
