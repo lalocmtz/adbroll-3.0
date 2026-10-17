@@ -1,6 +1,14 @@
 # Landing y recorrido Pro — 16 de octubre de 2026
 
-## Video demostrativo incorporado
+## Recorrido automático: ajuste solicitado después de publicar el video
+
+- `ProductDemo` muestra el recorrido como una animación silenciosa de 34.3 segundos: bucle, reproducción inline, sin controles, sin foco ni interacción.
+- Precarga a 600 px del viewport y reproducción cuando al menos el 15% está visible. Pausa al salir de pantalla o esconder la pestaña y reanuda al regresar; limpia los observers/listeners y las promesas pendientes al desmontar.
+- Respeta movimiento reducido: imagen estática y descripción. Los bloqueos de autoplay mantienen la vista previa; un error de descarga remite a las capturas de funciones.
+- H.264, 20 fps, fast start: 1920 × 1080, 10,194,363 bytes (52% menos); móvil de hasta 767 px: 1280 × 720, 5,440,084 bytes (74% menos). La versión anterior pesaba 21,143,205 bytes. Conserva el difuminado de identidad del fundador.
+- 22 pruebas aprobadas, incluidos entrada/salida, cambio de pestaña, movimiento reducido, autoplay bloqueado y carrera de reanudación durante `play()`. TypeScript con tipos explícitos, lint y build aprobados.
+
+## Video demostrativo: publicación inicial (comportamiento anterior)
 
 - Publicado en https://tokxray.com/ con el commit `a8c5a00d1e06cd8d06fd5c6e01cfbdbc1407b9ca`, despliegue `dpl_8rhawxRy1fXRwu71eUwV9yquCVNG` READY y dominio asignado. Reproducción pública confirmada; MP4 servido con `Content-Type: video/mp4`, rangos HTTP 206 y caché inmutable.
 - Video proporcionado por el fundador, 34.30 segundos, 1920 × 1080 a 30 fps, sin pista de audio. MP4 H.264 con fast start; conserva el encuadre y se difuminó la identidad del perfil en la esquina inferior izquierda.
