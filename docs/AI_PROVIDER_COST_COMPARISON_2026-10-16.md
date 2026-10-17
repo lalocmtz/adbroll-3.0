@@ -84,3 +84,7 @@ Google puede requerir un prepago mínimo de $5. AI Studio permite un `Monthly sp
 3. **Escala:** preparar el catálogo con Batch, reutilizar transcripciones/análisis y reservar las variantes para solicitudes explícitas. Mejorar disponibilidad y evitar reprocesamientos puede ahorrar más que cambiar de proveedor indiscriminadamente.
 
 La recomendación de Gemini es por compatibilidad, costo observado y esfuerzo de integración; no afirma que sea superior en todos los benchmarks ni garantiza más ventas para los creadores.
+
+## Actualización posterior a la activación, 20:50 México
+
+El propietario completó la facturación. Se verificó en AI Studio el nivel Pagado 1 del proyecto, MXN100 de saldo y recarga automática desactivada. TokXray completó una descarga nueva con Apify, análisis con Gemini, tres variantes y traducción. La cola de catálogo volvió a procesar y completar trabajos. La autorización/facturación pendiente descrita en la investigación inicial quedó superada; siguen pendientes la compra real de TokXray y la prueba comercial completa. Detalles y límites en `docs/LAUNCH_FIXES_2026-10-16.md`.

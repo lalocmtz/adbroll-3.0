@@ -67,3 +67,17 @@ El comparador implementado aporta interacción útil sin llamadas nuevas a IA. U
 2. Si el error 400 reaparece fuera del simulador, conservar la URL de error sin compartir tokens ni credenciales para aislar su origen. Una prueba física de iPhone/Safari sigue siendo complementaria.
 3. Completar la revisión de marca de Google cuando permita reintentar.
 4. Alimentar los mejores videos de los 20 creadores con reportes por ventas y períodos explícitos; no confundir ranking de lives con ranking de videos.
+
+## Reactivación verificada — 16 octubre, 20:50 México
+
+Este corte reemplaza el bloqueo de Apify y Gemini descrito arriba. El propietario completó la facturación de ambos servicios. AI Studio, en su cuenta indicada, muestra el proyecto Gemini en nivel Pagado 1, MXN100 de crédito y recarga automática desactivada. No se compraron créditos ni se cambiaron métodos de pago durante esta comprobación.
+
+- En producción, el enlace nuevo de `@julietaskin/video/7697123951268384021` completó descarga, transcripción y análisis. Apify creó la ejecución `0rLlbIv9f2WgF8qiI`; la descarga quedó `ready` a las 20:46:42 de México.
+- Gemini respondió HTTP200 para el análisis y para tres variantes bajo demanda. Ambas llamadas suman una estimación de US$0.0031200 de IA, sin incluir descarga. El resultado y las variantes permanecieron en el historial tras recargar.
+- Se reactivó `catalog_analysis_settings.enabled`, conservando 1,500 intentos por día y dos procesos simultáneos. El cron está activo cada minuto. El corte de las 20:50:07 muestra 3,402 listos, 845 en espera, dos en preparación y cero fallidos; ya hay completados posteriores a la reactivación. No se garantiza todavía la hora de finalización.
+- La prueba de traducción detectó una ambigüedad: “tender” se traducía como hacer la cama en un guion de secadora. Se reforzó el contexto completo del producto en la instrucción de traducción, se publicaron `translate-script` v5 con JWT conservado y se repitió el caso: ahora responde “hang clothes out to dry”. Pasaron 39 pruebas en los dos archivos de traducción y `git diff --check`. Esto valida ese caso; no garantiza exactitud perfecta de todas las traducciones.
+- Evidencia visual: `output/landing-tour-2026-10-16/analysis-live-after-billing.png` y `translation-live-after-billing.png`.
+
+Pendiente comercial: el panel aún muestra cero suscriptores de pago y cero afiliados con referidos de pago. Falta la compra real de US$15 del propietario desde una cuenta sin acceso gratuito, confirmación del webhook y acceso Pro, y atribución del bono de US$5 si se usa código. La política de renovación sigue en 15% directo y 5% líder cuando corresponda; las pruebas automatizadas no sustituyen el flujo de cobro real. También queda la prueba de alta con Google en iPhone/Safari físico y la revisión de marca OAuth.
+
+El panel registra consumo estimado de IA, pero no consulta el saldo vivo del proveedor. Con recarga automática desactivada se necesita vigilar el saldo en AI Studio para evitar otra interrupción.
