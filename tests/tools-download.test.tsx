@@ -88,6 +88,49 @@ describe("download and shared analysis flow", () => {
     expect(mocks.insert).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "Descargas pausadas. El equipo debe revisar el plan, saldo o permisos del servicio de descarga.",
+    "Descargas pausadas: se agotó la cuota mensual del servicio de descarga.",
+  ])("offers the catalog and saved analyses when downloads are unavailable: %s", async (message) => {
+    mocks.history = [{ id: "saved-video", video_url: url, created_at: new Date().toISOString(), result: {
+      transcript: "Guion que ya estaba guardado.", segments: [], insights: null, variants: [],
+    } }];
+    mocks.invoke.mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ error: message }) } } });
+    await start();
+    expect(screen.getByRole("alert")).toHaveTextContent("Descargas temporalmente pausadas");
+    expect(screen.getByRole("link", { name: "Explorar videos disponibles" })).toHaveAttribute("href", "/app");
+    expect(screen.queryByText(/Llegaste al límite/)).not.toBeInTheDocument();
+    expect(mocks.invoke).toHaveBeenCalledOnce();
+    expect(mocks.insert).not.toHaveBeenCalled();
+    await act(async () => { fireEvent.click(screen.getAllByRole("button", { name: /tiktok.com/ })[0]); });
+    expect(screen.getByText("Guion que ya estaba guardado.")).toBeVisible();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(mocks.invoke).toHaveBeenCalledOnce();
+  });
+
+  it("checks the same link directly after service restoration instead of only resetting the form", async () => {
+    mocks.invoke
+      .mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ error: "Descargas pausadas: se agotó la cuota mensual del servicio de descarga." }) } } })
+      .mockResolvedValueOnce({ data: { status: "ready" }, error: null })
+      .mockResolvedValueOnce({ data: sharedAnalysis, error: null });
+    await start();
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Volver a comprobar" })); });
+    expect(mocks.invoke.mock.calls.map(([name]) => name)).toEqual(["catalog-download", "catalog-download", "analyze-catalog-link"]);
+    expect(mocks.invoke.mock.calls.every(([, args]) => args.body.videoUrl === url)).toBe(true);
+    expect(screen.getByText(sharedAnalysis.transcript)).toBeVisible();
+    expect(mocks.insert).toHaveBeenCalledOnce();
+  });
+
+  it("directs ambiguous download starts to support without offering an unsafe retry", async () => {
+    mocks.invoke.mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ error: "No se pudo confirmar el inicio de la descarga. Contacta a soporte para revisarla." }) } } });
+    await start();
+    expect(screen.getByRole("alert")).toHaveTextContent("Necesitamos revisar esta descarga");
+    expect(screen.getByRole("link", { name: "Contactar soporte" })).toHaveAttribute("href", "/support");
+    expect(screen.queryByRole("button", { name: /Intentar de nuevo|Volver a comprobar/ })).not.toBeInTheDocument();
+    expect(mocks.invoke).toHaveBeenCalledOnce();
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
   it("bounds polling and explains that retrying reuses the same download", async () => {
     vi.useFakeTimers();
     mocks.invoke.mockResolvedValue({ data: { status: "pending", retryAfterSeconds: 3 }, error: null });
@@ -96,6 +139,7 @@ describe("download and shared analysis flow", () => {
     expect(mocks.invoke).toHaveBeenCalledTimes(30);
     expect(mocks.invoke.mock.calls.every(([name]) => name === "catalog-download")).toBe(true);
     expect(screen.getByText(/La descarga sigue en proceso/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Consultar estado" })).toBeEnabled();
     expect(mocks.insert).not.toHaveBeenCalled();
   });
 

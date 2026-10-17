@@ -1,4 +1,5 @@
-import { authDestination, authCallbackUrl } from "@/lib/auth-destination";
+import { authDestination } from "@/lib/auth-destination";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +20,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { isGoogleLoading, googleError, startGoogleSignIn } = useGoogleSignIn(destination);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -68,21 +69,8 @@ const Login = () => {
   };
 
   const handleGoogleLogin = async () => {
-    setIsGoogleLoading(true);
     setAuthError(null);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: authCallbackUrl(destination),
-        },
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      setAuthError("No pudimos conectar con Google. Inténtalo de nuevo o entra con tu correo.");
-      setIsGoogleLoading(false);
-    }
+    await startGoogleSignIn();
   };
 
   return (
@@ -111,7 +99,7 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 p-5 pt-0">
-          {authError && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{authError}</div>}
+          {(authError || googleError) && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{authError || googleError}</div>}
           {/* Google OAuth Button */}
           <Button
             type="button"

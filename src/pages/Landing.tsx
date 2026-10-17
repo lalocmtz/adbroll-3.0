@@ -844,6 +844,12 @@ const VideoCard = ({
     <div
       className="group relative w-[200px] flex-shrink-0 snap-start overflow-hidden rounded-card border border-white/10 bg-white/[0.03] text-left"
     >
+      <div className="min-w-0 space-y-0.5 px-3 py-2.5">
+        <p className="truncate text-xs font-semibold text-white">{handle.startsWith('@') ? handle : `@${handle}`}</p>
+        {video.product_name && (
+          <p className="truncate text-[11px] text-white/70" title={video.product_name}>{video.product_name}</p>
+        )}
+      </div>
       <div className="relative aspect-[9/13] w-full overflow-hidden bg-brand-ink-800">
         {video.video_mp4_url ? (
           // Solo las tarjetas visibles preparan un fotograma; reproducir requiere un clic.
@@ -863,13 +869,6 @@ const VideoCard = ({
         ) : (
           <div className="h-full w-full bg-brand-ink-800" />
         )}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-t from-black/85 to-transparent" />
-        <div className="pointer-events-none absolute top-0 left-0 right-0 p-3">
-          <p className="truncate text-xs font-semibold text-white">{handle}</p>
-          {video.product_name && (
-            <p className="truncate text-[11px] text-white/60">{video.product_name}</p>
-          )}
-        </div>
       </div>
       <div className="space-y-1.5 p-3">
         <div>

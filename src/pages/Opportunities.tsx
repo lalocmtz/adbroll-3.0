@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Gem, TrendingUp, Sparkles, Lock, Lightbulb, ArrowRight } from "lucide-react";
+import { Gem, TrendingUp, Sparkles, Lock, Lightbulb, ArrowRight, ArrowLeftRight, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -15,6 +15,8 @@ import { useMarket } from "@/contexts/MarketContext";
 import { useNavigate } from "react-router-dom";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { useStartCheckout } from "@/lib/checkout";
+import { ProductComparison } from "@/components/opportunities/ProductComparison";
+import { getComparisonProducts } from "@/lib/opportunity-comparison";
 
 interface OpportunityProduct {
   id: string;
@@ -80,8 +82,12 @@ const Opportunities = () => {
   const [loading, setLoading] = useState(true);
   const [badgeFilter, setBadgeFilter] = useState<BadgeFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [comparisonIds, setComparisonIds] = useState<string[]>([]);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
 
   useEffect(() => {
+    setComparisonIds([]);
+    setComparisonOpen(false);
     fetchOpportunities();
   }, [market]); // Re-fetch when market changes
 
@@ -141,6 +147,15 @@ const Opportunities = () => {
     return result;
   }, [opportunities, badgeFilter, categoryFilter]);
 
+  const comparisonProducts = getComparisonProducts(comparisonIds, filteredOpportunities, isLoggedIn, FREE_PREVIEW_LIMIT);
+  const toggleComparison = (id: string) => {
+    const ids = comparisonProducts.map(product => product.id);
+    const candidateIds = ids.includes(id) ? ids.filter(selected => selected !== id) : [...ids, id];
+    const next = getComparisonProducts(candidateIds, filteredOpportunities, isLoggedIn, FREE_PREVIEW_LIMIT);
+    setComparisonIds(next.map(product => product.id));
+    if (next.length === 2 && !ids.includes(id)) setComparisonOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
@@ -183,6 +198,15 @@ const Opportunities = () => {
             </SelectContent>
           </Select>}
         </CatalogFilterBar>
+
+        {filteredOpportunities.length > 1 && <ProductComparison
+          products={comparisonProducts}
+          language={language}
+          open={comparisonOpen}
+          onOpenChange={setComparisonOpen}
+          onClear={() => { setComparisonIds([]); setComparisonOpen(false); }}
+          onViewProduct={id => navigate(isLoggedIn ? `/videos/product/${id}` : "/unlock")}
+        />}
 
         {filteredOpportunities.length === 0 ? (
           <Card className="p-12 text-center rounded-2xl border-dashed">
@@ -243,6 +267,9 @@ const Opportunities = () => {
                   formatMoney={formatMoney}
                   navigate={navigate}
                   isLoggedIn={isLoggedIn}
+                  comparisonSelected={comparisonProducts.some(selected => selected.id === product.id)}
+                  comparisonDisabled={comparisonProducts.length === 2 && !comparisonProducts.some(selected => selected.id === product.id)}
+                  onCompare={() => toggleComparison(product.id)}
                 />
               );
             })}
@@ -309,6 +336,9 @@ const OpportunityCard = ({
   formatMoney,
   navigate,
   isLoggedIn,
+  comparisonSelected = false,
+  comparisonDisabled = false,
+  onCompare,
 }: {
   product: OpportunityProduct;
   index: number;
@@ -316,6 +346,9 @@ const OpportunityCard = ({
   formatMoney: (amount: number | null | undefined) => string;
   navigate: (path: string) => void;
   isLoggedIn: boolean;
+  comparisonSelected?: boolean;
+  comparisonDisabled?: boolean;
+  onCompare?: () => void;
 }) => {
   const isEs = language === "es";
   // Legacy snapshots lack source periods, so growth cannot yet be verified.
@@ -458,6 +491,10 @@ const OpportunityCard = ({
           {isEs ? "Ver videos relacionados" : "See related videos"}
           <ArrowRight className="h-4 w-4 ml-1.5" />
         </Button>
+        {onCompare && <Button variant="outline" className="w-full min-h-11 rounded-lg text-sm" aria-pressed={comparisonSelected} aria-label={`${comparisonSelected ? isEs ? "Quitar de comparación" : "Remove from comparison" : isEs ? "Comparar" : "Compare"}: ${product.producto_nombre}`} disabled={comparisonDisabled} onClick={onCompare}>
+          {comparisonSelected ? <Check className="mr-2 size-4" aria-hidden="true" /> : <ArrowLeftRight className="mr-2 size-4" aria-hidden="true" />}
+          {comparisonSelected ? isEs ? "Seleccionado" : "Selected" : isEs ? "Comparar" : "Compare"}
+        </Button>}
       </div>
     </Card>
   );

@@ -2,7 +2,7 @@ import { CatalogHeader, CatalogInfo } from "@/components/CatalogToolbar";
 import { ScriptTranslation } from '@/components/ScriptTranslation';
 import { ScriptTranscript, VideoInsights, validScriptSegments } from '@/components/VideoInsights';
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { Card } from "@/components/ui/card";
@@ -31,6 +31,21 @@ const isValidTikTokUrl = (value: string): boolean => {
 };
 
 type Step = "idle" | "download" | "transcribe" | "analyze" | "variants" | "done" | "error";
+type DownloadIssue = "service" | "review" | "pending";
+
+class DownloadFlowError extends Error {
+  readonly issue: DownloadIssue | null;
+  constructor(message: string) {
+    super(message);
+    // These are our server's public messages, never a provider response. In
+    // particular, an unavailable platform quota is not the customer's quota.
+    this.issue = /^Descargas pausadas|^El servicio de descarga|^Llegamos al límite diario de descargas/.test(message)
+      ? "service"
+      : /confirmar el inicio|revisión de soporte|Contacta a soporte/.test(message)
+        ? "review"
+        : /^La descarga sigue en proceso/.test(message) ? "pending" : null;
+  }
+}
 
 interface Insights {
   funcionamiento?: string;
@@ -128,6 +143,7 @@ const Tools = () => {
   const [analyzedVideoUrl, setAnalyzedVideoUrl] = useState("");
   const [step, setStep] = useState<Step>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [downloadIssue, setDownloadIssue] = useState<DownloadIssue | null>(null);
 
   // Resultados
   const [transcript, setTranscript] = useState("");
@@ -179,6 +195,7 @@ const Tools = () => {
     setVariantError(null);
     setStep("idle");
     setErrorMsg(null);
+    setDownloadIssue(null);
     setTranscript("");
     setSegments([]);
     setInsights(null);
@@ -199,6 +216,7 @@ const Tools = () => {
     const r = item.result || ({} as AnalysisResult);
     setStep("done");
     setErrorMsg(null);
+    setDownloadIssue(null);
     setVideoUrl(item.video_url);
     setAnalyzedVideoUrl(item.video_url);
     setTranscript(r.transcript || "");
@@ -226,7 +244,7 @@ const Tools = () => {
 
   const friendlyError = (message: unknown, fallback: string): string => {
     if (typeof message !== 'string') return fallback;
-    if (/cuota|quota|límite|rate.limit|429/i.test(message)) return t("Llegaste al límite disponible. Inténtalo más tarde; tu análisis guardado sigue disponible.", "The available limit has been reached. Try again later; your saved analysis is still available.");
+    if (/cuota|quota|límite|rate.limit|429/i.test(message)) return t("El límite disponible se alcanzó por ahora. Puedes consultar tus análisis guardados y volver más tarde.", "The available limit has been reached for now. You can read your saved analyses and return later.");
     if (/gemini|apify|supabase|assemblyai|provider|proveedor|api[_ -]?key|jwt|https?:|json|fetch|function|[_]{1}/i.test(message)) return fallback;
     return message;
   };
@@ -272,6 +290,7 @@ const Tools = () => {
   const handleAnalyze = async () => {
     if (analysisBusy.current) return;
     setErrorMsg(null);
+    setDownloadIssue(null);
     setActiveHistoryId(null);
 
     if (!isValidTikTokUrl(videoUrl)) {
@@ -327,14 +346,14 @@ const Tools = () => {
         if (requestId !== activeRequest.current) return;
         if (error) {
           const detail = await error.context?.json?.().catch(() => null);
-          throw new Error(detail?.error || "No se pudo preparar el video. Inténtalo más tarde.");
+          throw new DownloadFlowError(typeof detail?.error === "string" ? detail.error : "No se pudo preparar el video. Inténtalo más tarde.");
         }
         if (data?.status === 'ready') { mediaReady = true; break; }
-        if (data?.status !== 'pending') throw new Error(data?.error || "No se pudo descargar este video.");
+        if (data?.status !== 'pending') throw new DownloadFlowError(typeof data?.error === "string" ? data.error : "No se pudo descargar este video.");
         await new Promise(resolve => setTimeout(resolve, Math.min(15, Math.max(3, data.retryAfterSeconds || 8)) * 1000));
       }
       if (requestId !== activeRequest.current) return;
-      if (!mediaReady) throw new Error("La descarga sigue en proceso. Vuelve a analizar este mismo enlace en unos minutos; no se inicia otra descarga.");
+      if (!mediaReady) throw new DownloadFlowError("La descarga sigue en proceso. Vuelve a analizar este mismo enlace en unos minutos; no se inicia otra descarga.");
       // Reuse the shared Gemini analysis for an available catalogue video.
       setStep("transcribe");
 
@@ -427,7 +446,11 @@ const Tools = () => {
       if (requestId !== activeRequest.current) return;
       console.error("Analyze error:", err);
       setStep("error");
-      setErrorMsg(friendlyError(err?.message, t("No fue posible analizar el video. Intenta de nuevo.", "Could not analyze the video. Try again.")));
+      const issue = err instanceof DownloadFlowError ? err.issue : null;
+      setDownloadIssue(issue);
+      setErrorMsg(issue === "service"
+        ? t("No podemos obtener videos nuevos por enlace en este momento. Puedes seguir consultando el catálogo y tus análisis guardados.", "We cannot fetch new videos by link right now. You can still browse the catalog and your saved analyses.")
+        : friendlyError(err?.message, t("No fue posible analizar el video. Intenta de nuevo.", "Could not analyze the video. Try again.")));
     } finally {
       if (requestId === activeRequest.current) analysisBusy.current = false;
     }
@@ -580,18 +603,24 @@ const Tools = () => {
 
           {/* Error de procesamiento */}
           {step === "error" && (
-            <Card className="p-8 text-center border-border/50 shadow-sm">
+            <Card role="alert" className="p-6 text-center border-border/50 shadow-sm">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-destructive/10 mb-4">
                 <AlertCircle className="h-7 w-7 text-destructive" />
               </div>
               <p className="text-sm font-medium text-destructive mb-1">
-                {t("No se pudo analizar", "Could not analyze")}
+                {downloadIssue === "service" ? t("Descargas temporalmente pausadas", "Downloads temporarily paused")
+                  : downloadIssue === "pending" ? t("Tu video sigue en proceso", "Your video is still processing")
+                  : downloadIssue === "review" ? t("Necesitamos revisar esta descarga", "This download needs a review")
+                  : t("No se pudo analizar", "Could not analyze")}
               </p>
               <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">{errorMsg}</p>
-              <Button onClick={resetAll} variant="outline" size="sm" className="rounded-xl">
-                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                {t("Intentar de nuevo", "Try again")}
-              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {downloadIssue && <Button asChild className="min-h-11 rounded-xl"><Link to="/app">{t("Explorar videos disponibles", "Explore available videos")}</Link></Button>}
+                {downloadIssue === "review" ? <Button asChild variant="outline" className="min-h-11 rounded-xl"><Link to="/support">{t("Contactar soporte", "Contact support")}</Link></Button> : <Button onClick={handleAnalyze} variant="outline" className="min-h-11 rounded-xl">
+                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                  {downloadIssue === "service" ? t("Volver a comprobar", "Check again") : downloadIssue === "pending" ? t("Consultar estado", "Check status") : t("Intentar de nuevo", "Try again")}
+                </Button>}
+              </div>
             </Card>
           )}
 

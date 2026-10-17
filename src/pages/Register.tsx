@@ -1,5 +1,6 @@
 import { isReferralCode, normalizeReferralCode } from "@/lib/referral-code";
 import { authDestination, authCallbackUrl } from "@/lib/auth-destination";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +31,7 @@ const Register = () => {
   const referralValid = referralStatus === "valid";
   const referralBlocked = referralStatus !== "empty" && !referralValid;
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { isGoogleLoading, googleError, startGoogleSignIn } = useGoogleSignIn(destination);
   const [errors, setErrors] = useState<{ fullName?: string; email?: string; password?: string }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -142,29 +143,11 @@ const Register = () => {
 
   const handleGoogleSignUp = async () => {
     if (!canContinue()) return;
-    setIsGoogleLoading(true);
-    
-    // Store referral code in localStorage to apply after OAuth redirect
-    if (referralValid) persistRefCode(normalizedCode);
-    else clearStoredRefCode();
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: authCallbackUrl(destination),
-        },
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "No pudimos conectar con Google",
-        description: error.message,
-        variant: "destructive",
-      });
-      setIsGoogleLoading(false);
-    }
+    await startGoogleSignIn(() => {
+      // Keep attribution before leaving the page for Google.
+      if (referralValid) persistRefCode(normalizedCode);
+      else clearStoredRefCode();
+    });
   };
 
   return (
@@ -230,6 +213,7 @@ const Register = () => {
           </div>
 
           {/* Google OAuth Button */}
+          {googleError && <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{googleError}</p>}
           <Button
             type="button"
             variant="outline"
