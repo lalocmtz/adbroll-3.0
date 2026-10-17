@@ -1,110 +1,65 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { MarketProvider } from "@/contexts/MarketContext";
 import Landing from "@/pages/Landing";
 
-// Supabase client is imported transitively via GlobalHeader; stub it
-// so the test never hits the network.
+const catalogue = vi.hoisted(() => ({ videos: [] as Record<string, unknown>[] }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-      signOut: vi.fn().mockResolvedValue({ error: null }),
+    rpc: vi.fn().mockResolvedValue({ data: { limit: 100, claimed: 24, remaining: 76, is_open: true }, error: null }),
+    auth: { getUser: vi.fn().mockResolvedValue({data:{user:null}}), signOut: vi.fn() },
+    from: (table: string) => {
+      const query = { select: () => query, eq: () => query, not: () => query, neq: () => query, order: () => query, limit: async () => ({data:table === "videos" ? catalogue.videos : [],error:null}) };
+      return query;
     },
   },
 }));
-
-// Language context needs router context to render — wrap everything in
-// MemoryRouter below and skip the provider for this smoke test.
-vi.mock("@/contexts/LanguageContext", () => ({
-  LanguageProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  useLanguage: () => ({ t: (k: string) => k, lang: "es", setLang: () => {} }),
-}));
-
-const renderLanding = () =>
-  render(
-    <MemoryRouter>
-      <Landing />
-    </MemoryRouter>,
-  );
-
-describe("Landing page (smoke) — Variante E", () => {
-  it("renders the narrative hero headline", () => {
-    renderLanding();
-    // Headline is split across inline spans; match the distinctive phrases.
-    expect(
-      screen.getByText(/Este creador ganó/i),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Hoy puedes ver su guión/i)).toBeInTheDocument();
+vi.mock("@/contexts/LanguageContext", () => ({ useLanguage: () => ({language:"es",formatMoney:(n:number)=>`$${n}`}) }));
+async function renderLanding() {
+  render(<MemoryRouter><MarketProvider><Landing /></MarketProvider></MemoryRouter>);
+  await waitFor(()=>expect(screen.getByRole("heading",{level:1})).toBeInTheDocument());
+}
+describe("Mexico launch landing",()=>{
+  beforeEach(() => { catalogue.videos = []; });
+  it("uses the real capacity for the creator invitation",async()=>{
+    await renderLanding();
+    expect(await screen.findByRole('link',{name:'Solo 100 creadores: quedan 76 accesos vitalicios por contenido'})).toHaveAttribute('href','/programa-creadores#acceso-vitalicio');
   });
-
-  it("shows the urgency chip and live GMV counter", () => {
-    renderLanding();
-    expect(
-      screen.getByText(/50 % OFF · primeros 100 creadores/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Rastreado hoy en TikTok Shop/i),
-    ).toBeInTheDocument();
+  it("does not fabricate rankings when the data source returns no rows",async()=>{
+    await renderLanding();
+    expect(await screen.findByText("No hay videos disponibles en este momento.")).toBeInTheDocument();
+    expect(screen.queryByText("Serum Vitamina C 30ml")).not.toBeInTheDocument();
+    expect(screen.queryByText("@marianacrea")).not.toBeInTheDocument();
   });
-
-  it("renders the Top 20 dashboard mock with at least 3 real rows", () => {
-    renderLanding();
-    expect(screen.getByText("Serum Vitamina C 30ml")).toBeInTheDocument();
-    expect(screen.getByText("Resistencia Pro Kit")).toBeInTheDocument();
-    expect(
-      screen.getByText("Sartenes Antiadherentes x5"),
-    ).toBeInTheDocument();
+  it("shows the 15 USD monthly plan without outdated promotions",async()=>{
+    await renderLanding();
+    expect(screen.getByText("$15.00 USD")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Quiero acceso Pro" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Ver qué está vendiendo" }).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/24\.99|50 % OFF|Antes \$499/)).not.toBeInTheDocument();
   });
-
-  it("exposes the primary hero CTAs", () => {
-    renderLanding();
-    // Hero: "Ver el Top 20 de hoy" and "Ya tengo cuenta"
-    expect(
-      screen.getByRole("button", { name: /Ver el Top 20 de hoy/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Ya tengo cuenta/i }),
-    ).toBeInTheDocument();
-    // Top20 unlock CTA
-    expect(
-      screen.getByRole("button", { name: /Desbloquear los 20 videos/i }),
-    ).toBeInTheDocument();
+  it("explains manual snapshot updates rather than promising live sales",async()=>{
+    await renderLanding();
+    fireEvent.click(screen.getByRole("button",{name:"¿Cada cuánto se actualiza?"}));
+    expect(screen.getByText(/no son ventas en tiempo real/)).toBeInTheDocument();
   });
-
-  it("renders the guion demo with three tab variants", () => {
-    renderLanding();
-    expect(screen.getByRole("tab", { name: /Transcrito/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole("tab", { name: /Optimizado IA/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Agresivo/i })).toBeInTheDocument();
-  });
-
-  it("switches guion variants when a tab is clicked", () => {
-    renderLanding();
-    // Agresivo tab surfaces a distinctive phrase not present in ia_optimizado.
-    fireEvent.click(screen.getByRole("tab", { name: /Agresivo/i }));
-    expect(
-      screen.getByText(/5 productos caros no pudieron/i),
-    ).toBeInTheDocument();
-  });
-
-  it("renders the pricing card with promo price and gated fine print", () => {
-    renderLanding();
-    expect(
-      screen.getByRole("button", { name: /Empezar ahora/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Antes \$499 MXN · \$25 USD/i)).toBeInTheDocument();
-  });
-
-  it("renders the FAQ questions", () => {
-    renderLanding();
-    expect(
-      screen.getByText(/¿De dónde vienen los datos\?/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/¿Puedo cancelar cuando quiera\?/i),
-    ).toBeInTheDocument();
+  it("lets visitors inspect real videos with their reported sales and period", async () => {
+    catalogue.videos = [
+      {id:"first",video_mp4_url:"https://media.example/first.mp4",creator_handle:"ana",product_name:"Producto A",revenue_mxn:12500,sales:25,snapshot_date_range:"2026-10-01~2026-10-07"},
+      {id:"second",video_mp4_url:"https://media.example/second.mp4",creator_handle:"luis",product_name:"Producto B",revenue_mxn:4200,sales:14,snapshot_date_range:"2026-10-01~2026-10-07"},
+    ];
+    await renderLanding();
+    const proof = await screen.findByRole("article", {name:"Caso real del catálogo"});
+    expect(within(proof).getByText("$12500")).toBeInTheDocument();
+    expect(within(proof).getByText(/MXN · según el reporte/)).toHaveTextContent(/2026/);
+    expect(within(proof).getByLabelText("Video de ana")).toHaveAttribute("controls");
+    expect(within(proof).getByLabelText("Video de ana")).not.toHaveAttribute("autoplay");
+    fireEvent.click(screen.getByRole("button", {name:"Ver ejemplo real 2"}));
+    expect(new URL(within(proof).getByLabelText("Video de luis").getAttribute("src")!).pathname).toBe("/second.mp4");
+    expect(within(proof).getByText("$4200")).toBeInTheDocument();
+    expect(within(proof).queryByText("$12500")).not.toBeInTheDocument();
+    fireEvent.error(within(proof).getByLabelText("Video de luis"));
+    expect(within(proof).getByText("Video no disponible en este momento")).toBeInTheDocument();
   });
 });

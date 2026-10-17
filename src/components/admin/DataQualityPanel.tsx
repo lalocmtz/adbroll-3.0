@@ -148,7 +148,7 @@ export function DataQualityPanel() {
               <Activity className="h-5 w-5" /> Calidad de datos
             </CardTitle>
             <CardDescription>
-              Salud de la ingestión Kalodata — matching, stubs y últimas importaciones.
+              Estado del catálogo: asociaciones, fichas pendientes y últimas importaciones.
             </CardDescription>
           </div>
           <Button size="sm" variant="outline" onClick={loadMetrics} disabled={loading}>

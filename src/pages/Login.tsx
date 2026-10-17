@@ -1,5 +1,7 @@
+import { authDestination } from "@/lib/auth-destination";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
@@ -12,10 +14,13 @@ import { loginSchema } from "@/lib/validations";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
 const Login = () => {
+  const [searchParams] = useSearchParams();
+  const destination = authDestination(searchParams.get("redirect"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { isGoogleLoading, googleError, startGoogleSignIn } = useGoogleSignIn(destination);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -23,7 +28,8 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    
+    setAuthError(null);
+
     // Validate inputs
     const result = loginSchema.safeParse({ email, password });
     if (!result.success) {
@@ -50,53 +56,35 @@ const Login = () => {
         title: "¡Bienvenido de vuelta!",
       });
 
-      navigate("/app");
+      navigate(`/auth/continue?redirect=${encodeURIComponent(destination)}`);
     } catch (error: any) {
-      toast({
-        title: "Error al iniciar sesión",
-        description: error.message === "Invalid login credentials" 
-          ? "Email o contraseña incorrectos" 
-          : error.message,
-        variant: "destructive",
-      });
+      setAuthError(error.message === "Invalid login credentials"
+        ? "Revisa tu correo y contraseña. Si creaste tu cuenta con Google, usa Continuar con Google."
+        : error.message === "Email not confirmed"
+        ? "Confirma tu correo con el enlace que te enviamos antes de entrar."
+        : "No pudimos iniciar sesión. Inténtalo de nuevo o recupera tu contraseña.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setIsGoogleLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/app`,
-        },
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "Error con Google",
-        description: error.message,
-        variant: "destructive",
-      });
-      setIsGoogleLoading(false);
-    }
+    setAuthError(null);
+    await startGoogleSignIn();
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center landing-light p-4">
-      <Card className="w-full max-w-md card-landing-light relative">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-brand-ink p-4">
+      <Card className="w-full max-w-md card-landing-light relative border-white/10 shadow-2xl">
         <button
           onClick={() => navigate("/app")}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition-colors z-10"
+          className="absolute top-2 right-2 h-11 w-11 flex items-center justify-center rounded-full hover:bg-muted transition-colors z-10"
           aria-label="Cerrar"
         >
           <X className="h-5 w-5 text-muted-foreground" />
         </button>
-        <CardHeader>
-          <div className="text-center mb-4">
+        <CardHeader className="p-5 pb-3">
+          <div className="text-center mb-2">
             <button
               type="button"
               onClick={() => navigate("/")}
@@ -105,19 +93,20 @@ const Login = () => {
               <BrandLogo tone="dark" size="lg" />
             </button>
           </div>
-          <CardTitle>Bienvenido de vuelta</CardTitle>
+          <h1 className="text-xl font-semibold leading-snug">Bienvenido de vuelta</h1>
           <CardDescription>
-            Inicia sesión para ver lo que vende hoy
+            Vuelve a encontrar qué vende y cómo contarlo. Tu próxima idea empieza aquí.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 p-5 pt-0">
+          {(authError || googleError) && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{authError || googleError}</div>}
           {/* Google OAuth Button */}
           <Button
             type="button"
             variant="outline"
-            className="w-full flex items-center justify-center gap-3"
+            className="h-11 w-full flex items-center justify-center gap-3"
             onClick={handleGoogleLogin}
-            disabled={isGoogleLoading}
+            disabled={isGoogleLoading || isLoading}
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
@@ -151,11 +140,12 @@ const Login = () => {
             </div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+          <form onSubmit={handleLogin} className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
+                autoComplete="email"
                 type="email"
                 value={email}
                 onChange={(e) => {
@@ -170,10 +160,11 @@ const Login = () => {
                 <p className="text-sm text-destructive">{errors.email}</p>
               )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="password">Contraseña</Label>
               <Input
                 id="password"
+                autoComplete="current-password"
                 type="password"
                 value={password}
                 onChange={(e) => {
@@ -188,15 +179,17 @@ const Login = () => {
                 <p className="text-sm text-destructive">{errors.password}</p>
               )}
             </div>
-            <Button type="submit" className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary-hover" disabled={isLoading}>
+            <Link to="/recuperar-cuenta" className="block text-sm text-primary hover:underline">¿Olvidaste tu contraseña?</Link>
+            <Button type="submit" className="w-full h-11 font-semibold bg-brand-pink hover:bg-brand-pink/90 text-white" disabled={isLoading || isGoogleLoading}>
               {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
               ¿No tienes cuenta?{" "}
-              <Link to="/register" className="text-primary font-medium hover:underline">
-                Regístrate gratis
+              <Link to={`/register?redirect=${encodeURIComponent(destination)}`} className="text-primary font-medium hover:underline">
+                Crea tu cuenta
               </Link>
             </p>
+            <p className="text-xs text-center text-muted-foreground">La cuenta es gratis. La suscripción Pro se contrata por separado.</p>
           </form>
         </CardContent>
       </Card>

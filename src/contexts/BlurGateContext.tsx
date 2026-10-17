@@ -1,6 +1,6 @@
-import { createContext, useContext, ReactNode, useState } from "react";
+import { createContext, useContext, ReactNode } from "react";
 import { useBlurGate, BlurGateState } from "@/hooks/useBlurGate";
-import { SimpleEmailCaptureModal } from "@/components/SimpleEmailCaptureModal";
+import { useProOffer } from "@/hooks/useProOffer";
 
 interface BlurGateContextValue extends BlurGateState {
   openPaywall: (feature?: string) => void;
@@ -11,30 +11,20 @@ const BlurGateContext = createContext<BlurGateContextValue | null>(null);
 
 export const BlurGateProvider = ({ children }: { children: ReactNode }) => {
   const blurState = useBlurGate();
-  const [paywallOpen, setPaywallOpen] = useState(false);
-  const [paywallFeature, setPaywallFeature] = useState<string | undefined>();
+  const showProOffer = useProOffer();
 
-  const openPaywall = (feature?: string) => {
-    setPaywallFeature(feature);
-    setPaywallOpen(true);
+  const openPaywall = (_feature?: string) => {
+    if (blurState.loading || blurState.hasPaid) return;
+    showProOffer();
   };
 
   const closePaywall = () => {
-    setPaywallOpen(false);
-    setPaywallFeature(undefined);
+    // Retained for legacy callers; Pro now has its own page, not a modal.
   };
 
   return (
     <BlurGateContext.Provider value={{ ...blurState, openPaywall, closePaywall }}>
       {children}
-      <SimpleEmailCaptureModal 
-        open={paywallOpen} 
-        onOpenChange={(open) => {
-          if (!open) closePaywall();
-          else setPaywallOpen(open);
-        }} 
-        feature={paywallFeature}
-      />
     </BlurGateContext.Provider>
   );
 };

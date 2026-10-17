@@ -641,6 +641,11 @@ export type Database = {
       }
       creator_program_applications: {
         Row: {
+          access_kind: string
+          video_urls: string[]
+          ad_permission_at: string | null
+          ad_license_months: number | null
+          ad_license_ends_at: string | null
           approved_at: string | null
           approved_by: string | null
           created_at: string
@@ -660,6 +665,11 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          access_kind?: string
+          video_urls?: string[]
+          ad_permission_at?: string | null
+          ad_license_months?: number | null
+          ad_license_ends_at?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
@@ -679,6 +689,11 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          access_kind?: string
+          video_urls?: string[]
+          ad_permission_at?: string | null
+          ad_license_months?: number | null
+          ad_license_ends_at?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
@@ -1541,6 +1556,7 @@ export type Database = {
           gmv_30d_mxn: number | null
           gmv_7d_mxn: number | null
           id: string
+          identity_status: string | null
           imagen_url: string | null
           is_hidden: boolean | null
           is_opportunity: boolean | null
@@ -1575,6 +1591,7 @@ export type Database = {
           gmv_30d_mxn?: number | null
           gmv_7d_mxn?: number | null
           id?: string
+          identity_status?: string | null
           imagen_url?: string | null
           is_hidden?: boolean | null
           is_opportunity?: boolean | null
@@ -1609,6 +1626,7 @@ export type Database = {
           gmv_30d_mxn?: number | null
           gmv_7d_mxn?: number | null
           id?: string
+          identity_status?: string | null
           imagen_url?: string | null
           is_hidden?: boolean | null
           is_opportunity?: boolean | null
@@ -2348,6 +2366,56 @@ export type Database = {
       }
     }
     Functions: {
+      get_creator_catalog_ranking: { Args: { p_country?: string }; Returns: Json }
+      get_creator_catalog_videos: { Args: { p_creator_id: string; p_sort?: string; p_offset?: number }; Returns: Json }
+
+      get_creator_lifetime_capacity: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      grant_creator_preview: {
+        Args: { p_email: string; p_days?: number }
+        Returns: Json
+      }
+      submit_creator_lifetime_application: {
+        Args: { p_full_name: string; p_whatsapp: string; p_tiktok_url: string; p_video_urls: string[]; p_ad_permission: boolean }
+        Returns: Json
+      }
+      review_creator_lifetime_application: {
+        Args: { p_application_id: string; p_approve: boolean }
+        Returns: Json
+      }
+      redeem_creator_access: {
+        Args: { p_code: string }
+        Returns: Json
+      }
+      get_founder_user_overview: {
+        Args: { p_search?: string; p_filter?: string; p_offset?: number; p_limit?: number }
+        Returns: Json
+      }
+      get_catalog_admin_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          videos: number
+          products: number
+          creators: number
+          readyToShow: number
+          pendingDownload: number
+          pendingTranscription: number
+          failedTranscription: number
+          pendingMatch: number
+          pendingAvatars: number
+          lastSync: string | null
+        }
+      }
+      validate_referral_code: {
+        Args: { p_code: string }
+        Returns: boolean
+      }
+      get_video_analysis: {
+        Args: { _video_id: string }
+        Returns: Json
+      }
       apply_referral_code: {
         Args: { p_code: string; p_user_id: string }
         Returns: boolean

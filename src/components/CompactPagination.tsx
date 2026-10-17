@@ -29,12 +29,13 @@ export const CompactPagination = ({ currentPage, totalPages, onPageChange }: Com
   };
 
   return (
-    <div className="flex items-center justify-center gap-1">
+    <div className="flex flex-wrap items-center justify-center gap-1">
       <button
+        aria-label="Página anterior"
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+          "w-11 h-11 rounded-full flex items-center justify-center transition-colors",
           currentPage === 1 
             ? "text-muted-foreground/40 cursor-not-allowed" 
             : "text-muted-foreground hover:bg-muted"
@@ -46,10 +47,12 @@ export const CompactPagination = ({ currentPage, totalPages, onPageChange }: Com
       {getPageNumbers().map((page, idx) => (
         <button
           key={idx}
+          aria-label={typeof page === "number" ? `Página ${page}` : undefined}
+          aria-current={page === currentPage ? "page" : undefined}
           onClick={() => typeof page === "number" && onPageChange(page)}
           disabled={page === "..."}
           className={cn(
-            "w-8 h-8 rounded-full text-xs font-medium transition-colors",
+            "w-11 h-11 rounded-full text-xs font-medium transition-colors",
             page === currentPage
               ? "bg-primary text-primary-foreground"
               : page === "..."
@@ -62,10 +65,11 @@ export const CompactPagination = ({ currentPage, totalPages, onPageChange }: Com
       ))}
       
       <button
+        aria-label="Página siguiente"
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         className={cn(
-          "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+          "w-11 h-11 rounded-full flex items-center justify-center transition-colors",
           currentPage === totalPages 
             ? "text-muted-foreground/40 cursor-not-allowed" 
             : "text-muted-foreground hover:bg-muted"

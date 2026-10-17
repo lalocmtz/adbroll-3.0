@@ -30,7 +30,7 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
         setUserEmail(user.email);
       }
     };
-    getUser();
+    void getUser().catch(() => setUserEmail(""));
   }, []);
 
   const handleLogout = async () => {
@@ -45,20 +45,20 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        <div 
-          className="flex items-center cursor-pointer"
+      <div className="container mx-auto flex h-14 items-center justify-between px-4 md:px-6">
+        <button type="button"
+          className="flex min-h-11 items-center cursor-pointer"
           onClick={() => navigate(showMenu ? "/app" : "/")}
         >
           <BrandLogo tone="dark" size="md" />
-        </div>
+        </button>
 
         {showMenu && userEmail && (
           <div className="flex items-center gap-3">
             <MarketSwitcher variant="compact" />
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Button variant="ghost" aria-label="Abrir mi cuenta" className="relative h-11 w-11 rounded-full">
                 <Avatar className="h-10 w-10 border-2 border-primary/20">
                   <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                     {getUserInitials()}
@@ -76,11 +76,11 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer">
+              <DropdownMenuItem onSelect={() => navigate("/settings")} className="cursor-pointer min-h-11">
                 <User className="mr-2 h-4 w-4" />
                 <span>Perfil</span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
+              <DropdownMenuItem onSelect={() => navigate("/settings")} className="cursor-pointer min-h-11">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Configuración</span>
               </DropdownMenuItem>
@@ -104,13 +104,13 @@ const GlobalHeader = ({ showMenu = true }: GlobalHeaderProps) => {
             onClick={() => navigate("/login")}
             className="text-sm font-medium"
           >
-            Iniciar sesión
+            {userEmail ? "Ir al catálogo" : "Iniciar sesión"}
           </Button>
         )}
 
         {!showMenu && (
-          <Button variant="ghost" onClick={() => navigate("/login")}>
-            Iniciar sesión
+          <Button variant="ghost" className="h-11" onClick={() => navigate(userEmail ? "/app" : "/login")}>
+            {userEmail ? "Ir al catálogo" : "Iniciar sesión"}
           </Button>
         )}
       </div>

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import VideoAnalysisModalOriginal from "@/components/VideoAnalysisModalOriginal";
 import { useNavigate } from "react-router-dom";
-import { DataSubtitle } from "@/components/FilterPills";
+import { CatalogHeader } from "@/components/CatalogToolbar";
 import { openTikTokLink } from "@/lib/tiktokDeepLink";
 
 interface FavoriteVideo {
@@ -194,7 +194,7 @@ const Favorites = () => {
       const { error } = await supabase.from("favorites_scripts").delete().eq("id", id);
       if (error) throw error;
       setScripts(scripts.filter((s) => s.id !== id));
-      toast({ title: "✓ Guión eliminado de favoritos" });
+      toast({ title: "✓ Guion eliminado de favoritos" });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     }
@@ -205,7 +205,7 @@ const Favorites = () => {
       await navigator.clipboard.writeText(content);
       setCopiedScript(id);
       setTimeout(() => setCopiedScript(null), 2000);
-      toast({ title: "✓ Guión copiado" });
+      toast({ title: "✓ Guion copiado" });
     } catch (error) {
       toast({ title: "Error al copiar", variant: "destructive" });
     }
@@ -227,47 +227,43 @@ const Favorites = () => {
   const totalFavorites = videos.length + products.length + creators.length + scripts.length;
 
   return (
-    <div className="pt-5 pb-6 px-4 md:px-6">
-      {/* Minimal header */}
-      <div className="flex items-center gap-2 mb-3">
-        <Heart className="h-4 w-4 text-red-500 fill-current" />
-        <span className="text-xs text-muted-foreground">
-          {totalFavorites === 0 ? t("noFavorites") : `${totalFavorites} ${t("savedItems")}`}
-        </span>
-      </div>
+    <div className="min-w-0 w-full pt-2 pb-6 px-3 md:px-6">
+      <CatalogHeader title={t("favorites")} count={totalFavorites} />
 
       <Tabs defaultValue="videos" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4 h-9">
-          <TabsTrigger value="videos" className="flex items-center gap-1.5 text-xs">
-            <Video className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t("videos")}</span> ({videos.length})
+        <TabsList className="grid w-full grid-cols-4 mb-4 h-auto">
+          <TabsTrigger value="videos" className="flex min-w-0 min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 tabular-nums">
+            <Video className="hidden sm:block size-3.5 shrink-0" />
+            <span>{t("videos")}</span> ({videos.length})
           </TabsTrigger>
-          <TabsTrigger value="productos" className="flex items-center gap-1.5 text-xs">
-            <Package className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t("products")}</span> ({products.length})
+          <TabsTrigger value="productos" className="flex min-w-0 min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 tabular-nums">
+            <Package className="hidden sm:block size-3.5 shrink-0" />
+            <span>{t("products")}</span> ({products.length})
           </TabsTrigger>
-          <TabsTrigger value="guiones" className="flex items-center gap-1.5 text-xs">
-            <FileText className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Guiones</span> ({scripts.length})
+          <TabsTrigger value="guiones" className="flex min-w-0 min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 tabular-nums">
+            <FileText className="hidden sm:block size-3.5 shrink-0" />
+            <span>Guiones</span> ({scripts.length})
           </TabsTrigger>
-          <TabsTrigger value="creadores" className="flex items-center gap-1.5 text-xs">
-            <Users className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t("creators")}</span> ({creators.length})
+          <TabsTrigger value="creadores" className="flex min-w-0 min-h-11 items-center gap-0.5 sm:gap-1.5 text-[10px] sm:text-xs px-1 tabular-nums">
+            <Users className="hidden sm:block size-3.5 shrink-0" />
+            <span>{t("creators")}</span> ({creators.length})
           </TabsTrigger>
         </TabsList>
 
         {/* VIDEOS TAB */}
         <TabsContent value="videos" className="mt-4">
           {videos.length === 0 ? (
-            <Card className="p-12 text-center">
+            <Card className="px-4 py-8 text-center">
               <Video className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">{t("noSavedVideos")}</p>
+              <p className="text-muted-foreground text-pretty">{t("noSavedVideos")}</p>
+              <Button variant="outline" className="mt-4" onClick={() => navigate("/app")}>Explorar videos</Button>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid min-w-0 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4 [&>*]:min-w-0">
               {videos.map((fav, index) => {
                 const video = fav.video_data;
-                const commissionEstimated = (video.revenue_mxn || video.ingresos_mxn || 0) * 0.06;
+                const commissionRate = video.product?.commission ?? video.commission;
+                const commissionEstimated = typeof commissionRate === "number" && commissionRate >= 0 && commissionRate <= 100 ? (video.revenue_mxn ?? video.ingresos_mxn ?? 0) * commissionRate / 100 : null;
                 
                 return (
                   <Card key={fav.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
@@ -316,7 +312,7 @@ const Favorites = () => {
                         <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight min-h-[2rem]">
                           {video.title || video.descripcion_video || "Video TikTok Shop"}
                         </h3>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                           @{video.creator_handle || video.creador || "creator"}
                         </p>
                       </div>
@@ -325,7 +321,7 @@ const Favorites = () => {
                         <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
                           <div className="flex items-center gap-1 mb-0.5">
                             <DollarSign className="h-2.5 w-2.5 text-emerald-600" />
-                            <span className="text-[9px] text-muted-foreground">Ingresos</span>
+                            <span className="text-[9px] text-muted-foreground">Ventas en pesos</span>
                           </div>
                           <p className="text-xs font-bold text-emerald-600">
                             {formatCurrency(video.revenue_mxn || video.ingresos_mxn)}
@@ -334,7 +330,7 @@ const Favorites = () => {
                         <div className="p-1.5 rounded-md bg-muted">
                           <div className="flex items-center gap-1 mb-0.5">
                             <ShoppingCart className="h-2.5 w-2.5 text-foreground" />
-                            <span className="text-[9px] text-muted-foreground">Ventas</span>
+                            <span className="text-[9px] text-muted-foreground">Unidades vendidas</span>
                           </div>
                           <p className="text-xs font-bold text-foreground">
                             {formatNumber(video.sales || video.ventas)}
@@ -343,10 +339,10 @@ const Favorites = () => {
                         <div className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50">
                           <div className="flex items-center gap-1 mb-0.5">
                             <DollarSign className="h-2.5 w-2.5 text-amber-600" />
-                            <span className="text-[9px] text-muted-foreground">Ganancias Est.</span>
+                            <span className="text-[9px] text-muted-foreground">Comisión estimada</span>
                           </div>
                           <p className="text-xs font-bold text-amber-600">
-                            {formatCurrency(commissionEstimated)}
+                            {commissionEstimated === null ? "Sin dato" : formatCurrency(commissionEstimated)}
                           </p>
                         </div>
                         <div className="p-1.5 rounded-md bg-muted">
@@ -361,7 +357,7 @@ const Favorites = () => {
                       </div>
 
                       <Button
-                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        className="w-full h-11 text-xs font-semibold bg-primary hover:bg-primary/90"
                         onClick={() => setSelectedVideo(video)}
                       >
                         <Sparkles className="h-3.5 w-3.5 mr-1.5" />
@@ -378,18 +374,19 @@ const Favorites = () => {
         {/* PRODUCTS TAB */}
         <TabsContent value="productos" className="mt-4">
           {products.length === 0 ? (
-            <Card className="p-12 text-center">
+            <Card className="px-4 py-8 text-center">
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">{t("noSavedProducts")}</p>
+              <p className="text-muted-foreground text-pretty">{t("noSavedProducts")}</p>
+              <Button variant="outline" className="mt-4" onClick={() => navigate("/products")}>Explorar productos</Button>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid min-w-0 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4 [&>*]:min-w-0">
               {products.map((fav, index) => {
                 const product = fav.product_data;
                 const revenue = product.revenue_30d || product.total_ingresos_mxn;
                 const sales = product.sales_7d || product.total_ventas;
                 const price = product.price || product.precio_mxn;
-                const commission = product.commission || 6;
+                const commission = product.commission;
                 
                 return (
                   <Card key={fav.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
@@ -452,7 +449,7 @@ const Favorites = () => {
                         <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50">
                           <div className="flex items-center gap-1 mb-0.5">
                             <TrendingUp className="h-2.5 w-2.5 text-emerald-600" />
-                            <span className="text-[9px] text-muted-foreground">Ingresos 30D</span>
+                            <span className="text-[9px] text-muted-foreground">Ventas reportadas</span>
                           </div>
                           <p className="text-xs font-bold text-emerald-600">
                             {formatCurrency(revenue)}
@@ -462,7 +459,7 @@ const Favorites = () => {
                         <div className="p-1.5 rounded-md bg-muted">
                           <div className="flex items-center gap-1 mb-0.5">
                             <ShoppingCart className="h-2.5 w-2.5 text-foreground" />
-                            <span className="text-[9px] text-muted-foreground">Ventas 30D</span>
+                            <span className="text-[9px] text-muted-foreground">Unidades reportadas</span>
                           </div>
                           <p className="text-xs font-bold text-foreground">
                             {formatNumber(sales)}
@@ -485,14 +482,14 @@ const Favorites = () => {
                             <span className="text-[9px] text-muted-foreground">Comisión</span>
                           </div>
                           <p className="text-xs font-bold text-amber-600">
-                            {commission}%
+                            {commission == null ? "Sin dato" : `${commission}%`}
                           </p>
                         </div>
                       </div>
 
                       <Button
-                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
-                        onClick={() => navigate(`/app?productName=${encodeURIComponent(product.producto_nombre)}`)}
+                        className="w-full h-11 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        onClick={() => navigate(`/videos/product/${fav.product_id}`)}
                       >
                         <Play className="h-3.5 w-3.5 mr-1.5" />
                         Ver videos
@@ -508,12 +505,13 @@ const Favorites = () => {
         {/* SCRIPTS TAB */}
         <TabsContent value="guiones" className="mt-4">
           {scripts.length === 0 ? (
-            <Card className="p-12 text-center">
+            <Card className="px-4 py-8 text-center">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
               <p className="text-muted-foreground">No tienes guiones guardados</p>
               <p className="text-xs text-muted-foreground/70 mt-2">
-                Guarda guiones desde el modal de análisis de video usando el botón ❤️
+                Abre el análisis de un video y guarda el guion para retomarlo aquí.
               </p>
+              <Button variant="outline" className="mt-4" onClick={() => navigate("/app")}>Explorar videos</Button>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -531,9 +529,9 @@ const Favorites = () => {
                           </div>
                           <div>
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              {script.variant_type || "Guión"}
+                              {script.variant_type || "Guion"}
                             </Badge>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                               #{index + 1}
                             </p>
                           </div>
@@ -569,7 +567,7 @@ const Favorites = () => {
                       )}
 
                       <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
-                        <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere] leading-relaxed">
                           {previewText}
                         </p>
                       </div>
@@ -589,7 +587,7 @@ const Favorites = () => {
                           onClick={() => handleCopyScript(script.content, fav.id)}
                         >
                           <Copy className="h-3 w-3 mr-1" />
-                          Copiar guión
+                          Copiar guion
                         </Button>
                       </div>
                     </CardContent>
@@ -603,12 +601,13 @@ const Favorites = () => {
         {/* CREATORS TAB */}
         <TabsContent value="creadores" className="mt-4">
           {creators.length === 0 ? (
-            <Card className="p-12 text-center">
+            <Card className="px-4 py-8 text-center">
               <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">{t("noSavedCreators")}</p>
+              <p className="text-muted-foreground text-pretty">{t("noSavedCreators")}</p>
+              <Button variant="outline" className="mt-4" onClick={() => navigate("/creadores")}>Explorar creadores</Button>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid min-w-0 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-4 [&>*]:min-w-0">
               {creators.map((creator, index) => (
                 <Card key={creator.id} className="overflow-hidden hover:shadow-lg transition-all duration-300 bg-card border-border">
                   <CardContent className="p-3">
@@ -642,7 +641,7 @@ const Favorites = () => {
 
                     <div className="grid grid-cols-2 gap-1.5 mb-2.5">
                       <div className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50 text-center">
-                        <p className="text-[8px] text-muted-foreground uppercase">GMV Total</p>
+                        <p className="text-[8px] text-muted-foreground uppercase">Ventas reportadas</p>
                         <p className="text-xs font-bold text-emerald-600">
                           {formatCurrency(creator.total_ingresos_mxn)}
                         </p>
@@ -657,8 +656,8 @@ const Favorites = () => {
 
                     <div className="space-y-1.5">
                       <Button
-                        className="w-full h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
-                        onClick={() => navigate(`/app?creator=${encodeURIComponent(creator.creator_handle || creator.usuario_creador)}`)}
+                        className="w-full h-11 text-xs font-semibold bg-primary hover:bg-primary/90"
+                        onClick={() => navigate(`/videos/creator/${creator.id}`)}
                       >
                         <Play className="h-3.5 w-3.5 mr-1.5" />
                         Ver videos

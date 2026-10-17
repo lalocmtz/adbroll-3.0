@@ -286,7 +286,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             <div className="p-1.5 rounded bg-primary/5 border border-primary/10">
               <div className="flex items-center gap-0.5 mb-0.5">
                 <DollarSign className="h-2.5 w-2.5 text-primary" />
-                <span className="text-[9px] text-muted-foreground">Ingresos</span>
+                <span className="text-[9px] text-muted-foreground">Ventas en pesos</span>
               </div>
               <p className="text-xs font-bold text-success">
                 {formatCurrency(video.ingresos_mxn)}
@@ -296,7 +296,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             <div className="p-1.5 rounded bg-muted">
               <div className="flex items-center gap-0.5 mb-0.5">
                 <ShoppingCart className="h-2.5 w-2.5 text-foreground" />
-                <span className="text-[9px] text-muted-foreground">Ventas</span>
+                <span className="text-[9px] text-muted-foreground">Unidades vendidas</span>
               </div>
               <p className="text-xs font-bold text-foreground">
                 {formatNumber(video.ventas)}
@@ -331,7 +331,7 @@ const VideoCard = ({ video, ranking }: VideoCardProps) => {
             onClick={handleAnalyzeClick}
           >
             <Sparkles className="h-3 w-3 mr-1.5" />
-            Analizar guion y replicar
+            Entender y adaptar guion
           </Button>
         </CardContent>
       </Card>

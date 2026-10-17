@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { CatalogInfo, CatalogFilterBar } from "@/components/CatalogToolbar";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { ChevronRight, ArrowLeft, Package, DollarSign, ExternalLink, Eye, Loader
 import { useToast } from "@/hooks/use-toast";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import VideoCardOriginal from "@/components/VideoCardOriginal";
-import { FilterPills, DataSubtitle } from "@/components/FilterPills";
+import { FilterPills } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { openTikTokLink } from "@/lib/tiktokDeepLink";
 
@@ -20,7 +21,7 @@ const VIDEO_CARD_COLUMNS = `
   id, video_url, video_mp4_url, thumbnail_url, title,
   creator_name, creator_handle, creator_id, product_name, product_id,
   sales, revenue_mxn, views, roas, category, country, rank,
-  imported_at, processing_status,
+  imported_at, processing_status, snapshot_date_range,
   product:products!product_id (
     id, producto_nombre, imagen_url, total_ingresos_mxn, commission, price, precio_mxn, revenue_30d, producto_url
   )
@@ -90,12 +91,16 @@ interface CreatorInfo {
 }
 
 const SORT_OPTIONS = [
-  { value: "revenue", label: "Más ingresos" },
-  { value: "sales", label: "Más ventas" },
-  { value: "views", label: "Más vistas" },
+  { value: "revenue", label: "Más ventas en pesos" },
+  { value: "sales", label: "Más unidades vendidas" },
+  { value: "views", label: "Vistas" },
 ];
 
 const ITEMS_PER_PAGE = 20;
+
+const SORT_COLUMNS: Record<string, "revenue_mxn" | "sales" | "views"> = {
+  revenue: "revenue_mxn", sales: "sales", views: "views",
+};
 
 const formatCurrency = (num: number | null | undefined): string => {
   if (!num) return '$0';
@@ -123,6 +128,10 @@ const RelatedVideos = () => {
   
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalVideos, setTotalVideos] = useState(0);
+  const [availableCreatorVideos, setAvailableCreatorVideos] = useState(0);
+  const [identifiedVideos, setIdentifiedVideos] = useState(0);
+  const requestVersion = useRef(0);
   const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   const [sortOrder, setSortOrder] = useState("revenue");
@@ -138,28 +147,55 @@ const RelatedVideos = () => {
   const isCreatorView = !!creatorId;
 
   useEffect(() => {
-    fetchData();
+    setCurrentPage(1);
+    setProductInfo(null);
+    setCreatorInfo(null);
+    setCandidates([]);
   }, [productId, creatorId]);
 
   useEffect(() => {
-    sortVideos();
-  }, [sortOrder, videos.length]);
+    fetchData();
+    return () => { requestVersion.current += 1; };
+  }, [productId, creatorId, sortOrder, currentPage]);
 
   // Load candidate videos when product is available
   useEffect(() => {
     if (isProductView && productInfo && isFounder) {
       loadCandidates();
     }
-  }, [productInfo, isFounder]);
+  }, [productInfo?.id, isFounder]);
 
   const fetchData = async () => {
+    const version = ++requestVersion.current;
     try {
       setLoading(true);
+      setVideos([]);
+      setTotalVideos(0);
+      setIdentifiedVideos(0);
+      setAvailableCreatorVideos(0);
+      const from = (currentPage - 1) * ITEMS_PER_PAGE;
+      const loadVideos = async (scope: (query: any) => any) => {
+        const [page, identified] = await Promise.all([
+          scope(supabase.from("videos").select(VIDEO_CARD_COLUMNS, { count: "exact" }))
+            .not("video_mp4_url", "is", null)
+            .neq("video_mp4_url", "")
+            .order(SORT_COLUMNS[sortOrder] || "revenue_mxn", { ascending: false, nullsFirst: false })
+            .order("id", { ascending: true })
+            .range(from, from + ITEMS_PER_PAGE - 1),
+          scope(supabase.from("videos").select("id", { count: "exact", head: true })),
+        ]);
+        if (version !== requestVersion.current) return;
+        if (page.error) throw page.error;
+        if (identified.error) throw identified.error;
+        setVideos(page.data || []);
+        setTotalVideos(page.count || 0);
+        setIdentifiedVideos(identified.count || 0);
+      };
       
       if (isProductView && productId) {
         const { data: product, error: productError } = await supabase
           .from("products")
-          .select("id, producto_nombre, imagen_url, total_ingresos_mxn, rank, producto_url")
+          .select("id, producto_nombre, imagen_url, total_ingresos_mxn, rank, producto_url, market, tiktok_product_id")
           .eq("id", productId)
           .maybeSingle();
 
@@ -169,21 +205,20 @@ const RelatedVideos = () => {
           navigate("/products");
           return;
         }
+        if (version !== requestVersion.current) return;
         setProductInfo(product);
 
-        const { data: videosData, error: videosError } = await supabase
-          .from("videos")
-          .select(VIDEO_CARD_COLUMNS)
+        await loadVideos(query => query
           .eq("product_id", productId)
-          .order("revenue_mxn", { ascending: false });
-
-        if (videosError) throw videosError;
-        setVideos(videosData || []);
+          .eq("country", product.market)
+          .or(product.tiktok_product_id && /^\d+$/.test(product.tiktok_product_id)
+            ? `manual_match.eq.true,tiktok_product_id.eq.${product.tiktok_product_id}`
+            : "manual_match.eq.true"));
 
       } else if (isCreatorView && creatorId) {
         const { data: creator, error: creatorError } = await supabase
           .from("creators")
-          .select("id, nombre_completo, usuario_creador, creator_handle, avatar_url, total_ingresos_mxn, tiktok_url")
+          .select("id, nombre_completo, usuario_creador, creator_handle, avatar_url, total_ingresos_mxn, tiktok_url, country")
           .eq("id", creatorId)
           .maybeSingle();
 
@@ -193,26 +228,28 @@ const RelatedVideos = () => {
           navigate("/creadores");
           return;
         }
+        if (version !== requestVersion.current) return;
         setCreatorInfo(creator);
 
-        const creatorHandle = creator.creator_handle || creator.usuario_creador;
-        const { data: videosData, error: videosError } = await supabase
-          .from("videos")
-          .select(VIDEO_CARD_COLUMNS)
-          .or(`creator_id.eq.${creatorId},creator_handle.ilike.%${creatorHandle}%`)
-          .order("revenue_mxn", { ascending: false });
-
-        if (videosError) throw videosError;
-        setVideos(videosData || []);
+        const { data, error } = await supabase.rpc('get_creator_catalog_videos', { p_creator_id: creatorId, p_sort: sortOrder, p_offset: from });
+        if (version !== requestVersion.current) return;
+        if (error) throw error;
+        const result = data as unknown as { rows: Video[]; count: number; total_available: number; identified_count: number };
+        if (!Array.isArray(result?.rows)) throw new Error('No se pudieron recuperar los videos del creador.');
+        setVideos(result.rows);
+        setTotalVideos(result.count);
+        setIdentifiedVideos(result.identified_count);
+        setAvailableCreatorVideos(result.total_available);
       }
     } catch (error: any) {
+      if (version !== requestVersion.current) return;
       toast({
         title: "Error al cargar datos",
         description: error.message,
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   };
 
@@ -285,25 +322,7 @@ const RelatedVideos = () => {
     }
   };
 
-  const sortVideos = () => {
-    const sorted = [...videos].sort((a, b) => {
-      switch (sortOrder) {
-        case "revenue": return (b.revenue_mxn || 0) - (a.revenue_mxn || 0);
-        case "sales": return (b.sales || 0) - (a.sales || 0);
-        case "views": return (b.views || 0) - (a.views || 0);
-        default: return 0;
-      }
-    });
-    if (JSON.stringify(sorted) !== JSON.stringify(videos)) {
-      setVideos(sorted);
-    }
-  };
-
-  const totalPages = Math.ceil(videos.length / ITEMS_PER_PAGE);
-  const paginatedVideos = videos.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const totalPages = Math.ceil(totalVideos / ITEMS_PER_PAGE);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -323,7 +342,7 @@ const RelatedVideos = () => {
       setAuditResults({ issues: data.issuesCount, fixed: data.fixed });
       toast({
         title: autoFix ? "Auditoría con corrección completada" : "Auditoría completada",
-        description: `${data.analyzed} videos analizados, ${data.issuesCount} issues encontrados${autoFix ? `, ${data.fixed} corregidos` : ''}`
+        description: `${data.analyzed} videos analizados, ${data.issuesCount} problemas encontrados${autoFix ? `, ${data.fixed} corregidos` : ''}`
       });
       if (autoFix && data.fixed > 0) fetchData();
     } catch (error: any) {
@@ -342,34 +361,34 @@ const RelatedVideos = () => {
   }
 
   return (
-    <div className="pt-5 pb-6 px-4 md:px-6">
+    <div className="min-w-0 w-full pt-2 pb-6 px-3 md:px-6">
       {/* Back button */}
-      <Button variant="ghost" size="sm" className="mb-3 h-8 text-xs" onClick={() => navigate(-1)}>
+      <Button variant="ghost" size="sm" className="mb-1 h-11 text-xs" onClick={() => navigate(-1)}>
         <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
         Volver
       </Button>
 
       {/* Breadcrumbs */}
-      <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="hidden md:flex mb-2 min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
         <Link to="/app" className="hover:text-foreground transition-colors">Videos</Link>
-        <ChevronRight className="h-3 w-3" />
+        <ChevronRight className="h-3 w-3 shrink-0" />
         <Link to={isProductView ? "/products" : "/creadores"} className="hover:text-foreground transition-colors">
           {isProductView ? "Productos" : "Creadores"}
         </Link>
-        <ChevronRight className="h-3 w-3" />
-        <span className="text-foreground truncate max-w-[150px]">
+        <ChevronRight className="h-3 w-3 shrink-0" />
+        <span className="min-w-0 text-foreground truncate">
           {productInfo?.producto_nombre || creatorInfo?.nombre_completo || creatorInfo?.usuario_creador}
         </span>
       </div>
 
       {/* Product Header */}
       {isProductView && productInfo && (
-        <Card className="p-4 mb-4 bg-card border-border">
-          <div className="flex items-center gap-4">
+        <Card className="min-w-0 p-3 sm:p-4 mb-2 bg-card border-border">
+          <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 sm:gap-4 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
             {productInfo.imagen_url ? (
-              <img src={productInfo.imagen_url} alt={productInfo.producto_nombre} className="w-16 h-16 rounded-lg object-cover" />
+              <img src={productInfo.imagen_url} alt={productInfo.producto_nombre} className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-lg object-cover" />
             ) : (
-              <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Package className="h-8 w-8 text-primary" />
               </div>
             )}
@@ -381,13 +400,13 @@ const RelatedVideos = () => {
                   </Badge>
                 )}
               </div>
-              <h1 className="text-lg font-bold text-foreground truncate">{productInfo.producto_nombre}</h1>
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                <DollarSign className="h-3.5 w-3.5" />
-                GMV 30D: {formatCurrency(productInfo.total_ingresos_mxn)}
+              <h1 className="text-base sm:text-lg font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug line-clamp-2 text-balance">{productInfo.producto_nombre}</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground flex items-start gap-1">
+                <DollarSign className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                {productInfo.total_ingresos_mxn === null ? 'Todavía no hay cifras del producto en el reporte' : `Ventas del reporte: ${formatCurrency(productInfo.total_ingresos_mxn)}`}
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="col-span-2 flex min-w-0 flex-wrap gap-2 lg:col-span-1 lg:justify-end [&>button]:min-h-11">
               {productInfo.producto_url && (
                 <Button variant="outline" size="sm" onClick={() => window.open(productInfo.producto_url!, '_blank')}>
                   <ExternalLink className="h-4 w-4 mr-1.5" />
@@ -410,7 +429,7 @@ const RelatedVideos = () => {
           </div>
           {auditResults && (
             <div className="mt-3 pt-3 border-t border-border">
-              <div className="flex items-center gap-3 text-sm">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
                 <Badge variant={auditResults.issues > 0 ? "destructive" : "secondary"}>
                   {auditResults.issues} issues detectados
                 </Badge>
@@ -427,9 +446,9 @@ const RelatedVideos = () => {
 
       {/* Creator Header */}
       {isCreatorView && creatorInfo && (
-        <Card className="p-4 mb-4 bg-card border-border">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16 border-2 border-primary/20">
+        <Card className="min-w-0 p-3 sm:p-4 mb-2 bg-card border-border">
+          <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 sm:gap-4 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
+            <Avatar className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 border-2 border-primary/20">
               <AvatarImage 
                 src={creatorInfo.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(creatorInfo.nombre_completo || creatorInfo.usuario_creador)}&background=0D8ABC&color=fff`}
               />
@@ -438,17 +457,17 @@ const RelatedVideos = () => {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-foreground truncate">
+              <h1 className="text-base sm:text-lg font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug line-clamp-2 text-balance">
                 {creatorInfo.nombre_completo || creatorInfo.usuario_creador}
               </h1>
-              <p className="text-sm text-muted-foreground">@{creatorInfo.creator_handle || creatorInfo.usuario_creador}</p>
-              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                <DollarSign className="h-3.5 w-3.5" />
-                GMV Total: {formatCurrency(creatorInfo.total_ingresos_mxn)}
+              <p className="text-xs sm:text-sm text-muted-foreground break-all">@{(creatorInfo.creator_handle || creatorInfo.usuario_creador).trim().replace(/^@/, "")}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground flex items-start gap-1 mt-1">
+                <DollarSign className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                Ventas del reporte: {formatCurrency(creatorInfo.total_ingresos_mxn)}
               </p>
             </div>
             {creatorInfo.tiktok_url && (
-              <Button variant="outline" size="sm" onClick={() => openTikTokLink(creatorInfo.tiktok_url!)}>
+              <Button variant="outline" size="sm" className="col-span-2 lg:col-span-1 h-11 w-fit" onClick={() => openTikTokLink(creatorInfo.tiktok_url!)}>
                 <ExternalLink className="h-4 w-4 mr-1.5" />
                 Ver en TikTok
               </Button>
@@ -457,26 +476,25 @@ const RelatedVideos = () => {
         </Card>
       )}
 
-      {/* Subtitle and Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-        <DataSubtitle />
-        <Badge variant="secondary" className="w-fit text-xs">
-          {videos.length} {videos.length === 1 ? "video" : "videos"} vinculados
-        </Badge>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <FilterPills
-          options={SORT_OPTIONS}
-          value={sortOrder}
-          onChange={(v) => { setSortOrder(v); setCurrentPage(1); }}
-        />
-      </div>
+      <CatalogFilterBar label="Ordenar videos relacionados">
+        <FilterPills compact options={SORT_OPTIONS} value={sortOrder} onChange={(v) => { setSortOrder(v); setCurrentPage(1); }} />
+        <span className="text-xs tabular-nums text-muted-foreground">{isCreatorView && availableCreatorVideos > 50 ? `Top 50 de ${availableCreatorVideos} videos disponibles` : `${totalVideos} ${totalVideos === 1 ? "video disponible" : "videos disponibles"}`}</span>
+        <CatalogInfo>
+          <p className="font-semibold break-words">{productInfo?.producto_nombre || creatorInfo?.nombre_completo || creatorInfo?.usuario_creador}</p>
+          <p>Videos descargados y vinculados a {isProductView ? "este producto exacto" : "esta cuenta"}. Las métricas corresponden al reporte importado, no son en tiempo real.</p>
+          {isCreatorView && <p>Se muestran hasta 50 videos según el orden seleccionado, vinculados por cuenta exacta y del mismo mercado.</p>}
+        </CatalogInfo>
+      </CatalogFilterBar>
 
       {/* Linked Videos Grid */}
-      {videos.length === 0 && candidates.length === 0 ? (
-        <Card className="p-12 text-center">
-          <p className="text-muted-foreground text-lg">No se encontraron videos relacionados</p>
+      {videos.length === 0 ? (
+        <Card className="min-w-0 px-4 py-8 sm:p-12 text-center">
+          <p className="text-muted-foreground text-base text-balance">Todavía no hay videos disponibles para {isProductView ? "este producto" : "este creador"}</p>
+          <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto text-pretty">
+            {identifiedVideos > 0
+              ? "Estamos preparando los videos de esta referencia. Mientras tanto, puedes explorar otras opciones del catálogo."
+              : `Prueba con otro ${isProductView ? "producto" : "creador"} para encontrar una referencia disponible.`}
+          </p>
           <Button variant="outline" className="mt-4" onClick={() => navigate(isProductView ? "/products" : "/creadores")}>
             Volver a {isProductView ? "Productos" : "Creadores"}
           </Button>
@@ -484,19 +502,20 @@ const RelatedVideos = () => {
       ) : (
         <>
           {/* Linked videos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {paginatedVideos.map((video, index) => (
-              <div key={video.id} className="relative group">
+          <div className="grid min-w-0 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {videos.map((video, index) => (
+              <div key={video.id} className="relative min-w-0 group">
                 <VideoCardOriginal video={video} ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} />
-                {isFounder && (
+                {isFounder && isProductView && (
                   <Button
                     variant="destructive"
                     size="icon"
-                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                    className="absolute top-16 right-4 h-11 w-11 sm:h-8 sm:w-8 sm:opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity z-20"
                     onClick={() => handleUnlinkVideo(video.id)}
                     title="Desvincular video"
+                    aria-label="Desvincular video"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   </Button>
                 )}
               </div>
@@ -514,29 +533,29 @@ const RelatedVideos = () => {
       {/* Candidate Videos Section (Founders only, Product view only) */}
       {isProductView && isFounder && (candidates.length > 0 || candidatesLoading) && (
         <div className="mt-8">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 mb-4">
             <Link2 className="h-5 w-5 text-primary" />
             <h2 className="text-base font-semibold">Videos posiblemente relacionados (sin vincular)</h2>
             {candidatesLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {candidates.map(candidate => (
-              <Card key={candidate.id} className="overflow-hidden border-dashed border-primary/30">
+              <Card key={candidate.id} className="min-w-0 overflow-hidden border-dashed border-primary/30">
                 <div className="p-3">
                   {candidate.thumbnail_url && (
                     <img src={candidate.thumbnail_url} alt="" className="w-full h-24 object-cover rounded mb-2" />
                   )}
                   <p className="text-xs font-medium truncate">{candidate.title || 'Sin título'}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5 break-words [overflow-wrap:anywhere]">
                     @{candidate.creator_handle || '—'} • ${formatNum(candidate.revenue_mxn)} • {formatNum(candidate.views)} views
                   </p>
                   {candidate.product_name && (
-                    <Badge variant="outline" className="text-[10px] h-4 mt-1">
+                    <Badge variant="outline" className="max-w-full whitespace-normal break-words text-[10px] leading-snug mt-1">
                       Actual: {candidate.product_name}
                     </Badge>
                   )}
-                  <div className="flex items-center gap-1 mt-1">
+                  <div className="flex flex-wrap items-center gap-1 mt-1">
                     {candidate.matchedKeywords?.map(kw => (
                       <Badge key={kw} variant="secondary" className="text-[10px] h-4">
                         {kw}
@@ -546,7 +565,7 @@ const RelatedVideos = () => {
                   <div className="flex items-center gap-2 mt-2">
                     <Button
                       size="sm"
-                      className="flex-1 h-7 text-xs"
+                      className="min-w-0 flex-1 h-11 text-xs"
                       onClick={() => handleLinkVideo(candidate.id)}
                     >
                       <Link2 className="h-3 w-3 mr-1" />
@@ -556,9 +575,10 @@ const RelatedVideos = () => {
                       href={candidate.video_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground border rounded"
+                      aria-label="Abrir video en TikTok"
+                      className="h-11 w-11 shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground border rounded"
                     >
-                      <ExternalLink className="h-3 w-3" />
+                      <ExternalLink className="h-3 w-3 shrink-0" />
                     </a>
                   </div>
                 </div>

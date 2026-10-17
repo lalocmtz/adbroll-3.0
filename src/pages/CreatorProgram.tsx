@@ -1,382 +1,125 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Gift, Video, DollarSign, Users, Send, Loader2 } from "lucide-react";
-import { z } from "zod";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { useToast } from "@/hooks/use-toast";
+import { hasCreatorAccess, validCreatorVideoUrl } from "@/lib/creator-access";
+import { CheckCircle, Loader2 } from "lucide-react";
+import { useCreatorLifetimeCapacity } from "@/hooks/useCreatorLifetimeCapacity";
+import { CreatorLifetimeCapacity } from "@/components/creators/CreatorLifetimeCapacity";
 
-const applicationSchema = z.object({
-  full_name: z.string().min(2, "Nombre debe tener al menos 2 caracteres").max(100),
-  email: z.string().email("Email inválido").max(255),
-  whatsapp: z.string().min(10, "WhatsApp debe tener al menos 10 dígitos").max(20),
-  tiktok_url: z.string().url("URL de TikTok inválida").includes("tiktok.com", { message: "Debe ser un link de TikTok" }),
-});
-
-const CreatorProgram = () => {
-  const [formData, setFormData] = useState({
-    full_name: "",
-    email: "",
-    whatsapp: "",
-    tiktok_url: "",
-  });
-  const [videoUrl, setVideoUrl] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
-  const [existingApplication, setExistingApplication] = useState<any>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+export default function CreatorProgram() {
+  const [email, setEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [application, setApplication] = useState<Tables<'creator_program_applications'> | null>(null);
+  const [form, setForm] = useState({ full_name: '', whatsapp: '', tiktok_url: '' });
+  const [videos, setVideos] = useState(['', '', '']);
+  const [consent, setConsent] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const capacityState = useCreatorLifetimeCapacity();
+  const canSubmit = !capacityState.loading && !capacityState.error && capacityState.capacity?.is_open === true;
 
-  // Check if user already has an application
-  useEffect(() => {
-    const checkExistingApplication = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        const { data } = await supabase
-          .from("creator_program_applications")
-          .select("*")
-          .eq("email", user.email)
-          .maybeSingle();
-        
-        if (data) {
-          setExistingApplication(data);
-          setApplicationStatus(data.status);
-        }
-      }
-    };
-    checkExistingApplication();
-  }, []);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+  async function refresh() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email_confirmed_at && user.email) {
+      setEmail(user.email);
+      const { data, error } = await supabase.from('creator_program_applications').select('*').eq('email', user.email.toLowerCase()).maybeSingle();
+      if (error) toast({ title: 'No pudimos cargar tu solicitud', description: 'Recarga la página o contáctanos.', variant: 'destructive' });
+      setApplication(data);
+      setForm({ full_name: data?.full_name || user.user_metadata?.full_name || '', whatsapp: data?.whatsapp || '', tiktok_url: data?.tiktok_url || '' });
+      if (data?.video_urls?.length === 3) setVideos(data.video_urls);
     }
-  };
+    setLoading(false);
+  }
+  useEffect(() => { void refresh(); }, []);
 
-  const handleSubmitApplication = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    const result = applicationSchema.safeParse(formData);
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        const field = err.path[0] as string;
-        fieldErrors[field] = err.message;
-      });
-      setErrors(fieldErrors);
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!canSubmit) {
+      toast({ title: capacityState.capacity?.is_open === false ? 'Los accesos vitalicios se agotaron' : 'Verifica la disponibilidad', description: 'Solo podemos recibir nuevas solicitudes cuando hay lugares confirmados. Enviar videos no reserva un lugar.', variant: 'destructive' });
+      await capacityState.refresh();
       return;
     }
-
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase
-        .from("creator_program_applications")
-        .insert({
-          full_name: result.data.full_name,
-          email: result.data.email,
-          whatsapp: result.data.whatsapp || null,
-          tiktok_url: result.data.tiktok_url,
-          status: "pending_video",
-        });
-
-      if (error) {
-        if (error.code === "23505") {
-          toast({
-            title: "Ya tienes una solicitud",
-            description: "Revisa tu email para ver el estado de tu solicitud.",
-            variant: "destructive",
-          });
-          // Fetch existing application
-          const { data } = await supabase
-            .from("creator_program_applications")
-            .select("*")
-            .eq("email", result.data.email)
-            .maybeSingle();
-          if (data) {
-            setExistingApplication(data);
-            setApplicationStatus(data.status);
-          }
-        } else {
-          throw error;
-        }
-      } else {
-        setApplicationStatus("pending_video");
-        toast({
-          title: "¡Solicitud enviada!",
-          description: "Redirigiendo a WhatsApp...",
-        });
-        // Redirect to WhatsApp with pre-filled message
-        const whatsappMessage = encodeURIComponent("He llenado mi solicitud. Estoy listo para el siguiente paso.");
-        window.open(`https://wa.me/522213267653?text=${whatsappMessage}`, '_blank');
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleSubmitVideoUrl = async () => {
-    if (!videoUrl.includes("tiktok.com")) {
-      toast({
-        title: "URL inválida",
-        description: "Ingresa un link válido de TikTok",
-        variant: "destructive",
-      });
+    const urls = videos.map(v => v.trim());
+    if (!consent || !urls.every(validCreatorVideoUrl) || new Set(urls.map(v => v.split(/[?#]/)[0])).size !== 3) {
+      toast({ title: 'Revisa los tres videos', description: 'Incluye tres enlaces distintos a videos publicados y acepta el permiso de pauta.', variant: 'destructive' });
       return;
     }
-
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("creator_program_applications")
-        .update({
-          video_url: videoUrl,
-          status: "pending_review",
-        })
-        .eq("email", formData.email || existingApplication?.email);
-
+      const { error } = await supabase.rpc('submit_creator_lifetime_application', {
+        p_full_name: form.full_name, p_whatsapp: form.whatsapp, p_tiktok_url: form.tiktok_url,
+        p_video_urls: urls, p_ad_permission: consent,
+      });
       if (error) throw error;
+      await refresh();
+      toast({ title: 'Tus tres videos están en revisión', description: 'Consulta aquí el resultado. La solicitud no reserva un lugar ni activa el acceso todavía.' });
+    } catch (error) {
+      toast({ title: 'No se pudo enviar', description: error instanceof Error ? error.message : (error as { message?: string })?.message || 'Inténtalo de nuevo.', variant: 'destructive' });
+    } finally { await capacityState.refresh(); setSubmitting(false); }
+  }
 
-      setApplicationStatus("pending_review");
-      toast({
-        title: "¡Video enviado!",
-        description: "Revisaremos tu video y te contactaremos pronto.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const benefits = [
-    { icon: Gift, title: "1 mes gratis", description: "Acceso completo a todas las funciones" },
-    { icon: DollarSign, title: "30% comisión", description: "De por vida por cada referido que pague" },
-    { icon: Video, title: "1-3 videos", description: "Crea contenido sobre TokXray" },
-    { icon: Users, title: "Comunidad", description: "Únete a creadores top de TikTok Shop" },
-  ];
-
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="cursor-pointer transition-opacity hover:opacity-80"
-          >
-            <BrandLogo tone="dark" size="md" />
-          </button>
-          <Button variant="outline" size="sm" onClick={() => navigate("/login")}>
-            Iniciar sesión
-          </Button>
-        </div>
+  const active = hasCreatorAccess(application);
+  const lifetimeActive = active && application?.access_kind === "lifetime";
+  return <main className="min-h-[100dvh] bg-background">
+    <header className="border-b"><div className="mx-auto max-w-4xl flex items-center justify-between gap-3 px-4 py-4">
+      <Link to="/"><BrandLogo tone="dark" size="md" /></Link>
+      <Button variant="outline" size="sm" asChild><Link to={email ? '/affiliates' : '/login?redirect=%2Fcolaboraciones'}>{email ? 'Mi código y comisiones' : 'Iniciar sesión'}</Link></Button>
+    </div></header>
+    <section className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <div className="text-center space-y-3"><p className="text-sm text-primary font-semibold">Programa de creadores</p>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{capacityState.capacity?.is_open === false ? 'Los primeros 100 lugares están completos.' : 'Muestra cómo decides qué grabar.'}</h1>
+        <p className="text-muted-foreground">{capacityState.capacity?.is_open === false ? 'La oferta de acceso vitalicio por contenido está cerrada. Los accesos que ya aprobamos se mantienen mientras opere la plataforma.' : 'Comparte cómo eliges una referencia con ventas reportadas y adaptas el guion a tu producto. Publica tres videos originales sobre TokXray y autoriza su uso en anuncios durante 12 meses. Los primeros 100 creadores con videos y permiso aprobados reciben acceso personal sin cuota mientras opere la plataforma.'}</p>
       </div>
-
-      <div className="container mx-auto px-4 py-8 md:py-12 max-w-5xl">
-        {/* Hero */}
-        <div className="text-center mb-10">
-          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
-            🎉 Programa de Creadores
-          </Badge>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Gana acceso gratis + 30% de comisión
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Únete al programa de creadores de TokXray. Crea 1-3 videos sobre la plataforma
-            y recibe 1 mes de acceso completo + tu código de afiliado para ganar comisiones de por vida.
-          </p>
-        </div>
-
-        {/* Benefits Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          {benefits.map((benefit) => (
-            <Card key={benefit.title} className="text-center p-4 border-border/50">
-              <benefit.icon className="h-8 w-8 mx-auto mb-2 text-primary" />
-              <h3 className="font-semibold text-foreground">{benefit.title}</h3>
-              <p className="text-xs text-muted-foreground">{benefit.description}</p>
-            </Card>
-          ))}
-        </div>
-
-        <div className="max-w-md mx-auto">
-          {/* Application Form or Status */}
-          <div>
-            {!applicationStatus ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Send className="h-5 w-5 text-primary" />
-                    Solicitar acceso
-                  </CardTitle>
-                  <CardDescription>
-                    Completa el formulario para unirte al programa
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmitApplication} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="full_name">Nombre completo</Label>
-                      <Input
-                        id="full_name"
-                        name="full_name"
-                        value={formData.full_name}
-                        onChange={handleInputChange}
-                        placeholder="Tu nombre"
-                        className={errors.full_name ? "border-destructive" : ""}
-                      />
-                      {errors.full_name && (
-                        <p className="text-sm text-destructive">{errors.full_name}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="tu@email.com"
-                        className={errors.email ? "border-destructive" : ""}
-                      />
-                      {errors.email && (
-                        <p className="text-sm text-destructive">{errors.email}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="whatsapp">WhatsApp</Label>
-                      <Input
-                        id="whatsapp"
-                        name="whatsapp"
-                        value={formData.whatsapp}
-                        onChange={handleInputChange}
-                        placeholder="+52 55 1234 5678"
-                        className={errors.whatsapp ? "border-destructive" : ""}
-                      />
-                      {errors.whatsapp && (
-                        <p className="text-sm text-destructive">{errors.whatsapp}</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="tiktok_url">Link de tu perfil de TikTok</Label>
-                      <Input
-                        id="tiktok_url"
-                        name="tiktok_url"
-                        value={formData.tiktok_url}
-                        onChange={handleInputChange}
-                        placeholder="https://tiktok.com/@tuusuario"
-                        className={errors.tiktok_url ? "border-destructive" : ""}
-                      />
-                      {errors.tiktok_url && (
-                        <p className="text-sm text-destructive">{errors.tiktok_url}</p>
-                      )}
-                    </div>
-
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Enviando...
-                        </>
-                      ) : (
-                        "Enviar solicitud"
-                      )}
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {applicationStatus === "approved" ? (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <Send className="h-5 w-5 text-primary" />
-                    )}
-                    Estado de tu solicitud
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50">
-                    <Badge variant={
-                      applicationStatus === "approved" ? "default" :
-                      applicationStatus === "pending_review" ? "secondary" :
-                      "outline"
-                    }>
-                      {applicationStatus === "pending_video" && "⏳ Esperando video"}
-                      {applicationStatus === "pending_review" && "🔍 En revisión"}
-                      {applicationStatus === "approved" && "✅ Aprobado"}
-                      {applicationStatus === "active" && "🎉 Activo"}
-                      {applicationStatus === "rejected" && "❌ Rechazado"}
-                    </Badge>
-                  </div>
-
-                  {applicationStatus === "pending_video" && (
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        Un asesor te guiará por WhatsApp para los siguientes pasos.
-                      </p>
-                    </div>
-                  )}
-
-                  {applicationStatus === "pending_review" && (
-                    <p className="text-sm text-muted-foreground">
-                      Estamos revisando tu video. Te contactaremos pronto con tu código de acceso.
-                    </p>
-                  )}
-
-                  {applicationStatus === "approved" && existingApplication?.grant_code && (
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        ¡Felicidades! Tu solicitud fue aprobada. Usa este código para activar tu acceso:
-                      </p>
-                      <div className="p-4 bg-primary/10 rounded-lg text-center">
-                        <p className="text-2xl font-mono font-bold text-primary">
-                          {existingApplication.grant_code}
-                        </p>
-                      </div>
-                      <Button 
-                        onClick={() => navigate(`/canjear?code=${existingApplication.grant_code}`)}
-                        className="w-full"
-                      >
-                        Canjear código →
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default CreatorProgram;
+      <CreatorLifetimeCapacity state={capacityState} />
+      {capacityState.capacity?.is_open !== false && <div className="grid sm:grid-cols-3 gap-3 text-sm">
+        {['1. Crea y verifica tu cuenta. Si fuiste invitado, solicita tu prueba antes de grabar.', '2. Enseña tu proceso en tres videos originales. Publícalos y envía sus enlaces.', '3. Revisamos videos y permiso de pauta. Si se aprueban y hay cupo, activamos tu acceso.'].map(step => <div key={step} className="rounded-xl border p-4">{step}</div>)}
+      </div>}
+      <p className="text-sm text-muted-foreground text-center">{capacityState.capacity?.is_open !== false && 'No necesitas tarjeta para solicitarlo. El acceso no depende de conseguir referidos ni de entregar videos adicionales. '}<Link className="text-primary underline" to="/programa-creadores">Conoce tus comisiones por recomendar TokXray.</Link></p>
+      <Card className="max-w-xl mx-auto"><CardHeader><CardTitle>{lifetimeActive ? 'Tu acceso está activo' : application?.status === 'pending_review' ? 'Estamos revisando tus tres videos' : capacityState.capacity?.is_open === false ? 'Cupo vitalicio agotado' : 'Envía tus tres videos'}</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          {active && !lifetimeActive && <div className="rounded-xl bg-primary/5 p-3 text-sm space-y-2"><p>Tu acceso de prueba está activo hasta {new Date(application!.subscription_ends_at!).toLocaleDateString('es-MX')}. Tu prueba no reserva acceso vitalicio; puedes solicitarlo si todavía hay lugares disponibles.</p><Link to="/app" className="text-primary underline">Elegir una referencia para mis videos</Link></div>}
+          {loading ? <Loader2 className="animate-spin mx-auto" /> : !email && capacityState.capacity?.is_open === false ? <>
+            <p className="text-sm text-muted-foreground">La oferta de 100 accesos vitalicios está cerrada. No grabes videos para solicitar este beneficio: ya no quedan lugares. Si tu acceso fue aprobado, se mantiene y puedes entrar con tu cuenta.</p>
+            <Button className="w-full" asChild><Link to="/login?redirect=%2Fcolaboraciones">Entrar con mi cuenta existente</Link></Button>
+            <Button className="w-full" variant="outline" asChild><Link to="/programa-creadores">Conocer el programa de afiliados</Link></Button>
+          </> : !email ? <>
+            <p className="text-sm text-muted-foreground">Usa el correo de tu cuenta. Primero confirma tu correo o entra con Google. Si fuiste invitado, comparte ese correo con nosotros para activar una prueba sin tarjeta antes de grabar.</p>
+            <Button className="w-full" asChild><Link to="/register?redirect=%2Fcolaboraciones">Crear mi cuenta gratis</Link></Button>
+            <Button className="w-full" variant="outline" asChild><Link to="/login?redirect=%2Fcolaboraciones">Ya tengo cuenta</Link></Button>
+          </> : lifetimeActive ? <>
+            <CheckCircle className="text-green-600 h-8 w-8" />
+            <p>{application?.access_kind === 'lifetime' ? 'Acceso vitalicio aprobado. No requiere renovación de pago.' : `Tu acceso está activo hasta ${new Date(application!.subscription_ends_at!).toLocaleDateString('es-MX')}.`}</p>
+            <p className="text-sm text-muted-foreground">Si ya tenías una suscripción de pago, este acceso no la cancela automáticamente. <Link className="text-primary underline" to="/settings">Cancela la renovación desde Configuración</Link> para evitar cargos futuros; conservarás tu acceso vitalicio.</p>
+            <Button asChild className="w-full"><Link to="/app">Usar TokXray</Link></Button>
+            <Button asChild variant="outline" className="w-full"><Link to="/affiliates">Ver mi código y comisiones</Link></Button>
+          </> : application?.status === 'approved' && !active ? <>
+            <p>Tu solicitud fue aprobada. Activa el acceso con tu cuenta.</p>
+            <Button asChild><Link to={`/canjear?code=${encodeURIComponent(application.grant_code || '')}`}>Activar acceso aprobado</Link></Button>
+          </> : application?.status === 'pending_review' ? <>
+            <p className="text-sm text-muted-foreground">La revisión es manual y esta solicitud no reserva lugar. El cupo se asigna al aprobar los tres videos y la autorización de pauta. Vuelve aquí para consultar el resultado o escríbenos si necesitas ayuda.</p>
+            <Button variant="outline" onClick={() => { void refresh(); void capacityState.refresh(); }}>Actualizar estado</Button>
+            <a className="block text-sm text-primary underline" href="https://wa.me/522213267653" target="_blank" rel="noopener noreferrer">Contactar por WhatsApp</a>
+          </> : capacityState.capacity?.is_open === false ? <>
+            <p className="text-sm text-muted-foreground">Ya se otorgaron los 100 accesos vitalicios. No estamos recibiendo nuevas solicitudes para este cupo. Tu cuenta y cualquier acceso de prueba vigente se conservan.</p>
+            <Button variant="outline" asChild><Link to="/affiliates">Ver mi código y comisiones</Link></Button>
+          </> : <form onSubmit={submit} className="space-y-4">
+            {application?.status === 'rejected' && <p className="text-sm text-destructive">Tu entrega necesita ajustes. Contáctanos y vuelve a enviar los tres enlaces.</p>}
+            <p className="text-sm break-all">Cuenta: <strong>{email}</strong></p>
+            <div className="space-y-1"><Label htmlFor="creator-name">Nombre completo</Label><Input id="creator-name" required minLength={2} maxLength={100} value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div className="space-y-1"><Label htmlFor="creator-whatsapp">WhatsApp</Label><Input id="creator-whatsapp" type="tel" required minLength={10} maxLength={20} value={form.whatsapp} onChange={e => setForm({ ...form, whatsapp: e.target.value })} /></div>
+            <div className="space-y-1"><Label htmlFor="creator-profile">Tu perfil de TikTok</Label><Input id="creator-profile" type="url" required placeholder="https://www.tiktok.com/@tuusuario" value={form.tiktok_url} onChange={e => setForm({ ...form, tiktok_url: e.target.value })} /></div>
+            {videos.map((video, index) => <div key={index} className="space-y-1"><Label htmlFor={`creator-video-${index}`}>Video publicado {index + 1}</Label><Input id={`creator-video-${index}`} type="url" required placeholder="Enlace de TikTok, Instagram o YouTube Shorts" value={video} onChange={e => setVideos(videos.map((v, i) => i === index ? e.target.value : v))} /></div>)}
+            <label className="flex items-start gap-3 text-sm leading-relaxed"><input className="mt-1 h-4 w-4 shrink-0" type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} required /><span>Confirmo que los tres videos son originales y que tengo los derechos necesarios. Autorizo a TokXray a usarlos en anuncios y publicaciones durante 12 meses desde su aprobación, incluyendo mi imagen y voz. Esta autorización es independiente de mi acceso vitalicio.</span></label>
+            <Button type="submit" disabled={submitting || !canSubmit} className="w-full">{submitting ? 'Enviando…' : 'Enviar mis videos a revisión'}</Button>
+          </form>}
+        </CardContent></Card>
+    </section>
+  </main>;
+}

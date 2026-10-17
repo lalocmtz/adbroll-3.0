@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { trackInitiateCheckout, trackAddPaymentInfo } from "@/lib/analytics";
+import { SubscriptionPrice } from "@/components/SubscriptionPrice";
 import {
   Select,
   SelectContent,
@@ -78,8 +78,8 @@ const Settings = () => {
       toast({
         title: "Error",
         description: language === "es" 
-          ? "No se pudo abrir el portal" 
-          : "Could not open portal",
+          ? "No pudimos abrir la gestión de tu suscripción. Inténtalo de nuevo."
+          : "We could not open subscription management. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -87,31 +87,7 @@ const Settings = () => {
     }
   };
 
-  const handleSubscribe = async () => {
-    // Reached checkout + real payment intent — give Meta both signals.
-    trackInitiateCheckout(24.99, "USD", "TokXray Pro");
-    trackAddPaymentInfo(24.99, "USD", "TokXray Pro");
-
-    setCheckoutLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { plan: "pro" }
-      });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
-    } catch (error) {
-      console.error("Checkout error:", error);
-      toast({
-        title: "Error",
-        description: language === "es" 
-          ? "No se pudo iniciar el checkout" 
-          : "Could not start checkout",
-        variant: "destructive",
-      });
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
+  const handleSubscribe = () => navigate('/pricing');
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
@@ -127,7 +103,7 @@ const Settings = () => {
       return (
         <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
           <Crown className="h-3 w-3 mr-1" />
-          Founder
+          {language === "es" ? "Administrador" : "Administrator"}
         </Badge>
       );
     }
@@ -135,7 +111,7 @@ const Settings = () => {
       return (
         <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0">
           <Sparkles className="h-3 w-3 mr-1" />
-          Creator Program
+          {language === "es" ? "Acceso de creador" : "Creator access"}
         </Badge>
       );
     }
@@ -149,7 +125,7 @@ const Settings = () => {
     }
     return (
       <Badge variant="secondary">
-        Free
+        {language === "es" ? "Cuenta gratuita" : "Free account"}
       </Badge>
     );
   };
@@ -173,6 +149,11 @@ const Settings = () => {
       </div>
 
       <div className="space-y-5">
+        {isFounder && <Card className="border-primary/20 bg-primary/5 p-5">
+          <h2 className="font-semibold">Control de TokXray</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Suscriptores, afiliados, almacenamiento, consumo de IA y avance de los guiones.</p>
+          <Button className="mt-4 min-h-11" onClick={() => navigate('/admin')}>Abrir mi panel de control</Button>
+        </Card>}
         {/* Profile Section */}
         <Card className="p-5">
           <div className="flex items-center gap-3 mb-4">
@@ -183,12 +164,12 @@ const Settings = () => {
           </div>
           <div className="space-y-3">
             <div>
-              <Label className="text-xs">{language === "es" ? "Nombre" : "Name"}</Label>
-              <Input value={userName} readOnly className="mt-1 bg-muted h-9" />
+              <Label htmlFor="account-name" className="text-xs">{language === "es" ? "Nombre" : "Name"}</Label>
+              <Input id="account-name" value={userName} readOnly className="mt-1 bg-muted h-9" />
             </div>
             <div>
-              <Label className="text-xs">Email</Label>
-              <Input value={userEmail} readOnly className="mt-1 bg-muted h-9" />
+              <Label htmlFor="account-email" className="text-xs">{language === "es" ? "Correo electrónico" : "Email"}</Label>
+              <Input id="account-email" value={userEmail} readOnly className="mt-1 bg-muted h-9" />
             </div>
             <div className="flex items-center gap-2 pt-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
@@ -211,7 +192,7 @@ const Settings = () => {
             </div>
             {!subscriptionLoading && getPlanBadge()}
           </div>
-          
+
           {subscriptionLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -249,13 +230,13 @@ const Settings = () => {
                     ) : (
                       <>
                         <ExternalLink className="h-4 w-4" />
-                        {language === "es" ? "Gestionar" : "Manage"}
+                        {language === "es" ? "Mis pagos" : "Billing"}
                       </>
                     )}
                   </Button>
                 )}
               </div>
-              
+
               {/* Subscription Info */}
               {!isFounder && !isGrantedAccess && (
                 <div className="pt-3 border-t border-border/50 space-y-2">
@@ -266,8 +247,8 @@ const Settings = () => {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {language === "es"
-                      ? "• Puedes cancelarla en cualquier momento desde el portal"
-                      : "• You can cancel anytime from the portal"}
+                      ? "• Usa Mis pagos para revisar tus pagos o cancelar la renovación"
+                      : "• Use Billing to review payments or cancel renewal"}
                   </p>
                 </div>
               )}
@@ -280,11 +261,11 @@ const Settings = () => {
                   <Zap className="h-5 w-5 text-primary" />
                   <span className="font-semibold">TokXray Pro</span>
                 </div>
-                <p className="text-2xl font-bold mb-2">$24.99<span className="text-sm font-normal text-muted-foreground">/mes</span></p>
+                <SubscriptionPrice compact />
                 <p className="text-sm text-muted-foreground mb-4">
                   {language === "es" 
-                    ? "Acceso completo a todas las herramientas" 
-                    : "Full access to all tools"}
+                    ? "Tu cuenta incluye la vista previa. Con Pro puedes analizar referencias y adaptar guiones antes de grabar."
+                    : "Your account includes the preview. With Pro, you can analyze references and adapt scripts before recording."}
                 </p>
                 <Button 
                   onClick={handleSubscribe} 
@@ -294,7 +275,7 @@ const Settings = () => {
                   {checkoutLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    language === "es" ? "Suscribirse" : "Subscribe"
+                    language === "es" ? "Ver el plan Pro" : "View the Pro plan"
                   )}
                 </Button>
               </div>
@@ -324,7 +305,7 @@ const Settings = () => {
               </Select>
             </div>
             <div>
-              <Label className="text-xs">{language === "es" ? "Moneda" : "Currency"}</Label>
+              <Label className="text-xs">{language === "es" ? "Moneda de los datos" : "Data currency"}</Label>
               <Select value={currency} onValueChange={(v) => setCurrency(v as "MXN" | "USD")}>
                 <SelectTrigger className="mt-1 h-9">
                   <SelectValue />

@@ -144,7 +144,7 @@ export function VideoCardNew({ video, ranking }: VideoCardNewProps) {
               {/* CTA */}
               <div className="mt-3 text-center">
                 <span className="text-xs font-medium bg-white/20 px-3 py-1 rounded-full">
-                  Click para analizar guión
+                  Ver y adaptar guion
                 </span>
               </div>
             </div>

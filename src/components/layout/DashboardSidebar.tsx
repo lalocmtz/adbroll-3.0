@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
-import { useAccountType } from "@/hooks/useAccountType";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,14 @@ import {
   Heart,
   Settings,
   HelpCircle,
-  X,
   TrendingUp,
   Coins,
   LogIn,
   Lock,
   LogOut,
   Wand2,
+  LayoutDashboard,
 } from "lucide-react";
-import PricingModal from "@/components/PricingModal";
 import MarketSwitcher from "@/components/MarketSwitcher";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 
@@ -42,7 +41,7 @@ interface NavItem {
 
 // Section labels
 const sectionLabels = {
-  explore: { es: "EXPLORA TIKTOKSHOP", en: "EXPLORE TIKTOKSHOP" },
+  explore: { es: "EXPLORA TIKTOK SHOP", en: "EXPLORE TIKTOK SHOP" },
   earn: { es: "GANA DINERO", en: "EARN MONEY" },
   workspace: { es: "TU CENTRO", en: "YOUR HUB" },
   account: { es: "CUENTA", en: "ACCOUNT" },
@@ -54,25 +53,32 @@ const exploreItems: NavItem[] = [
   { to: "/app", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle, lockedForVisitor: false },
   { to: "/products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: false },
   { to: "/tools", labelEs: "Analizar video", labelEn: "Analyze video", icon: Wand2, lockedForVisitor: false },
-  { to: "/ranking-creadores", labelEs: "Ranking Creadores", labelEn: "Creator Rankings", icon: TrendingUp, lockedForVisitor: false },
+  { to: "/ranking-creadores", labelEs: "Ranking de creadores", labelEn: "Creator Rankings", icon: TrendingUp, lockedForVisitor: false },
   { to: "/opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
 ];
 
 // TU CENTRO - Work tools
 const workspaceItems: NavItem[] = [
+  { to: "/admin", labelEs: "Control de TokXray", labelEn: "TokXray operations", icon: LayoutDashboard, lockedForVisitor: true, founderOnly: true },
   { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
-  { to: "/affiliates", labelEs: "Afiliados", labelEn: "Affiliates", icon: Coins, lockedForVisitor: true },
+  { to: "/affiliates", labelEs: "Gana recomendando", labelEn: "Earn by referring", icon: Coins, lockedForVisitor: false },
 ];
 
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
   const { language } = useLanguage();
   const { isLoggedIn, isFounder } = useBlurGateContext();
-  const { isBrand } = useAccountType();
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia("(min-width: 1024px)").matches);
   const navigate = useNavigate();
   const location = useLocation();
   const [userEmail, setUserEmail] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
-  const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setIsDesktop(media.matches);
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
 
   useEffect(() => {
     const getUser = async () => {
@@ -83,7 +89,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
       }
     };
     if (isLoggedIn) {
-      getUser();
+      void getUser().catch(() => { setUserEmail(""); setUserName(""); });
     }
   }, [isLoggedIn]);
 
@@ -127,11 +133,11 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
         <button
           key={item.to}
           onClick={() => {
-            navigate("/unlock");
+            navigate("/pricing");
             handleNavClick();
           }}
           className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative w-full",
+            "flex items-center gap-3 px-3 py-2 min-h-11 rounded-lg text-sm font-medium transition-all duration-200 relative w-full",
             "text-muted-foreground/60 hover:text-muted-foreground"
           )}
         >
@@ -148,7 +154,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
         to={item.to}
         onClick={handleNavClick}
         className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative",
+          "flex items-center gap-3 px-3 py-2 min-h-11 rounded-lg text-sm font-medium transition-all duration-200 relative",
           isActive(item.to)
             ? "text-primary bg-primary/10"
             : "text-foreground/80 hover:text-primary hover:bg-muted/50"
@@ -168,32 +174,8 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
     );
   };
 
-  return (
+  const content = (
     <>
-      {/* Overlay for mobile */}
-      {open && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed top-0 left-0 z-50 h-full flex flex-col transition-transform duration-300 lg:translate-x-0",
-          "w-[240px] bg-background border-r border-border",
-          open ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        {/* Close button for mobile */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-4 lg:hidden p-1.5 rounded-md hover:bg-muted transition-colors"
-        >
-          <X className="h-5 w-5 text-muted-foreground" />
-        </button>
-
         {/* Logo */}
         <div className="px-5 pt-6 pb-2">
           <button
@@ -201,7 +183,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
               navigate("/app");
               handleNavClick();
             }}
-            className="flex items-center"
+            className="flex min-h-11 items-center"
           >
             <BrandLogo tone="dark" size="md" />
           </button>
@@ -237,7 +219,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
               to="/settings"
               onClick={handleNavClick}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative",
+                "flex items-center gap-3 px-3 py-2 min-h-11 rounded-lg text-sm font-medium transition-all duration-200 relative",
                 isActive("/settings")
                   ? "text-primary bg-primary/10"
                   : "text-foreground/80 hover:text-primary hover:bg-muted/50"
@@ -255,7 +237,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
                 navigate("/support");
                 handleNavClick();
               }}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-foreground/80 hover:text-primary hover:bg-muted/50 w-full transition-all duration-200"
+              className="flex items-center gap-3 px-3 py-2 min-h-11 rounded-lg text-sm font-medium text-foreground/80 hover:text-primary hover:bg-muted/50 w-full transition-all duration-200"
             >
               <HelpCircle className="h-4 w-4 text-muted-foreground" />
               <span>{language === "es" ? "Soporte" : "Support"}</span>
@@ -266,7 +248,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
           {isLoggedIn && (
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 w-full transition-all duration-200"
+              className="flex items-center gap-3 px-3 py-2 min-h-11 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 w-full transition-all duration-200"
             >
               <LogOut className="h-4 w-4" />
               <span>{language === "es" ? "Cerrar sesión" : "Sign out"}</span>
@@ -279,7 +261,7 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => navigate("/login")}
+                onClick={() => { navigate("/login"); handleNavClick(); }}
               >
                 <LogIn className="h-4 w-4 mr-2" />
                 {language === "es" ? "Iniciar sesión" : "Sign in"}
@@ -308,11 +290,17 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
             </button>
           )}
         </div>
-      </aside>
-
-      {/* Pricing Modal */}
-      <PricingModal open={pricingModalOpen} onOpenChange={setPricingModalOpen} />
     </>
+  );
+  if (isDesktop) return <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-border bg-background">{content}</aside>;
+  return (
+    <Sheet open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
+      <SheetContent side="left" className="flex h-[100dvh] w-[min(300px,85vw)] flex-col gap-0 p-0 pb-[env(safe-area-inset-bottom)]">
+        <SheetTitle className="sr-only">Menú de TokXray</SheetTitle>
+        <SheetDescription className="sr-only">Explora videos y productos, consulta tus favoritos y gana recomendando.</SheetDescription>
+        {content}
+      </SheetContent>
+    </Sheet>
   );
 };
 

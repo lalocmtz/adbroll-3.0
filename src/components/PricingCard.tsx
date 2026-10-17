@@ -1,3 +1,4 @@
+import { SubscriptionPrice } from "@/components/SubscriptionPrice";
 import { Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,11 +18,9 @@ export const PricingCard = ({
   onSelect,
 }: PricingCardProps) => {
   const { language } = useLanguage();
-  const { referralCodeUsed, referralDiscount } = useReferralCode();
+  const { referralCodeUsed } = useReferralCode();
   
-  const price = 24.99;
-  const hasDiscount = referralCodeUsed && !referralDiscount?.discount_applied;
-  const discountedPrice = hasDiscount ? price * 0.5 : price;
+  const hasReferral = !!referralCodeUsed;
 
   return (
     <Card
@@ -37,29 +36,10 @@ export const PricingCard = ({
 
       <div className="text-center mb-6">
         <h3 className="text-xl font-bold mb-2">TokXray Pro</h3>
-        <div className="flex items-center justify-center gap-2">
-          {hasDiscount ? (
-            <>
-              <span className="text-2xl text-muted-foreground line-through">
-                ${price}
-              </span>
-              <span className="text-4xl font-bold text-primary">
-                ${discountedPrice.toFixed(2)}
-              </span>
-            </>
-          ) : (
-            <span className="text-4xl font-bold">${price}</span>
-          )}
-          <span className="text-muted-foreground">
-            /{language === "es" ? "mes" : "mo"}
-          </span>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          ~$499 MXN/{language === "es" ? "mes" : "mo"}
-        </p>
-        {hasDiscount && (
+        <SubscriptionPrice compact />
+        {hasReferral && (
           <p className="text-sm text-green-600 mt-2 font-medium">
-            🎉 {language === "es" ? "50% off primer mes" : "50% off first month"}
+            🎉 {language === "es" ? "Código registrado. El precio de Pro no cambia." : "Referral code saved. Your Pro price stays the same."}
           </p>
         )}
       </div>
@@ -78,7 +58,7 @@ export const PricingCard = ({
         variant="default"
         onClick={onSelect}
       >
-        {language === "es" ? "Empieza ahora" : "Start now"}
+        {language === "es" ? "Elegir TokXray Pro" : "Choose TokXray Pro"}
       </Button>
     </Card>
   );
@@ -86,17 +66,17 @@ export const PricingCard = ({
 
 export const ReferralDiscountBanner = () => {
   const { language } = useLanguage();
-  const { referralCodeUsed, referralDiscount } = useReferralCode();
+  const { referralCodeUsed } = useReferralCode();
 
-  if (!referralCodeUsed || referralDiscount?.discount_applied) return null;
+  if (!referralCodeUsed) return null;
 
   return (
     <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
       <p className="text-green-800 font-medium flex items-center gap-2">
         🎉{" "}
         {language === "es"
-          ? "Descuento aplicado: primer mes a mitad de precio"
-          : "Discount applied: first month at half price"}
+          ? "Tu código apoya al creador que te invitó. Pro: US$15/mes."
+          : "Your code supports the creator who invited you. Pro: US$15/month."}
       </p>
       <p className="text-green-600 text-sm mt-1">
         {language === "es"

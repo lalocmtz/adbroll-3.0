@@ -51,7 +51,7 @@ export const BlurOverlay = ({
           <div className="absolute inset-0 flex items-center justify-center bg-background/20 opacity-0 group-hover:opacity-100 transition-opacity">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/90 border shadow-sm text-xs font-medium">
               <Lock className="w-3 h-3" />
-              <span>Click para desbloquear</span>
+              <span>Ver acceso con Pro</span>
             </div>
           </div>
         )}

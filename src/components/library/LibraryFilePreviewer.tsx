@@ -94,7 +94,7 @@ const LibraryFilePreviewer = ({ file, open, onOpenChange }: LibraryFilePreviewer
             <p className="text-xs text-muted-foreground">
               {file.file_type === "video" ? "Video" : 
                file.file_type === "audio" ? "Audio" : 
-               file.file_type === "script" ? "Guión" : 
+               file.file_type === "script" ? "Guion" :
                file.file_type === "image" ? "Imagen" : "Archivo"}
             </p>
           </div>

@@ -1,3 +1,5 @@
+import { CatalogProductImage } from "@/components/CatalogProductImage";
+import { CatalogHeader, CatalogInfo, CatalogFilterBar } from "@/components/CatalogToolbar";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,9 +12,7 @@ import { CompactPagination } from "@/components/CompactPagination";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { format } from "date-fns";
-import { es, enUS } from "date-fns/locale";
-import { useStartCheckout } from "@/lib/checkout";
+import { useProOffer } from "@/hooks/useProOffer";
 
 interface Product {
   id: string;
@@ -37,10 +37,10 @@ const PLACEHOLDER_IMAGE = "/placeholder.svg";
 const PRODUCTS_PER_PAGE = 20;
 
 const SORT_OPTIONS = [
-  { value: "ranking", label: "Ranking actual" },
-  { value: "revenue_30d", label: "Más ingresos" },
-  { value: "commission", label: "Más comisión" },
-  { value: "creators_count", label: "Más creadores" },
+  { value: "ranking", label: "Ranking" },
+  { value: "revenue_30d", label: "Ventas" },
+  { value: "commission", label: "Comisión" },
+  { value: "creators_count", label: "Creadores" },
 ];
 
 type SortOption = "ranking" | "revenue_30d" | "commission" | "creators_count";
@@ -51,7 +51,7 @@ const Products = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isLoggedIn } = useBlurGateContext();
-  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
+  const openProOffer = useProOffer();
   const { market, marketLabel } = useMarket();
   const { language, formatMoney } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
@@ -80,6 +80,7 @@ const Products = () => {
         .from("products")
         .select("*")
         .eq("market", market) // Filter by market
+        .neq("identity_status", "video_source") // No product metrics until its Kalodata export arrives.
         .order("rank", { ascending: true, nullsFirst: false });
 
       if (error) throw error;
@@ -229,125 +230,61 @@ const Products = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[50dvh] flex items-center justify-center bg-background">
         <p className="text-muted-foreground">Cargando productos...</p>
       </div>
     );
   }
 
-  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: language === 'es' ? es : enUS });
 
   return (
-    <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
-      {/* Mobile Hero Section - Dynamic Date */}
-      <div className="mb-3 md:mb-4 py-1 md:py-0">
-        <div className="md:hidden">
-          <h1 className="text-base font-bold text-foreground leading-tight">
-            🛒 Productos que más venden HOY
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {todayFormatted} · TikTok Shop {marketLabel}
-          </p>
-        </div>
-        
-        {/* Desktop minimal header */}
-        <div className="hidden md:block">
-          <h1 className="text-lg font-bold text-foreground leading-tight">
-            🛒 Productos que más venden HOY, {todayFormatted}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            TikTok Shop {marketLabel} · Encuentra productos de alta comisión
-          </p>
-        </div>
-      </div>
-
-      {/* Filter Pills - Horizontal Scroll on Mobile */}
-      <div className="mb-4 md:mb-6">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
-          {!isLoggedIn ? (
-            <div 
-              className="flex gap-1.5 flex-wrap"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              {SORT_OPTIONS.map((option, i) => (
-                <span
-                  key={option.value}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium h-8 flex items-center gap-1.5 whitespace-nowrap ${
-                    i === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60 text-muted-foreground border border-border/50"
-                  }`}
-                >
-                  <Lock className="h-3 w-3" />
-                  {option.label}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <FilterPills
-              options={SORT_OPTIONS}
-              value={sortBy}
-              onChange={(v) => setSortBy(v as SortOption)}
-            />
-          )}
-          
-          {/* Category Dropdown - Locked for visitors */}
-          {!isLoggedIn ? (
-            <div 
-              className="h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap"
-              onClick={() => {
-                navigate("/unlock");
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              <Lock className="h-3 w-3" />
-              Categorías
-            </div>
-          ) : (
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-auto h-8 text-xs px-3 rounded-full border-border/50 bg-muted/60">
-                <SelectValue placeholder="Categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Categorías</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-        
-        {/* Count below filters */}
-        <span className="text-[11px] text-muted-foreground block mt-1.5 md:hidden">
-          {filteredProducts.length} productos
-        </span>
-        <span className="text-xs text-muted-foreground hidden md:block mt-2">
-          {filteredProducts.length} productos
-        </span>
-      </div>
+    <div className="min-w-0 w-full pt-2 pb-24 md:pb-6 px-3 md:px-6">
+      <CatalogHeader title="Productos para tus videos" count={`${filteredProducts.length} productos`}>
+        <CatalogInfo>
+          <p className="font-semibold">TikTok Shop {marketLabel}</p>
+          <p>Compara las ventas y comisiones del último reporte importado. Las cifras no son en tiempo real. Los videos relacionados pertenecen al producto exacto.</p>
+        </CatalogInfo>
+      </CatalogHeader>
+      <CatalogFilterBar>
+        <FilterPills compact options={SORT_OPTIONS} value={sortBy} onChange={(v) => {
+          if (!isLoggedIn) { navigate("/pricing"); return; }
+          setSortBy(v as SortOption);
+        }} />
+        {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/pricing")}>
+          <Lock className="size-3 mr-1" />Categorías
+        </Button> : <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger aria-label="Categoría de productos" className="w-auto max-w-48 h-11 text-xs rounded-full border-border/50 bg-muted/60">
+            <SelectValue placeholder="Categorías" />
+          </SelectTrigger>
+          <SelectContent><SelectItem value="all">Categorías</SelectItem>
+            {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+          </SelectContent>
+        </Select>}
+      </CatalogFilterBar>
 
       {filteredProducts.length === 0 ? (
-        <div className="bg-white dark:bg-card rounded-[20px] border border-[#E2E8F0] dark:border-border p-12 text-center shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
-          <Package className="h-16 w-16 text-muted-foreground mb-4 mx-auto" />
+        <div className="bg-card rounded-xl border border-border px-4 py-8 text-center">
+          <Package className="size-10 text-muted-foreground mb-3 mx-auto" />
           <p className="text-muted-foreground text-lg">
             {products.length === 0 
               ? "No hay productos disponibles."
-              : "No hay productos que coincidan con los filtros."}
+              : "No hay productos con estos filtros. Prueba otra categoría."}
           </p>
+          <Button variant="outline" className="mt-4" onClick={() => products.length ? setCategoryFilter("all") : navigate("/app")}>
+            {products.length ? "Ver todas las categorías" : "Explorar videos"}
+          </Button>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-5 [&>*]:min-w-0">
             {paginatedProducts.map((product, index) => {
               const globalIndex = (currentPage - 1) * PRODUCTS_PER_PAGE + index;
               const displayRank = globalIndex + 1;
               const isFav = favorites.has(product.id);
               const isTop5 = displayRank <= 5;
               const price = product.price || product.precio_mxn || 0;
-              const commissionRate = product.commission || 6;
-              const earningsPerSale = price * (commissionRate / 100);
+              const commissionRate = product.commission;
+              const earningsPerSale = commissionRate == null ? null : price * (commissionRate / 100);
               const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
               
               if (isLocked) {
@@ -356,21 +293,14 @@ const Products = () => {
                     key={product.id}
                     className="relative cursor-pointer group"
                     onClick={() => {
-                      navigate("/unlock");
+                      navigate("/pricing");
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
                     <div className="blur-[6px] pointer-events-none bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-border/50 dark:border-border p-3 md:p-5 shadow-sm">
                       {/* Product Image - 1:1 aspect ratio */}
                       <div className="relative aspect-square bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-4">
-                        <img
-                          src={product.imagen_url || PLACEHOLDER_IMAGE}
-                          alt={product.producto_nombre}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
-                          }}
-                        />
+                        <CatalogProductImage src={product.imagen_url} name={product.producto_nombre} />
                         <span className={`absolute top-2 md:top-3 left-2 md:left-3 text-[11px] md:text-[13px] font-bold px-2 py-0.5 md:py-1 rounded-full shadow-lg ${
                           isTop5 
                             ? 'bg-gradient-to-r from-primary to-primary/80 text-white' 
@@ -389,11 +319,11 @@ const Products = () => {
                         )}
                         <div className="grid grid-cols-2 gap-1.5 md:gap-3">
                           <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
-                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Ingresos</p>
+                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Ventas en pesos</p>
                             <p className="text-[11px] md:text-sm font-bold text-foreground">{formatCurrency(getRevenue(product))}</p>
                           </div>
                           <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-muted">
-                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Ventas</p>
+                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Unidades vendidas</p>
                             <p className="text-[11px] md:text-sm font-bold text-foreground">{formatNumber(getSales(product))}</p>
                           </div>
                         </div>
@@ -401,7 +331,7 @@ const Products = () => {
                     </div>
                     <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-2xl md:rounded-[20px]">
                       <div className="text-center p-3 md:p-4">
-                        <Lock className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-1.5 md:mb-2 text-muted-foreground" />
+                        <Lock className="h-9 w-9 md:h-9 md:w-9 mx-auto mb-1.5 md:mb-2 text-muted-foreground" />
                         <p className="text-xs md:text-sm font-medium text-foreground">Desbloquear</p>
                       </div>
                     </div>
@@ -416,14 +346,7 @@ const Products = () => {
                 >
                   {/* Product Image - 1:1 aspect ratio */}
                   <div className="relative aspect-square bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-4">
-                    <img
-                      src={product.imagen_url || PLACEHOLDER_IMAGE}
-                      alt={product.producto_nombre}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE;
-                      }}
-                    />
+                    <CatalogProductImage src={product.imagen_url} name={product.producto_nombre} />
                     
                     {/* Top bar */}
                     <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-10 flex items-center justify-between">
@@ -441,13 +364,13 @@ const Products = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!isLoggedIn) {
-                                navigate("/unlock");
+                                navigate("/pricing");
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                                 return;
                               }
                               window.open(product.producto_url!, '_blank');
                             }}
-                            className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                            className="h-9 w-9 md:h-9 md:w-9 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
                           >
                             <ExternalLink className="h-3.5 w-3.5 md:h-[18px] md:w-[18px] text-muted-foreground hover:text-foreground transition-colors" />
                           </button>
@@ -457,13 +380,13 @@ const Products = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!isLoggedIn) {
-                              navigate("/unlock");
+                              navigate("/pricing");
                               window.scrollTo({ top: 0, behavior: 'smooth' });
                               return;
                             }
                             toggleFavorite(product.id, e);
                           }}
-                          className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                          className="h-9 w-9 md:h-9 md:w-9 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
                         >
                           <Heart className={`h-3.5 w-3.5 md:h-[18px] md:w-[18px] transition-colors ${isFav ? 'text-primary fill-primary' : 'text-muted-foreground hover:text-foreground'}`} />
                         </button>
@@ -471,7 +394,7 @@ const Products = () => {
                     </div>
                     
                     {/* Earnings badge - Only on desktop */}
-                    {earningsPerSale > 0 && (
+                    {earningsPerSale !== null && earningsPerSale > 0 && (
                       <span className="absolute bottom-2 md:bottom-3 left-2 md:left-3 z-10 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-md shadow-sm">
                         💰 {formatCurrency(earningsPerSale)}
                       </span>
@@ -497,9 +420,9 @@ const Products = () => {
                       <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
                         <div className="hidden md:flex items-center gap-1.5 mb-1">
                           <TrendingUp className="h-3.5 w-3.5 text-foreground/60" />
-                          <span className="text-[11px] text-muted-foreground">Ingresos</span>
+                          <span className="text-[11px] text-muted-foreground">Ventas en pesos</span>
                         </div>
-                        <p className="text-[9px] md:hidden text-muted-foreground">Ingresos</p>
+                        <p className="text-[9px] md:hidden text-muted-foreground">Ventas en pesos</p>
                         <p className="text-[11px] md:text-sm font-bold text-foreground">
                           {formatCurrency(getRevenue(product))}
                         </p>
@@ -508,9 +431,9 @@ const Products = () => {
                       <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-muted">
                         <div className="hidden md:flex items-center gap-1.5 mb-1">
                           <ShoppingCart className="h-3.5 w-3.5 text-foreground/60" />
-                          <span className="text-[11px] text-muted-foreground">Ventas</span>
+                          <span className="text-[11px] text-muted-foreground">Unidades vendidas</span>
                         </div>
-                        <p className="text-[9px] md:hidden text-muted-foreground">Ventas</p>
+                        <p className="text-[9px] md:hidden text-muted-foreground">Unidades vendidas</p>
                         <p className="text-[11px] md:text-sm font-bold text-foreground">
                           {formatNumber(getSales(product))}
                         </p>
@@ -533,7 +456,7 @@ const Products = () => {
                           <span className="text-[11px] text-muted-foreground">Comisión</span>
                         </div>
                         <p className="text-sm font-bold text-foreground">
-                          {product.commission ? `${product.commission}%` : "6%"}
+                          {product.commission == null ? "Sin dato" : `${product.commission}%`}
                         </p>
                       </div>
                     </div>
@@ -547,10 +470,10 @@ const Products = () => {
                     )}
 
                     <Button
-                      className="w-full h-8 md:h-10 text-xs md:text-sm"
+                      className="w-full h-11 text-xs md:text-sm"
                       onClick={() => {
                         if (!isLoggedIn) {
-                          navigate("/unlock");
+                          navigate("/pricing");
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                           return;
                         }
@@ -572,7 +495,7 @@ const Products = () => {
                 <div 
                   className="flex items-center justify-center gap-2 opacity-60 cursor-pointer"
                   onClick={() => {
-                    navigate("/unlock");
+                    navigate("/pricing");
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
@@ -596,8 +519,7 @@ const Products = () => {
         <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
           <Button
             className="w-full h-12 text-sm font-semibold shadow-lg"
-            onClick={startCheckout}
-            disabled={checkoutLoading}
+            onClick={openProOffer}
           >
             <Sparkles className="h-4 w-4 mr-2" />
             Desbloquear acceso completo

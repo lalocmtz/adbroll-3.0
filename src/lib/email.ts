@@ -47,7 +47,7 @@ const emailWrapper = (content: string) => `
           <!-- Header with Logo -->
           <tr>
             <td align="center" style="padding: 40px 40px 24px;">
-              <img src="https://gcntnilurlulejwwtpaa.supabase.co/storage/v1/object/public/assets/logo-dark.png" alt="TokXray" height="48" style="height: 48px;">
+              <img src="${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/assets/logo-dark.png" alt="TokXray" height="48" style="height: 48px;">
             </td>
           </tr>
           <!-- Content -->
@@ -117,7 +117,7 @@ export const emailTemplates = {
   }),
 
   // 2. Subscription confirmed
-  subscriptionConfirmed: (email: string, price: string = "$24.99 USD") => ({
+  subscriptionConfirmed: (email: string, price: string) => ({
     subject: "✅ ¡Tu suscripción a TokXray Pro está activa!",
     html: emailWrapper(`
       <div style="text-align: center; margin-bottom: 24px;">
@@ -139,7 +139,7 @@ export const emailTemplates = {
           <li>🔄 Generación de variantes de hooks</li>
           <li>💎 Descubridor de oportunidades</li>
           <li>🛠️ Herramientas de creación de contenido</li>
-          <li>📈 Datos actualizados diariamente</li>
+          <li>📈 Reportes semanales de TikTok Shop México</li>
         </ul>
       </div>
       <div style="text-align: center;">
@@ -278,13 +278,13 @@ export const emailTemplates = {
         ${ctaButton("Ver mis ganancias", "https://tokxray.com/affiliates")}
       </div>
       <p style="color: ${brandStyles.mutedColor}; font-size: 13px; margin-top: 32px; text-align: center;">
-        Los pagos se procesan automáticamente cada miércoles (mínimo $50 USD).
+        El equipo revisa el saldo semanalmente y coordina una transferencia manual desde US$50 disponibles.
       </p>
     `),
   }),
 
   // 8. Renewal reminder (3 days before)
-  renewalReminder: (renewDate: string, price: string = "$24.99 USD") => ({
+  renewalReminder: (renewDate: string, price: string) => ({
     subject: "📅 Tu suscripción se renovará pronto",
     html: emailWrapper(`
       <h1 style="color: ${brandStyles.textColor}; font-size: 28px; margin: 0 0 16px; font-weight: 700;">

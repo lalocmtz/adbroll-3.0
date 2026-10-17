@@ -1,0 +1,41 @@
+# Landing y recorrido Pro — 16 de octubre de 2026
+
+## Recorrido automático: ajuste solicitado después de publicar el video
+
+- `ProductDemo` muestra el recorrido como una animación silenciosa de 34.3 segundos: bucle, reproducción inline, sin controles, sin foco ni interacción.
+- Precarga a 600 px del viewport y reproducción cuando al menos el 15% está visible. Pausa al salir de pantalla o esconder la pestaña y reanuda al regresar; limpia los observers/listeners y las promesas pendientes al desmontar.
+- Respeta movimiento reducido: imagen estática y descripción. Los bloqueos de autoplay mantienen la vista previa; un error de descarga remite a las capturas de funciones.
+- H.264, 20 fps, fast start: 1920 × 1080, 10,194,363 bytes (52% menos); móvil de hasta 767 px: 1280 × 720, 5,440,084 bytes (74% menos). La versión anterior pesaba 21,143,205 bytes. Conserva el difuminado de identidad del fundador.
+- 22 pruebas aprobadas, incluidos entrada/salida, cambio de pestaña, movimiento reducido, autoplay bloqueado y carrera de reanudación durante `play()`. TypeScript con tipos explícitos, lint y build aprobados.
+
+## Video demostrativo: publicación inicial (comportamiento anterior)
+
+- Publicado en https://tokxray.com/ con el commit `a8c5a00d1e06cd8d06fd5c6e01cfbdbc1407b9ca`, despliegue `dpl_8rhawxRy1fXRwu71eUwV9yquCVNG` READY y dominio asignado. Reproducción pública confirmada; MP4 servido con `Content-Type: video/mp4`, rangos HTTP 206 y caché inmutable.
+- Video proporcionado por el fundador, 34.30 segundos, 1920 × 1080 a 30 fps, sin pista de audio. MP4 H.264 con fast start; conserva el encuadre y se difuminó la identidad del perfil en la esquina inferior izquierda.
+- Reproductor en la introducción de «Así se ve por dentro», antes de las capturas: controles nativos, pantalla completa, reproducción inline en móvil, póster y `preload="none"`. Sin reproducción automática. Texto alternativo explica el recorrido de videos, guiones, variantes y comparación de oportunidades.
+- Assets importados desde Vite: URLs con hash bajo `/assets/`, servidas por el CDN existente; no dependen del servicio de análisis ni de Apify.
+- Verificación: 16 pruebas existentes de landing aprobadas, build y lint de componentes. TypeScript aprobado con tipos explícitos `vite/client,node,react,react-dom`; el comando sin esa lista encuentra carpetas duplicadas de tipos (`react 3`, etc.) preexistentes en el `node_modules` local.
+- Reproducción local comprobada a 1920 × 1080; vista de 390 px sin desbordamiento horizontal. Evidencia en `output/landing-demo-2026-10-16/`.
+
+## Publicación completada
+Producción confirmada en https://tokxray.com/ con el commit `330cd381da1276fea0e9d1073dca8d4e99181009` y despliegue Vercel `dpl_gTuVPrzgJJiMv5EHdu4DmJ2LP4Mm` en estado READY. Capturas de comprobación: `output/landing-tour-2026-10-16/published-hero.png` y `published-product-tour.png`.
+
+- Hero con un único CTA principal: Ver qué está vendiendo → /app.
+- Tres demostraciones del producto con capturas reales: catálogo, guion/análisis y comparador de oportunidades. Imágenes WebP (aprox. 224 KiB en total), carga diferida y enlace para ampliar.
+- Caso sincronizado con el video elegido: ventas reportadas × comisión del producto. El ingreso calculado se etiqueta como estimación, no como pago confirmado al creador.
+- Escenarios de uso expresamente ilustrativos, sin identidades, estrellas ni reseñas inventadas.
+- Precio US$15 sin cambios. CTAs de la landing abren la exploración; acciones premium abren /pricing. El pago requiere el botón explícito de compra.
+- Corregido el reconocimiento de acceso vitalicio, temporal vigente, trialing y fundador en useBlurGate; no se modificaron autorizaciones del servidor.
+
+## Validación
+- 373 pruebas en 49 archivos aprobadas. Después de los ajustes finales de copy/imágenes, 16 pruebas de landing repetidas y aprobadas.
+- TypeScript, build y git diff --check aprobados. Persisten los avisos previos de tamaño de bundles/Browserslist.
+- Revisión visual local escritorio y 390×844: sin desbordamiento horizontal; CTA → catálogo → Ver guion → oferta Pro por US$15, sin iniciar pago.
+- Capturas fuente: output/landing-tour-2026-10-16. No contienen datos privados de la cuenta; los recortes de producto publicados excluyen navegación/identidad del fundador.
+
+## Incidencia operativa descubierta durante las capturas
+Guiones/análisis guardados funcionan. La generación de variantes recibe Gemini HTTP429 RESOURCE_EXHAUSTED por cuota diaria. Prueba única del 17 octubre 01:30:11 UTC: quotaWindow=day; RetryInfo 80988 segundos (~17 octubre 18:00 México), sin garantizar disponibilidad al terminar.
+
+Se publicaron generate-script-variants v13, process-catalog-analysis v3, transcribe-and-analyze v14, translate-script v4, analyze-script-insights v12 y la migración gemini_quota_backoff. Respetan el tiempo de espera y evitan repetir cuotas diarias/desconocidas inmediatamente. JWT y autenticación privada conservados.
+
+La cola automática de análisis permanece pausada (enabled=false, límites 1500/día y 2 concurrentes preservados). Se recuperaron 116 trabajos fallidos por cuota como pendientes. No se cambió plan, modelo ni facturación. Antes de reactivar el lote, verificar la cuota del proyecto de Gemini y reservar capacidad para solicitudes interactivas. La descarga de nuevos enlaces sigue dependiendo de resolver el límite de Apify señalado en la revisión anterior.

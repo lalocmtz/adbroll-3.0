@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 
 interface QuickSignupModalProps {
   open: boolean;
@@ -34,8 +35,11 @@ const QuickSignupModal = ({
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isGoogleLoading, googleError, startGoogleSignIn } = useGoogleSignIn("/colaboraciones");
+  const isBusy = isLoading || isGoogleLoading;
 
   const handleSignup = async () => {
+    if (isBusy) return;
     if (password.length < 6) {
       setError(
         language === "es"
@@ -98,29 +102,18 @@ const QuickSignupModal = ({
   };
 
   const handleGoogleSignup = async () => {
-    setIsLoading(true);
-    try {
+    if (isLoading) return;
+    setError(null);
+    await startGoogleSignIn(() => {
       // Store pending application data in localStorage for after OAuth redirect
       localStorage.setItem("pendingCreatorApplication", "true");
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/talento?tab=apply`,
-        },
-      });
-
-      if (error) throw error;
-    } catch (err: any) {
-      setError(err.message);
-      setIsLoading(false);
-    }
+    });
   };
 
   const handleLoginRedirect = () => {
     // Store pending application data
     localStorage.setItem("pendingCreatorApplication", "true");
-    window.location.href = `/login?redirect=${encodeURIComponent("/talento?tab=apply")}`;
+    window.location.href = `/login?redirect=${encodeURIComponent("/colaboraciones")}`;
   };
 
   return (
@@ -165,6 +158,7 @@ const QuickSignupModal = ({
               type="password"
               placeholder="••••••••"
               value={password}
+              disabled={isBusy}
               onChange={(e) => {
                 setPassword(e.target.value);
                 setError(null);
@@ -174,7 +168,7 @@ const QuickSignupModal = ({
             <p className="text-xs text-muted-foreground">
               {language === "es" ? "Mínimo 6 caracteres" : "Minimum 6 characters"}
             </p>
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            {(error || googleError) && <p role="alert" className="text-xs text-destructive">{error || (language === "es" ? googleError : "We couldn't connect to Google. Try again or continue with email.")}</p>}
           </div>
 
           {/* Submit Button */}
@@ -182,7 +176,7 @@ const QuickSignupModal = ({
             onClick={handleSignup}
             className="w-full"
             size="lg"
-            disabled={isLoading}
+            disabled={isBusy}
           >
             {isLoading ? (
               <>
@@ -212,7 +206,7 @@ const QuickSignupModal = ({
             variant="outline"
             className="w-full"
             onClick={handleGoogleSignup}
-            disabled={isLoading}
+            disabled={isBusy}
           >
             <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
               <path
@@ -232,7 +226,7 @@ const QuickSignupModal = ({
                 fill="#EA4335"
               />
             </svg>
-            Google
+            {isGoogleLoading ? language === "es" ? "Conectando..." : "Connecting..." : "Google"}
           </Button>
 
           {/* Login Link */}
@@ -241,6 +235,7 @@ const QuickSignupModal = ({
             <button
               type="button"
               onClick={handleLoginRedirect}
+              disabled={isBusy}
               className="text-primary hover:underline font-medium"
             >
               {language === "es" ? "Inicia sesión" : "Log in"}

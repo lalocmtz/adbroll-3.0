@@ -1,19 +1,22 @@
+import { CatalogProductImage } from "@/components/CatalogProductImage";
+import { CatalogHeader, CatalogInfo, CatalogFilterBar } from "@/components/CatalogToolbar";
+import { FilterPills } from "@/components/FilterPills";
 import { useEffect, useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Gem, TrendingUp, Sparkles, Lock, Lightbulb, ArrowRight } from "lucide-react";
+import { Gem, TrendingUp, Sparkles, Lock, Lightbulb, ArrowRight, ArrowLeftRight, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { useNavigate } from "react-router-dom";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
-import { format } from "date-fns";
-import { es, enUS } from "date-fns/locale";
-import { useStartCheckout } from "@/lib/checkout";
+import { useProOffer } from "@/hooks/useProOffer";
+import { ProductComparison } from "@/components/opportunities/ProductComparison";
+import { getComparisonProducts } from "@/lib/opportunity-comparison";
 
 interface OpportunityProduct {
   id: string;
@@ -39,12 +42,34 @@ type BadgeFilter = "all" | "gems" | "rising" | "high_pay";
 
 const BADGE_FILTERS: { value: BadgeFilter; labelEs: string; labelEn: string }[] = [
   { value: "all", labelEs: "Todas", labelEn: "All" },
-  { value: "gems", labelEs: "💎 Joyas", labelEn: "💎 Gems" },
-  { value: "rising", labelEs: "🚀 Despegando", labelEn: "🚀 Rising" },
-  { value: "high_pay", labelEs: "💰 Paga bien", labelEn: "💰 High pay" },
+  { value: "gems", labelEs: "Menos creadores", labelEn: "Fewer creators" },
+  { value: "high_pay", labelEs: "Mayor comisión", labelEn: "Higher commission" },
 ];
 
 const FREE_PREVIEW_LIMIT = 3;
+
+export const OpportunityGuide = ({ language }: { language: string }) => {
+  const es = language === 'es';
+  const factors = [
+    { weight: 30, name: es ? 'Ventas reportadas' : 'Reported sales' },
+    { weight: 25, name: es ? 'Menos creadores' : 'Fewer creators' },
+    { weight: 20, name: es ? 'Impulso de ventas' : 'Sales momentum' },
+    { weight: 15, name: es ? 'Comisión por venta' : 'Commission per sale' },
+    { weight: 10, name: es ? 'Retorno publicitario' : 'Ad return' },
+  ];
+  return <section className="mb-4 overflow-hidden rounded-2xl border border-brand-ink-700 bg-brand-ink p-4 text-white md:p-5" aria-label={es ? 'Cómo funciona el indicador' : 'How the score works'}>
+    <div className="flex items-start gap-3"><div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-cyan text-brand-ink"><Lightbulb className="size-5" aria-hidden="true" /></div><div className="min-w-0"><h2 className="text-balance text-base font-semibold md:text-lg">{es ? 'Encuentra qué producto vale la pena explorar' : 'Find a product worth exploring'}</h2><p className="mt-1 max-w-3xl text-pretty text-sm leading-relaxed text-white/75">{es ? 'Buscamos ventas reportadas, menos creadores compitiendo y una comisión atractiva. Elige un producto y estudia sus videos antes de decidir qué grabar.' : 'Look for reported sales, fewer competing creators and attractive commissions. Choose a product and study its videos before deciding what to record.'}</p></div></div>
+    <details className="mt-3 border-t border-white/15 pt-1">
+      <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium text-brand-cyan">{es ? 'Cómo se calcula la puntuación de 0 a 100' : 'How the 0–100 score is calculated'}<span className="ml-auto text-xl" aria-hidden="true">+</span></summary>
+      <p className="mb-3 text-sm leading-relaxed text-white/75">{es ? 'Compara la posición de cada producto dentro de su mercado y categoría. Estos son los pesos de cada señal:' : 'Compares each product with others in its market and category. Each signal has the following weight:'}</p>
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-5">{factors.map(factor => <div key={factor.weight} className="rounded-xl border border-white/15 p-3"><dd className="font-semibold tabular-nums text-brand-cyan">{factor.weight}%</dd><dt className="mt-1 text-xs leading-relaxed text-white/80">{factor.name}</dt></div>)}</dl>
+      <div className="mt-3 space-y-2 text-xs leading-relaxed text-white/65">
+        <p>{es ? 'El impulso usa cambios entre reportes guardados o, si no existen, la proporción de ventas de 7 y 30 días. Las ventas usan el dato de 30 días disponible o el total reportado; no equivalen siempre a los últimos 30 días.' : 'Momentum uses changes between saved reports or, when unavailable, the ratio of 7-day to 30-day sales. Sales use available 30-day data or the reported total; they do not always represent the latest 30 days.'}</p>
+        <p>{es ? 'Los datos faltantes pueden contar como cero y alterar el orden. Es una guía experimental para comparar, no una probabilidad de éxito ni una predicción de ventas.' : 'Missing data may count as zero and affect the order. This is an experimental comparison guide, not a success probability or sales forecast.'}</p>
+      </div>
+    </details>
+  </section>;
+};
 
 const Opportunities = () => {
   const { toast } = useToast();
@@ -52,13 +77,17 @@ const Opportunities = () => {
   const { market } = useMarket();
   const navigate = useNavigate();
   const { isLoggedIn } = useBlurGateContext();
-  const { start: startCheckout, loading: checkoutLoading } = useStartCheckout();
+  const openProOffer = useProOffer();
   const [opportunities, setOpportunities] = useState<OpportunityProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [badgeFilter, setBadgeFilter] = useState<BadgeFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [comparisonIds, setComparisonIds] = useState<string[]>([]);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
 
   useEffect(() => {
+    setComparisonIds([]);
+    setComparisonOpen(false);
     fetchOpportunities();
   }, [market]); // Re-fetch when market changes
 
@@ -118,136 +147,70 @@ const Opportunities = () => {
     return result;
   }, [opportunities, badgeFilter, categoryFilter]);
 
+  const comparisonProducts = getComparisonProducts(comparisonIds, filteredOpportunities, isLoggedIn, FREE_PREVIEW_LIMIT);
+  const toggleComparison = (id: string) => {
+    const ids = comparisonProducts.map(product => product.id);
+    const candidateIds = ids.includes(id) ? ids.filter(selected => selected !== id) : [...ids, id];
+    const next = getComparisonProducts(candidateIds, filteredOpportunities, isLoggedIn, FREE_PREVIEW_LIMIT);
+    setComparisonIds(next.map(product => product.id));
+    if (next.length === 2 && !ids.includes(id)) setComparisonOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <div className="text-center">
           <Sparkles className="h-8 w-8 text-primary animate-pulse mx-auto mb-3" />
           <p className="text-muted-foreground">
-            {language === "es" ? "Analizando oportunidades..." : "Analyzing opportunities..."}
+            {language === "es" ? "Cargando oportunidades..." : "Loading opportunities..."}
           </p>
         </div>
       </div>
     );
   }
 
-  const todayFormatted = format(new Date(), "d 'de' MMMM", { locale: language === "es" ? es : enUS });
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="pt-2 pb-24 md:pb-6 px-3 md:px-6">
-        {/* Hero */}
-        <div className="mb-3 md:mb-4 py-1 md:py-0">
-          <div className="md:hidden">
-            <h1 className="text-base font-bold text-foreground leading-tight">
-              💎 {language === "es" ? "Oportunidades detectadas HOY" : "Opportunities detected TODAY"}
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {todayFormatted} · {language === "es" ? "IA de TokXray" : "TokXray AI"}
-            </p>
-          </div>
-          <div className="hidden md:block">
-            <h1 className="text-lg font-bold text-foreground leading-tight">
-              💎 {language === "es" ? `Oportunidades detectadas HOY, ${todayFormatted}` : `Opportunities detected TODAY, ${todayFormatted}`}
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              {language === "es"
-                ? "Productos con demanda fuerte, poca competencia y buena comisión"
-                : "Products with strong demand, low competition, and good commission"}
-            </p>
-          </div>
-        </div>
+      <div className="min-w-0 w-full pt-2 pb-24 md:pb-6 px-3 md:px-6">
+        <CatalogHeader title={language === "es" ? "Oportunidades" : "Opportunities"} count={filteredOpportunities.length}>
+          <CatalogInfo label={language === "es" ? "Cómo se eligen las oportunidades" : "How opportunities are selected"}>
+            <p className="font-semibold">{language === "es" ? "Puntuación experimental" : "Experimental score"}</p>
+            <p>{language === "es" ? "Compara demanda, competencia, comisión y otras señales del reporte importado. Sirve para priorizar productos; no predice ventas ni garantiza resultados." : "Compares demand, competition, commission and other imported report signals. Helps prioritize products; does not predict sales or guarantee results."}</p>
+            <p>{language === "es" ? "Revisa los videos relacionados y la fecha del reporte antes de elegir qué grabar." : "Review related videos and the report period before choosing what to record."}</p>
+          </CatalogInfo>
+        </CatalogHeader>
+        <OpportunityGuide language={language} />
+        <CatalogFilterBar>
+          <FilterPills compact options={BADGE_FILTERS.map(option => ({ value: option.value, label: language === "es" ? option.labelEs : option.labelEn }))}
+            value={badgeFilter} onChange={value => {
+              if (!isLoggedIn) { navigate("/pricing"); return; }
+              setBadgeFilter(value as BadgeFilter);
+            }} />
+          {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/pricing")}>
+            <Lock className="size-3 mr-1" />{language === "es" ? "Categorías" : "Categories"}
+          </Button> : <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger aria-label={language === "es" ? "Categoría de oportunidades" : "Opportunity category"} className="w-auto max-w-48 h-11 text-xs rounded-full border-border/50 bg-muted/60">
+              <SelectValue placeholder={language === "es" ? "Categorías" : "Categories"} />
+            </SelectTrigger>
+            <SelectContent><SelectItem value="all">{language === "es" ? "Categorías" : "Categories"}</SelectItem>
+              {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+            </SelectContent>
+          </Select>}
+        </CatalogFilterBar>
 
-        {/* Badge filter chips + category */}
-        <div className="mb-4 md:mb-6">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 md:mx-0 md:px-0 md:flex-wrap md:overflow-visible md:gap-3">
-            {!isLoggedIn ? (
-              <div
-                className="flex gap-1.5 flex-nowrap"
-                onClick={() => {
-                  navigate("/unlock");
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-              >
-                {BADGE_FILTERS.map((option, i) => (
-                  <span
-                    key={option.value}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium h-11 md:h-8 flex items-center gap-1.5 whitespace-nowrap ${
-                      i === 0
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/60 text-muted-foreground border border-border/50"
-                    }`}
-                  >
-                    <Lock className="h-3 w-3" />
-                    {language === "es" ? option.labelEs : option.labelEn}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <div className="flex gap-1.5 flex-nowrap md:flex-wrap">
-                {BADGE_FILTERS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setBadgeFilter(option.value)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium min-h-[44px] md:min-h-0 md:h-8 flex items-center whitespace-nowrap transition-colors ${
-                      badgeFilter === option.value
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted/60 text-muted-foreground border border-border/50 hover:bg-muted"
-                    }`}
-                  >
-                    {language === "es" ? option.labelEs : option.labelEn}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Category dropdown */}
-            {!isLoggedIn ? (
-              <div
-                className="h-11 md:h-8 px-3 rounded-full border border-border/50 bg-muted/60 flex items-center gap-1.5 text-xs text-muted-foreground opacity-60 cursor-pointer whitespace-nowrap"
-                onClick={() => {
-                  navigate("/unlock");
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-              >
-                <Lock className="h-3 w-3" />
-                {language === "es" ? "Categorías" : "Categories"}
-              </div>
-            ) : (
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-auto h-11 md:h-8 text-xs px-3 rounded-full border-border/50 bg-muted/60">
-                  <SelectValue placeholder={language === "es" ? "Categoría" : "Category"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{language === "es" ? "Todas las categorías" : "All categories"}</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <span className="text-[11px] md:text-xs text-muted-foreground block mt-1.5">
-            {filteredOpportunities.length} {language === "es" ? "oportunidades" : "opportunities"}
-          </span>
-        </div>
-
-        {/* Educational strip */}
-        <div className="bg-gradient-to-r from-primary/5 to-amber-500/5 border border-primary/10 rounded-xl p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <Lightbulb className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-            <p className="text-[13px] text-foreground leading-relaxed">
-              {language === "es"
-                ? "El índice compara cada producto contra su categoría: ventas reales, cuántos creadores ya lo promueven, si está creciendo y cuánto pagaría por venta."
-                : "The index compares each product against its category: real sales, how many creators already promote it, whether it's growing, and how much it pays per sale."}
-            </p>
-          </div>
-        </div>
+        {filteredOpportunities.length > 1 && <ProductComparison
+          products={comparisonProducts}
+          language={language}
+          open={comparisonOpen}
+          onOpenChange={setComparisonOpen}
+          onClear={() => { setComparisonIds([]); setComparisonOpen(false); }}
+          onViewProduct={id => navigate(isLoggedIn ? `/videos/product/${id}` : "/pricing")}
+        />}
 
         {filteredOpportunities.length === 0 ? (
           <Card className="p-12 text-center rounded-2xl border-dashed">
-            <Gem className="h-16 w-16 text-muted-foreground/30 mb-4 mx-auto" />
+            <Gem className="size-10 text-muted-foreground/30 mb-3 mx-auto" />
             <p className="text-muted-foreground mb-2">
               {language === "es"
                 ? "No hay oportunidades con este filtro por ahora."
@@ -255,9 +218,10 @@ const Opportunities = () => {
             </p>
             <p className="text-xs text-muted-foreground/70">
               {language === "es"
-                ? "Prueba con otro filtro o vuelve después del próximo análisis."
-                : "Try another filter or come back after the next analysis."}
+                ? "Prueba otro filtro o vuelve cuando se incorpore un nuevo reporte."
+                : "Try another filter or return when a new report is added."}
             </p>
+            <Button variant="outline" className="mt-4" onClick={() => { setBadgeFilter("all"); setCategoryFilter("all"); navigate("/products"); }}>{language === "es" ? "Explorar productos" : "Explore products"}</Button>
           </Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
@@ -270,7 +234,7 @@ const Opportunities = () => {
                     key={product.id}
                     className="relative cursor-pointer group"
                     onClick={() => {
-                      navigate("/unlock");
+                      navigate("/pricing");
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                   >
@@ -303,6 +267,9 @@ const Opportunities = () => {
                   formatMoney={formatMoney}
                   navigate={navigate}
                   isLoggedIn={isLoggedIn}
+                  comparisonSelected={comparisonProducts.some(selected => selected.id === product.id)}
+                  comparisonDisabled={comparisonProducts.length === 2 && !comparisonProducts.some(selected => selected.id === product.id)}
+                  onCompare={() => toggleComparison(product.id)}
                 />
               );
             })}
@@ -314,8 +281,7 @@ const Opportunities = () => {
           <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
             <Button
               className="w-full h-12 text-sm font-semibold shadow-lg"
-              onClick={startCheckout}
-              disabled={checkoutLoading}
+              onClick={openProOffer}
             >
               <Sparkles className="h-4 w-4 mr-2" />
               {language === "es" ? "Desbloquear acceso completo" : "Unlock full access"}
@@ -369,6 +335,9 @@ const OpportunityCard = ({
   formatMoney,
   navigate,
   isLoggedIn,
+  comparisonSelected = false,
+  comparisonDisabled = false,
+  onCompare,
 }: {
   product: OpportunityProduct;
   index: number;
@@ -376,13 +345,25 @@ const OpportunityCard = ({
   formatMoney: (amount: number | null | undefined) => string;
   navigate: (path: string) => void;
   isLoggedIn: boolean;
+  comparisonSelected?: boolean;
+  comparisonDisabled?: boolean;
+  onCompare?: () => void;
 }) => {
   const isEs = language === "es";
-  const reasons = (product.opportunity_reasons || []).slice(0, 3);
+  // Legacy snapshots lack source periods, so growth cannot yet be verified.
+  const reasons = (product.opportunity_reasons || [])
+    .filter((reason) => !reason.startsWith("Crecimiento"))
+    .map((reason) => reason
+      .replace(/^Vendió /, "Ventas reportadas: ")
+      .replace(" en los últimos 30 días", " en el reporte")
+      .replace(" en 30 días y solo ", " en el reporte; ")
+      .replace(" creadores lo promueven", " creadores en el reporte")
+      .replace(/^Ganarías ~/, "Comisión estimada: ~"))
+    .slice(0, 3);
 
   const goToVideos = () => {
     if (!isLoggedIn) {
-      navigate("/unlock");
+      navigate("/pricing");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -393,61 +374,43 @@ const OpportunityCard = ({
   if (product.is_hidden_gem)
     badges.push({
       emoji: "💎",
-      label: isEs ? "Joya oculta" : "Hidden gem",
+      label: isEs ? "Menos creadores" : "Fewer creators",
       tooltip: isEs
-        ? "Vende mucho y casi nadie lo promueve todavía."
-        : "Sells a lot and almost nobody promotes it yet.",
-    });
-  if (product.is_rising)
-    badges.push({
-      emoji: "🚀",
-      label: isEs ? "Despegando" : "Rising",
-      tooltip: isEs
-        ? "Sus ventas crecen más rápido que el resto de su categoría."
-        : "Its sales are growing faster than the rest of its category.",
+        ? "Combina demanda y menor presencia de creadores según el reporte de su categoría; revisa los videos para valorar si te conviene."
+        : "Combines demand and fewer creators in its category report; review the videos to decide if it fits your content.",
     });
   if (product.is_high_pay)
     badges.push({
       emoji: "💰",
-      label: isEs ? "Paga bien" : "High pay",
+      label: isEs ? "Mayor comisión" : "Higher commission",
       tooltip: isEs
-        ? "Está en el top de ganancia por venta de su categoría."
-        : "Top earnings per sale within its category.",
+        ? "La comisión estimada por venta está entre las más altas de su categoría."
+        : "Estimated commission per sale is among the highest in its category.",
     });
   if (product.is_brand_backed)
     badges.push({
       emoji: "🏷️",
-      label: isEs ? "Marca invirtiendo" : "Brand backed",
+      label: isEs ? "Retorno publicitario alto" : "High ad return",
       tooltip: isEs
-        ? "La marca está metiendo dinero en anuncios: el producto tiene empuje."
-        : "The brand is investing in ads: the product has momentum.",
+        ? "El reporte muestra más de 2 pesos en ventas por cada peso invertido en publicidad, entre los valores más altos de su categoría. No indica el presupuesto de la marca."
+        : "The report shows more than 2 units in sales for each unit spent on ads, among the highest in its category. This does not indicate the brand’s budget.",
     });
   if (product.is_saturated)
     badges.push({
       emoji: "⚠️",
-      label: isEs ? "Saturado" : "Saturated",
+      label: isEs ? "Más creadores compitiendo" : "More competing creators",
       tooltip: isEs
-        ? "Vende bien pero ya hay demasiados creadores compitiendo."
-        : "Sells well but too many creators are already competing.",
+        ? "El reporte muestra una mayor presencia de creadores. Revisa sus videos y cómo podrías aportar algo distinto."
+        : "The report shows more creators promoting it. Review their videos and consider what you could do differently.",
       variant: "warning",
     });
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-200 bg-card rounded-xl border border-border/60 shadow-sm flex flex-col">
+    <Card className="overflow-hidden bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col">
       {/* Header: imagen + nombre + categoría */}
       <div className="flex gap-3 p-3 md:p-4 pb-0 md:pb-0">
         <div className="relative w-20 h-20 md:w-24 md:h-24 flex-shrink-0">
-          {product.imagen_url ? (
-            <img
-              src={product.imagen_url}
-              alt={product.producto_nombre}
-              className="w-full h-full object-cover rounded-lg border border-border/50"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted/30 rounded-lg">
-              <Gem className="h-8 w-8 text-muted-foreground/30" />
-            </div>
-          )}
+          <CatalogProductImage src={product.imagen_url} name={product.producto_nombre} className="rounded-lg border border-border/50" />
           {/* Rank */}
           <Badge
             variant="secondary"
@@ -466,16 +429,16 @@ const OpportunityCard = ({
             </h3>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex items-center gap-1 flex-shrink-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full px-2 py-0.5 text-[11px] font-semibold shadow-sm cursor-help">
+                <span className="inline-flex items-center gap-1 flex-shrink-0 bg-brand-ink text-brand-cyan rounded-lg px-2 py-1 text-xs font-semibold tabular-nums cursor-help">
                   <TrendingUp className="h-3 w-3" />
-                  {product.opportunity_index ?? 0}
+                  {product.opportunity_index ?? "—"}<span className="text-[10px] text-white/65">/100</span><span className="sr-only"> · Indicador experimental</span>
                 </span>
               </TooltipTrigger>
               <TooltipContent side="left" className="max-w-[220px]">
                 <p className="text-xs">
-                  {es
-                    ? "Índice 0-100: demanda, espacio libre, crecimiento, pago por venta e inversión de marca, comparado contra su categoría."
-                    : "0-100 index: demand, free space, growth, pay per sale and brand investment, compared against its category."}
+                  {isEs
+                    ? "Indicador experimental de 0 a 100: compara demanda, número de creadores, evolución de ventas, comisión y retorno publicitario dentro de su categoría. No garantiza ventas."
+                    : "Experimental score from 0 to 100: compares demand, creator count, sales trends, commission and ad return within the category. It does not guarantee sales."}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -497,7 +460,7 @@ const OpportunityCard = ({
       <div className="p-3 md:p-4 flex flex-col flex-1 gap-3">
         {/* El PORQUÉ con números — lo más importante de la tarjeta */}
         {reasons.length > 0 && (
-          <ul className="space-y-1.5 bg-muted/30 rounded-lg p-2.5">
+          <ul className="space-y-1.5 border-l-2 border-brand-cyan bg-muted/20 rounded-r-lg p-3">
             {reasons.map((reason, i) => (
               <li key={i} className="flex items-start gap-2 text-[12px] md:text-[13px] text-foreground leading-snug">
                 <span className="text-primary text-[8px] mt-1.5">●</span>
@@ -511,7 +474,7 @@ const OpportunityCard = ({
         {(product.earning_per_sale ?? 0) > 0 && (
           <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-800/60 px-3 py-2">
             <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-              {isEs ? "Tú ganarías" : "You would earn"}
+              {isEs ? "Comisión estimada" : "Estimated commission"}
             </p>
             <p className="text-base md:text-lg font-bold text-emerald-700 dark:text-emerald-400 leading-tight">
               ~{formatMoney(product.earning_per_sale)}{" "}
@@ -524,9 +487,13 @@ const OpportunityCard = ({
 
         {/* CTA */}
         <Button className="w-full h-11 text-[13px] font-semibold rounded-lg" onClick={goToVideos}>
-          {isEs ? "Ver los videos que ya venden esto" : "See the videos already selling this"}
+          {isEs ? "Ver videos relacionados" : "See related videos"}
           <ArrowRight className="h-4 w-4 ml-1.5" />
         </Button>
+        {onCompare && <Button variant="outline" className="w-full min-h-11 rounded-lg text-sm" aria-pressed={comparisonSelected} aria-label={`${comparisonSelected ? isEs ? "Quitar de comparación" : "Remove from comparison" : isEs ? "Comparar" : "Compare"}: ${product.producto_nombre}`} disabled={comparisonDisabled} onClick={onCompare}>
+          {comparisonSelected ? <Check className="mr-2 size-4" aria-hidden="true" /> : <ArrowLeftRight className="mr-2 size-4" aria-hidden="true" />}
+          {comparisonSelected ? isEs ? "Seleccionado" : "Selected" : isEs ? "Comparar" : "Compare"}
+        </Button>}
       </div>
     </Card>
   );

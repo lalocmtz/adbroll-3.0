@@ -13,22 +13,22 @@ const About = () => {
     es: {
       title: "Sobre TokXray",
       backButton: "Volver al inicio",
-      intro: "TokXray es una plataforma de análisis creativo diseñada para ayudar a creadores, vendedores y marcas a identificar oportunidades reales dentro de TikTok Shop. Nuestro sistema analiza datos públicos y contenido disponible para mostrar qué productos están vendiendo hoy, qué creadores están generando resultados y qué guiones funcionan mejor.",
+      intro: "Grabar toma tiempo. Elegir qué producto mostrar y qué decir no debería empezar siempre desde cero. TokXray reúne referencias de TikTok Shop México, sus ventas reportadas y herramientas para entender y adaptar sus guiones. Tú eliges qué probar con tu audiencia.",
       company: "TokXray forma parte de **Ecom Genius LLC**, una compañía registrada en Delaware, Estados Unidos.",
       address: "**Dirección legal:** 16192 Coastal Highway, Lewes, Delaware 19958, United States.",
-      mission: "Nuestra misión es ofrecer claridad, transparencia y datos reales para que cualquier persona pueda crear contenido que funcione sin necesidad de adivinar.",
+      mission: "Queremos ayudarte a dejar de grabar a ciegas: elige una referencia, haz tuyo el guion y prueba tu versión. El catálogo se actualiza semanalmente; consulta el período de cada reporte. TokXray no está afiliado a TikTok ni garantiza ventas.",
       contact: "Si tienes preguntas o necesitas soporte, puedes escribirnos a:",
-      cta: "Comenzar ahora"
+      cta: "Crear mi cuenta gratis"
     },
     en: {
       title: "About TokXray",
       backButton: "Back to home",
-      intro: "TokXray is a creative analytics platform designed to help creators, sellers, and brands identify real opportunities within TikTok Shop. Our system analyzes public data and available content to show which products are selling today, which creators are generating results, and which scripts work best.",
+      intro: "Filming takes time. Choosing a product and deciding what to say should not mean starting from scratch. TokXray brings together TikTok Shop Mexico references, their reported sales and tools to understand and adapt their scripts. You choose what to test with your audience.",
       company: "TokXray is part of **Ecom Genius LLC**, a company registered in Delaware, United States.",
       address: "**Legal address:** 16192 Coastal Highway, Lewes, Delaware 19958, United States.",
-      mission: "Our mission is to offer clarity, transparency, and real data so that anyone can create content that works without having to guess.",
+      mission: "Choose a reference, make the script your own and test your version. The catalog is updated weekly; check each reporting period. TokXray is independent of TikTok and does not guarantee sales.",
       contact: "If you have questions or need support, you can write to us at:",
-      cta: "Get started"
+      cta: "Create my free account"
     }
   };
 

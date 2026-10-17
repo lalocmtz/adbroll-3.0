@@ -46,7 +46,7 @@ const emailWrapper = (content: string) => `
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #FFFFFF; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
           <tr>
             <td align="center" style="padding: 40px 40px 24px;">
-              <img src="https://gcntnilurlulejwwtpaa.supabase.co/storage/v1/object/public/assets/logo-dark.png" alt="${BRAND.name}" height="48" style="height: 48px;">
+              <img src="${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/assets/logo-dark.png" alt="${BRAND.name}" height="48" style="height: 48px;">
             </td>
           </tr>
           <tr>

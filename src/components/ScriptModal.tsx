@@ -65,8 +65,8 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
       const originalScript = video.transcripcion_original || video.guion_ia;
       if (!originalScript) {
         toast({
-          title: "No hay guión disponible",
-          description: "No se puede generar variantes sin un guión original.",
+          title: "No hay guion disponible",
+          description: "No se puede generar variantes sin un guion original.",
           variant: "destructive",
         });
         return;
@@ -109,7 +109,7 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
       await navigator.clipboard.writeText(text);
       toast({
         title: "¡Copiado!",
-        description: "Guión copiado al portapapeles.",
+        description: "Guion copiado al portapapeles.",
       });
     } catch (error) {
       toast({
@@ -124,7 +124,7 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
     if (!content.trim()) {
       toast({
         title: "No hay contenido",
-        description: "Selecciona un guión para guardar.",
+        description: "Selecciona un guion para guardar.",
         variant: "destructive",
       });
       return;
@@ -164,7 +164,7 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
 
       toast({
         title: "✓ Guardado en tus guiones",
-        description: "El guión se agregó a tu colección.",
+        description: "El guion se agregó a tu colección.",
       });
 
       fetchSavedScripts();
@@ -229,7 +229,7 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
           <TabsContent value="ia-base" className="space-y-4 mt-6">
             <div className="bg-muted p-6 rounded-xl">
               <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed">
-                {video.guion_ia || "Guión IA no disponible"}
+                {video.guion_ia || "Guion IA no disponible"}
               </pre>
             </div>
             <div className="flex gap-2">
@@ -286,7 +286,7 @@ const ScriptModal = ({ isOpen, onClose, video }: ScriptModalProps) => {
             {!variantUrgencia && !variantEmocional && !variantComercial ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>Genera variantes optimizadas con IA</p>
+                <p>Genera otras versiones para adaptar a tu producto</p>
               </div>
             ) : (
               <div className="space-y-4">
