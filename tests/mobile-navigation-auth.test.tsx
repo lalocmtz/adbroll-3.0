@@ -4,8 +4,8 @@ import { MemoryRouter } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Login from '@/pages/Login';
 
-const mocks = vi.hoisted(() => ({ signIn: vi.fn(), toast: vi.fn() }));
-vi.mock('@/contexts/BlurGateContext', () => ({ useBlurGateContext: () => ({ isLoggedIn: false, isFounder: false }) }));
+const mocks = vi.hoisted(() => ({ signIn: vi.fn(), toast: vi.fn(), isLoggedIn: false }));
+vi.mock('@/contexts/BlurGateContext', () => ({ useBlurGateContext: () => ({ isLoggedIn: mocks.isLoggedIn, isFounder: false }) }));
 vi.mock('@/contexts/LanguageContext', () => ({ useLanguage: () => ({ language: 'es' }) }));
 vi.mock('@/components/MarketSwitcher', () => ({ default: () => <span>TikTok Shop México</span> }));
 vi.mock('@/components/DashboardFooter', () => ({ default: () => null }));
@@ -16,6 +16,7 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: { auth: {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.isLoggedIn = false;
   vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() } as any);
 });
 
@@ -26,9 +27,20 @@ describe('mobile navigation and login', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Abrir menú' }));
     const menu = await screen.findByRole('dialog', { name: 'Menú de TokXray' });
     expect(screen.getByRole('link', { name: 'Gana recomendando' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Gana recomendando' })).toHaveAttribute('href', '/gana');
+    expect(screen.queryByRole('link', { name: 'Mi panel de referidos' })).not.toBeInTheDocument();
     fireEvent.keyDown(menu, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(screen.queryByRole('link', { name: 'Productos' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the earnings explanation and personal referral panel accessible after signing in', async () => {
+    mocks.isLoggedIn = true;
+    render(<MemoryRouter><DashboardLayout><h1>Catálogo</h1></DashboardLayout></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir menú' }));
+    await screen.findByRole('dialog', { name: 'Menú de TokXray' });
+    expect(screen.getByRole('link', { name: 'Gana recomendando' })).toHaveAttribute('href', '/gana');
+    expect(screen.getByRole('link', { name: 'Mi panel de referidos' })).toHaveAttribute('href', '/affiliates');
   });
 
   it('keeps sign-in failure actionable without exposing server details or changing the account', async () => {

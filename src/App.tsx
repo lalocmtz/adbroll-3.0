@@ -124,6 +124,11 @@ const AppRoute = ({
   );
 };
 
+const PublicAffiliateRedirect = () => {
+  const location = useLocation();
+  return <Navigate to={{ pathname: "/gana", search: location.search, hash: location.hash }} replace />;
+};
+
 const App = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -184,8 +189,8 @@ const App = () => {
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/checkout/success" element={<CheckoutSuccess />} />
                   <Route path="/checkout/cancel" element={<CheckoutCancel />} />
-                  <Route path="/programa-creadores" element={<PartnerLanding />} />
-                  <Route path="/gana" element={<PartnerLanding />} />
+                  <Route path="/programa-creadores" element={<PartnerLanding hasSession={Boolean(session)} />} />
+                  <Route path="/gana" element={<PartnerLanding hasSession={Boolean(session)} />} />
                   <Route path="/colaboraciones" element={<CreatorProgram />} />
                   <Route path="/terminos-afiliados" element={<AffiliateTerms />} />
                   <Route path="/auth/continue" element={<AuthContinue />} />
@@ -261,7 +266,7 @@ const App = () => {
                     path="/affiliates"
                     element={
                       <AppRoute session={session}>
-                        {session ? <Affiliates /> : <Navigate to="/programa-creadores" replace />}
+                        {session ? <Affiliates /> : <PublicAffiliateRedirect />}
                       </AppRoute>
                     }
                   />

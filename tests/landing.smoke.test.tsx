@@ -24,7 +24,8 @@ describe("Mexico launch landing",()=>{
   beforeEach(() => { catalogue.videos = []; });
   it("uses the real capacity for the creator invitation",async()=>{
     await renderLanding();
-    expect(await screen.findByRole('link',{name:'Solo 100 creadores: quedan 76 accesos vitalicios por contenido'})).toHaveAttribute('href','/programa-creadores#acceso-vitalicio');
+    expect(screen.getByRole('link', { name: 'Gana recomendando' })).toHaveAttribute('href', '/gana');
+    expect(await screen.findByRole('link',{name:'Solo 100 creadores: quedan 76 accesos vitalicios por contenido'})).toHaveAttribute('href','/gana#acceso-vitalicio');
   });
   it("does not fabricate rankings when the data source returns no rows",async()=>{
     await renderLanding();

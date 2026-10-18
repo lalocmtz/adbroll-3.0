@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { LucideIcon } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
@@ -34,7 +35,7 @@ interface NavItem {
   to: string;
   labelEs: string;
   labelEn: string;
-  icon: any;
+  icon: LucideIcon;
   lockedForVisitor: boolean;
   founderOnly?: boolean;
 }
@@ -61,7 +62,6 @@ const exploreItems: NavItem[] = [
 const workspaceItems: NavItem[] = [
   { to: "/admin", labelEs: "Control de TokXray", labelEn: "TokXray operations", icon: LayoutDashboard, lockedForVisitor: true, founderOnly: true },
   { to: "/favorites", labelEs: "Favoritos", labelEn: "Favorites", icon: Heart, lockedForVisitor: true },
-  { to: "/affiliates", labelEs: "Gana recomendando", labelEn: "Earn by referring", icon: Coins, lockedForVisitor: false },
 ];
 
 const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
@@ -206,6 +206,12 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
           {renderSectionLabel("workspace")}
           <div className="space-y-0.5">
             {workspaceItems.map(renderNavItem)}
+          </div>
+
+          {renderSectionLabel("earn")}
+          <div className="space-y-0.5">
+            {renderNavItem({ to: "/gana", labelEs: "Gana recomendando", labelEn: "Earn by referring", icon: Coins, lockedForVisitor: false })}
+            {isLoggedIn && renderNavItem({ to: "/affiliates", labelEs: "Mi panel de referidos", labelEn: "My referral dashboard", icon: LayoutDashboard, lockedForVisitor: false })}
           </div>
         </nav>
 

@@ -1,5 +1,6 @@
 import { isCustomAffiliateCode, normalizeReferralCode } from "@/lib/referral-code";
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { AffiliateNetworkPanel } from "@/components/AffiliateNetworkPanel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -187,6 +188,11 @@ const Affiliates = () => {
             </p>
           </div>
         </div>
+        <Button asChild variant="link" className="h-auto px-0 text-primary">
+          <Link to="/gana">
+            {language === "es" ? "Cómo ganar dinero con TokXray" : "How to earn with TokXray"}
+          </Link>
+        </Button>
       </div>
 
       {/* Hero Card */}

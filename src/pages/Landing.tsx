@@ -242,9 +242,9 @@ const Landing = () => {
     <div className="min-h-dvh bg-brand-mist text-brand-ink">
       <GlobalHeader showMenu={false} />
       <div className="flex min-h-11 items-center justify-center gap-3 border-b border-white/10 bg-brand-ink px-4 text-xs text-brand-mist">
-        <a href="/programa-creadores" className="inline-flex min-h-11 items-center gap-1 font-medium">Gana recomendando <ArrowRight className="size-3" /></a>
+        <a href="/gana" className="inline-flex min-h-11 items-center gap-1 font-medium">Gana recomendando <ArrowRight className="size-3" /></a>
         <span className="text-white/20" aria-hidden="true">|</span>
-        <a href="/programa-creadores#acceso-vitalicio" className="inline-flex min-h-11 items-center text-brand-cyan" aria-label={lifetimeCapacity.capacity ? lifetimeCapacity.capacity.is_open ? `Solo 100 creadores: quedan ${lifetimeCapacity.capacity.remaining} accesos vitalicios por contenido` : 'Los 100 accesos vitalicios ya fueron otorgados · conoce el programa' : 'Oferta para los primeros 100 creadores · consulta disponibilidad'}>{lifetimeCapacity.capacity ? lifetimeCapacity.capacity.is_open ? `${lifetimeCapacity.capacity.remaining} de 100 plazas` : 'Conoce el programa' : 'Primeros 100 creadores'}</a>
+        <a href="/gana#acceso-vitalicio" className="inline-flex min-h-11 items-center text-brand-cyan" aria-label={lifetimeCapacity.capacity ? lifetimeCapacity.capacity.is_open ? `Solo 100 creadores: quedan ${lifetimeCapacity.capacity.remaining} accesos vitalicios por contenido` : 'Los 100 accesos vitalicios ya fueron otorgados · conoce el programa' : 'Oferta para los primeros 100 creadores · consulta disponibilidad'}>{lifetimeCapacity.capacity ? lifetimeCapacity.capacity.is_open ? `${lifetimeCapacity.capacity.remaining} de 100 plazas` : 'Conoce el programa' : 'Primeros 100 creadores'}</a>
       </div>
 
       {/* Real catalogue evidence sits beside the promise, with its report period. */}
