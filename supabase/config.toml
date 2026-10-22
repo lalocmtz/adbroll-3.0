@@ -1,4 +1,4 @@
-project_id = "gcntnilurlulejwwtpaa"
+project_id = "tnqvvfpzkjwgllwdwvte"
 
 [functions.send-email]
 verify_jwt = true
@@ -149,3 +149,21 @@ verify_jwt = false
 
 [functions.reset-failed-downloads]
 verify_jwt = true
+
+[functions.checkout-status]
+verify_jwt = false
+
+[functions.analyze-catalog-link]
+# Custom authenticatedAI verifies the user JWT and paid entitlement.
+verify_jwt = false
+
+[functions.catalog-download]
+# Custom authenticatedAI verifies the user JWT and paid entitlement.
+verify_jwt = false
+
+[functions.import-apify-batch]
+# Custom user JWT, paid entitlement and founder role checks.
+verify_jwt = false
+
+[functions.import-kalodata]
+verify_jwt = false

@@ -1,4 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
+import { BrandContactLinks, BRAND_CONTACT } from "@/components/BrandContactLinks";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, Mail, MessageCircle, AlertTriangle, ChevronDown, ChevronUp, CreditCard, RefreshCcw, Settings, Calendar, Database, FileText } from "lucide-react";
@@ -18,11 +19,11 @@ const Support = () => {
   const content = {
     es: {
       title: "Soporte",
-      subtitle: "¿Necesitas ayuda? Estamos aquí para ti",
+      subtitle: "Te ayudamos a seguir con tu próximo video",
       alertTitle: "¿Problema con tu pago?",
-      alertText: "Contáctanos ANTES de abrir una disputa con tu banco. Resolvemos todo en menos de 24 horas.",
+      alertText: "Escríbenos con el correo de tu cuenta, la fecha y el importe del cargo para que podamos revisarlo. No compartas datos completos de tu tarjeta.",
       contactTitle: "Contacto Directo",
-      contactText: "Nuestro equipo responde en 24-48 horas. Preferimos resolver cualquier problema antes de que escale.",
+      contactText: "Cuéntanos qué estabas intentando hacer y qué ocurrió. Si puedes, adjunta una captura sin datos sensibles.",
       faqTitle: "Preguntas Frecuentes",
       linksTitle: "Recursos Útiles",
       viewAllFaq: "Ver todas las preguntas frecuentes",
@@ -32,43 +33,43 @@ const Support = () => {
       faqs: [
         {
           question: "¿Cómo cancelo mi suscripción?",
-          answer: "Ve a Configuración → Gestionar suscripción. Haz clic en 'Cancelar plan' en el portal de pagos. Tu acceso continuará hasta el final del período pagado. No necesitas contactar soporte.",
+          answer: "Ve a Configuración → Mis pagos. Haz clic en 'Cancelar plan' en el portal de pagos. Tu acceso continuará hasta el final del período pagado. No necesitas contactar soporte.",
           icon: <Settings className="h-5 w-5" />
         },
         {
           question: "¿Puedo obtener un reembolso?",
-          answer: "Ofrecemos reembolso completo dentro de las primeras 24 horas si no obtuviste valor del servicio. Después de 24 horas o uso sustancial, no hay reembolsos, pero puedes cancelar para evitar futuros cargos. Envía tu solicitud a contacto@tokxray.com.",
+          answer: "La Política de Reembolsos indica los casos elegibles y el plazo para solicitarlos. Envíanos el correo de tu cuenta y los detalles del cargo a contacto@tokxray.com para revisar tu caso.",
           icon: <RefreshCcw className="h-5 w-5" />
         },
         {
           question: "¿Cómo accedo a mi portal de pagos?",
-          answer: "Ve a Configuración → Gestionar suscripción. El botón te llevará a tu portal de Stripe donde puedes ver facturas, cambiar método de pago y cancelar.",
+          answer: "Ve a Configuración → Mis pagos. El botón te llevará a tu portal de Stripe donde puedes ver facturas, cambiar método de pago y cancelar.",
           icon: <CreditCard className="h-5 w-5" />
         },
         {
           question: "¿Qué incluye mi suscripción?",
-          answer: "Acceso completo a: rankings de productos, transcripción de videos con IA, análisis de guiones, generación de variantes, oportunidades de alta comisión, y actualizaciones diarias de datos.",
+          answer: "Pro te permite comparar productos y videos por sus ventas reportadas, analizar videos disponibles y preparar variantes de guion con IA. El catálogo se actualiza semanalmente.",
           icon: <FileText className="h-5 w-5" />
         },
         {
           question: "¿Cada cuánto se actualizan los datos?",
-          answer: "Los datos se actualizan diariamente. Los rankings de productos, videos y creadores reflejan información de los últimos 7-30 días según la métrica.",
+          answer: "Actualizamos el catálogo semanalmente. Revisa la fecha y el período del reporte en cada ranking: no son ventas en tiempo real ni períodos disponibles para todos los registros.",
           icon: <Calendar className="h-5 w-5" />
         },
         {
           question: "¿Por qué me cobraron si ya cancelé?",
-          answer: "Si cancelaste después de la fecha de renovación, el cargo ya estaba programado. Contáctanos inmediatamente a contacto@tokxray.com y lo revisamos juntos. NO abras disputa con tu banco, podemos ayudarte más rápido.",
+          answer: "Revisa la fecha efectiva de cancelación y el período de la factura en Configuración → Mis pagos. Envíanos esos datos a contacto@tokxray.com para revisar el cargo contigo.",
           icon: <Database className="h-5 w-5" />
         }
       ] as FAQItem[]
     },
     en: {
       title: "Support",
-      subtitle: "Need help? We're here for you",
+      subtitle: "Get help with your next step",
       alertTitle: "Payment issue?",
-      alertText: "Contact us BEFORE opening a dispute with your bank. We resolve everything in less than 24 hours.",
+      alertText: "Send your account email, the charge date and the amount so we can review it. Do not share full card details.",
       contactTitle: "Direct Contact",
-      contactText: "Our team responds within 24-48 hours. We prefer to resolve any issue before it escalates.",
+      contactText: "Tell us what you were trying to do and what happened. A screenshot without sensitive information can help.",
       faqTitle: "Frequently Asked Questions",
       linksTitle: "Useful Resources",
       viewAllFaq: "View all FAQ",
@@ -78,32 +79,32 @@ const Support = () => {
       faqs: [
         {
           question: "How do I cancel my subscription?",
-          answer: "Go to Settings → Manage subscription. Click 'Cancel plan' in the payment portal. Your access will continue until the end of the paid period. No need to contact support.",
+          answer: "Go to Settings → Billing. Click 'Cancel plan' in the payment portal. Your access will continue until the end of the paid period. No need to contact support.",
           icon: <Settings className="h-5 w-5" />
         },
         {
           question: "Can I get a refund?",
-          answer: "We offer a full refund within the first 24 hours if you didn't get value from the service. After 24 hours or substantial use, no refunds, but you can cancel to avoid future charges. Send your request to contacto@tokxray.com.",
+          answer: "The Refund Policy explains eligible cases and request deadlines. Send your account email and charge details to contacto@tokxray.com so we can review your case.",
           icon: <RefreshCcw className="h-5 w-5" />
         },
         {
           question: "How do I access my payment portal?",
-          answer: "Go to Settings → Manage subscription. The button will take you to your Stripe portal where you can view invoices, change payment method, and cancel.",
+          answer: "Go to Settings → Billing. The button will take you to your Stripe portal where you can view invoices, change payment method, and cancel.",
           icon: <CreditCard className="h-5 w-5" />
         },
         {
           question: "What does my subscription include?",
-          answer: "Full access to: product rankings, AI video transcription, script analysis, variant generation, high-commission opportunities, and daily data updates.",
+          answer: "Pro lets you compare products and videos by reported sales, analyze available videos and prepare script variations with AI. The catalog is updated weekly.",
           icon: <FileText className="h-5 w-5" />
         },
         {
           question: "How often is data updated?",
-          answer: "Data is updated daily. Product, video, and creator rankings reflect information from the last 7-30 days depending on the metric.",
+          answer: "The catalog is updated weekly. Check the date and reporting period in each ranking. These are not live sales, and not every period is available for every record.",
           icon: <Calendar className="h-5 w-5" />
         },
         {
           question: "Why was I charged if I already canceled?",
-          answer: "If you canceled after the renewal date, the charge was already scheduled. Contact us immediately at contacto@tokxray.com and we'll review it together. DON'T open a dispute with your bank, we can help you faster.",
+          answer: "Check the effective cancellation date and invoice period in Settings → Billing. Send these details to contacto@tokxray.com so we can review the charge with you.",
           icon: <Database className="h-5 w-5" />
         }
       ] as FAQItem[]
@@ -143,7 +144,7 @@ const Support = () => {
           <p className="text-muted-foreground mb-6">{data.contactText}</p>
           <div className="flex flex-col gap-3">
             <Button asChild size="lg">
-              <a href="mailto:contacto@tokxray.com">
+              <a href={`mailto:${BRAND_CONTACT.email}`}>
                 <Mail className="h-4 w-4 mr-2" />
                 contacto@tokxray.com
               </a>
@@ -154,16 +155,18 @@ const Support = () => {
               className="bg-[#25D366] hover:bg-[#20BD5A] text-white"
             >
               <a 
-                href="https://wa.me/522213267653?text=Hola!%20Tengo%20una%20pregunta%20sobre%20TokXray"
+                href={BRAND_CONTACT.whatsapp}
                 target="_blank" 
                 rel="noopener noreferrer"
               >
                 <MessageCircle className="h-4 w-4 mr-2" fill="white" />
-                {language === "es" ? "Escribir por WhatsApp" : "Message on WhatsApp"}
+                WhatsApp · {BRAND_CONTACT.phoneLabel}
               </a>
             </Button>
           </div>
         </Card>
+
+        <BrandContactLinks socialOnly className="justify-center text-muted-foreground" />
 
         {/* FAQ Section */}
         <Card className="p-6">

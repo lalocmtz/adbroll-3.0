@@ -11,13 +11,13 @@ const Terms = () => {
   const content = {
     es: {
       title: "Términos y Condiciones",
-      lastUpdated: "Última actualización: 2025",
+      lastUpdated: "Última actualización: 14 de octubre de 2026",
       backButton: "Volver al inicio",
       intro: "TokXray es un servicio de suscripción operado por Ecom Genius LLC. Al utilizar esta plataforma, aceptas los siguientes términos:",
       sections: [
         {
           title: "1. Acceso y uso",
-          content: `El acceso a TokXray requiere una suscripción activa. Su uso es personal y no transferible.`
+          content: `Puedes crear una cuenta y explorar la vista previa sin costo. El acceso completo requiere una suscripción activa o un acceso concedido por TokXray, sujeto a sus condiciones. Su uso es personal y no transferible.`
         },
         {
           title: "2. Renovación automática",
@@ -50,13 +50,13 @@ contacto@tokxray.com`
     },
     en: {
       title: "Terms and Conditions",
-      lastUpdated: "Last updated: 2025",
+      lastUpdated: "Last updated: October 14, 2026",
       backButton: "Back to home",
       intro: "TokXray is a subscription service operated by Ecom Genius LLC. By using this platform, you accept the following terms:",
       sections: [
         {
           title: "1. Access and use",
-          content: `Access to TokXray requires an active subscription. Its use is personal and non-transferable.`
+          content: `You can create an account and explore the preview at no cost. Full access requires an active subscription or access granted by TokXray, subject to its conditions. Use is personal and non-transferable.`
         },
         {
           title: "2. Automatic renewal",

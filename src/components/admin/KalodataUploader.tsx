@@ -205,7 +205,7 @@ export const KalodataUploader = ({
                   </div>
                   <div>
                     <p className="text-sm font-semibold">
-                      Arrastra el XLSX de Kalodata aquí
+                      Arrastra el reporte XLSX aquí
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       o haz clic para seleccionar · .xlsx hasta 25 MB

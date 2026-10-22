@@ -154,8 +154,8 @@ const Library = () => {
             </h1>
             <p className="text-xs text-muted-foreground">
               {language === "es" 
-                ? "Guarda todo lo que necesitas para crear videos más rápido" 
-                : "Save everything you need to create videos faster"}
+                ? "Organiza referencias, guiones y archivos para tu próxima grabación"
+                : "Organize references, scripts and files for your next recording"}
             </p>
           </div>
         </div>
@@ -285,8 +285,8 @@ const Library = () => {
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   {language === "es" 
-                    ? "Arrastra archivos aquí o haz clic en Subir" 
-                    : "Drag files here or click Upload"}
+                    ? "Sube los archivos que quieras tener a mano para tu próxima grabación."
+                    : "Upload files you want to have ready for your next recording."}
                 </p>
                 <Button onClick={() => setShowUploader(true)}>
                   <Upload className="h-4 w-4 mr-2" />

@@ -1,0 +1,1477 @@
+TokXray — Biblia de marketing
+
+14 oct 2026
+ ·
+@Eduardo
+
+En una frase
+
+El creador de TikTok Shop no paga por datos: paga por dejar de grabar a ciegas. Y renueva cada mes porque lo que vende cambia cada semana.
+
+Eslogan maestro (estructura StoryBrand: personaje + problema + plan + éxito):
+
+Si grabas para TikTok Shop y no vendes, no es tu cámara: estás grabando a ciegas. TokXray te enseña qué videos están vendiendo hoy en México, cuánto vendieron y el guion para hacer el tuyo. Para que cada video que subas tenga una razón para vender.
+
+Versión corta (bio, hero de la landing, cierre de video): Deja de adivinar. Ve qué vende hoy y qué decir para venderlo.
+
+Este documento usa el marco de Cómo construir una StoryBrand (Donald Miller): el cliente es el héroe, TokXray es el guía, y el villano es grabar a ciegas. Está ordenado con 4-D: Deconstruir (qué vendemos y contra quién), Diagnosticar (quién compra y por qué), Desarrollar (el mensaje) y Entregar (ángulos, guiones y hooks).
+
+La decisión más importante del documento: el avatar que ve los videos no es el mismo que paga y se queda. El orgánico le habla al creador perdido (volumen), pero la oferta, el precio y la retención se diseñan para el creador que ya vendió algo y quiere repetirlo (dinero). Sección 2 explica por qué.
+
+1. Deconstruir — Qué es TokXray y qué vende realmente
+
+TokXray es el radar y el guionista del creador de TikTok Shop México: le dice qué producto grabar y qué decir, con base en lo que ya está vendiendo. No es una herramienta de analítica, y no debe sonar como una.
+
+Lo que hace hoy: muestra los videos que más venden en TikTok Shop México y cuánto generaron, transcribe su guion y lo reescribe en 2 versiones, y señala productos joya (venden mucho, pocos creadores los graban, buena comisión). Se explora gratis, sin tarjeta.
+
+Lo que vende de verdad, en 4 niveles de valor. Cada nivel vale más que el anterior y es más difícil de copiar:
+
+Nivel
+
+Qué recibe el creador
+
+Quién más lo da
+
+Cómo lo decimos
+
+1. Dato
+
+Cuánto vendió un video o producto
+
+Kalodata, FastMoss, EchoTik (en inglés, en dólares)
+
+Prueba, nunca promesa: "este video vendió $X"
+
+2. Decisión
+
+Qué producto agarrar hoy, antes de que se sature
+
+Nadie lo da masticado
+
+"Qué grabar mañana"
+
+3. Ejecución
+
+Qué decir en los primeros 3 segundos, guion listo para su producto
+
+Cursos y gurús, con consejos genéricos
+
+"Copia este guion"
+
+4. Identidad
+
+Ser el creador que vende con datos, no el que adivina
+
+Nadie
+
+"Los que venden no adivinan"
+
+Kalodata vende el nivel 1. TokXray gana en los niveles 2 y 3, y se queda con el cliente por el nivel 4.
+
+Pendientes de coherencia que afectan todo el mensaje:
+
+Precio: la web dice $29 USD, el plan de afiliados se calculó sobre $25 USD y ahora el rango es $15–25 USD. Hay que fijar uno solo, en pesos (propuesta en la sección de precio).
+
+Frescura: la web promete catálogo con actualización semanal; el playbook habla de "cada mañana". La suscripción mensual se justifica con datos diarios (ver sección de plataforma).
+
+1. Deconstruir — El mercado y la competencia
+
+El competidor real de TokXray no es Kalodata: es lo gratis + la intuición (el For You, el centro de afiliados de la app y los consejos de gurús). Las herramientas de datos están en inglés, cobran en dólares y le hablan a marcas y agencias.
+
+Contexto del mercado:
+
+TikTok Shop opera en México desde febrero de 2025, con programa de afiliados para creadores (Mobile Time). Es un mercado joven: la mayoría de los creadores lleva menos de 2 años vendiendo.
+
+La comisión la fija el vendedor, de 1% a 80% (Syncly, citando TikTok Seller University); el rango típico en LATAM es 5–20% por venta (EcomCalcTools).
+
+No existe un dato público confiable de cuántos creadores afiliados hay en México ni cuánto ganan. Las cifras de "el creador promedio gana $X" que circulan no tienen fuente verificable. Nosotros tampoco debemos usarlas.
+
+Competencia directa e indirecta:
+
+Alternativa
+
+Precio mensual
+
+Gratis
+
+Para quién está hecha
+
+Por qué no le resuelve al creador mexicano
+
+Kalodata
+
+$45.99–129.99 USD
+
+Prueba de 7 días, sin plan gratis
+
+Marcas, agencias, vendedores serios
+
+Inglés, dólares, demasiados datos y ninguna instrucción
+
+FastMoss
+
+$49–139 USD
+
+Prueba de 7 días
+
+Vendedores y agencias
+
+Mismo problema; cobertura de México no confirmada
+
+EchoTik
+
+$10.19–19.10 USD
+
+Plan gratis limitado
+
+Vendedores chicos y afiliados
+
+El más cercano en precio; su página lista EE. UU., Reino Unido y Sudeste Asiático, no México
+
+Centro de afiliados de TikTok
+
+$0
+
+Sí
+
+Todos los afiliados
+
+Muestra productos y comisiones; no qué video vendió ni qué dijo
+
+Cursos y mentorías
+
+Pago único
+
+No
+
+Principiantes
+
+Consejos genéricos que no cambian cada semana
+
+Su propio For You
+
+$0
+
+Sí
+
+Todos
+
+Llega tarde: cuando lo ves, ya está saturado
+
+Posicionamiento que sale de esta tabla: el rango de $15–25 USD cae entre EchoTik y Kalodata. No ganamos por barato. Ganamos por ser lo único hecho para México, en español, en pesos, y que además te da el guion. La frase de batalla: "Kalodata te da datos. TokXray te dice qué grabar mañana."
+
+2. Diagnosticar — Estudio del creador de TikTok Shop
+
+El creador de TikTok Shop en México entró por una promesa de ingreso extra desde el celular, chocó con 300 vistas y cero comisiones, y hoy duda si el problema es él. Esa duda es lo que TokXray resuelve.
+
+No hay un estudio público de este creador en México. Esta sección es una síntesis de lo observable (el contenido que consume, sus comentarios, la experiencia de EcomGenius con afiliados de Feel Ink y Skinglow) y se trata como hipótesis hasta validarla con la encuesta de la última sección.
+
+El ciclo emocional del creador
+
+Etapa
+
+Lo que piensa (en sus palabras)
+
+Lo que necesita
+
+Qué le decimos
+
+1. Euforia
+
+"Puedo ganar sin inventario, solo grabando"
+
+Saber por dónde empezar
+
+"Antes de grabar, mira qué está vendiendo hoy"
+
+2. Fricción
+
+"Subo diario y nada, 300 vistas"
+
+Saber qué está fallando
+
+"No es tu cámara, es el producto o el hook"
+
+3. Comparación
+
+"¿Por qué él vende lo mismo y yo no?"
+
+Ver qué hizo distinto el que vende
+
+"Mira exactamente qué dijo en los primeros 3 segundos"
+
+4. Duda
+
+"Igual esto no es para mí"
+
+Una prueba de que sí se puede
+
+"Este video de 14 segundos vendió $X; tú también puedes grabar 14 segundos"
+
+5. Búsqueda de atajo
+
+"Necesito un curso, un truco, algo"
+
+Algo concreto, no motivación
+
+"No necesitas otro curso, necesitas saber qué grabar mañana"
+
+6a. Abandono
+
+"TikTok Shop ya está saturado"
+
+—
+
+Se pierde (nuestro contenido llega antes)
+
+6b. Profesionalización
+
+"Voy en serio, necesito ventaja"
+
+Velocidad, productos antes que nadie
+
+"Los que viven de esto no adivinan"
+
+Nuestro contenido tiene que interceptarlo entre las etapas 2 y 5. Ahí es donde el dolor es más fuerte y todavía no se rindió.
+
+Cómo piensa
+
+Piensa en pesos y en comisiones, no en GMV, ROAS ni "conversión". "Me cayó una comisión de $340" le dice más que cualquier porcentaje.
+
+Aprende copiando a otros creadores, no leyendo. Cree en lo que ve: capturas de comisiones, videos con sus números.
+
+Desconfía de los gurús. Ya vio demasiado "hazte rico con TikTok". Si sonamos a curso de dinero fácil, lo perdemos. Si sonamos a herramienta honesta con datos, ganamos.
+
+Tiene poco tiempo y mucha ansiedad de la página en blanco: abre la app sin saber qué grabar.
+
+Le aterra llegar tarde: "ya todos venden eso".
+
+Su vocabulario: producto ganador, comisión, muestras gratis, "me pegó un video", vistas, shadowban, saturado, centro de afiliados, live.
+
+Cómo decide hoy qué grabar
+
+Lo que le sale en su For You (llega tarde y saturado).
+
+La muestra gratis que le mandaron (elige por lo que le regalan, no por lo que se vende).
+
+La comisión más alta en el centro de afiliados (una comisión alta en un producto que nadie compra vale cero).
+
+Lo que graba un creador grande al que sigue (compite contra alguien con más alcance).
+
+Los cuatro métodos tienen el mismo defecto: ninguno mira qué se está vendiendo de verdad. Ese es el hueco de TokXray, y es un ángulo de contenido en sí mismo ("Si escoges producto por la comisión, ya perdiste").
+
+Qué tiene que pasar para que pague cada mes
+
+Un creador paga una suscripción mensual solo si se cumplen las cuatro condiciones:
+
+Cree que el juego es real: vio a alguien como él vender, o ya vendió algo.
+
+El precio se recupera en pocas ventas: lo calcula en comisiones, no en dólares.
+
+Siente que se queda atrás sin él: los que venden lo usan y él no.
+
+Lo usa cada semana: si un mes no entra, cancela.
+
+El creador perdido total (cero ventas, cero fe) falla la condición 1 y casi siempre la 2. Por eso es audiencia, no comprador principal.
+
+2. Diagnosticar — Los avatares
+
+Hay cinco creadores distintos y no todos pagan igual. El Estancado y el Profesional son el dinero; el Arrancador es el volumen; la Creadora de tiempo parcial y el Faceless son ángulos propios con su propio lenguaje.
+
+Avatar
+
+Perfil
+
+Ventas hoy
+
+Dolor central
+
+Botón emocional principal
+
+Disposición a pagar
+
+Rol
+
+A. El Arrancador
+
+18–30 años, 0–10k seguidores, busca ingreso extra
+
+Cero o casi cero
+
+"No sé qué grabar ni por qué no vendo"
+
+Esperanza + miedo a estar perdiendo el tiempo
+
+Baja; cancela rápido
+
+Alcance y registros gratis
+
+B. El Estancado
+
+Ya vendió; un video le pegó y no sabe repetirlo
+
+Comisiones irregulares
+
+"Fue suerte y no sé cómo repetirlo"
+
+Control: dejar de depender de la suerte
+
+Alta
+
+Comprador principal
+
+C. El Profesional
+
+Vive de comisiones; 3–10 videos al día, a veces con equipo
+
+Constantes
+
+"Necesito el siguiente producto antes que todos"
+
+Ventaja competitiva + miedo a llegar tarde
+
+Muy alta; ya paga herramientas
+
+Plan Pro y embajador
+
+D. La Creadora de tiempo parcial
+
+25–45 años, graba desde casa 1–2 h al día, belleza, hogar, bebé
+
+Pocas
+
+"No puedo desperdiciar los pocos videos que grabo"
+
+Que su tiempo cuente + orgullo frente a los suyos
+
+Media
+
+Ángulo propio
+
+E. El Faceless / IA
+
+No da la cara; produce con IA, b-roll o voz; mentalidad dropshipper
+
+Variables
+
+"Necesito ganadores que pueda replicar en volumen"
+
+Sistema y escala
+
+Media-alta
+
+Early adopter, eco del contenido de Eduardo
+
+Secundario, sin producir para él todavía: marcas, vendedores y agencias que necesitan briefear creadores.
+
+A. El Arrancador (el creador perdido)
+
+Su frase: "Llevo un mes subiendo diario y no me ha caído ni una comisión."
+
+Lo que quiere oír: qué producto agarrar hoy y qué decir en los primeros 3 segundos.
+
+Cómo convertirlo: registro gratis, un guion listo en su primera sesión y una meta clara: su primera venta. Paga cuando ve la primera comisión o cuando el precio de entrada es bajo.
+
+No decirle: "vas a ganar", "ingreso pasivo", "hazte rico". Ya los escuchó y no le funcionaron.
+
+B. El Estancado (nuestro comprador ideal)
+
+Su frase: "Un video me vendió $4,000 y desde ahí nada. No sé qué hice bien."
+
+Lo que quiere oír: que el éxito se puede repetir si sabes qué lo causó.
+
+Por qué paga: ya probó que el dinero existe. El precio es menos que una buena comisión. Su miedo es volver a cero.
+
+No decirle: cosas de principiante. Se siente insultado si le explicas qué es TikTok Shop.
+
+C. El Profesional
+
+Su frase: "Cuando un producto llega a mi For You, ya es tarde."
+
+Lo que quiere oír: productos subiendo antes de saturarse, en México, con su nivel de competencia y comisión.
+
+Por qué paga: el tiempo es su cuello de botella. Una hora ahorrada al día vale más que la suscripción. Probablemente ya pagó Kalodata o FastMoss y le sobraba el 80%.
+
+No decirle: nada motivacional. Quiere velocidad, datos y precisión.
+
+D. La Creadora de tiempo parcial
+
+Su frase: "Solo tengo la hora de la siesta para grabar. No puedo grabar a lo loco."
+
+Lo que quiere oír: que cada video que grabe tenga probabilidad real de vender.
+
+Por qué paga: proteger su poco tiempo y demostrar en casa que esto sí deja dinero.
+
+No decirle: "sube 5 videos diarios". Ese consejo la expulsa.
+
+E. El Faceless / IA
+
+Su frase: "No necesito dar la cara, necesito saber qué producto y qué guion meterle a la IA."
+
+Lo que quiere oír: guiones ganadores listos para voz IA y b-roll, en volumen.
+
+Por qué paga: es la materia prima de su sistema. Sin datos, su volumen es basura en volumen.
+
+No decirle: "sé auténtico, muestra tu cara".
+
+2. Diagnosticar — Por qué pagaría $15–25 al mes
+
+Paga porque cada video sin datos le cuesta tiempo y comisiones que se lleva otro, y porque lo que vende cambia cada semana. El precio se defiende en comisiones, no en dólares; la mensualidad se defiende con frescura.
+
+Los botones emocionales
+
+Cada video aprieta uno, máximo dos. Los tres primeros son los que más mueven a pagar; los demás sirven para alcance y confianza.
+
+Botón
+
+Lo que siente el creador
+
+Ejemplo de línea
+
+Avatar
+
+1. Miedo a perder el tiempo
+
+"Llevo meses grabando para nada"
+
+"Cada video que grabas a ciegas es una hora que no vuelve"
+
+A, D
+
+2. Miedo a llegar tarde
+
+"Cuando lo veo, ya todos lo venden"
+
+"Si lo viste en tu For You, ya llegaste tarde"
+
+B, C
+
+3. Control y alivio
+
+"Quiero dejar de depender de la suerte"
+
+"Imagínate abrir la app sabiendo exactamente qué grabar"
+
+B, D
+
+4. Prueba y esperanza
+
+"¿De verdad alguien vende con esto?"
+
+"Este video de 14 segundos vendió $[X] según el reporte"
+
+A, B
+
+5. Curiosidad y secreto revelado
+
+"¿Qué saben ellos que yo no?"
+
+"Esto debería ser ilegal: puedes ver cuánto vendió cada video"
+
+Todos
+
+6. Comparación
+
+"¿Por qué él sí y yo no?"
+
+"Vende el mismo producto que tú. La diferencia son estas 9 palabras"
+
+A, B
+
+7. Injusticia
+
+"Los grandes tienen ventaja"
+
+"Las agencias pagan $2,000 pesos al mes por estos datos. Tú los adivinas"
+
+A, B
+
+8. Estatus e identidad
+
+"Quiero ser de los que sí venden"
+
+"Los creadores que viven de esto no adivinan"
+
+B, C, E
+
+9. Pérdida en pesos
+
+"Esa comisión era mía"
+
+"Ese producto lo viste primero. La comisión se la llevó otro"
+
+B, C
+
+El dato de las agencias (botón 7) se apoya en el precio de Kalodata y FastMoss: entre $46 y $139 USD al mes. Usar la cifra en pesos y redondeada hacia abajo, nunca inflada.
+
+Por qué mensual y no un pago único
+
+El argumento de la suscripción es la caducidad: lo que vendía hace un mes hoy está saturado. Un curso te enseña una vez; TokXray te dice lo de hoy, todos los días. Frase para usar: "No pagas por información. Pagas por la de hoy."
+
+La economía del precio
+
+El creador hace una sola cuenta: ¿cuántas ventas necesito para pagarlo? Fórmula: precio mensual ÷ comisión promedio por venta.
+
+Ejemplo ilustrativo (supuesto, no dato de mercado): producto de $300 MXN con 15% de comisión = $45 MXN por venta. A $299 MXN al mes, se paga con unas 7 ventas al mes, menos de 2 por semana. Para el Estancado y el Profesional eso es poco. Para el Arrancador con cero ventas sigue siendo una barrera, y por eso necesita el plan gratis.
+
+Propuesta de precios (en pesos, números redondos):
+
+Plan
+
+Precio
+
+Para quién
+
+Qué incluye
+
+Gratis
+
+$0, sin tarjeta
+
+A. Arrancador
+
+Top 10 del día con cifras, 3 guiones por semana
+
+Creador
+
+$299 MXN al mes (aprox. $15–16 USD)
+
+B, D
+
+Ranking completo, guiones ilimitados adaptados a tu producto, productos joya, filtros por nicho
+
+Pro
+
+$449 MXN al mes (aprox. $23–24 USD)
+
+C, E
+
+Todo lo anterior + alertas de productos subiendo, indicador de saturación, guiones listos para voz IA, historial
+
+Anual
+
+2 meses gratis
+
+B, C
+
+Baja la cancelación del primer mes
+
+Las equivalencias en dólares son aproximadas; verificar con el tipo de cambio al publicar. Cobrar en pesos quita la fricción de "cuánto me va a cobrar mi banco" y nos separa de las herramientas gringas.
+
+3. Desarrollar — El guion de marca StoryBrand (SB7)
+
+El creador es el héroe, TokXray es el guía y el villano es grabar a ciegas. Si un video, una landing o un correo pone a TokXray como protagonista, está mal escrito.
+
+El esquema SB7 del libro: un personaje que quiere algo tiene un problema, conoce a un guía que le da un plan y lo llama a actuar, para evitar el fracaso y terminar en el éxito. Más el capítulo 11: la gente quiere que tu marca participe en su transformación.
+
+#
+
+Elemento SB7
+
+TokXray
+
+1
+
+Un personaje (lo que quiere)
+
+Un creador de TikTok Shop que quiere que sus videos vendan y le caigan comisiones constantes
+
+2
+
+Tiene un problema (villano + 3 niveles)
+
+Graba a ciegas: no sabe qué producto ni qué decir, y empieza a dudar de sí mismo
+
+3
+
+Y conoce a un guía (empatía + autoridad)
+
+TokXray: también grabamos y vendemos en TikTok Shop, y vemos qué vende cada día
+
+4
+
+Que le da un plan (proceso + acuerdo)
+
+1. Mira qué vende hoy. 2. Copia el guion adaptado a tu producto. 3. Graba, publica y repite lo que funciona
+
+5
+
+Y lo llama a actuar (directa + de transición)
+
+"Empieza gratis" / "Comenta TOP y te mando el top de hoy"
+
+6
+
+Para evitar el fracaso
+
+Seguir meses grabando para nada y ver cómo otro se lleva la comisión del producto que tú viste primero
+
+7
+
+Y terminar en el éxito
+
+Abrir la app sabiendo qué grabar, y que cada video tenga una razón para vender
+
++
+
+Transformación de identidad
+
+De creador que adivina a creador que vende con datos
+
+El villano: grabar a ciegas
+
+El libro pide cuatro cosas de un buen villano. Grabar a ciegas cumple las cuatro:
+
+Es la causa raíz. La frustración de 300 vistas y cero ventas es el efecto. La causa es elegir producto y hook sin saber qué vende.
+
+Se puede personificar. Visualmente es la venda en los ojos, y TokXray son los rayos X que la atraviesan. Ese contraste (venda contra rayos X) es el motivo visual de la marca: "Quítate la venda."
+
+Es uno solo. Sus cómplices no son villanos aparte, son las caras de la venda: el For You que te enseña el producto cuando ya está saturado, la muestra gratis que eliges porque fue gratis, la comisión alta en un producto que nadie compra, y el consejo genérico de "sé constante y sube diario".
+
+Es real. No hay que inventar miedo: casi todos eligen producto así.
+
+Regla: el villano nunca es TikTok, ni el algoritmo, ni otros creadores, ni el creador mismo. Atacar a TikTok nos pone en riesgo de plataforma; atacar al creador lo humilla.
+
+Los tres niveles del problema
+
+El libro lo resume así: las marcas venden soluciones a problemas externos, pero la gente compra soluciones a problemas internos.
+
+Externo: no sabe qué producto grabar ni qué decir en los primeros 3 segundos. Graba y no vende.
+
+Interno (el que compra): "¿Tengo lo que hay que tener?". Siente que pierde el tiempo, que esto no es para él. Le pesa la pregunta de los suyos: "¿y cuánto has ganado con tus videitos?". Le duele ver a otros con menos talento vender.
+
+Filosófico: ganar en TikTok Shop no debería depender de la suerte ni de poder pagar herramientas en dólares. Lo que funciona debería estar a la vista de cualquier creador.
+
+El guía: empatía + autoridad
+
+Empatía ("te entiendo"): "Sabemos lo que es subir 30 videos y que ninguno venda." Eduardo graba con su propia cuenta de creador y documenta el proceso (formato Reto en público), así que la empatía es real, no actuada.
+
+Autoridad ("sé cómo salir"): se demuestra, no se presume. Tres fuentes:
+
+Los datos: "Analizamos [N] videos de TikTok Shop México cada día" (llenar con el número real).
+
+El otro lado del mostrador: EcomGenius opera marcas en TikTok Shop y paga comisiones a creadores, así que ve qué videos venden desde adentro. Confirmar si se quiere decir en público.
+
+Resultados de usuarios, en cuanto existan, con permiso y sin prometer ingresos.
+
+El plan
+
+Plan de proceso (quita la confusión): 1. Mira qué está vendiendo hoy. 2. Copia el guion adaptado a tu producto. 3. Graba, publica y repite lo que funciona.
+
+Plan de acuerdo (quita el miedo):
+
+Exploras gratis, sin tarjeta.
+
+Cancelas cuando quieras, con un clic.
+
+Datos de México, en pesos y en español.
+
+Nunca te prometemos ingresos: te enseñamos lo que ya está funcionando.
+
+Cada cifra dice de dónde sale y de qué periodo.
+
+La llamada a la acción
+
+Directa (para el que ya está listo): "Empieza gratis en el link del perfil." En la app: "Desbloquea el top completo".
+
+De transición (para el que todavía no): "Comenta TOP y te mando el top de hoy", "Guarda este guion", "Los 10 guiones que más vendieron esta semana" como lead magnet.
+
+Lo que está en juego (fracaso)
+
+El libro dice que el fracaso es como la sal: poco sazona, mucho arruina. Una línea por video, nunca el video entero.
+
+Tres meses más grabando para nada.
+
+Ver cómo otro se lleva la comisión del producto que tú viste primero.
+
+Rendirte creyendo que no es para ti, cuando lo que te faltaba era información.
+
+El éxito
+
+El libro identifica tres finales que satisfacen a todos: ganar poder o posición, unirse con algo que te completa y la autorrealización. Para TokXray:
+
+Posición: ser el creador al que le preguntan "¿qué estás vendiendo?", el que llega primero.
+
+Unión: ser parte de los creadores que sí venden (base para una comunidad más adelante).
+
+Autorrealización: demostrarte que sí tenías lo que había que tener.
+
+Antes y después (tabla de Ryan Deiss que cita el libro):
+
+Antes de TokXray
+
+Después de TokXray
+
+¿Qué tiene?
+
+Un celular lleno de videos sin ventas
+
+Una lista de productos con demanda y guiones que ya vendieron
+
+¿Qué siente?
+
+Ansiedad, duda, "igual no es para mí"
+
+Claridad y control
+
+¿Cómo es su día?
+
+Abre la app sin saber qué grabar, copia lo que ve, revisa vistas cada hora
+
+Abre TokXray, elige 3 productos, graba 3 guiones en una hora, revisa qué repetir
+
+¿Cuál es su estatus?
+
+"El que sube videitos"
+
+"El que vive de comisiones"
+
+La transformación de identidad
+
+De: creador que adivina. A: creador que vende con datos.
+
+Variantes para copy: de perdido a estratega; de "subo videos" a "cobro comisiones"; de "a ver si pega" a "sé por qué va a pegar".
+
+3. Desarrollar — Mensajes maestros y vocabulario
+
+Todo el contenido sale de cuatro pilares. Un video que no cabe en ninguno no se produce.
+
+Pilar
+
+Idea
+
+Línea ancla
+
+Botón que aprieta
+
+1. Quítate la venda
+
+El problema no eres tú, es que grabas a ciegas
+
+"Si grabas diario y no vendes, no es tu cámara: es que estás adivinando"
+
+Alivio, control
+
+2. Lo de hoy
+
+Lo que vende cambia cada semana
+
+"Si lo viste en tu For You, ya llegaste tarde"
+
+Miedo a llegar tarde
+
+3. Del dato al guion
+
+No solo ves qué vende, sabes qué decir
+
+"Estas 9 palabras vendieron $[X]. Cópialas para tu producto"
+
+Prueba, curiosidad
+
+4. Hecho para México
+
+En español, en pesos, con datos de aquí
+
+"Las agencias pagan en dólares por esto. Aquí lo ves en pesos"
+
+Injusticia, pertenencia
+
+Tono
+
+Un compa que ya sabe y te enseña la pantalla. Directo, mexicano, con números. Cero gurú, cero motivación vacía. Muestra antes de decir: primero la cifra, luego la explicación.
+
+En vez de…
+
+Decir…
+
+"Plataforma de inteligencia de datos para TikTok Shop"
+
+"Ves qué videos están vendiendo hoy y cuánto vendieron"
+
+"Optimiza tu GMV con insights"
+
+"Graba lo que ya está vendiendo"
+
+"Gana miles desde casa"
+
+"Este video vendió $[X] según el reporte. Mira qué dijo"
+
+"El secreto que TikTok no quiere que sepas"
+
+"Lo que los que venden revisan antes de grabar"
+
+"Hazte creador exitoso"
+
+"Deja de adivinar qué grabar"
+
+Palabras que sí
+
+vender, comisión, grabar, guion, producto ganador, producto joya, hoy, en pesos, a ciegas, la venda, rayos X, los primeros 3 segundos, saturado, llegar primero.
+
+Palabras y promesas prohibidas
+
+Jerga de marketero: GMV, ROAS, analytics, dashboard, insights, data-driven, conversión.
+
+Promesas de ingreso: "vas a ganar", "ingreso pasivo", "hazte rico", "garantizado", "dinero fácil". Además de alejar al creador, ponen en riesgo las cuentas.
+
+Atacar a TikTok o presentarnos como oficiales. Bio y landing: "No afiliado a TikTok".
+
+Cifras sin fuente. Toda cifra lleva periodo y "según el reporte".
+
+El resto de reglas de publicación (clips ajenos, etiqueta de IA, divulgación comercial) están en el Playbook orgánico y aplican igual.
+
+4. Entregar — Ángulos de contenido
+
+Catorce ángulos, cada uno amarrado a un avatar, un botón y un formato. Los formatos F1–F6 son los del Playbook orgánico; "Reacción" es el formato de reacción UGC + demo de la app. Cada ángulo se juzga con las reglas del Sistema de medición (10 piezas antes de decidir).
+
+#
+
+Ángulo
+
+Premisa
+
+Avatar
+
+Botón
+
+Formato
+
+1
+
+La venda
+
+No es tu cámara ni tu cara: estás grabando a ciegas
+
+A, B
+
+Alivio
+
+F5
+
+2
+
+Llegaste tarde
+
+Lo que ves en tu For You ya está saturado
+
+B, C
+
+Llegar tarde
+
+F2
+
+3
+
+La comisión trampa
+
+Escoges producto por la comisión o por la muestra gratis, no por lo que se vende
+
+A, D
+
+Pérdida
+
+F5
+
+4
+
+Esto debería ser ilegal
+
+Revelación: existe un lugar donde ves cuánto vendió cada video
+
+Todos
+
+Curiosidad
+
+Reacción
+
+5
+
+Las 9 palabras
+
+Desglose del hook de un video que vendió $[X]
+
+A, B
+
+Prueba
+
+F3
+
+6
+
+Mismo producto, otro resultado
+
+Dos videos del mismo producto: uno vendió $[X], el otro casi nada. La diferencia
+
+A, B
+
+Comparación
+
+F1 / F3
+
+7
+
+Copia este guion
+
+Plantilla con [TU PRODUCTO] lista para grabar
+
+A, D, E
+
+Control
+
+F4
+
+8
+
+Producto joya
+
+Vende mucho y casi nadie lo graba
+
+B, C
+
+Llegar primero
+
+F2
+
+9
+
+Lo que pagan las agencias
+
+Los grandes pagan en dólares por estos datos; tú adivinas
+
+A, B
+
+Injusticia
+
+F5 / Reacción
+
+10
+
+Reto en público
+
+Eduardo, día N grabando solo lo que dice el top
+
+Todos
+
+Prueba y pertenencia
+
+F6
+
+11
+
+Una hora, tres videos
+
+Cómo grabar 3 videos con probabilidad real de vender en la hora que tienes
+
+D
+
+Tiempo
+
+Demo
+
+12
+
+Guiones para tu IA
+
+Del top del día a un guion listo para voz IA y b-roll
+
+E
+
+Sistema
+
+Demo
+
+13
+
+¿Fue suerte o fue el guion?
+
+Por qué un video te pegó y cómo repetirlo
+
+B
+
+Control
+
+F3 / F5
+
+14
+
+El día del creador
+
+Antes: abre la app sin saber qué grabar. Después: abre TokXray
+
+A, D
+
+Transformación
+
+Sketch / Reacción
+
+Prioridad de arranque: 4, 1, 5, 2 y 7. El 4 es el formato de reacción que ya estás montando; el 1 fija el villano; el 5 y el 7 salen de la plataforma sin grabar; el 2 le habla al comprador que sí paga.
+
+Para medir por ángulo, agrega el número de ángulo a la nomenclatura del Sistema de medición: F#-A#-HOOK-CATEGORIA-AAMMDD-v#.
+
+4. Entregar — Estructuras de guion
+
+Cada guion es el SB7 comprimido en 20–35 segundos: problema (con villano) → golpe interno → guía que lo demuestra en pantalla → plan → una sola llamada. El mínimo aceptable es problema + guía + llamada; lo demás se agrega si cabe.
+
+E1. Reacción + demo (ángulo 4, 9 o 14)
+
+0–3 s: reacción UGC sin voz (toma de 4 s), muy emocional, con el texto del hook en pantalla: "Esto debería ser ilegal".
+
+3–7 s: pantalla del ranking con la cifra grande. Voz o texto: "Hay una página donde ves cuánto vendió cada video de TikTok Shop México."
+
+7–14 s: zoom al video número 1: "Este vendió $[X] esta semana según el reporte. Y te enseña exactamente qué dijo."
+
+14–20 s: guion resaltado, luego la versión reescrita: "Y te lo reescribe para tu producto."
+
+20–25 s: "Se llama TokXray. Se ve gratis, está en mi perfil."
+
+Textos alternos para la reacción: "Con razón ellos venden y yo no", "Ya sé por qué no me caían comisiones", "No puedo creer que esto se vea gratis", "Me acabo de quitar la venda". La emoción de la cara tiene que coincidir con el texto.
+
+E2. El villano (ángulo 1, 3 o 13)
+
+0–3 s: "Si grabas diario y no vendes, no es tu cámara."
+
+3–9 s: "Es que escoges producto a ciegas: por la muestra gratis, por la comisión o porque lo viste en tu For You. Y luego crees que el problema eres tú." (golpe interno)
+
+9–18 s: prueba en pantalla: "Este producto paga 25% y esta semana casi no vendió. Este paga 12% y vendió $[X]."
+
+18–24 s: plan: "Antes de grabar: mira qué vende hoy, copia el guion, grábalo."
+
+24–30 s: llamada.
+
+E3. El desglose (ángulo 5, 6 o 13)
+
+0–3 s: la cifra en el primer frame: "Estas 9 palabras vendieron $[X]."
+
+3–8 s: el hook recreado en texto o actuado (nunca el clip ajeno).
+
+8–20 s: por qué funciona, en 3 partes: el dolor que nombra, lo que enseña, la oferta.
+
+20–27 s: cómo adaptarlo: "Si vendes [categoría], cambia esto por esto."
+
+27–32 s: "El guion completo y los otros 19 del top están en mi perfil."
+
+E4. La plantilla (ángulo 7 o 12)
+
+0–2 s: "Guarda este guion. Funciona con cualquier producto de [categoría]."
+
+2–18 s: la plantilla en pantalla con [TU PRODUCTO], leída en voz.
+
+18–22 s: de dónde sale: "Sale de un video que vendió $[X] esta semana."
+
+22–25 s: "Guárdalo. Mañana subo otro." (llamada de transición: guardado + seguir)
+
+E5. Reto en público (ángulo 10)
+
+0–3 s: "Día [N] grabando solo lo que dice el top."
+
+3–12 s: qué producto elegí del top y por qué (pantalla).
+
+12–25 s: el resultado real de mi cuenta, bueno o malo (pantalla de comisiones propia).
+
+25–35 s: lo que aprendí y qué pruebo mañana. Llamada: "Sígueme para ver el día [N+1]."
+
+Los días malos se publican también. Son los que construyen confianza.
+
+E6. Antes y después (ángulo 14)
+
+0–5 s: "Antes": creador con una venda literal en los ojos, scrolleando sin saber qué grabar, 12 vistas.
+
+5–12 s: se quita la venda, abre TokXray, ve el ranking.
+
+12–20 s: elige producto, copia guion, graba.
+
+20–25 s: "De adivinar a vender con datos." Llamada.
+
+Checklist antes de producir cualquier guion
+
+El héroe es el creador, no TokXray.
+
+El villano (grabar a ciegas o una de sus caras) aparece nombrado o mostrado.
+
+Toca el problema interno al menos con una línea.
+
+La autoridad se demuestra con pantalla, no con adjetivos.
+
+El plan tiene máximo 3 pasos.
+
+Hay una sola llamada a la acción.
+
+Toda cifra lleva periodo y "según el reporte".
+
+Ninguna promesa de ingresos.
+
+4. Entregar — Banco de hooks
+
+Cincuenta hooks agrupados por botón. [X] siempre es una cifra real del reporte, en pesos, con periodo. Los de "revelación" van como texto de las reacciones (máximo 8 palabras).
+
+Quítate la venda (alivio) — avatares A, B
+
+Si grabas diario y no vendes, no es tu cámara.
+
+No es que TikTok Shop esté saturado. Es que estás grabando a ciegas.
+
+Tu problema no es el algoritmo. Es el producto que escogiste.
+
+300 vistas y cero ventas tiene explicación. Y no eres tú.
+
+El error que casi todos cometen antes de grabar para TikTok Shop.
+
+Revelación (curiosidad) — texto para reacciones, todos
+
+Esto debería ser ilegal.
+
+No puedo creer que esto se vea gratis.
+
+Con razón ellos venden y yo no.
+
+Ya sé por qué no me caían comisiones.
+
+Me acabo de quitar la venda.
+
+Encontré lo que revisan los que sí venden.
+
+¿Por qué nadie me enseñó esto antes?
+
+Prueba (cifra en el primer frame) — A, B
+
+Este video vendió $[X] y dura 14 segundos.
+
+Estas 9 palabras vendieron $[X] en TikTok Shop.
+
+El video que más vendió esta semana en México no muestra ninguna cara.
+
+Grabado en una cocina. Vendió $[X]. Mira qué dijo.
+
+No tiene ni 2 mil seguidores y este video vendió $[X].
+
+Llegaste tarde (miedo a llegar tarde) — B, C
+
+Si lo viste en tu For You, ya llegaste tarde.
+
+Este producto vendió $[X] esta semana y casi nadie lo está grabando.
+
+Para cuando lo grabes, este ya va a estar saturado. Mira cuál sigue.
+
+Los que venden no esperan a que el producto les salga en el For You.
+
+3 productos que están subiendo esta semana en TikTok Shop México.
+
+Comparación — A, B
+
+Mismo producto, mismo precio. Uno vendió $[X], el otro casi nada. La diferencia: 3 segundos.
+
+Él vende lo mismo que tú. Esto es lo que dice distinto.
+
+Tú grabas mejor que él. Él vende más. Esta es la razón.
+
+La comisión trampa (pérdida) — A, D
+
+Si escoges producto por la comisión, ya perdiste.
+
+La muestra gratis que te mandaron te está costando dinero.
+
+30% de comisión de un producto que nadie compra son cero pesos.
+
+Injusticia y México — A, B
+
+Las herramientas que usan las agencias cuestan de 46 a 139 dólares al mes. Tú adivinas gratis.
+
+Todas las herramientas de TikTok Shop están en inglés y en dólares. Hasta ahora.
+
+Saber qué vende en TikTok Shop México no debería ser solo para los grandes.
+
+Control (plantilla) — A, D, E
+
+Guarda este guion: funciona con cualquier producto de belleza.
+
+Si no sabes qué decir a cámara, copia esto.
+
+Lo que reviso antes de grabar cualquier video de TikTok Shop.
+
+Antes de grabar mañana, mira esto.
+
+Tiempo — D
+
+Si solo tienes una hora para grabar, no la gastes adivinando.
+
+3 videos en una hora, todos de productos que ya están vendiendo.
+
+Grabo en la hora de la siesta, así que no puedo grabar cualquier cosa. (para creadoras colaboradoras, en primera persona)
+
+Sistema e IA — E
+
+No muestro mi cara. Este es el guion que le meto a la IA.
+
+Antes de generar un video con IA, revisa esto.
+
+Mi sistema para sacar 20 videos al día empieza aquí.
+
+Repetir el éxito — B
+
+Un video te pegó y no sabes por qué. Te explico.
+
+¿Fue suerte o fue el guion? Así lo sabes.
+
+Si ya vendiste una vez, puedes repetirlo. Esto es lo que cambió.
+
+Identidad — B, C, E
+
+Los creadores que viven de TikTok Shop no adivinan qué grabar.
+
+La diferencia entre el que sube videos y el que cobra comisiones.
+
+Dejé de adivinar qué grabar. Esto es lo que hago ahora.
+
+Reto en público — todos
+
+Día 1 grabando solo lo que dice el top.
+
+Día 7 copiando solo los guiones que más venden. Esto pasó.
+
+Día 14: el video que menos esperaba fue el que vendió.
+
+4. Entregar — Objeciones y cómo responderlas
+
+Cada objeción es también un video. Las tres primeras son las que más frenan el pago y van en la landing, junto al botón.
+
+Objeción
+
+Qué hay detrás
+
+Respuesta
+
+"Eso lo veo gratis en el centro de afiliados"
+
+No ve la diferencia con lo gratis
+
+"Ahí ves productos y comisiones. Aquí ves qué video vendió, cuánto y qué dijo."
+
+"No he vendido nada, no tengo para pagar"
+
+Miedo a gastar en algo que no le funcione
+
+"Empieza gratis, sin tarjeta. Pagas cuando quieras el top completo. Y se paga con unas pocas ventas."
+
+"Ya pagué un curso y no funcionó"
+
+Desconfianza de gurús
+
+"Esto no es un curso. Un curso te enseña una vez; esto te dice lo de hoy. Cancelas con un clic."
+
+"Si todos copian el mismo guion, se satura"
+
+Miedo a llegar tarde
+
+"Por eso te enseñamos productos que venden y casi nadie graba, y el guion se adapta a tu producto, no se copia."
+
+"¿Los datos son reales?"
+
+Desconfianza
+
+"Cada cifra dice de dónde sale y de qué periodo. Míralo tú gratis."
+
+"¿Es de TikTok? ¿Me pueden banear por usarlo?"
+
+Miedo a perder su cuenta
+
+"No somos de TikTok. Solo ves información; nada se publica en tu cuenta."
+
+"Ya uso Kalodata o FastMoss"
+
+Ya tiene herramienta
+
+"Esta está en español, con datos de México, en pesos, y te da el guion. Por una fracción del precio."
+
+"Copiar no es auténtico"
+
+Orgullo creativo
+
+"No copias el video. Entiendes por qué vendió y lo dices con tu voz."
+
+"TikTok Shop ya está saturado"
+
+Está en la etapa de abandono
+
+"Saturado está lo que todos ven. Hay productos vendiendo hoy que casi nadie graba."
+
+Ojo con la respuesta de la cuenta de TikTok: confirmar que TokXray no pide acceso a la cuenta del usuario antes de decirlo.
+
+Qué tiene que ser la plataforma para que paguen cada mes
+
+El marketing trae al creador; la plataforma lo hace pagar el segundo mes. El mayor riesgo de una suscripción así es que el usuario pague, saque 20 productos y cancele. Cada requisito de abajo existe para evitar eso.
+
+#
+
+Requisito
+
+Por qué hace que pague o se quede
+
+Prioridad
+
+1
+
+Datos frescos cada mañana
+
+Es el argumento entero de la mensualidad. Con actualización semanal, "lo de hoy" no se sostiene
+
+Ahora
+
+2
+
+Momento "ajá" en menos de 5 minutos
+
+Primera sesión: elige nicho, ve 3 productos con cifra, copia 1 guion. Si no pasa, el registro gratis nunca paga
+
+Ahora
+
+3
+
+Guion adaptado a SU producto
+
+Pasa del nivel 1 (dato) al 3 (ejecución), que es lo que nadie más da
+
+Ahora (ya existe en 2 versiones)
+
+4
+
+Señal de oportunidad
+
+Productos joya con ventas, cuántos creadores lo graban y comisión: responde "¿llego tarde?"
+
+Ahora
+
+5
+
+"Tu lista de hoy"
+
+3 productos + 3 guiones cada mañana, por correo o WhatsApp. Crea el hábito diario
+
+Siguiente
+
+6
+
+Filtros por nicho
+
+Belleza, hogar, bebé, gadgets: la Creadora de tiempo parcial no quiere ver todo
+
+Siguiente
+
+7
+
+Guion listo para voz IA o teleprompter
+
+Le habla al Faceless y al Profesional
+
+Siguiente
+
+8
+
+Alertas de productos subiendo
+
+El argumento del plan Pro: llegar antes que todos
+
+Pro
+
+9
+
+"Mis videos": registrar qué grabó y qué vendió
+
+Convierte la herramienta en su sistema y refuerza la identidad de "creador que vende con datos"
+
+Después
+
+10
+
+Comunidad de creadores
+
+El final de "unión" del SB7; sube la retención
+
+Después
+
+El muro de pago: lo gratis tiene que probar que la cifra es real (top 10 con montos visibles), pero esconder lo que el creador necesita para actuar: el guion adaptado, el ranking completo y los productos joya. Mostrar la prueba, cobrar la ejecución.
+
+Hipótesis a validar y siguientes pasos
+
+Casi todo lo anterior sobre el creador es inferencia. Cuatro hipótesis deciden si el documento está bien enfocado, y las cuatro se pueden probar en 30 días sin pauta.
+
+Hipótesis
+
+Cómo se valida
+
+Señal de que es cierta
+
+H1. El Estancado paga más que el Arrancador
+
+Una pregunta obligatoria en el registro ("¿cuánto te dejó TikTok Shop el mes pasado?", por rangos) cruzada con pagos en Stripe
+
+La tasa de pago de quienes ya venden es al menos el doble
+
+H2. "Grabar a ciegas" funciona como villano
+
+Ángulo 1 contra ángulo 4, 10 piezas cada uno
+
+Registros por 1,000 vistas iguales o mayores en el ángulo 1
+
+H3. $299 MXN es un precio aceptado
+
+Encuesta a la base de CloseUGC con preguntas de rango de precio, y después prueba de $299 contra $399 en la landing
+
+Conversión a pago similar entre ambos precios = subir
+
+H4. La frescura diaria retiene
+
+Comparar cancelación del mes 1 antes y después de actualizar diario y lanzar "Tu lista de hoy"
+
+La cancelación del mes 1 baja
+
+Encuesta de 5 preguntas para creadores (CloseUGC y comunidad):
+
+¿Cuánto te dejó TikTok Shop en comisiones el mes pasado? (rangos en pesos)
+
+¿Cómo escoges qué producto grabar?
+
+¿Qué es lo más frustrante de vender en TikTok Shop ahorita?
+
+¿Pagas hoy alguna herramienta, curso o mentoría? ¿Cuál y cuánto?
+
+¿A qué precio al mes una herramienta así te parecería cara, y a cuál tan barata que desconfiarías?
+
+Las respuestas a la 3 se copian textuales al banco de hooks: la mejor fuente de copy es la voz del cliente.
+
+Siguientes pasos:
+
+Fijar un solo precio en pesos y corregir la landing y los metadatos.
+
+Reescribir el hero de la landing con el eslogan, el plan de 3 pasos y el plan de acuerdo.
+
+Agregar la pregunta de ventas del mes pasado al registro.
+
+Mandar la encuesta y hacer 10 entrevistas de 15 minutos (5 Estancados, 5 Arrancadores).
+
+Producir 10 piezas de cada ángulo prioritario: 4, 1, 5, 2 y 7.
+
+Llenar el dato de autoridad: cuántos videos analiza TokXray al día.
+
+Decidir si se dice en público que EcomGenius opera marcas en TikTok Shop.
+
+Pasar la actualización de datos de semanal a diaria.
+
+Fuentes
+
+Donald Miller, Cómo construir una StoryBrand (esquema SB7, capítulos 4–11 y eslogan de la hoja de ruta).
+
+Proyecto TokXray: Playbook orgánico y Sistema de medición (10-oct-2026).
+
+Mobile Time — TikTok Shop llega a México (12-feb-2025)
+
+Creatify — Kalodata pricing plans 2026
+
+Pulse Signal — FastMoss pricing
+
+EchoTik vs Kalodata (página del propio EchoTik)
+
+Syncly — TikTok Shop affiliate ROI in 2026
+
+EcomCalcTools — Comisiones de TikTok Shop en LATAM 2026
+
+Dashboardly — TikTok Shop affiliate creator statistics

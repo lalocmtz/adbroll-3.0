@@ -60,8 +60,8 @@ export const FinancialDashboard = () => {
       const proSubs = activeSubs.filter(s => (s.price_usd || 0) <= 20);
       const premiumSubs = activeSubs.filter(s => (s.price_usd || 0) > 20);
       
-      const mrrPro = proSubs.reduce((sum, s) => sum + (s.price_usd || 25), 0);
-      const mrrPremium = premiumSubs.reduce((sum, s) => sum + (s.price_usd || 49), 0);
+      const mrrPro = proSubs.reduce((sum, s) => sum + (s.price_usd ?? 0), 0);
+      const mrrPremium = premiumSubs.reduce((sum, s) => sum + (s.price_usd ?? 0), 0);
       const mrr = mrrPro + mrrPremium;
 
       // Calculate credits revenue
@@ -171,7 +171,7 @@ export const FinancialDashboard = () => {
                 <p className="text-xs text-muted-foreground">👥 Suscriptores</p>
                 <p className="text-2xl font-bold text-blue-600">{data.activeSubs}</p>
                 <p className="text-xs text-blue-600">
-                  Pro: {data.proSubs} • Premium: {data.premiumSubs}
+                  Hasta US$20: {data.proSubs} • Más de US$20: {data.premiumSubs}
                 </p>
               </div>
               <Users className="h-6 w-6 text-blue-500" />
@@ -262,11 +262,11 @@ export const FinancialDashboard = () => {
             <p className="font-medium mb-2">📊 Desglose MRR:</p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Suscripciones Pro:</span>
+                <span className="text-muted-foreground">Precios hasta US$20:</span>
                 <span className="font-medium">${data.mrrPro.toFixed(2)} ({data.proSubs})</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Suscripciones Premium:</span>
+                <span className="text-muted-foreground">Precios mayores a US$20:</span>
                 <span className="font-medium">${data.mrrPremium.toFixed(2)} ({data.premiumSubs})</span>
               </div>
               <div className="flex justify-between">

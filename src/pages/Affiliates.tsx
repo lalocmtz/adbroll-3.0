@@ -1,4 +1,7 @@
+import { isCustomAffiliateCode, normalizeReferralCode } from "@/lib/referral-code";
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { AffiliateNetworkPanel } from "@/components/AffiliateNetworkPanel";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +28,6 @@ const Affiliates = () => {
   const [isEditingCode, setIsEditingCode] = useState(false);
   const [editedCode, setEditedCode] = useState("");
   const [savingCode, setSavingCode] = useState(false);
-  const [connectLoading, setConnectLoading] = useState(false);
-  const [dashboardLoading, setDashboardLoading] = useState(false);
   const [withdrawalHistory, setWithdrawalHistory] = useState<any[]>([]);
 
   // Fetch withdrawal history
@@ -47,33 +48,11 @@ const Affiliates = () => {
     fetchWithdrawals();
   }, [affiliate?.id]);
 
-  // Check URL params for connect status
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("connected") === "true") {
-      toast({
-        title: language === "es" ? "¡Cuenta conectada!" : "Account connected!",
-        description: language === "es" 
-          ? "Tu cuenta de Stripe está lista para recibir pagos"
-          : "Your Stripe account is ready to receive payments",
-      });
-      window.history.replaceState({}, "", "/affiliates");
-      refetch();
-    }
-  }, []);
-
   // Production domain for referral links
   const ADBROLL_DOMAIN = "https://tokxray.com";
 
   // Prefer the server-computed code from the dashboard RPC, fall back to the row.
   const activeCode = dashboard?.code ?? affiliate?.ref_code;
-
-  // Stripe Connect state — prefer server-computed flags from the dashboard RPC,
-  // fall back to the raw affiliate row if the RPC is unavailable.
-  const hasConnect =
-    dashboard?.has_connect ?? Boolean((affiliate as any)?.stripe_connect_id);
-  const connectReady =
-    dashboard?.connect_ready ?? Boolean((affiliate as any)?.stripe_onboarding_complete);
 
   // Available balance from the RPC (fallback to the row).
   const usdAvailable = dashboard?.usd_available ?? affiliate?.usd_available ?? 0;
@@ -84,7 +63,7 @@ const Affiliates = () => {
 
   const handleCopyLink = async () => {
     if (activeCode) {
-      const link = `${ADBROLL_DOMAIN}?ref=${activeCode}`;
+      const link = `${ADBROLL_DOMAIN}/?ref=${activeCode}`;
       await navigator.clipboard.writeText(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -107,55 +86,9 @@ const Affiliates = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user");
 
-      // First check if user already has a code in affiliate_codes
-      const { data: existingCode } = await supabase
-        .from("affiliate_codes")
-        .select("code")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      let codeToUse: string;
-
-      if (existingCode?.code) {
-        // User already has a code, use it
-        codeToUse = existingCode.code;
-      } else {
-        // Generate new code
-        const { data: codeData, error: codeError } = await supabase.rpc("generate_ref_code");
-        if (codeError) throw codeError;
-
-        codeToUse = codeData as string;
-
-        // Insert into affiliate_codes
-        const { error: affiliateCodeError } = await supabase
-          .from("affiliate_codes")
-          .insert({ user_id: user.id, code: codeToUse });
-
-        if (affiliateCodeError) throw affiliateCodeError;
-      }
-
-      // Check if affiliates record exists
-      const { data: existingAffiliate } = await supabase
-        .from("affiliates")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!existingAffiliate) {
-        // Create affiliates record
-        const { error: affiliateError } = await supabase
-          .from("affiliates")
-          .insert({ 
-            user_id: user.id, 
-            ref_code: codeToUse,
-            active_referrals_count: 0,
-            usd_earned: 0,
-            usd_available: 0,
-            usd_withdrawn: 0,
-          });
-
-        if (affiliateError) throw affiliateError;
-      }
+      const { data: enrollment, error: enrollmentError } = await supabase.rpc("ensure_affiliate" as never);
+      if (enrollmentError) throw enrollmentError;
+      const codeToUse = (enrollment as unknown as { code: string }).code;
 
       toast({
         title: language === "es" ? "¡Código creado!" : "Code created!",
@@ -181,14 +114,14 @@ const Affiliates = () => {
   };
 
   const handleSaveCode = async () => {
-    if (!editedCode.trim()) return;
+    if (!isCustomAffiliateCode(editedCode)) return;
     
     setSavingCode(true);
     try {
       // Use the SECURITY DEFINER RPC: validates uniqueness, format and the
       // one-time customization rule (code_customized) atomically server-side.
       const { data, error } = await supabase.rpc("update_affiliate_code", {
-        _new_code: editedCode.trim(),
+        _new_code: normalizeReferralCode(editedCode),
       });
 
       if (error) throw error;
@@ -216,68 +149,11 @@ const Affiliates = () => {
     }
   };
 
-  const handleConnectStripe = async () => {
-    setConnectLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("affiliate-create-connect");
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      console.error("Error connecting Stripe:", error);
-      toast({
-        title: "Error",
-        description: error.message || (language === "es" ? "No se pudo conectar" : "Could not connect"),
-        variant: "destructive",
-      });
-      setConnectLoading(false);
-    }
-  };
-
-  const handleOpenDashboard = async () => {
-    setDashboardLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("affiliate-dashboard-link");
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (error: any) {
-      console.error("Error opening dashboard:", error);
-      toast({
-        title: "Error",
-        description: error.message || (language === "es" ? "No se pudo abrir" : "Could not open"),
-        variant: "destructive",
-      });
-    } finally {
-      setDashboardLoading(false);
-    }
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
     }).format(amount);
-  };
-
-  const getNextWednesday = () => {
-    const now = new Date();
-    const daysUntilWednesday = (3 - now.getDay() + 7) % 7 || 7;
-    const nextWednesday = new Date(now);
-    nextWednesday.setDate(now.getDate() + daysUntilWednesday);
-    return nextWednesday.toLocaleDateString(language === "es" ? "es-MX" : "en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
   };
 
   if (loading) {
@@ -303,15 +179,20 @@ const Affiliates = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold">
-              {language === "es" ? "Programa de Afiliados" : "Affiliate Program"}
+              {language === "es" ? "Tu código y tus comisiones" : "Your code and commissions"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {language === "es"
-                ? "💰 Gana dinero invitando creadores a TokXray"
-                : "💰 Earn money by inviting creators to TokXray"}
+                ? "Comparte cómo eliges una referencia y preparas un guion con TokXray."
+                : "Share how you choose a reference and prepare a script with TokXray."}
             </p>
           </div>
         </div>
+        <Button asChild variant="link" className="h-auto px-0 text-primary">
+          <Link to="/gana">
+            {language === "es" ? "Cómo ganar dinero con TokXray" : "How to earn with TokXray"}
+          </Link>
+        </Button>
       </div>
 
       {/* Hero Card */}
@@ -322,22 +203,22 @@ const Affiliates = () => {
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold mb-1">
-              {language === "es" ? "💰 Gana 30% recurrente por cada referido" : "💰 Earn 30% recurring per referral"}
+              {language === "es" ? "US$5 por el primer pago. 15% por las renovaciones." : "US$5 for the first payment. 15% for renewals."}
             </h2>
             <p className="text-sm text-muted-foreground mb-2">
               {language === "es"
-                ? "Cada vez que alguien se registre con tu código y se suscriba a TokXray Pro, recibirás el 30% de su pago mensual."
-                : "Every time someone signs up with your code and subscribes to TokXray Pro, you'll receive 30% of their monthly payment."}
+                ? "Por cada cliente nuevo que se suscriba con tu código, recibes US$5 por su primer pago elegible y 15% de sus renovaciones. Crear una cuenta gratuita no genera comisión."
+                : "For each new customer who subscribes with your code, you receive US$5 for their first eligible payment and 15% of renewals. Creating a free account does not earn a commission."}
             </p>
             <p className="text-sm font-medium text-green-600 mb-4">
               {language === "es"
-                ? "≈ $7.50 USD al mes por cada usuario activo"
-                : "≈ $7.50 USD per month for each active user"}
+                ? "Una renovación completa de US$15 genera US$2.25 para ti."
+                : "A full US$15 renewal earns you US$2.25."}
             </p>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary" className="gap-1">
                 <TrendingUp className="h-3 w-3" />
-                {language === "es" ? "Sin límite" : "No limit"}
+                {language === "es" ? "Sin límite de seis meses" : "No six-month limit"}
               </Badge>
               <Badge variant="secondary" className="gap-1">
                 <Users className="h-3 w-3" />
@@ -345,7 +226,7 @@ const Affiliates = () => {
               </Badge>
               <Badge variant="secondary" className="gap-1">
                 <Clock className="h-3 w-3" />
-                {language === "es" ? "Pagos cada miércoles" : "Paid every Wednesday"}
+                {language === "es" ? "Revisión semanal de pagos" : "Weekly payment review"}
               </Badge>
             </div>
           </div>
@@ -364,12 +245,12 @@ const Affiliates = () => {
             </div>
             <div>
               <p className="font-medium text-sm">
-                {language === "es" ? "Comparte tu link" : "Share your link"}
+                {language === "es" ? "Comparte tu código" : "Share your code"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {language === "es"
-                  ? "Mándalo a otros creadores"
-                  : "Send it to other creators"}
+                  ? "Muéstralo junto a un ejemplo de uso."
+                  : "Show it alongside an example of how you use TokXray."}
               </p>
             </div>
           </div>
@@ -379,10 +260,10 @@ const Affiliates = () => {
             </div>
             <div>
               <p className="font-medium text-sm">
-                {language === "es" ? "Alguien se suscribe" : "Someone subscribes"}
+                {language === "es" ? "Un cliente contrata Pro" : "A customer subscribes to Pro"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {language === "es" ? "Con tu link, a TokXray" : "With your link, to TokXray"}
+                {language === "es" ? "Su compra queda ligada a tu código." : "Their purchase is linked to your code."}
               </p>
             </div>
           </div>
@@ -392,12 +273,12 @@ const Affiliates = () => {
             </div>
             <div>
               <p className="font-medium text-sm text-green-600">
-                {language === "es" ? "Ganas $7.50/mes" : "You earn $7.50/mo"}
+                {language === "es" ? "Consulta tus comisiones" : "Check your commissions"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {language === "es"
-                  ? "Mientras siga pagando"
-                  : "For as long as they keep paying"}
+                  ? "Se registran cuando se cobra un pago elegible."
+                  : "They are recorded when an eligible payment is collected."}
               </p>
             </div>
           </div>
@@ -406,12 +287,13 @@ const Affiliates = () => {
 
       {affiliate ? (
         <div className="space-y-6">
+          <p className="text-sm text-muted-foreground">Para nuevos clientes: hasta $5 USD del primer pago y $2.25 USD de cada renovación completa de $15. Tu cliente paga $15 USD desde el primer mes. Sin límite de seis meses. Retiros desde $50 USD. <a href="/terminos-afiliados" className="underline">Condiciones del programa</a>.</p>
           {/* Share Section — first, so the link is the hero action */}
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <Share2 className="h-5 w-5 text-primary" />
               <h3 className="font-semibold">
-                {language === "es" ? "Tu link de afiliado" : "Your affiliate link"}
+                {language === "es" ? "Tu enlace para recomendar Pro" : "Your link to recommend Pro"}
               </h3>
             </div>
 
@@ -419,19 +301,19 @@ const Affiliates = () => {
               {/* One-click copy link — the primary action */}
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">
-                  {language === "es" ? "Tu link de referido" : "Your referral link"}
+                  {language === "es" ? "Enlace para nuevos clientes" : "Link for new customers"}
                 </label>
-                <div className="flex gap-2">
+                <div className="flex min-w-0 gap-2">
                   <Input
-                    value={`${ADBROLL_DOMAIN}?ref=${activeCode}`}
+                    value={`${ADBROLL_DOMAIN}/?ref=${activeCode}`}
                     readOnly
-                    className="text-sm"
+                    className="min-w-0 text-sm"
                   />
-                  <Button onClick={handleCopyLink} className="shrink-0 gap-2">
+                  <Button onClick={handleCopyLink} className="shrink-0 gap-2 h-11 px-3">
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied
                       ? (language === "es" ? "¡Copiado!" : "Copied!")
-                      : (language === "es" ? "Copiar mi link" : "Copy my link")}
+                      : (language === "es" ? "Copiar enlace" : "Copy link")}
                   </Button>
                 </div>
               </div>
@@ -439,22 +321,22 @@ const Affiliates = () => {
               {/* Editable code (one-time) */}
               <div>
                 <label className="text-xs text-muted-foreground mb-1.5 block">
-                  {language === "es" ? "Tu código" : "Your code"}
+                  {language === "es" ? "Tu código de creador" : "Your creator code"}
                 </label>
-                <div className="flex gap-2">
+                <div className="flex min-w-0 gap-2">
                   {isEditingCode ? (
                     <>
                       <Input
                         value={editedCode}
                         onChange={(e) => setEditedCode(e.target.value.toUpperCase())}
-                        className="font-mono font-bold tracking-wider text-lg uppercase"
+                        className="min-w-0 font-mono font-bold tracking-wider text-lg uppercase"
                         placeholder="TUCODIGO"
                         maxLength={12}
                       />
                       <Button
                         variant="outline"
                         onClick={handleSaveCode}
-                        disabled={savingCode}
+                        disabled={savingCode || !isCustomAffiliateCode(editedCode)}
                         className="shrink-0"
                       >
                         {savingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -472,7 +354,7 @@ const Affiliates = () => {
                       <Input
                         value={activeCode}
                         readOnly
-                        className="font-mono font-bold tracking-wider text-lg"
+                        className="min-w-0 font-mono font-bold tracking-wider text-lg"
                       />
                       <Button
                         variant="outline"
@@ -497,12 +379,14 @@ const Affiliates = () => {
                         ? "Ya personalizaste tu código (solo se puede cambiar una vez)."
                         : "You already customized your code (it can only be changed once).")
                     : (language === "es"
-                        ? "Puedes personalizarlo una sola vez (4-12 letras o números). Toca el lápiz."
-                        : "You can customize it one time only (4-12 letters or numbers). Tap the pencil.")}
+                        ? "Puedes personalizarlo una vez, antes de recibir referidos o vincular creadores (3–12 letras o números)."
+                        : "Customize once before receiving referrals or adding creators (3–12 letters or numbers).")}
                 </p>
               </div>
             </div>
           </Card>
+
+          <AffiliateNetworkPanel code={activeCode || ""} onJoined={refetch} />
 
           {/* Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -512,7 +396,7 @@ const Affiliates = () => {
                 {dashboard?.active_referrals ?? affiliate.active_referrals_count}
               </p>
               <p className="text-xs text-muted-foreground">
-                {language === "es" ? "Activos" : "Active"}
+                {language === "es" ? "Clientes directos activos" : "Active direct customers"}
               </p>
             </Card>
 
@@ -547,106 +431,17 @@ const Affiliates = () => {
             </Card>
           </div>
 
-          {/* Stripe Connect Section */}
-          <Card className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <CreditCard className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">
-                {language === "es" ? "Cuenta de cobro" : "Payout account"}
-              </h3>
-            </div>
-
-            {!hasConnect ? (
-              <div className="text-center py-4">
-                <AlertCircle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-4">
-                  {language === "es"
-                    ? "Conecta tu cuenta bancaria para recibir tus pagos automáticamente cada miércoles."
-                    : "Connect your bank account to receive payments automatically every Wednesday."}
-                </p>
-                <Button onClick={handleConnectStripe} disabled={connectLoading} className="gap-2">
-                  {connectLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <CreditCard className="h-4 w-4" />
-                  )}
-                  {language === "es" ? "Conectar cuenta bancaria" : "Connect bank account"}
-                </Button>
-              </div>
-            ) : !connectReady ? (
-              <div className="text-center py-4">
-                <Clock className="h-10 w-10 text-amber-500 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-4">
-                  {language === "es"
-                    ? "Tu cuenta está pendiente de verificación. Completa el proceso para recibir pagos."
-                    : "Your account is pending verification. Complete the process to receive payments."}
-                </p>
-                <Button onClick={handleConnectStripe} disabled={connectLoading} className="gap-2">
-                  {connectLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ExternalLink className="h-4 w-4" />
-                  )}
-                  {language === "es" ? "Completar verificación" : "Complete verification"}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-700 dark:text-green-400">
-                    {language === "es" ? "✅ Cuenta conectada · Pagos cada miércoles" : "✅ Account connected · Paid every Wednesday"}
-                  </span>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {language === "es" ? "Mínimo para retiro" : "Minimum for payout"}
-                    </p>
-                    <p className="text-lg font-bold">${MINIMUM_PAYOUT} USD</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {language === "es" ? "Próximo pago" : "Next payout"}
-                    </p>
-                    <p className="text-lg font-bold">{getNextWednesday()}</p>
-                  </div>
-                </div>
-
-                {usdAvailable >= MINIMUM_PAYOUT ? (
-                  <div className="p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30">
-                    <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                      ✨ {language === "es"
-                        ? `¡Tienes ${formatCurrency(usdAvailable)} listos para el próximo pago!`
-                        : `You have ${formatCurrency(usdAvailable)} ready for the next payout!`}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <p className="text-sm text-muted-foreground">
-                      {language === "es"
-                        ? `Te faltan ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} para el mínimo de retiro.`
-                        : `You need ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} more to reach the minimum payout.`}
-                    </p>
-                  </div>
-                )}
-
-                <Button 
-                  variant="outline" 
-                  onClick={handleOpenDashboard} 
-                  disabled={dashboardLoading}
-                  className="w-full gap-2"
-                >
-                  {dashboardLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ExternalLink className="h-4 w-4" />
-                  )}
-                  {language === "es" ? "Ver panel de pagos en Stripe" : "View payment dashboard in Stripe"}
-                </Button>
-              </div>
-            )}
+          {dashboard?.payout_hold && <Card className="p-5 border-amber-400"><p className="font-semibold">Pagos en revisión</p><p className="text-sm text-muted-foreground">Hay un cobro en disputa asociado a tus comisiones. Los retiros están pausados mientras se concilia. Contacta a soporte para revisar el caso.</p></Card>}
+          <Card className="p-5 space-y-3">
+            <h3 className="font-semibold">{language === "es" ? "Pagos por transferencia manual" : "Manual bank transfers"}</h3>
+            <p className="text-sm text-muted-foreground">{language === "es"
+              ? "Aquí se acumulan tus comisiones por suscripciones cobradas. El equipo de TokXray revisa el saldo semanalmente y se pone en contacto contigo para coordinar el depósito. No necesitas conectar una cuenta de Stripe."
+              : "Your commissions come from paid subscriptions. The TokXray team reviews balances weekly and contacts you to arrange a bank transfer. You do not need a Stripe account."}</p>
+            <p className="text-sm font-medium">{language === "es" ? "Mínimo de pago: $50 USD" : "Minimum payment: $50 USD"}</p>
+            <p className="min-w-0 text-sm">{usdAvailable >= MINIMUM_PAYOUT
+              ? (language === "es" ? "Tu saldo alcanza el mínimo para la revisión semanal." : "Your balance meets the minimum for weekly review.")
+              : (language === "es" ? `Te faltan ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} para el mínimo.` : `You need ${formatCurrency(MINIMUM_PAYOUT - usdAvailable)} more to reach the minimum.`)}</p>
+            <p className="text-xs text-muted-foreground">{language === "es" ? "El saldo disponible no significa que el depósito ya se haya realizado. Cada pago confirmado aparecerá en tu historial. Los reembolsos y disputas pueden ajustar el saldo." : "Available balance does not mean a transfer has been sent. Confirmed payments appear in your history. Refunds and disputes may adjust your balance."}</p>
           </Card>
 
           {/* Withdrawal History */}
@@ -659,7 +454,7 @@ const Affiliates = () => {
                 {withdrawalHistory.map((withdrawal) => (
                   <div
                     key={withdrawal.id}
-                    className="p-3 rounded-lg bg-muted/50 flex items-center justify-between"
+                    className="p-3 rounded-lg bg-muted/50 flex flex-wrap items-center justify-between gap-2"
                   >
                     <div>
                       <p className="text-xs text-muted-foreground">
@@ -686,15 +481,15 @@ const Affiliates = () => {
           {/* Referrals */}
           <Card className="p-5">
             <h3 className="font-semibold mb-4">
-              {language === "es" ? "Tus referidos" : "Your referrals"}
+              {language === "es" ? "Tus clientes directos" : "Your direct customers"}
             </h3>
             {dashReferrals.length === 0 ? (
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">
                   {language === "es"
-                    ? "Aún no tienes referidos. ¡Comparte tu link y empieza a ganar!"
-                    : "No referrals yet. Share your link and start earning!"}
+                    ? "Todavía no hay clientes vinculados a tu código. Comparte tu enlace cuando muestres cómo usas TokXray."
+                    : "No customers are linked to your code yet. Share your link when you show how you use TokXray."}
                 </p>
               </div>
             ) : (
@@ -702,7 +497,7 @@ const Affiliates = () => {
                 {dashReferrals.map((referral, i) => (
                   <div
                     key={`${referral.email_masked}-${i}`}
-                    className="p-3 rounded-lg bg-muted/50 flex items-center justify-between"
+                    className="p-3 rounded-lg bg-muted/50 flex flex-wrap items-center justify-between gap-2"
                   >
                     <div>
                       <p className="text-sm font-medium">{referral.email_masked}</p>
@@ -735,13 +530,13 @@ const Affiliates = () => {
           {commissionsHistory.length > 0 && (
             <Card className="p-5">
               <h3 className="font-semibold mb-4">
-                {language === "es" ? "Historial de comisiones" : "Commission history"}
+                {language === "es" ? "Comisiones por clientes directos" : "Direct customer commissions"}
               </h3>
               <div className="space-y-2">
                 {commissionsHistory.map((commission, i) => (
                   <div
                     key={`${commission.month}-${i}`}
-                    className="p-3 rounded-lg bg-muted/50 flex items-center justify-between"
+                    className="p-3 rounded-lg bg-muted/50 flex flex-wrap items-center justify-between gap-2"
                   >
                     <div>
                       <p className="text-xs text-muted-foreground">
@@ -773,12 +568,12 @@ const Affiliates = () => {
             <Sparkles className="h-8 w-8 text-green-600" />
           </div>
           <h3 className="text-lg font-bold mb-2">
-            {language === "es" ? "¡Empieza a ganar dinero hoy!" : "Start earning money today!"}
+            {language === "es" ? "Prepara tu código para recomendar TokXray" : "Set up your code to recommend TokXray"}
           </h3>
           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
             {language === "es" 
-              ? "Crea tu código de afiliado único y compártelo con otros creadores. Ganarás 30% de cada pago que hagan."
-              : "Create your unique affiliate code and share it with other creators. You'll earn 30% of every payment they make."}
+              ? "Crea tu código y compártelo al enseñar una referencia o un guion que te haya servido. Recibes hasta US$5 por el primer pago de un cliente nuevo y 15% de sus renovaciones elegibles."
+              : "Create your code and share it when showing a reference or script you found useful. You receive up to US$5 for a new customer's first payment and 15% of eligible renewals."}
           </p>
           <Button 
             size="lg" 

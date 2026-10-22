@@ -80,8 +80,8 @@ export function VideoAnalysisModalNew({ isOpen, onClose, video }: VideoAnalysisM
 
   const getStatusMessage = () => {
     if (isDownloading) return 'Descargando video de TikTok...';
-    if (isTranscribing) return 'Transcribiendo audio con AssemblyAI...';
-    if (isAnalyzing) return 'Analizando guión con OpenAI...';
+    if (isTranscribing) return 'Transcribiendo el audio del video...';
+    if (isAnalyzing) return 'Analizando guion con OpenAI...';
     return 'Procesando...';
   };
 
@@ -114,7 +114,7 @@ export function VideoAnalysisModalNew({ isOpen, onClose, video }: VideoAnalysisM
           <div className="flex-1 flex flex-col bg-background">
             <div className="p-4 border-b">
               <h2 className="text-lg font-semibold truncate">
-                {video.title || 'Análisis de Guión'}
+                {video.title || 'Análisis de Guion'}
               </h2>
               <p className="text-sm text-muted-foreground">
                 @{video.creator_name || 'creator'}
@@ -149,7 +149,7 @@ export function VideoAnalysisModalNew({ isOpen, onClose, video }: VideoAnalysisM
                 <TabsList className="mx-4 mt-2">
                   <TabsTrigger value="script" className="flex items-center gap-2">
                     <FileText className="w-4 h-4" />
-                    Script
+                    Guion
                   </TabsTrigger>
                   <TabsTrigger value="analysis" className="flex items-center gap-2">
                     <Lightbulb className="w-4 h-4" />
@@ -183,7 +183,7 @@ export function VideoAnalysisModalNew({ isOpen, onClose, video }: VideoAnalysisM
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between py-3">
                           <CardTitle className="text-base flex items-center gap-2">
-                            🎣 Hook
+                            🎣 Primeros segundos
                           </CardTitle>
                           <CopyButton text={displayAnalysis.hook} field="hook" />
                         </CardHeader>
@@ -211,7 +211,7 @@ export function VideoAnalysisModalNew({ isOpen, onClose, video }: VideoAnalysisM
                       <Card>
                         <CardHeader className="flex flex-row items-center justify-between py-3">
                           <CardTitle className="text-base flex items-center gap-2">
-                            🎯 CTA
+                            🎯 Invitación a actuar
                           </CardTitle>
                           <CopyButton text={displayAnalysis.cta} field="cta" />
                         </CardHeader>
@@ -226,7 +226,7 @@ export function VideoAnalysisModalNew({ isOpen, onClose, video }: VideoAnalysisM
                   <TabsContent value="variants" className="m-0 space-y-4">
                     <Card>
                       <CardHeader className="py-3">
-                        <CardTitle className="text-base">🔄 Hooks Alternativos</CardTitle>
+                        <CardTitle className="text-base">🔄 Otras formas de empezar</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {displayVariants?.hooks?.map((hook: string, index: number) => (

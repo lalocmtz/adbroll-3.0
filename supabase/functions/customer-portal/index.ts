@@ -14,11 +14,6 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
-
     // Get user from auth header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -26,6 +21,11 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !userData.user) {
@@ -53,7 +53,7 @@ serve(async (req) => {
     // Create billing portal session
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: profile.stripe_customer_id,
-      return_url: `${req.headers.get("origin")}/settings`,
+      return_url: `${Deno.env.get("APP_URL") || "https://tokxray.com"}/settings`,
     });
 
     console.log(`Portal session created for user: ${user.id}`);

@@ -1,0 +1,86 @@
+import {readFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const {PGlite}=await import(process.env.PGLITE_MODULE||'@electric-sql/pglite');
+const db=new PGlite();
+await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create schema extensions;create schema net;create schema cron;
+create function auth.uid() returns uuid language sql as $$select nullif(current_setting('test.uid',true),'')::uuid$$;
+create function extensions.digest(text,text) returns bytea language sql as $$select decode(md5($1),'hex')$$;
+create function extensions.gen_random_bytes(integer) returns bytea language sql as $$select decode(replace(gen_random_uuid()::text,'-','')||replace(gen_random_uuid()::text,'-',''),'hex')$$;
+create table net.requests(body jsonb);
+create function net.http_post(url text,headers jsonb,body jsonb,timeout_milliseconds integer) returns bigint language plpgsql as $$begin insert into net.requests values(body);return 1;end$$;
+create function cron.schedule(text,text,text) returns bigint language sql as $$select 1::bigint$$;
+create table user_roles(user_id uuid,role text);
+create table videos(id uuid primary key default gen_random_uuid(),video_mp4_url text,transcript text,analysis_json jsonb,rank integer,snapshot_date_range text,title text);
+`);
+const migration=(await readFile(new URL('../supabase/migrations/20261016190000_catalog_analysis_queue.sql',import.meta.url),'utf8')).replace(/^create extension.*;$/gm,'');
+await db.exec(migration);
+await db.exec(await readFile(new URL('../supabase/migrations/20261017020000_gemini_quota_backoff.sql',import.meta.url),'utf8'));
+const src=id=>`https://tnqvvfpzkjwgllwdwvte.supabase.co/storage/v1/object/public/videos/${id}.mp4`;
+const vid='00000000-0000-4000-8000-000000000001',legacy='00000000-0000-4000-8000-000000000002';
+await db.query('insert into videos(id,video_mp4_url,rank,snapshot_date_range) values($1,$2,1,$3)',[vid,src(vid),'2026-10-03~2026-10-09']);
+await db.query('insert into videos(id,video_mp4_url,transcript,analysis_json) values($1,$2,$3,$4)',[legacy,src(legacy),'Real script',JSON.stringify({hook:'Hook',body:'Body',cta:null})]);
+const one=async(sql,args=[])=>(await db.query(sql,args)).rows[0];
+assert.equal((await one('select analysis_ready from videos where id=$1',[legacy])).analysis_ready,true);
+assert.equal((await one('select status from catalog_analysis_jobs where video_id=$1',[vid])).status,'pending');
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,0);
+await db.exec('update catalog_analysis_settings set enabled=true,daily_attempt_limit=2');
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,1);
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,0);
+let job=(await one('select body from net.requests')).body;
+assert.equal((await one('select claim_catalog_analysis_job($1,$2) j',[vid,'0'.repeat(64)])).j,null);
+assert.equal((await one('select claim_catalog_analysis_job($1,$2) j',[vid,job.token])).j.videoId,vid);
+assert.equal((await one('select claim_catalog_analysis_job($1,$2) j',[vid,job.token])).j,null);
+// Saving the analysis must not destroy the capability before accounting finishes.
+await db.query('update videos set transcript=$2,analysis_json=$3 where id=$1',[vid,'Real script',JSON.stringify({hook:'Hook',body:'Body',cta:null})]);
+assert.equal((await one('select status from catalog_analysis_jobs where video_id=$1',[vid])).status,'running');
+assert.equal((await one('select finish_catalog_analysis_job($1,$2,true,false,null,10000,2000) ok',[vid,job.token])).ok,true);
+assert.equal((await one('select status from catalog_analysis_jobs where video_id=$1',[vid])).status,'ready');
+assert.equal(Number((await one('select estimated_cost_usd from catalog_analysis_jobs where video_id=$1',[vid])).estimated_cost_usd),0.008);
+// Changed media resets attempts and readiness when source-bound cache no longer matches.
+await db.query('update videos set analysis_json=$2 where id=$1',[vid,JSON.stringify({hook:'H',body:'B',cta:'C',_cache:{source:src(vid)},segments:[],visual_observations:[],beginner_takeaways:[],uncertainties:[]})]);
+await db.query('update videos set video_mp4_url=$2 where id=$1',[vid,src(vid)+'new']);
+assert.equal((await one('select analysis_ready from videos where id=$1',[vid])).analysis_ready,false);
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,1);
+job=(await db.query('select body from net.requests')).rows.at(-1).body;
+await one('select claim_catalog_analysis_job($1,$2)',[vid,job.token]);
+await one("select finish_catalog_analysis_job($1,$2,false,true,'GEMINI_503_UNAVAILABLE')",[vid,job.token]);
+await db.exec("update catalog_analysis_jobs set next_attempt_at=now()-interval '1 second' where status='pending'");
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,0); // daily cap includes failed attempts
+await db.exec('update catalog_analysis_settings set daily_attempt_limit=10');
+for(let i=0;i<2;i++){
+ assert.equal((await one('select dispatch_catalog_analysis() n')).n,1);
+ job=(await db.query('select body from net.requests')).rows.at(-1).body;
+ await one('select claim_catalog_analysis_job($1,$2)',[vid,job.token]);
+ await one("select finish_catalog_analysis_job($1,$2,false,true,'GEMINI_503_UNAVAILABLE')",[vid,job.token]);
+ await db.exec("update catalog_analysis_jobs set next_attempt_at=now()-interval '1 second' where status='pending'");
+}
+assert.equal((await one('select status from catalog_analysis_jobs where video_id=$1',[vid])).status,'failed');
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,0);
+await db.query('update videos set video_mp4_url=$2 where id=$1',[legacy,src(legacy)+'new']);
+assert.equal((await one('select analysis_ready from videos where id=$1',[legacy])).analysis_ready,false);
+assert.equal((await one('select transcript from videos where id=$1',[legacy])).transcript,'Real script');
+// Shared provider quota must cool down the batch without exhausting this video's attempts.
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,1);
+job=(await db.query('select body from net.requests')).rows.at(-1).body;
+await one('select claim_catalog_analysis_job($1,$2)',[legacy,job.token]);
+assert.equal((await one("select finish_catalog_analysis_job($1,$2,false,true,'GEMINI_429_RESOURCE_EXHAUSTED') ok",[legacy,'0'.repeat(64)])).ok,false);
+assert.equal((await one('select cooldown_until from catalog_analysis_settings')).cooldown_until,null);
+assert.equal((await one("select finish_catalog_analysis_job($1,$2,false,true,'GEMINI_429_RESOURCE_EXHAUSTED') ok",[legacy,job.token])).ok,true);
+assert.deepEqual(await one('select status,attempts from catalog_analysis_jobs where video_id=$1',[legacy]),{status:'pending',attempts:0});
+assert.equal((await one('select cooldown_until>now() paused from catalog_analysis_settings')).paused,true);
+await db.exec("update catalog_analysis_jobs set next_attempt_at=now()-interval '1 second' where status='pending'");
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,0);
+await db.exec("update catalog_analysis_settings set cooldown_until=now()-interval '1 second',enabled=false");
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,0); // cooldown cannot undo an administrative pause
+await db.exec('update catalog_analysis_settings set enabled=true');
+assert.equal((await one('select dispatch_catalog_analysis() n')).n,1);
+await db.exec('set role authenticated');
+await assert.rejects(()=>db.query('select * from catalog_analysis_jobs'),/permission denied/);
+await assert.rejects(()=>db.query('select dispatch_catalog_analysis()'),/permission denied/);
+await assert.rejects(()=>db.query('select get_catalog_processing_status()'),/Founder access/);
+await db.exec('reset role');
+await db.query("insert into user_roles values($1,'founder')",[vid]);
+await db.query("select set_config('test.uid',$1,false)",[vid]);
+assert.ok((await one('select get_catalog_processing_status() s')).s.counts.failed);
+console.log('PASS: disabled-by-default, base reuse, source invalidation, single-use token, accounting, daily cap, 3-attempt stop, quota cooldown/recovery, administrative pause, role protection');
+await db.close();
