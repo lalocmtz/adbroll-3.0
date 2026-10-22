@@ -46,19 +46,19 @@ interface Video {
 
 interface VideoCardOriginalProps {
   video: Video;
-  ranking: number;
+  ranking: number | null;
   isFreePreview?: boolean; // For first 10 videos shown to visitors
 }
 
 const formatNumber = (num: number | null | undefined): string => {
-  if (!num) return '0';
+  if (num == null || !Number.isFinite(num)) return '—';
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return num.toLocaleString('es-MX');
 };
 
 const formatCurrency = (num: number | null | undefined): string => {
-  if (!num) return '$0';
+  if (num == null || !Number.isFinite(num)) return '—';
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
@@ -84,9 +84,9 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
   // muestra nada: no inventamos porcentajes.
   const hasCommission = video.product?.commission != null && video.product.commission > 0;
   const commissionRate = video.product?.commission || 0;
-  const commissionEstimated = hasCommission ? (video.revenue_mxn || 0) * (commissionRate / 100) : 0;
-  const productPrice = video.product?.price || video.product?.precio_mxn || 0;
-  const earningsPerSale = hasCommission ? productPrice * (commissionRate / 100) : 0;
+  const commissionEstimated = hasCommission && video.revenue_mxn != null ? video.revenue_mxn * (commissionRate / 100) : null;
+  const productPrice = video.product?.price ?? video.product?.precio_mxn ?? null;
+  const earningsPerSale = hasCommission && productPrice != null ? productPrice * (commissionRate / 100) : null;
   
   // Free preview videos show all data even for non-paid users
   const showFullData = hasPaid || isFreePreview;
@@ -163,7 +163,8 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
     }
   };
 
-  const isTop5 = ranking <= 5;
+  const hasRanking = ranking != null && Number.isInteger(ranking) && ranking > 0;
+  const isTop5 = hasRanking && ranking <= 5;
 
   // Do not advertise an unusable card when its stored media is missing or broken.
   if (!video.video_mp4_url?.trim()) return null;
@@ -178,16 +179,16 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
           {/* Top Icons Bar */}
           <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-20 flex items-start justify-between gap-1 pointer-events-none">
             {/* Ranking Badge - smaller on mobile */}
-            <span className={`pointer-events-auto text-[11px] md:text-[13px] font-bold px-2 md:px-2.5 py-0.5 md:py-1 rounded-full shadow-lg ${
+            {hasRanking && <span className={`pointer-events-auto text-[11px] md:text-[13px] font-bold px-2 md:px-2.5 py-0.5 md:py-1 rounded-full shadow-lg ${
               isTop5 
                 ? 'bg-gradient-to-r from-[#F31260] to-[#DA0C5E] text-white' 
                 : 'bg-white/95 text-[#0F172A] border border-[#E2E8F0]'
             }`}>
               #{ranking} {isTop5 && '🔥'}
-            </span>
+            </span>}
 
             {/* Right Icons - smaller on mobile */}
-            <div className="flex flex-col md:flex-row items-center gap-1.5 md:gap-2 pointer-events-auto">
+            <div className="ml-auto flex flex-col md:flex-row items-center gap-1.5 md:gap-2 pointer-events-auto">
               <button 
                 onClick={openTikTok}
                 aria-label="Abrir video en TikTok"
@@ -211,7 +212,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
             <LazyVideoPoster src={video.video_mp4_url} poster={video.thumbnail_url} active={!showModal} />
             <span className="absolute inset-0 flex items-center justify-center bg-black/10"><span className="flex size-12 items-center justify-center rounded-full bg-white/95 text-slate-950 shadow-sm"><Play className="size-6" fill="currentColor" /></span></span>
           </button>
-          {earningsPerSale > 0 && <span className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-md bg-background px-2 py-1 text-xs font-medium tabular-nums">{formatCurrency(earningsPerSale)}/venta</span>}
+          {earningsPerSale != null && earningsPerSale > 0 && <span className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-md bg-background px-2 py-1 text-xs font-medium tabular-nums">{formatCurrency(earningsPerSale)}/venta</span>}
 
         </div>
 
@@ -245,7 +246,7 @@ const VideoCardOriginal = ({ video, ranking, isFreePreview = false }: VideoCardO
                   <span className="text-[11px] md:text-[13px] text-foreground font-medium line-clamp-1 break-words [overflow-wrap:anywhere]">
                     {video.product?.producto_nombre || currentProductName || video.product_name}
                   </span>
-                  {video.product?.total_ingresos_mxn && (
+                  {video.product?.total_ingresos_mxn != null && (
                     <span className="hidden md:inline text-[11px] text-muted-foreground">Ventas: {formatCurrency(video.product.total_ingresos_mxn)}</span>
                   )}
                 </div>

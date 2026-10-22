@@ -133,6 +133,14 @@ describe('prepared catalog references', () => {
     expect(screen.getByText('Unidades').nextElementSibling).toHaveTextContent('—');
     expect(screen.getByText('Vistas').nextElementSibling).toHaveTextContent('—');
   });
+  it('does not derive zero earnings from a targeted video without global sales', async () => {
+    await open({ ...video, revenue_mxn: null, sales: null, views: null, rank: null, product: { id: 'product-1', producto_nombre: 'Producto de prueba', commission: 15, price: 200 } } as typeof video);
+    expect(screen.getByText('Ventas reportadas').nextElementSibling).toHaveTextContent('—');
+    expect(screen.getByText('Unidades').nextElementSibling).toHaveTextContent('—');
+    expect(screen.getByText('Vistas').nextElementSibling).toHaveTextContent('—');
+    expect(screen.queryByText(/Comisión estimada:/)).not.toBeInTheDocument();
+    expect(screen.queryByText('$0')).not.toBeInTheDocument();
+  });
   it('uses real player metadata to remove impossible timing and restores untimed full transcript', async () => {
     const saved = { ...analysis, segments: [{ start_seconds: 0, end_seconds: 5, text: 'Inicio' }, { start_seconds: 66, end_seconds: 121, text: 'Cierre' }] };
     mocks.rpc.mockImplementation(async (name: string) => ({ data: name === 'get_video_script' ? [{ locked: false, transcript }] : saved, error: null }));

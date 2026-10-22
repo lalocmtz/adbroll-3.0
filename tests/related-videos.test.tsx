@@ -3,12 +3,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import RelatedVideos from "@/pages/RelatedVideos";
 
-const state = vi.hoisted(() => ({ queries: [] as any[], rpc: vi.fn(), playable: 45, identified: 50, productId: "1736327955572163659" as string | null }));
+const state = vi.hoisted(() => ({ queries: [] as any[], rpc: vi.fn(), playable: 45, identified: 50, productId: "1736327955572163659" as string | null, video: { id: "v1", title: "Video disponible", rank: null as number | null, revenue_mxn: null as number | null, sales: null as number | null, views: null as number | null, snapshot_date_range: null as string | null } }));
 vi.mock("@/contexts/BlurGateContext", () => ({ useBlurGateContext: () => ({ isFounder: false }) }));
 vi.mock("@/contexts/MarketContext", () => ({ useMarket: () => ({ market: "mx" }) }));
 vi.mock("@/contexts/LanguageContext", () => ({ useLanguage: () => ({ language: "es", formatMoney: (n: number) => `$${n}` }) }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
-vi.mock("@/components/VideoCardOriginal", () => ({ default: ({ video }: any) => <div>{video.title}</div> }));
+vi.mock("@/components/VideoCardOriginal", () => ({ default: ({ video, ranking }: any) => <div data-testid="related-video" data-ranking={ranking ?? "unknown"}>{video.title}</div> }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { rpc: state.rpc, from: (table: string) => {
     const query: any = { table, filters: [], orders: [] };
@@ -20,7 +20,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     query.maybeSingle = async () => ({ data: table === "creators"
       ? { id: "creator-1", usuario_creador: "Kals_Alex", creator_handle: "@Kals_Alex", country: "mx" }
       : { id: "product-1", producto_nombre: "Drenaje", market: "mx", tiktok_product_id: state.productId }, error: null });
-    query.then = (resolve: any) => resolve({ data: query.options.head || !state.playable ? [] : [{ id: "v1", title: "Video disponible" }], count: query.options.head ? state.identified : state.playable, error: null });
+    query.then = (resolve: any) => resolve({ data: query.options.head || !state.playable ? [] : [state.video], count: query.options.head ? state.identified : state.playable, error: null });
     return query;
   } },
 }));
@@ -33,10 +33,25 @@ beforeEach(() => {
   state.rpc.mockReset();
   state.rpc.mockImplementation(async (name: string) => name === "get_catalog_product" ? { data: { id: "product-1", producto_nombre: "Drenaje", market: "mx", tiktok_product_id: state.productId, available_video_count: state.playable, analysis_ready_count: 0 }, error: null } : ({ data: { rows: state.playable ? [{ id: 'v1', title: 'Video disponible' }] : [], count: Math.min(50, state.playable), total_available: state.playable, identified_count: state.identified }, error: null }));
   state.queries = []; state.playable = 45; state.identified = 50; state.productId = "1736327955572163659";
+  state.video = { id: "v1", title: "Video disponible", rank: null, revenue_mxn: null, sales: null, views: null, snapshot_date_range: null };
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
 
 describe("related videos", () => {
+  it("does not invent a ranking or global sales period for a targeted product export", async () => {
+    state.video.snapshot_date_range = "2026-09-21~2026-10-20";
+    mount("/products/product-1/videos");
+    expect(await screen.findByTestId("related-video")).toHaveAttribute("data-ranking", "unknown");
+    expect(screen.getByText("Ventas del video no reportadas")).toBeInTheDocument();
+    expect(screen.queryByText(/^Ventas del \d/)).not.toBeInTheDocument();
+  });
+  it("uses the video's actual rank and report period when its global metrics are present", async () => {
+    state.video = { ...state.video, rank: 57, revenue_mxn: 0, sales: 0, views: 0, snapshot_date_range: "2026-09-21~2026-10-20" };
+    mount("/products/product-1/videos");
+    expect(await screen.findByTestId("related-video")).toHaveAttribute("data-ranking", "57");
+    expect(screen.getByText(/^Ventas del 21 sep 2026/)).toBeInTheDocument();
+    expect(screen.queryByText("Ventas del video no reportadas")).not.toBeInTheDocument();
+  });
   it("hides the internal ID suffix in the product header and image name without changing its lookup", async () => {
     state.rpc.mockResolvedValueOnce({ data: { id: "product-1", producto_nombre: "Drenaje [ID:1736327955572163659]", market: "mx", tiktok_product_id: state.productId, available_video_count: 45, analysis_ready_count: 0 }, error: null });
     mount("/products/product-1/videos");

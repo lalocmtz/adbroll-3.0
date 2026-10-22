@@ -508,8 +508,8 @@ const RelatedVideos = () => {
           <div className="grid min-w-0 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {videos.map((video, index) => (
               <div key={video.id} className="relative min-w-0 group">
-                <VideoCardOriginal video={video} ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} />
-                {isProductView && <p className="px-2 pt-2 text-[11px] leading-relaxed text-muted-foreground">{video.snapshot_date_range ? `Ventas del ${formatReportPeriod(video.snapshot_date_range)}` : "Periodo de ventas no disponible"}</p>}
+                <VideoCardOriginal video={video} ranking={isProductView ? video.rank ?? null : (currentPage - 1) * ITEMS_PER_PAGE + index + 1} />
+                {isProductView && <p className="px-2 pt-2 text-[11px] leading-relaxed text-muted-foreground">{video.revenue_mxn == null && video.sales == null ? "Ventas del video no reportadas" : video.snapshot_date_range ? `Ventas del ${formatReportPeriod(video.snapshot_date_range)}` : "Periodo de ventas no disponible"}</p>}
                 {isFounder && isProductView && (
                   <Button
                     variant="destructive"
