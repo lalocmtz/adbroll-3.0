@@ -5,6 +5,8 @@ import RelatedVideos from "@/pages/RelatedVideos";
 
 const state = vi.hoisted(() => ({ queries: [] as any[], rpc: vi.fn(), playable: 45, identified: 50, productId: "1736327955572163659" as string | null }));
 vi.mock("@/contexts/BlurGateContext", () => ({ useBlurGateContext: () => ({ isFounder: false }) }));
+vi.mock("@/contexts/MarketContext", () => ({ useMarket: () => ({ market: "mx" }) }));
+vi.mock("@/contexts/LanguageContext", () => ({ useLanguage: () => ({ language: "es", formatMoney: (n: number) => `$${n}` }) }));
 vi.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock("@/components/VideoCardOriginal", () => ({ default: ({ video }: any) => <div>{video.title}</div> }));
 vi.mock("@/integrations/supabase/client", () => ({
@@ -29,12 +31,20 @@ const mount = (url = "/creadores/creator-1/videos") => render(<MemoryRouter init
 
 beforeEach(() => {
   state.rpc.mockReset();
-  state.rpc.mockImplementation(async () => ({ data: { rows: state.playable ? [{ id: 'v1', title: 'Video disponible' }] : [], count: Math.min(50, state.playable), total_available: state.playable, identified_count: state.identified }, error: null }));
+  state.rpc.mockImplementation(async (name: string) => name === "get_catalog_product" ? { data: { id: "product-1", producto_nombre: "Drenaje", market: "mx", tiktok_product_id: state.productId, available_video_count: state.playable, analysis_ready_count: 0 }, error: null } : ({ data: { rows: state.playable ? [{ id: 'v1', title: 'Video disponible' }] : [], count: Math.min(50, state.playable), total_available: state.playable, identified_count: state.identified }, error: null }));
   state.queries = []; state.playable = 45; state.identified = 50; state.productId = "1736327955572163659";
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
 
 describe("related videos", () => {
+  it("hides the internal ID suffix in the product header and image name without changing its lookup", async () => {
+    state.rpc.mockResolvedValueOnce({ data: { id: "product-1", producto_nombre: "Drenaje [ID:1736327955572163659]", market: "mx", tiktok_product_id: state.productId, available_video_count: 45, analysis_ready_count: 0 }, error: null });
+    mount("/products/product-1/videos");
+    expect(await screen.findByRole("heading", { name: "Drenaje", exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Imagen no disponible: Drenaje" })).toBeInTheDocument();
+    expect(screen.queryByText(/\[ID:/)).not.toBeInTheDocument();
+    expect(state.rpc).toHaveBeenCalledWith("get_catalog_product", { p_market: "mx", p_product_id: "product-1" });
+  });
   it("uses exact creator RPC, caps selection at50 and resets sorting to page one", async () => {
     state.playable = 80;
     mount();

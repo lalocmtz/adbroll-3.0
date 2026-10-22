@@ -64,6 +64,13 @@ describe("one Pro sales destination", () => {
     expect(await screen.findByText("/pricing")).toBeVisible();
     expect(mocks.start).not.toHaveBeenCalled();
   });
+  it("preserves the exact shop and filters when an unpaid visitor opens Pro", async () => {
+    routeContent(<BlurGateProvider><Trigger /></BlurGateProvider>, "/shops/7494088817227368360?q=telefonos&videos=1");
+    fireEvent.click(screen.getByRole("button", { name: "Abrir función Pro" }));
+    expect(await screen.findByText("/pricing")).toBeVisible();
+    expect(screen.getByText("/shops/7494088817227368360?q=telefonos&videos=1")).toBeVisible();
+    expect(mocks.start).not.toHaveBeenCalled();
+  });
   it("canonicalizes old /unlock links while retaining a referral code", async () => {
     routeContent(<Unlock />, "/unlock?ref=GUS");
     expect(await screen.findByText("/pricing?ref=GUS")).toBeVisible();
@@ -78,10 +85,13 @@ describe("one Pro sales destination", () => {
 });
 
 describe("safe sales return locations", () => {
-  it.each(["https://evil.example", "//evil.example", "/\\evil.example", "/pricing", "/login", "/admin", "/app/../admin", null])("rejects %s", value => {
+  it.each(["https://evil.example", "//evil.example", "/\\evil.example", "/pricing", "/login", "/admin", "/app/../admin", null,
+    "/shops/../admin", "/shops/%2e%2e/admin", "/shops//evil.example", "/shops/123/other", "/shops/123\\evil", "/shops/123\n",
+    "/shops/123%2fadmin", "/shops/unknown", "/shopsevil", "//shops/123", "/shops/123.evil.example"])("rejects %s", value => {
     expect(proReturnTo(value)).toBe("/app");
   });
-  it.each(["/tools", "/opportunities", "/products?name=Un%20producto", "/videos/creator/abc-123"])("retains %s", value => {
+  it.each(["/tools", "/opportunities", "/products?name=Un%20producto", "/videos/creator/abc-123",
+    "/shops", "/shops?q=Cafe%20con%20leche", "/shops/7494088817227368360", "/shops/7494088817227368360?commission=10#products"])("retains %s", value => {
     expect(proReturnTo(value)).toBe(value);
   });
 });

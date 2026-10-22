@@ -30,19 +30,22 @@ export async function boundedMP4(response: Response): Promise<Uint8Array> {
   if (!response.ok || !response.body || !['video/mp4','application/octet-stream'].includes(type) || (length !== null && (!/^\d+$/.test(length) || Number(length) > MAX_DOWNLOAD_BYTES))) {
     await response.body?.cancel(); throw new AIError('El archivo no es MP4 o supera el límite de 19 MB.', 422);
   }
-  const chunks: Uint8Array[] = []; let size = 0;
+  // Keep one bounded destination instead of retaining every network chunk and
+  // allocating a second whole-file buffer after the download.
+  const capacity = length === null ? MAX_DOWNLOAD_BYTES : Number(length);
+  const bytes = new Uint8Array(capacity); let size = 0;
   const reader = response.body.getReader();
   try {
     while (true) {
       const { value, done } = await reader.read(); if (done) break;
-      size += value.byteLength;
-      if (size > MAX_DOWNLOAD_BYTES) throw new AIError('El video supera el límite de descarga de 19 MB.', 422);
-      chunks.push(value);
+      const nextSize = size + value.byteLength;
+      if (nextSize > MAX_DOWNLOAD_BYTES) throw new AIError('El video supera el límite de descarga de 19 MB.', 422);
+      if (nextSize > capacity) throw new AIError('El archivo recibido no contiene un MP4 válido.', 422);
+      bytes.set(value, size);
+      size = nextSize;
     }
   } catch (error) { await reader.cancel().catch(() => {}); throw error; }
   finally { reader.releaseLock(); }
-  const bytes = new Uint8Array(size); let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-  if (size < 12 || new TextDecoder().decode(bytes.slice(4,8)) !== 'ftyp' || (length !== null && Number(length) !== size)) throw new AIError('El archivo recibido no contiene un MP4 válido.', 422);
-  return bytes;
+  if (size < 12 || new TextDecoder().decode(bytes.subarray(4,8)) !== 'ftyp' || (length !== null && Number(length) !== size)) throw new AIError('El archivo recibido no contiene un MP4 válido.', 422);
+  return bytes.subarray(0, size);
 }

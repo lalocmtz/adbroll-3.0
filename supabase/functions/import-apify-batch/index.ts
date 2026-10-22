@@ -5,16 +5,18 @@ import { apifyId, boundedMP4, verifiedDownload } from '../_shared/download-contr
 import { storeCatalogPoster } from '../_shared/catalog-posters.ts';
 
 // Import a completed owner-run batch. This endpoint never starts billable runs.
-// Fetch metadata once per 12 records, but hold at most three MP4 transfers at once.
-// A completed group is the resume boundary; unprocessed records stay on the next page.
+// Limit both request work and live media buffers: parallel 19 MB downloads plus
+// Storage request bodies can exceed the Edge Runtime's memory limit.
+export const BATCH_PAGE_SIZE = 3;
+// Each completed record is a resume boundary; unprocessed rows stay on the next page.
 export async function processBatchGroups<T, R extends { status: string }>(
   rows: T[], processItem: (item: T) => Promise<R>, startedAt: number, now = Date.now,
 ): Promise<R[]> {
   const results: R[] = [];
-  for (let index = 0; index < rows.length; index += 3) {
-    const group = await Promise.all(rows.slice(index, index + 3).map(processItem));
-    results.push(...group);
-    if (group.some(row => row.status === 'retry') || now() - startedAt >= 75000) break;
+  for (const row of rows) {
+    const result = await processItem(row);
+    results.push(result);
+    if (result.status === 'retry' || now() - startedAt >= 75000) break;
   }
   return results;
 }
@@ -42,8 +44,8 @@ Deno.serve(async req => {
     const dataset = (await api(`datasets/${datasetId}`)).data;
     const total = dataset?.itemCount;
     if (!Number.isSafeInteger(total) || total < 0 || total > 100000) throw new AIError('El lote tiene un tamaño inválido.', 422);
-    const rows = await api(`datasets/${datasetId}/items?clean=true&offset=${offset}&limit=12`);
-    if (!Array.isArray(rows) || rows.length > 12 || (!rows.length && offset < total)) throw new AIError('El lote no devolvió la página esperada.', 502);
+    const rows = await api(`datasets/${datasetId}/items?clean=true&offset=${offset}&limit=${BATCH_PAGE_SIZE}`);
+    if (!Array.isArray(rows) || rows.length > BATCH_PAGE_SIZE || (!rows.length && offset < total)) throw new AIError('El lote no devolvió la página esperada.', 502);
     const results = await processBatchGroups(rows, async (item: any) => {
       const id = typeof item.id === 'string' && /^\d{15,22}$/.test(item.id) ? item.id : null;
       try {

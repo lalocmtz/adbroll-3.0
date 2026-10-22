@@ -1,533 +1,67 @@
-import { CatalogProductImage } from "@/components/CatalogProductImage";
-import { CatalogHeader, CatalogInfo, CatalogFilterBar } from "@/components/CatalogToolbar";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, ExternalLink, DollarSign, Percent, TrendingUp, ShoppingCart, Users, Star, Heart, Play, Lock, Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { FilterPills } from "@/components/FilterPills";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowUpRight, Lock, PackageSearch, Search, Store, X } from "lucide-react";
+import { CatalogHeader, CatalogInfo } from "@/components/CatalogToolbar";
 import { CompactPagination } from "@/components/CompactPagination";
+import { ProductDiscoveryGrid } from "@/components/ProductDiscoveryGrid";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import { useMarket } from "@/contexts/MarketContext";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { useProOffer } from "@/hooks/useProOffer";
+import { useProductDiscovery } from "@/hooks/useProductDiscovery";
+import { formatReportPeriod } from "@/lib/catalog-period";
+import { DISCOVERY_PAGE_SIZE, discoveryPage, discoverySort, PRODUCT_DISCOVERY_SORTS } from "@/lib/product-discovery";
 
-interface Product {
-  id: string;
-  rank: number | null;
-  producto_nombre: string;
-  imagen_url: string | null;
-  producto_url: string | null;
-  precio_mxn: number | null;
-  price: number | null;
-  commission: number | null;
-  commission_amount: number | null;
-  categoria: string | null;
-  revenue_30d: number | null;
-  total_ingresos_mxn: number | null;
-  sales_7d: number | null;
-  total_ventas: number | null;
-  creators_count: number | null;
-  rating: number | null;
-}
-
-const PLACEHOLDER_IMAGE = "/placeholder.svg";
-const PRODUCTS_PER_PAGE = 20;
-
-const SORT_OPTIONS = [
-  { value: "ranking", label: "Ranking" },
-  { value: "revenue_30d", label: "Ventas" },
-  { value: "commission", label: "Comisión" },
-  { value: "creators_count", label: "Creadores" },
-];
-
-type SortOption = "ranking" | "revenue_30d" | "commission" | "creators_count";
-
-const FREE_PREVIEW_LIMIT = 3;
-
-const Products = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const { isLoggedIn } = useBlurGateContext();
-  const openProOffer = useProOffer();
+export default function Products() {
   const { market, marketLabel } = useMarket();
-  const { language, formatMoney } = useLanguage();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  
-  const [sortBy, setSortBy] = useState<SortOption>("ranking");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [categories, setCategories] = useState<string[]>([]);
-
-  useEffect(() => {
-    fetchProducts();
-    fetchFavorites();
-  }, [market]); // Re-fetch when market changes
-
-  useEffect(() => {
-    applyFiltersAndSort();
-  }, [products, sortBy, categoryFilter]);
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq("market", market) // Filter by market
-        .neq("identity_status", "video_source") // No product metrics until its Kalodata export arrives.
-        .order("rank", { ascending: true, nullsFirst: false });
-
-      if (error) throw error;
-      
-      setProducts(data || []);
-      
-      const uniqueCategories = [...new Set((data || [])
-        .map(p => p.categoria)
-        .filter(Boolean))] as string[];
-      setCategories(uniqueCategories);
-    } catch (error: any) {
-      toast({
-        title: "Error al cargar productos",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchFavorites = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data } = await supabase
-      .from("favorites_products")
-      .select("product_id")
-      .eq("user_id", user.id);
-
-    if (data) {
-      setFavorites(new Set(data.map(f => f.product_id)));
-    }
-  };
-
-  const toggleFavorite = async (productId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast({ title: "Inicia sesión", description: "Debes iniciar sesión para guardar favoritos" });
-      navigate("/login");
-      return;
-    }
-
-    const isFav = favorites.has(productId);
-    
-    try {
-      if (isFav) {
-        const { error } = await supabase
-          .from("favorites_products")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("product_id", productId);
-        if (error) throw error;
-        
-        setFavorites(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(productId);
-          return newSet;
-        });
-        toast({ title: "✓ Eliminado de favoritos" });
-      } else {
-        const product = products.find(p => p.id === productId);
-        const { error } = await supabase
-          .from("favorites_products")
-          .insert({
-            user_id: user.id,
-            product_id: productId,
-            product_data: product || {},
-          });
-        if (error) throw error;
-        
-        setFavorites(prev => new Set([...prev, productId]));
-        toast({ title: "✓ Guardado en favoritos" });
-      }
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    }
-  };
-
-  const applyFiltersAndSort = () => {
-    let result = [...products];
-    
-    // In ranking mode, only show products with rank (latest import)
-    if (sortBy === "ranking") {
-      result = result.filter(p => p.rank !== null);
-    }
-    
-    if (categoryFilter !== "all") {
-      result = result.filter(p => p.categoria === categoryFilter);
-    }
-    
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case "ranking":
-          return (a.rank || 9999) - (b.rank || 9999);
-        case "revenue_30d":
-          return (getRevenue(b) || 0) - (getRevenue(a) || 0);
-        case "commission":
-          return (b.commission || 0) - (a.commission || 0);
-        case "creators_count":
-          return (b.creators_count || 0) - (a.creators_count || 0);
-        default:
-          return 0;
-      }
+  const { isLoggedIn, loading: accessLoading } = useBlurGateContext();
+  const openProOffer = useProOffer();
+  const [params, setParams] = useSearchParams();
+  const query = isLoggedIn ? (params.get("q") || "").slice(0, 300) : "";
+  const sort = isLoggedIn ? discoverySort(params.get("sort")) : "ranking";
+  const category = isLoggedIn ? params.get("category") || "" : "";
+  const hasVideos = isLoggedIn && params.get("videos") === "1";
+  const minimum = Number(params.get("commission"));
+  const minCommission = isLoggedIn && [5, 10, 15, 20].includes(minimum) ? minimum : null;
+  const page = isLoggedIn ? discoveryPage(params.get("page")) : 1;
+  const [draft, setDraft] = useState(query);
+  useEffect(() => setDraft(query), [query]);
+  const { data, loading, error, refetch } = useProductDiscovery({ market, query, sort, category, hasVideos, minCommission, page });
+  const filtered = !!query || !!category || hasVideos || minCommission != null || sort !== "ranking";
+  const update = (key: string, value: string) => {
+    if (accessLoading) return;
+    if (!isLoggedIn) { openProOffer(); return; }
+    setParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (value) next.set(key, value); else next.delete(key);
+      if (key !== "page") next.delete("page");
+      return next;
     });
-    
-    setFilteredProducts(result);
-    setCurrentPage(1);
   };
-
-  const formatCurrency = (num: number | null) => {
-    if (num === null || num === undefined) return "—";
-    if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `$${(num / 1000).toFixed(1)}K`;
-    return new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN",
-      minimumFractionDigits: 0,
-    }).format(num);
-  };
-
-  const formatNumber = (num: number | null) => {
-    if (num === null || num === undefined) return "—";
-    return new Intl.NumberFormat("es-MX").format(Math.round(num));
-  };
-
-  const getRevenue = (product: Product): number | null => {
-    return product.revenue_30d || product.total_ingresos_mxn;
-  };
-
-  const getSales = (product: Product): number | null => {
-    return product.sales_7d || product.total_ventas;
-  };
-
-  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * PRODUCTS_PER_PAGE,
-    currentPage * PRODUCTS_PER_PAGE
-  );
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-[50dvh] flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Cargando productos...</p>
-      </div>
-    );
-  }
-
-
-  return (
-    <div className="min-w-0 w-full pt-2 pb-24 md:pb-6 px-3 md:px-6">
-      <CatalogHeader title="Productos para tus videos" count={`${filteredProducts.length} productos`}>
-        <CatalogInfo>
-          <p className="font-semibold">TikTok Shop {marketLabel}</p>
-          <p>Compara las ventas y comisiones del último reporte importado. Las cifras no son en tiempo real. Los videos relacionados pertenecen al producto exacto.</p>
-        </CatalogInfo>
-      </CatalogHeader>
-      <CatalogFilterBar>
-        <FilterPills compact options={SORT_OPTIONS} value={sortBy} onChange={(v) => {
-          if (!isLoggedIn) { navigate("/pricing"); return; }
-          setSortBy(v as SortOption);
-        }} />
-        {!isLoggedIn ? <Button variant="outline" className="min-h-11 rounded-full text-xs bg-muted/60" onClick={() => navigate("/pricing")}>
-          <Lock className="size-3 mr-1" />Categorías
-        </Button> : <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger aria-label="Categoría de productos" className="w-auto max-w-48 h-11 text-xs rounded-full border-border/50 bg-muted/60">
-            <SelectValue placeholder="Categorías" />
-          </SelectTrigger>
-          <SelectContent><SelectItem value="all">Categorías</SelectItem>
-            {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-          </SelectContent>
-        </Select>}
-      </CatalogFilterBar>
-
-      {filteredProducts.length === 0 ? (
-        <div className="bg-card rounded-xl border border-border px-4 py-8 text-center">
-          <Package className="size-10 text-muted-foreground mb-3 mx-auto" />
-          <p className="text-muted-foreground text-lg">
-            {products.length === 0 
-              ? "No hay productos disponibles."
-              : "No hay productos con estos filtros. Prueba otra categoría."}
-          </p>
-          <Button variant="outline" className="mt-4" onClick={() => products.length ? setCategoryFilter("all") : navigate("/app")}>
-            {products.length ? "Ver todas las categorías" : "Explorar videos"}
-          </Button>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-5 [&>*]:min-w-0">
-            {paginatedProducts.map((product, index) => {
-              const globalIndex = (currentPage - 1) * PRODUCTS_PER_PAGE + index;
-              const displayRank = globalIndex + 1;
-              const isFav = favorites.has(product.id);
-              const isTop5 = displayRank <= 5;
-              const price = product.price || product.precio_mxn || 0;
-              const commissionRate = product.commission;
-              const earningsPerSale = commissionRate == null ? null : price * (commissionRate / 100);
-              const isLocked = !isLoggedIn && globalIndex >= FREE_PREVIEW_LIMIT;
-              
-              if (isLocked) {
-                return (
-                  <div 
-                    key={product.id}
-                    className="relative cursor-pointer group"
-                    onClick={() => {
-                      navigate("/pricing");
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                  >
-                    <div className="blur-[6px] pointer-events-none bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-border/50 dark:border-border p-3 md:p-5 shadow-sm">
-                      {/* Product Image - 1:1 aspect ratio */}
-                      <div className="relative aspect-square bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-4">
-                        <CatalogProductImage src={product.imagen_url} name={product.producto_nombre} />
-                        <span className={`absolute top-2 md:top-3 left-2 md:left-3 text-[11px] md:text-[13px] font-bold px-2 py-0.5 md:py-1 rounded-full shadow-lg ${
-                          isTop5 
-                            ? 'bg-gradient-to-r from-primary to-primary/80 text-white' 
-                            : 'bg-white/95 text-foreground border border-border'
-                        }`}>
-                          #{displayRank} {isTop5 && '🔥'}
-                        </span>
-                      </div>
-                      {/* Content */}
-                      <div className="space-y-2 md:space-y-3">
-                        <h3 className="text-[13px] md:text-[15px] font-semibold text-foreground truncate leading-tight">
-                          {product.producto_nombre}
-                        </h3>
-                        {product.categoria && (
-                          <p className="text-[11px] md:text-[13px] text-muted-foreground truncate">{product.categoria}</p>
-                        )}
-                        <div className="grid grid-cols-2 gap-1.5 md:gap-3">
-                          <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
-                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Ventas en pesos</p>
-                            <p className="text-[11px] md:text-sm font-bold text-foreground">{formatCurrency(getRevenue(product))}</p>
-                          </div>
-                          <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-muted">
-                            <p className="text-[9px] md:text-[11px] text-muted-foreground">Unidades vendidas</p>
-                            <p className="text-[11px] md:text-sm font-bold text-foreground">{formatNumber(getSales(product))}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="absolute inset-0 bg-background/30 flex items-center justify-center rounded-2xl md:rounded-[20px]">
-                      <div className="text-center p-3 md:p-4">
-                        <Lock className="h-9 w-9 md:h-9 md:w-9 mx-auto mb-1.5 md:mb-2 text-muted-foreground" />
-                        <p className="text-xs md:text-sm font-medium text-foreground">Desbloquear</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
-                <div 
-                  key={product.id}
-                  className="bg-white dark:bg-card rounded-2xl md:rounded-[20px] border border-border/50 dark:border-border p-3 md:p-5 shadow-sm hover:shadow-md transition-all duration-300 group"
-                >
-                  {/* Product Image - 1:1 aspect ratio */}
-                  <div className="relative aspect-square bg-muted rounded-xl md:rounded-2xl overflow-hidden mb-2 md:mb-4">
-                    <CatalogProductImage src={product.imagen_url} name={product.producto_nombre} />
-                    
-                    {/* Top bar */}
-                    <div className="absolute top-2 md:top-3 left-2 md:left-3 right-2 md:right-3 z-10 flex items-center justify-between">
-                      <span className={`text-[11px] md:text-[13px] font-bold px-2 py-0.5 md:py-1 rounded-full shadow-lg ${
-                        isTop5 
-                          ? 'bg-gradient-to-r from-primary to-primary/80 text-white' 
-                          : 'bg-white/95 text-foreground border border-border'
-                      }`}>
-                        #{displayRank} {isTop5 && '🔥'}
-                      </span>
-                      
-                      <div className="flex items-center gap-1 md:gap-2">
-                        {product.producto_url && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!isLoggedIn) {
-                                navigate("/pricing");
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                                return;
-                              }
-                              window.open(product.producto_url!, '_blank');
-                            }}
-                            className="h-9 w-9 md:h-9 md:w-9 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5 md:h-[18px] md:w-[18px] text-muted-foreground hover:text-foreground transition-colors" />
-                          </button>
-                        )}
-                        
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!isLoggedIn) {
-                              navigate("/pricing");
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                              return;
-                            }
-                            toggleFavorite(product.id, e);
-                          }}
-                          className="h-9 w-9 md:h-9 md:w-9 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-md hover:bg-white transition-colors"
-                        >
-                          <Heart className={`h-3.5 w-3.5 md:h-[18px] md:w-[18px] transition-colors ${isFav ? 'text-primary fill-primary' : 'text-muted-foreground hover:text-foreground'}`} />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Earnings badge - Only on desktop */}
-                    {earningsPerSale !== null && earningsPerSale > 0 && (
-                      <span className="absolute bottom-2 md:bottom-3 left-2 md:left-3 z-10 bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-md shadow-sm">
-                        💰 {formatCurrency(earningsPerSale)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="space-y-2 md:space-y-4">
-                    <div>
-                      <h3 
-                        className="text-[13px] md:text-[15px] font-semibold text-foreground truncate cursor-help leading-tight"
-                        title={product.producto_nombre}
-                      >
-                        {product.producto_nombre}
-                      </h3>
-                      {product.categoria && (
-                        <p className="text-[11px] md:text-[13px] text-muted-foreground mt-0.5 md:mt-1 truncate">{product.categoria}</p>
-                      )}
-                    </div>
-
-                    {/* Metrics Grid - Compact on mobile */}
-                    <div className="grid grid-cols-2 gap-1.5 md:gap-3">
-                      <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-emerald-50 dark:bg-emerald-950/30">
-                        <div className="hidden md:flex items-center gap-1.5 mb-1">
-                          <TrendingUp className="h-3.5 w-3.5 text-foreground/60" />
-                          <span className="text-[11px] text-muted-foreground">Ventas en pesos</span>
-                        </div>
-                        <p className="text-[9px] md:hidden text-muted-foreground">Ventas en pesos</p>
-                        <p className="text-[11px] md:text-sm font-bold text-foreground">
-                          {formatCurrency(getRevenue(product))}
-                        </p>
-                      </div>
-
-                      <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-muted">
-                        <div className="hidden md:flex items-center gap-1.5 mb-1">
-                          <ShoppingCart className="h-3.5 w-3.5 text-foreground/60" />
-                          <span className="text-[11px] text-muted-foreground">Unidades vendidas</span>
-                        </div>
-                        <p className="text-[9px] md:hidden text-muted-foreground">Unidades vendidas</p>
-                        <p className="text-[11px] md:text-sm font-bold text-foreground">
-                          {formatNumber(getSales(product))}
-                        </p>
-                      </div>
-
-                      {/* Price and Commission - Hidden on mobile */}
-                      <div className="hidden md:block p-3 rounded-xl bg-muted">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <DollarSign className="h-3.5 w-3.5 text-foreground/60" />
-                          <span className="text-[11px] text-muted-foreground">Precio</span>
-                        </div>
-                        <p className="text-sm font-bold text-foreground">
-                          {formatCurrency(price)}
-                        </p>
-                      </div>
-
-                      <div className="hidden md:block p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Percent className="h-3.5 w-3.5 text-foreground/60" />
-                          <span className="text-[11px] text-muted-foreground">Comisión</span>
-                        </div>
-                        <p className="text-sm font-bold text-foreground">
-                          {product.commission == null ? "Sin dato" : `${product.commission}%`}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Creators count - Hidden on mobile */}
-                    {(product.creators_count || 0) > 0 && (
-                      <div className="hidden md:flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                        <Users className="h-3.5 w-3.5 text-foreground/60" />
-                        <span>{product.creators_count} creadores</span>
-                      </div>
-                    )}
-
-                    <Button
-                      className="w-full h-11 text-xs md:text-sm"
-                      onClick={() => {
-                        if (!isLoggedIn) {
-                          navigate("/pricing");
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                          return;
-                        }
-                        navigate(`/videos/product/${product.id}`);
-                      }}
-                    >
-                      <Play className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1 md:mr-1.5" />
-                      Ver videos
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="mt-6">
-              {!isLoggedIn ? (
-                <div 
-                  className="flex items-center justify-center gap-2 opacity-60 cursor-pointer"
-                  onClick={() => {
-                    navigate("/pricing");
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                >
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Ver más productos</span>
-                </div>
-              ) : (
-                <CompactPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              )}
-            </div>
-          )}
-        </>
-      )}
-      
-      {/* Sticky CTA for visitors - Mobile only */}
-      {!isLoggedIn && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-background/95 backdrop-blur-lg border-t border-border md:hidden safe-area-bottom">
-          <Button
-            className="w-full h-12 text-sm font-semibold shadow-lg"
-            onClick={openProOffer}
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Desbloquear acceso completo
-          </Button>
-        </div>
-      )}
+  const pages = Math.ceil((data?.count || 0) / DISCOVERY_PAGE_SIZE);
+  useEffect(() => {
+    if (!loading && !error && data && page > Math.max(1, pages)) setParams(previous => { const next = new URLSearchParams(previous); next.delete("page"); return next; }, { replace: true });
+  }, [loading, error, data, page, pages, setParams]);
+  return <div className="w-full min-w-0 px-3 pb-24 pt-2 md:px-6 md:pb-8">
+    <CatalogHeader title="Encuentra tu próximo producto"><CatalogInfo><p className="font-semibold">TikTok Shop {marketLabel}</p><p>El ranking muestra el último reporte. Una búsqueda también encuentra productos de reportes anteriores y productos identificados en videos.</p><p>Las comisiones son estimaciones calculadas con el precio y la tasa reportados. Los videos disponibles pueden pertenecer a distintos periodos.</p></CatalogInfo></CatalogHeader>
+    <section aria-label="Buscar productos" className="mb-5 mt-3 rounded-2xl border border-primary/15 bg-primary/5 p-4 md:p-5">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2"><div><p className="text-sm font-semibold md:text-base">¿Ya tienes un producto en mente?</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Encuéntralo, compara su comisión y estudia los videos que lo venden.</p></div><Link to="/shops" className="inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-primary hover:underline"><Store className="size-4" />Explorar tiendas<ArrowUpRight className="size-3.5" /></Link></div>
+      <form onSubmit={event => { event.preventDefault(); update("q", draft.trim()); }} className="flex gap-2"><div className="relative min-w-0 flex-1"><Search className="absolute left-3 top-3.5 size-4 text-muted-foreground" aria-hidden="true" /><Input type="search" value={draft} onChange={event => setDraft(event.target.value)} maxLength={300} aria-label="Buscar producto por nombre, enlace o ID" placeholder="Nombre, enlace de producto o ID" className="h-11 border-border bg-background pl-9 text-base md:text-sm" /></div><Button type="submit" disabled={accessLoading} className="h-11 px-4">Buscar</Button></form>
+      <p className="mt-2 text-[11px] text-muted-foreground">Usa el enlace completo de la ficha de TikTok Shop o Kalodata. También puedes buscar por nombre.</p>
+    </section>
+    <div role="group" aria-label="Filtros de productos" className="mb-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+      <Select value={sort} onValueChange={value => update("sort", value)}><SelectTrigger className="h-11 min-w-0 sm:w-44" aria-label="Ordenar productos"><SelectValue /></SelectTrigger><SelectContent>{PRODUCT_DISCOVERY_SORTS.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select>
+      <Select value={category || "all"} onValueChange={value => update("category", value === "all" ? "" : value)}><SelectTrigger className="h-11 min-w-0 sm:w-52" aria-label="Categoría de productos"><SelectValue placeholder="Todas las categorías" /></SelectTrigger><SelectContent><SelectItem value="all">Todas las categorías</SelectItem>{(data?.categories || (category ? [category] : [])).map(item => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select>
+      <Select value={String(minCommission || "all")} onValueChange={value => update("commission", value === "all" ? "" : value)}><SelectTrigger className="h-11 min-w-0 sm:w-44" aria-label="Comisión mínima"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Cualquier comisión</SelectItem>{[5, 10, 15, 20].map(value => <SelectItem key={value} value={String(value)}>Desde {value}%</SelectItem>)}</SelectContent></Select>
+      <Button variant={hasVideos ? "default" : "outline"} className="h-11 min-w-0 whitespace-normal px-2 text-xs leading-tight" aria-pressed={hasVideos} onClick={() => update("videos", hasVideos ? "" : "1")}>Con videos disponibles</Button>
     </div>
-  );
-};
-
-export default Products;
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"><p aria-live="polite" className="min-w-0 [overflow-wrap:anywhere]">{loading ? "Buscando productos…" : data ? `${data.count.toLocaleString("es-MX")} productos${query ? ` para “${query}”` : ""}` : "Catálogo de productos"}</p>{filtered && <Button variant="ghost" size="sm" className="min-h-11 text-xs" onClick={() => setParams({})}><X className="mr-1 size-3.5" />Limpiar filtros</Button>}{!filtered && data?.current_period && <span>Reporte: {formatReportPeriod(data.current_period)}</span>}{filtered && <span>Consulta el periodo en cada producto.</span>}</div>
+    {error ? <div role="alert" className="rounded-xl border border-border bg-card p-8 text-center"><p>{error}</p><Button variant="outline" className="mt-4" onClick={refetch}>Reintentar</Button></div>
+      : loading ? <div role="status" aria-label="Cargando productos" className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, index) => <div key={index} className="h-96 rounded-2xl bg-muted motion-safe:animate-pulse" />)}</div>
+      : data?.rows.length ? <ProductDiscoveryGrid products={data.rows} offset={(page - 1) * DISCOVERY_PAGE_SIZE} />
+      : <div className="rounded-2xl border border-border bg-card p-8 text-center"><PackageSearch className="mx-auto mb-4 size-10 text-primary" /><h2 className="font-semibold">No encontramos productos con esta búsqueda</h2><p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">Prueba con menos palabras, el ID del producto o quita un filtro. Un producto que aún no está en el catálogo no aparecerá aquí.</p><Button variant="outline" className="mt-5" onClick={() => setParams({})}>Ver ranking actual</Button></div>}
+    {pages > 1 && <div className="mt-6">{isLoggedIn ? <CompactPagination currentPage={page} totalPages={pages} onPageChange={value => { update("page", String(value)); window.scrollTo({ top: 0, behavior: "instant" }); }} /> : <Button variant="outline" className="mx-auto flex" onClick={openProOffer}><Lock className="mr-2 size-4" />Desbloquear más productos</Button>}</div>}
+  </div>;
+}

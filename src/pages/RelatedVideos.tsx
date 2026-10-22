@@ -6,13 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronRight, ArrowLeft, Package, DollarSign, ExternalLink, Eye, Loader2, Link2, X } from "lucide-react";
+import { ChevronRight, ArrowLeft, DollarSign, ExternalLink, Eye, Loader2, Link2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useBlurGateContext } from "@/contexts/BlurGateContext";
 import VideoCardOriginal from "@/components/VideoCardOriginal";
 import { FilterPills } from "@/components/FilterPills";
 import { CompactPagination } from "@/components/CompactPagination";
 import { openTikTokLink } from "@/lib/tiktokDeepLink";
+import { CatalogProductImage } from "@/components/CatalogProductImage";
+import { useMarket } from "@/contexts/MarketContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { fetchDiscoveryProduct } from "@/hooks/useProductDiscovery";
+import { type DiscoveryProduct, productCommercialMetrics, productDisplayName, discoveryCount } from "@/lib/product-discovery";
+import { formatReportPeriod } from "@/lib/catalog-period";
 
 // SECURITY: explicit non-premium columns. transcript / variants_json /
 // analysis_json are REVOKEd at the DB level for anon/authenticated, so
@@ -44,6 +50,7 @@ interface Video {
   category: string | null;
   rank: number | null;
   processing_status: string | null;
+  snapshot_date_range?: string | null;
   product?: {
     id: string;
     producto_nombre: string;
@@ -71,14 +78,7 @@ interface CandidateVideo {
   matchedKeywords: string[];
 }
 
-interface ProductInfo {
-  id: string;
-  producto_nombre: string;
-  imagen_url: string | null;
-  total_ingresos_mxn: number | null;
-  rank: number | null;
-  producto_url: string | null;
-}
+type ProductInfo = DiscoveryProduct;
 
 interface CreatorInfo {
   id: string;
@@ -120,11 +120,26 @@ const formatNum = (n: number | null | undefined): string => {
   return n.toString();
 };
 
+function ProductReportMetrics({ product }: { product: DiscoveryProduct }) {
+  const { formatMoney, language } = useLanguage();
+  const metrics = productCommercialMetrics(product);
+  return <div className="mt-4 border-t border-border pt-4">
+    <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="rounded-xl border border-primary/15 bg-primary/5 p-3"><dt className="text-xs text-muted-foreground">Comisión estimada por venta</dt><dd className="mt-1 text-xl font-bold text-primary">{metrics.earnings == null ? "Sin dato" : `≈ ${formatMoney(metrics.earnings)}`}</dd><p className="mt-1 text-[11px] text-muted-foreground">{metrics.commission != null ? `${metrics.commission}% del precio reportado` : "Tasa no reportada"}</p></div>
+      <div className="rounded-xl bg-muted/50 p-3"><dt className="text-xs text-muted-foreground">Ventas del producto</dt><dd className="mt-1 text-lg font-bold tabular-nums">{metrics.revenue == null ? "Sin dato" : formatMoney(metrics.revenue)}</dd><p className="mt-1 text-[11px] text-muted-foreground">En el periodo de su ficha</p></div>
+      <div className="rounded-xl bg-muted/50 p-3"><dt className="text-xs text-muted-foreground">Precio reportado</dt><dd className="mt-1 text-lg font-bold tabular-nums">{metrics.price == null ? "Sin dato" : formatMoney(metrics.price)}</dd><p className="mt-1 text-[11px] text-muted-foreground">{discoveryCount(metrics.sales, language)} unidades reportadas</p></div>
+      <div className="rounded-xl bg-muted/50 p-3"><dt className="text-xs text-muted-foreground">Referencias disponibles</dt><dd className="mt-1 text-lg font-bold tabular-nums">{product.available_video_count} videos</dd><p className="mt-1 text-[11px] text-muted-foreground">{product.analysis_ready_count} con análisis listo</p></div>
+    </dl>
+    <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">La comisión estimada usa el precio y porcentaje del reporte. Confirma las condiciones vigentes del producto antes de promocionarlo.</p>
+  </div>;
+}
+
 const RelatedVideos = () => {
   const { productId, creatorId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isFounder } = useBlurGateContext();
+  const { market } = useMarket();
   
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,7 +171,7 @@ const RelatedVideos = () => {
   useEffect(() => {
     fetchData();
     return () => { requestVersion.current += 1; };
-  }, [productId, creatorId, sortOrder, currentPage]);
+  }, [productId, creatorId, sortOrder, currentPage, market]);
 
   // Load candidate videos when product is available
   useEffect(() => {
@@ -193,13 +208,7 @@ const RelatedVideos = () => {
       };
       
       if (isProductView && productId) {
-        const { data: product, error: productError } = await supabase
-          .from("products")
-          .select("id, producto_nombre, imagen_url, total_ingresos_mxn, rank, producto_url, market, tiktok_product_id")
-          .eq("id", productId)
-          .maybeSingle();
-
-        if (productError) throw productError;
+        const product = await fetchDiscoveryProduct(market, productId);
         if (!product) {
           toast({ title: "Producto no encontrado", variant: "destructive" });
           navigate("/products");
@@ -377,7 +386,7 @@ const RelatedVideos = () => {
         </Link>
         <ChevronRight className="h-3 w-3 shrink-0" />
         <span className="min-w-0 text-foreground truncate">
-          {productInfo?.producto_nombre || creatorInfo?.nombre_completo || creatorInfo?.usuario_creador}
+          {(productInfo && productDisplayName(productInfo.producto_nombre)) || creatorInfo?.nombre_completo || creatorInfo?.usuario_creador}
         </span>
       </div>
 
@@ -385,30 +394,22 @@ const RelatedVideos = () => {
       {isProductView && productInfo && (
         <Card className="min-w-0 p-3 sm:p-4 mb-2 bg-card border-border">
           <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-start gap-3 sm:gap-4 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
-            {productInfo.imagen_url ? (
-              <img src={productInfo.imagen_url} alt={productInfo.producto_nombre} className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-lg object-cover" />
-            ) : (
-              <div className="w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Package className="h-8 w-8 text-primary" />
-              </div>
-            )}
+            <div className="size-20 overflow-hidden rounded-xl sm:size-28"><CatalogProductImage src={productInfo.imagen_url} name={productDisplayName(productInfo.producto_nombre)} /></div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                {productInfo.rank && (
+                {productInfo.rank && productInfo.is_current_report && (
                   <Badge variant="secondary" className="text-xs">
                     #{productInfo.rank} {productInfo.rank <= 5 && '🔥'}
                   </Badge>
                 )}
               </div>
-              <h1 className="text-base sm:text-lg font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug line-clamp-2 text-balance">{productInfo.producto_nombre}</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground flex items-start gap-1">
-                <DollarSign className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                {productInfo.total_ingresos_mxn === null ? 'Todavía no hay cifras del producto en el reporte' : `Ventas del reporte: ${formatCurrency(productInfo.total_ingresos_mxn)}`}
-              </p>
+              <h1 className="text-base sm:text-lg font-bold text-foreground break-words [overflow-wrap:anywhere] leading-snug line-clamp-2 text-balance">{productDisplayName(productInfo.producto_nombre)}</h1>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{productInfo.categoria || "Producto del catálogo"}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{productInfo.report_date_range ? `Reporte: ${formatReportPeriod(productInfo.report_date_range)}` : "Todavía no hay cifras comerciales del producto en el reporte"}</p>
             </div>
             <div className="col-span-2 flex min-w-0 flex-wrap gap-2 lg:col-span-1 lg:justify-end [&>button]:min-h-11">
               {productInfo.producto_url && (
-                <Button variant="outline" size="sm" onClick={() => window.open(productInfo.producto_url!, '_blank')}>
+                <Button variant="outline" size="sm" onClick={() => window.open(productInfo.producto_url!, '_blank', 'noopener,noreferrer')}>
                   <ExternalLink className="h-4 w-4 mr-1.5" />
                   Ver producto
                 </Button>
@@ -427,6 +428,7 @@ const RelatedVideos = () => {
               )}
             </div>
           </div>
+          <ProductReportMetrics product={productInfo} />
           {auditResults && (
             <div className="mt-3 pt-3 border-t border-border">
               <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -480,11 +482,12 @@ const RelatedVideos = () => {
         <FilterPills compact options={SORT_OPTIONS} value={sortOrder} onChange={(v) => { setSortOrder(v); setCurrentPage(1); }} />
         <span className="text-xs tabular-nums text-muted-foreground">{isCreatorView && availableCreatorVideos > 50 ? `Top 50 de ${availableCreatorVideos} videos disponibles` : `${totalVideos} ${totalVideos === 1 ? "video disponible" : "videos disponibles"}`}</span>
         <CatalogInfo>
-          <p className="font-semibold break-words">{productInfo?.producto_nombre || creatorInfo?.nombre_completo || creatorInfo?.usuario_creador}</p>
+          <p className="font-semibold break-words">{(productInfo && productDisplayName(productInfo.producto_nombre)) || creatorInfo?.nombre_completo || creatorInfo?.usuario_creador}</p>
           <p>Videos descargados y vinculados a {isProductView ? "este producto exacto" : "esta cuenta"}. Las métricas corresponden al reporte importado, no son en tiempo real.</p>
           {isCreatorView && <p>Se muestran hasta 50 videos según el orden seleccionado, vinculados por cuenta exacta y del mismo mercado.</p>}
         </CatalogInfo>
       </CatalogFilterBar>
+      {isProductView && videos.length > 0 && <p className="mb-4 text-xs leading-relaxed text-muted-foreground">Videos disponibles de este producto exacto, de distintos reportes. Revisa el periodo de cada video al comparar ventas.</p>}
 
       {/* Linked Videos Grid */}
       {videos.length === 0 ? (
@@ -506,6 +509,7 @@ const RelatedVideos = () => {
             {videos.map((video, index) => (
               <div key={video.id} className="relative min-w-0 group">
                 <VideoCardOriginal video={video} ranking={(currentPage - 1) * ITEMS_PER_PAGE + index + 1} />
+                {isProductView && <p className="px-2 pt-2 text-[11px] leading-relaxed text-muted-foreground">{video.snapshot_date_range ? `Ventas del ${formatReportPeriod(video.snapshot_date_range)}` : "Periodo de ventas no disponible"}</p>}
                 {isFounder && isProductView && (
                   <Button
                     variant="destructive"

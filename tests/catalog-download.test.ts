@@ -23,4 +23,28 @@ describe('catalogue download boundaries',()=>{
     const large = new Uint8Array(MAX_DOWNLOAD_BYTES+1);
     await expect(boundedMP4(new Response(large,{headers:{'content-type':'application/octet-stream'}}))).rejects.toThrow('19 MB');
   });
+  it('copies streamed chunks into a bounded buffer without padding the uploaded body',async()=>{
+    for (const contentLength of [undefined,String(bytes.length)]) {
+      const stream = new ReadableStream<Uint8Array>({start(controller){
+        controller.enqueue(bytes.subarray(0,5));
+        controller.enqueue(bytes.subarray(5,12));
+        controller.enqueue(bytes.subarray(12));
+        controller.close();
+      }});
+      const result = await boundedMP4(new Response(stream,{headers:{
+        'content-type':'video/mp4',...(contentLength ? {'content-length':contentLength} : {}),
+      }}));
+      expect(result).toEqual(bytes);
+      expect(result.byteLength).toBe(16);
+    }
+  });
+  it('cancels an underestimated content-length before reading more data',async()=>{
+    let cancelled=false;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller){controller.enqueue(bytes);},
+      cancel(){cancelled=true;},
+    });
+    await expect(boundedMP4(new Response(stream,{headers:{'content-type':'video/mp4','content-length':'12'}}))).rejects.toThrow('MP4 válido');
+    expect(cancelled).toBe(true);
+  });
 });

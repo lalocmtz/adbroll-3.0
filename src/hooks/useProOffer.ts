@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const contentPath = /^\/(?:app|products|ranking-creadores|creadores|favorites|settings|opportunities|tools|videos\/(?:product|creator)\/[a-zA-Z0-9-]+)$/;
+// Shops use exact Kalodata numeric IDs; do not accept arbitrary nested paths.
+const contentPath = /^\/(?:app|products|shops(?:\/[0-9]+)?|ranking-creadores|creadores|favorites|settings|opportunities|tools|videos\/(?:product|creator)\/[a-zA-Z0-9-]+)$/;
 
 export function proReturnTo(value: unknown): string {
   if (typeof value !== "string" || value.length > 2000 || /[\\\r\n]/.test(value)) return "/app";

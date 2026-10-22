@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   PlayCircle,
   Package,
+  Store,
   Heart,
   Settings,
   HelpCircle,
@@ -53,6 +54,7 @@ const sectionLabels = {
 const exploreItems: NavItem[] = [
   { to: "/app", labelEs: "Videos", labelEn: "Videos", icon: PlayCircle, lockedForVisitor: false },
   { to: "/products", labelEs: "Productos", labelEn: "Products", icon: Package, lockedForVisitor: false },
+  { to: "/shops", labelEs: "Tiendas", labelEn: "Shops", icon: Store, lockedForVisitor: false },
   { to: "/tools", labelEs: "Analizar video", labelEn: "Analyze video", icon: Wand2, lockedForVisitor: false },
   { to: "/ranking-creadores", labelEs: "Ranking de creadores", labelEn: "Creator Rankings", icon: TrendingUp, lockedForVisitor: false },
   { to: "/opportunities", labelEs: "Oportunidades", labelEn: "Opportunities", icon: TrendingUp, lockedForVisitor: false },
@@ -110,7 +112,8 @@ const DashboardSidebar = ({ open, onClose }: DashboardSidebarProps) => {
     handleNavClick();
   };
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path
+    || (path === "/shops" && /^\/shops\/[0-9]+$/.test(location.pathname));
 
   const renderSectionLabel = (labelKey: keyof typeof sectionLabels) => (
     <div className="px-3 pt-4 pb-2">

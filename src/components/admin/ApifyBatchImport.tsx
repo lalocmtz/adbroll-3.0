@@ -32,7 +32,7 @@ export default function ApifyBatchImport() {
         localStorage.setItem(key, String(data.nextOffset));
         if (data.retry) throw new Error('Algunos archivos no se pudieron transferir. Pulsa reanudar para intentar la misma página sin duplicar videos.');
         offset = data.nextOffset;
-        if (data.complete) { setMessage('Lote terminado. Los MP4 válidos ya están publicados en sus productos y creadores.'); break; }
+        if (data.complete) { setMessage('Importación terminada. Los MP4 válidos ya están publicados. Consulta «Preparación de guiones» para seguir los análisis pendientes en segundo plano.'); break; }
       }
     } catch (error: any) { setMessage(error.message); }
     finally { setBusy(false); }
@@ -46,7 +46,7 @@ export default function ApifyBatchImport() {
       <Button disabled={busy || !runId.trim()} onClick={start}>{busy ? 'Importando…' : 'Importar / reanudar lote'}</Button>
       {busy && <Button variant="outline" onClick={() => { stopped.current = true; setMessage('Pausado. Puedes reanudar el lote.'); }}>Pausar</Button>}
     </div>
-    <p className="text-xs text-muted-foreground">No inicia ejecuciones ni analiza con IA. Admite MP4 de hasta 19 MB. Los privados, eliminados o sin archivo se omiten. La importación se puede reanudar.</p>
+    <p className="text-xs text-muted-foreground">No inicia nuevas ejecuciones en Apify. Los videos sin análisis se añaden a la cola de Gemini y se procesan cuando la preparación automática está activa, con sus límites de uso. Admite MP4 de hasta 19 MB. Los privados, eliminados o sin archivo se omiten. La importación se puede reanudar.</p>
     {progress && <p role="status">{progress} · Nuevos: {counts('imported')} · Ya disponibles: {counts('already_available')} · No disponibles: {counts('unavailable')} · Sin ficha en el catálogo: {counts('missing_catalog')}</p>}
     {message && <p className="text-sm" role="status">{message}</p>}
   </Card>;

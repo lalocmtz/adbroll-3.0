@@ -29,6 +29,7 @@ beforeEach(() => {
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   mocks.rpc.mockImplementation(async (name: string) => name === "get_catalog_report_periods"
     ? { data: [{ snapshot_date_range: "2026-09-10~2026-10-09" }, { snapshot_date_range: "2026-10-03~2026-10-09" }], error: null }
+    : name === "search_catalog_products" ? { data: { rows: [{ id: "exact-product-uuid", rank: 1, producto_nombre: "Producto exacto", categoria: "Belleza", commission: null, price: 100, total_ingresos_mxn: 1000, total_ventas: 10, creators_count: 3, available_video_count: 2, analysis_ready_count: 1 }], count: 1, categories: ["Belleza"] }, error: null }
     : name === "get_creator_catalog_ranking" ? { data: { rows: [{ id: "exact-creator-uuid", usuario_creador: "creador_real", creator_handle: "creador_real", nombre_completo: "Creador real", revenue_videos: null, total_ingresos_mxn: 900000, seguidores: 0, available_video_count: 7 }] }, error: null }
     : { data: { rows: [{ id: "v1", title: "Referencia real" }], count: 41 }, error: null });
 });

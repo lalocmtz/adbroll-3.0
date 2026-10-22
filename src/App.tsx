@@ -19,6 +19,8 @@ const Register = lazy(() => import("./pages/Register"));
 const Unlock = lazy(() => import("./pages/Unlock"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Products = lazy(() => import("./pages/Products"));
+const Shops = lazy(() => import("./pages/Shops"));
+const ShopDetail = lazy(() => import("./pages/ShopDetail"));
 const Creators = lazy(() => import("./pages/Creators"));
 const Favorites = lazy(() => import("./pages/Favorites"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -210,6 +212,22 @@ const App = () => {
                     element={
                       <AppRoute session={session}>
                         <Products />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/shops"
+                    element={
+                      <AppRoute session={session}>
+                        <Shops />
+                      </AppRoute>
+                    }
+                  />
+                  <Route
+                    path="/shops/:shopId"
+                    element={
+                      <AppRoute session={session}>
+                        <ShopDetail />
                       </AppRoute>
                     }
                   />
