@@ -2,7 +2,27 @@
 
 Periodo comercial: **21 de septiembre a 20 de octubre de 2026**, México. Los nombres de los cuatro Excel tienen fecha 22 de octubre; se utilizó el periodo que contienen, no la fecha del nombre.
 
-## Publicación realizada
+## Ampliación publicada el 21 de octubre
+
+El buscador y la sección de tiendas están publicados en **https://tokxray.com/products** y **https://tokxray.com/shops**. Versión de producción: `135e785743dbd94429a75a04a2456e3deede511a`.
+
+- Búsqueda por nombre, ID o enlace de producto, paginación en servidor, categoría, comisión mínima, disponibilidad de videos y ordenación.
+- Ranking de 100 tiendas. Se descargaron los mejores productos de las 20 primeras: **379 relaciones verificadas**, hasta 20 productos por tienda según disponibilidad. La tienda y la marca no se equiparan por nombre.
+- Ficha de producto con comisión estimada, ventas, periodo, videos y análisis disponibles. Las cifras ausentes aparecen como desconocidas; no se inventan posiciones de ranking.
+- Exportaciones dirigidas de los **74 productos del Top 100 con menos de cinco referencias**: 740 observaciones de video. Se conservaron dos asignaciones previas a otro producto; hay 738 asociaciones exactas aplicadas.
+- Importación adicional: **536 identidades de video nuevas**, **248 fichas de producto nuevas** y 17 fichas incompletas completadas. Se conservan las métricas globales, archivos, análisis y asignaciones manuales anteriores.
+
+Las 94 exportaciones dirigidas quedaron archivadas por ID, periodo y SHA256 en `kalodata_targeted_report_rows`, sin acceso público al archivo original. Los rankings y ventas de estos archivos parciales no sustituyen las métricas de un ranking global.
+
+El lote inicial de 822 archivos terminó con **735 MP4 adicionales disponibles y 87 exclusiones**. Apify confirmó 81 publicaciones privadas/no encontradas; las otras seis exclusiones no tienen causa confirmada. Costo registrado: **USD 2.384**.
+
+De las 740 observaciones dirigidas, 177 MP4 ya estaban almacenados y siete enlaces ya se habían intentado en el primer lote. Se inició un segundo lote de **556 archivos faltantes**, run `0GJXxYPXxQCSl8A8Z`, dataset `P0eh4GXpVn9p8Mt31`, conservando el límite de USD 4.40. Su resultado final y la cola de análisis se registran en `outputs/2026-10-21/STATUS.md`; no confundir descarga terminada con análisis terminado.
+
+Validación de esta ampliación: 133 comprobaciones SQL, 17 pruebas de importación de archivos y 98 pruebas de interfaz, TypeScript y compilación. Cada lote de datos dirigidos se ensayó con ROLLBACK y se aplicó con comprobaciones de preservación. Se verificó la interfaz publicada en escritorio y móvil.
+
+## Diagnóstico inicial y primera publicación (antes de la ampliación)
+
+Las secciones siguientes conservan el diagnóstico de partida. Sus pendientes de tiendas, buscador y descargas fueron atendidos en la ampliación anterior; no describen el estado actual.
 
 | Archivo | Filas | Nuevas | Actualizadas | Estado |
 | --- | ---: | ---: | ---: | --- |
